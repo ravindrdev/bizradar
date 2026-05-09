@@ -1,0 +1,100 @@
+1. Chicago Marriott Downtown Magnificent Mile, 540 N Michigan Ave, Chicago, IL 60611
+2. New York Hilton Midtown, 1335 Avenue of the Americas, New York, NY 10019
+3. Best Western Plus Tucson International Airport, 6801 S Tucson Blvd, Tucson, AZ 85706
+4. Hampton Inn Nashville-Downtown, 310 4th Ave S, Nashville, TN 37201
+5. Motel 6 Los Angeles LAX, 5101 W Century Blvd, Los Angeles, CA 90045
+6. Olive Garden Italian Restaurant, 8694 International Dr, Orlando, FL 32819
+7. Chili's Grill & Bar, 10300 N Central Expy, Dallas, TX 75231
+8. Red Lobster, 2970 Cobb Pkwy SE, Atlanta, GA 30339
+9. IHOP, 1201 Westlake Ave N, Seattle, WA 98109
+10. Applebee's Grill + Bar, 7221 W Bell Rd, Peoria, AZ 85382
+11. McDonald's, 2920 Kirby Dr, Houston, TX 77098
+12. Subway, 200 State St, Boston, MA 02109
+13. Panera Bread, 1450 Larimer St, Denver, CO 80202
+14. Dunkin', 1600 Market St, Philadelphia, PA 19103
+15. Chipotle Mexican Grill, 610 SW Broadway, Portland, OR 97205
+16. Aspen Dental, 4400 Sharon Rd, Charlotte, NC 28211
+17. Austin Dental Care, 3006 Bee Caves Rd, Austin, TX 78746
+18. Biscayne Orthodontics, 12955 Biscayne Blvd, North Miami, FL 33181
+19. Pacific Pediatric Dentistry, 3760 Convoy St, San Diego, CA 92111
+20. Midwest Dental, 825 Nicollet Mall, Minneapolis, MN 55402
+21. Jiffy Lube, 2000 Arden Way, Sacramento, CA 95825
+22. Midas, 4000 Carnegie Ave, Cleveland, OH 44103
+23. Firestone Complete Auto Care, 4732 N Dale Mabry Hwy, Tampa, FL 33614
+24. Village Auto Service, 23777 Michigan Ave, Dearborn, MI 48124
+25. Big O Tires, 3820 S Decatur Blvd, Las Vegas, NV 89103
+26. Orangetheory Fitness, 189 Flatbush Ave, Brooklyn, NY 11217
+27. CrossFit Austin, 4616 Triangle Ave, Austin, TX 78751
+28. CorePower Yoga, 1750 Powell St, San Francisco, CA 94133
+29. Pure Barre, 3925 W 50th St, Edina, MN 55424
+30. Title Boxing Club, 1 E Superior St, Chicago, IL 60611
+31. Target, 900 Nicollet Mall, Minneapolis, MN 55403
+32. Walmart Supercenter, 3465 Hickory Hill Rd, Memphis, TN 38115
+33. Powell's Books, 1005 W Burnside St, Portland, OR 97209
+34. PetSmart, 2460 Wyoming Blvd NE, Albuquerque, NM 87112
+35. REI Co-op, 3285 E 3300 S, Salt Lake City, UT 84109
+36. Perkins Coie LLP, 1201 3rd Ave, Seattle, WA 98101
+37. Deloitte, 200 Berkeley St, Boston, MA 02116
+38. SXSW Office, 1400 Lavaca St, Austin, TX 78701
+39. Randstad, 1360 Peachtree St NE, Atlanta, GA 30309
+40. McKinsey & Company, 1700 Lincoln St, Denver, CO 80203
+41. Roto-Rooter Plumbing, 4233 SE 82nd Ave, Portland, OR 97266
+42. Parker & Sons Electrical, 3636 E Anne St, Phoenix, AZ 85040
+43. Westside Roofing, 3400 Carlisle St, Dallas, TX 75204
+44. ARS Rescue Rooter HVAC, 615 Mainstream Dr, Nashville, TN 37228
+45. Moss Construction, 2101 NW Corporate Blvd, Boca Raton, FL 33431
+46. Kumon Math and Reading Center, 10001 Westheimer Rd, Houston, TX 77042
+47. America's Best Driving School, 6 E Monroe St, Chicago, IL 60603
+48. Blair School of Music, 2400 Blakemore Ave, Nashville, TN 37212
+49. General Assembly, 225 Bush St, San Francisco, CA 94104
+50. Wake Technical Community College, 9101 Fayetteville Rd, Raleigh, NC 27603
+51. Nail Salon NYC, 315 W 57th St, New York, NY 10019
+52. Art + Autonomy Barbershop, 672 Fulton St, Brooklyn, NY 11217
+53. Massage Envy, 1605 17th St, Denver, CO 80202
+54. Saguaro Salon and Med Spa, 7119 E Shea Blvd, Scottsdale, AZ 85254
+55. Nine Zero One Salon, 9001 Melrose Ave, West Hollywood, CA 90069
+56. NextCare Urgent Care, 3802 E Indian School Rd, Phoenix, AZ 85018
+57. Sports Medicine and Physical Therapy, 375 Longwood Ave, Boston, MA 02215
+58. The Joint Chiropractic, 1545 Market St, Denver, CO 80202
+59. Portland Vision Center, 1501 NE Medical Center Dr, Portland, OR 97227
+60. Sound Mental Health, 1600 E Olive St, Seattle, WA 98122
+61. Breckenridge Brewery, 2920 Blake St, Denver, CO 80205
+62. Inglenook Winery, 1991 St Helena Hwy, Rutherford, CA 94573
+63. Juan in a Million Food Truck, 2300 E Cesar Chavez St, Austin, TX 78702
+64. Limelight Catering, 213 W Institute Pl, Chicago, IL 60610
+65. Jeni's Splendid Ice Creams, 1892 Eastland Ave, Nashville, TN 37206
+66. Kuper Sotheby's International Realty, 3838 Oak Lawn Ave, Dallas, TX 75219
+67. Allstate Insurance, 111 E Wacker Dr, Chicago, IL 60601
+68. CrossCountry Mortgage, 100 SE 2nd St, Miami, FL 33131
+69. Raymond James Financial, 600 Atlantic Ave, Boston, MA 02210
+70. Greystar Real Estate, 1600 Glenarm Pl, Denver, CO 80202
+71. Escape Artistry, 161 N Clark St, Chicago, IL 60601
+72. Bowlero Nashville, 2710 Franklin Pike, Nashville, TN 37204
+73. Putt-Putt Fun Center, 5825 Visitors Circle, Orlando, FL 32819
+74. Urban Air Trampoline and Adventure Park, 4848 Hwy 121, Lewisville, TX 75056
+75. BLADE PDX Axe Throwing, 712 NW 11th Ave, Portland, OR 97209
+76. Merry Maids, 1720 Peachtree St NW, Atlanta, GA 30309
+77. TruGreen Lawn Care, 2415 W Camelback Rd, Phoenix, AZ 85015
+78. Two Men and a Truck, 4201 W Belmont Ave, Chicago, IL 60641
+79. CubeSmart Self Storage, 9090 Katy Fwy, Houston, TX 77024
+80. Insight Global Staffing, 200 State St, Boston, MA 02109
+81. Sauvie Island Farms, 16901 NW Sauvie Island Rd, Portland, OR 97231
+82. Odell Brewing Company, 800 E Lincoln Ave, Fort Collins, CO 80524
+83. Benziger Family Winery, 1883 London Ranch Rd, Glen Ellen, CA 95442
+84. HOPE Farmers Market, 72 Rainey St, Austin, TX 78701
+85. Sassy Cow Creamery, 1225 N Farm Rd, Columbus, WI 53925
+86. Austin Veterinary Emergency, 4106 N Lamar Blvd, Austin, TX 78756
+87. Scenthound Dog Grooming, 4107 Stone Way N, Seattle, WA 98103
+88. All Creatures Animal Hospital, 2700 S Colorado Blvd, Denver, CO 80222
+89. VCA Animal Hospital, 9100 SW 87th Ave, Miami, FL 33176
+90. Chicago Dog Training, 3032 N Lincoln Ave, Chicago, IL 60657
+91. The Barn at Sycamore Farms, 7031 Crow Cut Rd, Arrington, TN 37014
+92. Bold Catering and Design, 6750 Commerce St, Dallas, TX 75226
+93. CE Rentals Party Supplies, 4343 N Ravenswood Ave, Chicago, IL 60640
+94. EmpireCLS Worldwide Chauffeured Services, 3900 W Alameda Ave, Burbank, CA 91505
+95. New Orleans Tours, 400 Toulouse St, New Orleans, LA 70130
+96. Ntooitive Digital IT Support, 501 Congress Ave, Austin, TX 78701
+97. Instrument Web Design, 419 NW 23rd Ave, Portland, OR 97210
+98. Caitlin Cannon Photography, 1205 McGavock St, Nashville, TN 37203
+99. Cutaway Video Production, 1243 W Randolph St, Chicago, IL 60607
+100. Pentagram Graphic Design, 204 5th Ave, New York, NY 10010

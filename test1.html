@@ -1,0 +1,119 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>BizRadar report</title>
+<style>
+body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 760px; margin: 2em auto; padding: 0 1em; color: #222; }
+h1 { font-size: 1.4em; margin-bottom: 0.2em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
+.status { padding: 0.4em 0.8em; display: inline-block; border-radius: 4px; font-weight: 600; }
+.status.healthy { background: #d4edda; color: #155724; }
+.status.good { background: #fff3cd; color: #856404; }
+.status.needs { background: #f8d7da; color: #721c24; }
+.status.blocked { background: #f5c6cb; color: #721c24; }
+.rec { border-left: 3px solid #888; padding: 0.4em 0.8em; margin: 0.6em 0; background: #fafafa; }
+.rec h3 { margin: 0 0 0.3em 0; font-size: 1em; }
+/* BATCH16 — impact-label color coding */
+.rec-high { border-left-color: #1b7c3a; background: #eaf5ec; }
+.rec-medium { border-left-color: #1a5fa8; background: #ecf2fa; }
+.rec-low { border-left-color: #555; background: #f3f3f3; }
+.rec-minimal { border-left-color: #aaa; background: #f8f8f8; opacity: 0.85; }
+.impact { display: inline-block; font-size: 0.75em; padding: 0.1em 0.5em; border-radius: 3px; font-weight: 700; letter-spacing: 0.04em; vertical-align: middle; }
+.impact-high { background: #1b7c3a; color: #fff; }
+.impact-medium { background: #1a5fa8; color: #fff; }
+.impact-low { background: #777; color: #fff; }
+.impact-minimal { background: #bbb; color: #333; }
+/* BATCH14 — 3-layer rec rendering */
+.layer { margin: 0.5em 0; }
+.layer-label { display: inline-block; font-weight: 700; font-size: 0.78em; letter-spacing: 0.05em; color: #444; padding: 0.1em 0.4em; background: #fff; border: 1px solid #ddd; border-radius: 3px; margin-right: 0.4em; vertical-align: middle; }
+.why-study { padding: 0.4em 0.6em; margin: 0.3em 0; background: #fff; border: 1px solid #e3e3e3; border-radius: 3px; }
+.why-study p { margin: 0.2em 0; }
+.honesty { padding: 0.3em 0.6em; margin: 0.25em 0; border-left: 3px solid #888; background: #fff; font-size: 0.92em; }
+.honesty-verified { border-color: #1b7c3a; background: #f1f9f4; }
+.honesty-reasonable-inference { border-color: #1a5fa8; background: #f0f5fa; }
+.honesty-customer-must-validate { border-color: #b07a00; background: #fdf6e8; }
+.hmark { font-size: 0.78em; font-weight: 700; letter-spacing: 0.04em; color: #444; }
+.tier3 { font-size: 0.75em; color: #b07a00; }
+.extra-tag { display: inline-block; font-size: 0.72em; font-weight: 700; padding: 0.1em 0.5em; border-radius: 3px; vertical-align: middle; margin-left: 0.2em; }
+.extra-tag-hidden { background: #b32430; color: #fff; }
+.extra-tag-known { background: #999; color: #fff; }
+.money { padding: 0.4em 0.6em; margin: 0.4em 0; background: #f5fbf5; border-left: 3px solid #1b7c3a; font-size: 0.92em; }
+.money-skip { color: #888; font-size: 0.85em; }
+/* BATCH16 — Common Problems Detected */
+.problem { padding: 0.5em 0.8em; margin: 0.5em 0; background: #fff; border: 1px solid #eaeaea; border-radius: 4px; }
+.problem h3 { margin: 0 0 0.3em 0; font-size: 1em; }
+.coverage { border-collapse: collapse; width: 100%; font-size: 0.92em; margin: 0.5em 0; }
+.coverage td { padding: 0.4em 0.6em; vertical-align: top; border-bottom: 1px solid #eee; }
+.coverage td:first-child { width: 38%; color: #444; }
+.classification-reason { font-size: 0.82em; margin-top: -0.2em; color: #666; }
+.meta { color: #666; font-size: 0.85em; }
+.flag { padding: 0.4em 0.8em; margin: 0.4em 0; border-left: 3px solid #856404; background: #fff3cd; }
+.flag.critical { border-color: #721c24; background: #f8d7da; }
+.cite { font-size: 0.85em; color: #555; margin-top: 0.4em; }
+ul { padding-left: 1.4em; }
+.back { display: inline-block; margin-bottom: 1em; }
+small { color: #888; }
+</style></head><body><a class="back" href="/">&larr; new search</a>
+<h1>AmericInn by Wyndham Dodgeville</h1>
+<p class="meta">3637 WI-23, Dodgeville, WI 53533, USA<br>
+Hotels, motels, B&amp;Bs, RV parks, and traveler accommodation — NAICS 721110<br>
+Layer 0: <code>brand_chain</code> · confidence HIGH <small>(chain: Wyndham)</small></p>
+<div class="status good">GOOD with 2 gaps</div>
+
+
+<h2>Strengths</h2><ul><li>354 reviews &gt; 100</li></ul>
+<h2>Competitive context</h2>
+<p>19 same-type competitors within 5 miles.<br>
+Your rating: <strong>4.2</strong> vs local median: <strong>4.2</strong> <small>(+0.0)</small><br>
+Your reviews: <strong>354</strong> vs local median: <strong>15</strong> <small>(+339)</small></p>
+<p class="meta">Top-rated nearby competitors:</p><ul><li>Governor Dodge Group Campsite A — 5.0★ (2 reviews) · 4.6 mi</li><li>Governor Dodge Backpack Campsites — 5.0★ (1 reviews) · 4.4 mi</li><li>Cox Hollow Campground — 4.7★ (3 reviews) · 2.2 mi</li></ul>
+<h2>Location &amp; market</h2>
+<p>Area median household income: <strong>$76,250</strong><br>
+Local population (ZIP 53533): <strong>7,397</strong><br>Average household size: <strong>2.31</strong></p>
+<p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) — study S037.</p>
+<h2>Operations &amp; brand</h2><p>hours fully listed (7 days) · open now · website loads · owner-response rate (sample): 0%</p>
+<h2>Priority actions — top 10</h2><p class="meta">Of these 2 actions, focus on the 1 HIGH IMPACT item first. Lower-impact items are worth doing once the high-impact ones are handled.</p><div class="rec rec-high">
+<h3>1. <span class="impact impact-high">HIGH IMPACT</span>  · rec_response_rate <small>(score 1.00)</small></h3>
+<div class="layer layer-what"><span class="layer-label">WHAT:</span> Hotels responding to &gt;40% of reviews see RevPAR lift; diminishing returns above 65%. Target band: 40-60%.</div>
+<div class="layer layer-why"><span class="layer-label">WHY IT WORKS:</span>
+<div class="why-study">
+<p>Response-rate to reviews has a non-linear effect: lift between 0-40%, plateau 40-65%, diminishing returns above. Optimal response budget targets 40-60%.</p>
+<p class="meta"><strong>Magnitude:</strong> 1-3% RevPAR per 10pp lift in response rate<br>
+<strong>Source:</strong> <a href="https://hospitality.cornell.edu/research/" target="_blank" rel="noopener">S004</a> (Tier 1) — Anderson, C. K., et al. (2014). Online Reviews and Hotel Performance. Cornell Center for Hospitality Research.</p>
+</div>
+</div>
+<div class="layer layer-business"><span class="layer-label">WHY YOUR BUSINESS:</span>
+<div class="honesty honesty-verified"><span class="hmark">[VERIFIED]</span> Your <code>response_rate_estimated</code> is 0% (trigger fired below 40%).</div><div class="honesty honesty-reasonable-inference"><span class="hmark">[REASONABLE INFERENCE]</span> This pattern is typical for businesses like yours; the exact lift you'll see depends on execution quality and current baseline.</div>
+</div>
+<div class="money">
+<strong>Money estimate: $43,500–$130,500/year</strong><br>
+<span class="meta">Math: $800,000–$5,000,000 sector baseline → midpoint $2,900,000 × size multiplier (354 reviews → large (×1.5)) = $4,350,000 estimated annual revenue. Apply 1–3% cited study magnitude → $43,500–$130,500/year.</span><br>
+<em class="meta">Sector averages used. Track RevPAR (revenue per available room) monthly to measure your actual lift.</em>
+</div>
+<p class="meta">Score breakdown: magnitude 1.00 × evidence 1.00 × ease 1.00</p>
+</div><div class="rec rec-low">
+<h3>2. <span class="impact impact-low">LOW IMPACT</span> <span class="extra-tag extra-tag-known">KNOWN ISSUE — common in your market</span> · rec_engagement <small>(score 0.30)</small></h3><p class="meta classification-reason">competitors&#39; median rating is 4.2 (also below benchmark 4.5)</p>
+<div class="layer layer-what"><span class="layer-label">WHAT:</span> Engaging with reviews moves RevPAR; 1pp lift in good-ratings share -&gt; 1.4% RevPAR.</div>
+<div class="layer layer-why"><span class="layer-label">WHY IT WORKS:</span>
+<div class="why-study">
+<p>Engaging with reviews (responding to good and bad) measurably moves RevPAR. 1pp lift in good-rating share → ~1.4% RevPAR.</p>
+<p class="meta"><strong>Magnitude:</strong> 1.4% RevPAR per pp good-ratings share<br>
+<strong>Source:</strong> <a href="https://hospitality.cornell.edu/research/" target="_blank" rel="noopener">S003</a> (Tier 1) — Anderson, C. K. &amp; Han, S. (2017). Hotel Performance Impact of Socially Engaging with Consumers. Cornell Hospitality Report, 17(5).</p>
+</div>
+</div>
+<div class="layer layer-business"><span class="layer-label">WHY YOUR BUSINESS:</span>
+<div class="honesty honesty-verified"><span class="hmark">[VERIFIED]</span> Your <code>google_rating</code> is 4.2 (trigger fired below 4.5).</div><div class="honesty honesty-verified"><span class="hmark">[VERIFIED]</span> Your <code>google_review_count</code> is 354 (trigger fired above 50).</div><div class="honesty honesty-reasonable-inference"><span class="hmark">[REASONABLE INFERENCE]</span> This pattern is typical for businesses like yours; the exact lift you'll see depends on execution quality and current baseline.</div>
+</div>
+
+<p class="meta">Score breakdown: magnitude 0.30 × evidence 1.00 × ease 1.00</p>
+</div>
+<h2>What your customers are saying — common problems detected</h2><p>No recurring complaints detected in your last 5 reviews. Review content looks healthy.</p>
+<h2>What we analyzed — 7 signal categories</h2>
+<table class="coverage">
+  <tr><td><strong>C1 Online Presence</strong></td><td>rating 4.2, 354 reviews, recency 95d, owner-response 0% — actions: #1, #2</td></tr>
+  <tr><td><strong>C2 Location &amp; Market</strong></td><td>median income $76,250, pop 7,397 (ZIP 53533), avg household 2.31</td></tr>
+  <tr><td><strong>C3 Competition</strong></td><td>19 competitors within 5 mi, median 4.2★, median 15 reviews</td></tr>
+  <tr><td><strong>C4 Demand</strong></td><td>data pending Phase 5 (Google Trends + seasonality + local events)</td></tr>
+  <tr><td><strong>C5 Operations</strong></td><td>hours: complete (7 days), website: loads, open now</td></tr>
+  <tr><td><strong>C6 Brand</strong></td><td>data pending Phase 5 (Lighthouse page-speed + mobile-friendly + social signals)</td></tr>
+  <tr><td><strong>C7 Risk &amp; Compliance</strong></td><td>1 sector compliance note applied</td></tr>
+</table>
+<h2>Citations</h2><ul><li><strong>S004</strong> (Tier 1): Anderson, C. K., et al. (2014). Online Reviews and Hotel Performance. Cornell Center for Hospitality Research.</li><li><strong>S003</strong> (Tier 1): Anderson, C. K. &amp; Han, S. (2017). Hotel Performance Impact of Socially Engaging with Consumers. Cornell Hospitality Report, 17(5).</li></ul><p class="meta"><small>Generated 2026-05-07T17:47:48.391Z</small></p></body></html>

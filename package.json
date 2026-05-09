@@ -1,0 +1,20 @@
+{
+  "name": "bizradar",
+  "version": "0.1.0",
+  "description": "BizRadar — small business audit tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonc-parser": "^3.3.1"
+  }
+}

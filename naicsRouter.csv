@@ -1,0 +1,1025 @@
+naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
+111110,Soybean Farming,11,agriculture.crop_farming,high,naics4_rule
+111120,Oilseed (except Soybean) Farming,11,agriculture.crop_farming,high,naics4_rule
+111130,Dry Pea and Bean Farming,11,agriculture.crop_farming,high,naics4_rule
+111140,Wheat Farming,11,agriculture.crop_farming,high,naics4_rule
+111150,Corn Farming,11,agriculture.crop_farming,high,naics4_rule
+111160,Rice Farming,11,agriculture.crop_farming,high,naics4_rule
+111191,Oilseed and Grain Combination Farming,11,agriculture.crop_farming,high,naics4_rule
+111199,All Other Grain Farming,11,agriculture.crop_farming,high,naics4_rule
+111211,Potato Farming,11,agriculture.crop_farming,high,naics4_rule
+111219,Other Vegetable (except Potato) and Melon Farming,11,agriculture.crop_farming,high,naics4_rule
+111310,Orange Groves,11,agriculture.crop_farming,high,naics4_rule
+111320,Citrus (except Orange) Groves,11,agriculture.crop_farming,high,naics4_rule
+111331,Apple Orchards,11,agriculture.crop_farming,high,naics4_rule
+111332,Grape Vineyards,11,agriculture.crop_farming,high,naics4_rule
+111333,Strawberry Farming,11,agriculture.crop_farming,high,naics4_rule
+111334,Berry (except Strawberry) Farming,11,agriculture.crop_farming,high,naics4_rule
+111335,Tree Nut Farming,11,agriculture.crop_farming,high,naics4_rule
+111336,Fruit and Tree Nut Combination Farming,11,agriculture.crop_farming,high,naics4_rule
+111339,Other Noncitrus Fruit Farming,11,agriculture.crop_farming,high,naics4_rule
+111411,Mushroom Production,11,agriculture.crop_farming,high,naics4_rule
+111419,Other Food Crops Grown Under Cover,11,agriculture.crop_farming,high,naics4_rule
+111421,Nursery and Tree Production,11,agriculture.crop_farming,high,naics4_rule
+111422,Floriculture Production,11,agriculture.crop_farming,high,naics4_rule
+111910,Tobacco Farming,11,agriculture.crop_farming,high,naics4_rule
+111920,Cotton Farming,11,agriculture.crop_farming,high,naics4_rule
+111930,Sugarcane Farming,11,agriculture.crop_farming,high,naics4_rule
+111940,Hay Farming,11,agriculture.crop_farming,high,naics4_rule
+111991,Sugar Beet Farming,11,agriculture.crop_farming,high,naics4_rule
+111992,Peanut Farming,11,agriculture.crop_farming,high,naics4_rule
+111998,All Other Miscellaneous Crop Farming,11,agriculture.crop_farming,high,naics4_rule
+112111,Beef Cattle Ranching and Farming,11,agriculture.livestock,high,naics4_rule
+112112,Cattle Feedlots,11,agriculture.livestock,high,naics4_rule
+112120,Dairy Cattle and Milk Production,11,agriculture.livestock,high,naics4_rule
+112130,Dual-Purpose Cattle Ranching and Farming,11,agriculture.livestock,high,naics4_rule
+112210,Hog and Pig Farming,11,agriculture.livestock,high,naics4_rule
+112310,Chicken Egg Production,11,agriculture.livestock,high,naics4_rule
+112320,Broilers and Other Meat Type Chicken Production,11,agriculture.livestock,high,naics4_rule
+112330,Turkey Production,11,agriculture.livestock,high,naics4_rule
+112340,Poultry Hatcheries,11,agriculture.livestock,high,naics4_rule
+112390,Other Poultry Production,11,agriculture.livestock,high,naics4_rule
+112410,Sheep Farming,11,agriculture.livestock,high,naics4_rule
+112420,Goat Farming,11,agriculture.livestock,high,naics4_rule
+112511,Finfish Farming and Fish Hatcheries,11,agriculture.livestock,high,naics4_rule
+112512,Shellfish Farming,11,agriculture.livestock,high,naics4_rule
+112519,Other Aquaculture,11,agriculture.livestock,high,naics4_rule
+112910,Apiculture,11,agriculture.livestock,high,naics4_rule
+112920,Horses and Other Equine Production,11,agriculture.livestock,high,naics4_rule
+112930,Fur-Bearing Animal and Rabbit Production,11,agriculture.livestock,high,naics4_rule
+112990,All Other Animal Production,11,agriculture.livestock,high,naics4_rule
+113110,Timber Tract Operations,11,agriculture.forestry_logging,high,naics4_rule
+113210,Forest Nurseries and Gathering of Forest Products,11,agriculture.forestry_logging,high,naics4_rule
+113310,Logging,11,agriculture.forestry_logging,high,naics4_rule
+114111,Finfish Fishing,11,agriculture.forestry_logging,high,naics4_rule
+114112,Shellfish Fishing,11,agriculture.forestry_logging,high,naics4_rule
+114119,Other Marine Fishing,11,agriculture.forestry_logging,high,naics4_rule
+114210,Hunting and Trapping,11,agriculture.forestry_logging,high,naics4_rule
+115111,Cotton Ginning,11,agriculture.support_services,high,naics4_rule
+115112,"Soil Preparation, Planting, and Cultivating",11,agriculture.support_services,high,naics4_rule
+115113,"Crop Harvesting, Primarily by Machine",11,agriculture.support_services,high,naics4_rule
+115114,Postharvest Crop Activities (except Cotton Ginning),11,agriculture.support_services,high,naics4_rule
+115115,Farm Labor Contractors and Crew Leaders,11,agriculture.support_services,high,naics4_rule
+115116,Farm Management Services,11,agriculture.support_services,high,naics4_rule
+115210,Support Activities for Animal Production,11,agriculture.support_services,high,naics4_rule
+115310,Support Activities for Forestry,11,agriculture.support_services,high,naics4_rule
+# Session 6 OOS reroute: mining.oil_gas (oil/gas extraction) — sector 21 is OOS-by-spec per classifier (B2B/heavy-industry; no local-discovery surface).
+211120,Crude Petroleum Extraction,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+211130,Natural Gas Extraction,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+# Session 6 OOS reroute: mining.aggregates_quarrying — sector 21 OOS; B2B mining with no consumer surface.
+212114,Surface Coal Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212115,Underground Coal Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212210,Iron Ore Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212220,Gold Ore and Silver Ore Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212230,"Copper, Nickel, Lead, and Zinc Mining",21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212290,Other Metal Ore Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212311,Dimension Stone Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212312,Crushed and Broken Limestone Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212313,Crushed and Broken Granite Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212319,Other Crushed and Broken Stone Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212321,Construction Sand and Gravel Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212322,Industrial Sand Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212323,"Kaolin, Clay, and Ceramic and Refractory Minerals Mining",21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+212390,Other Nonmetallic Mineral Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+213111,Drilling Oil and Gas Wells,21,mining.support_services,high,naics4_rule
+213112,Support Activities for Oil and Gas Operations,21,mining.support_services,high,naics4_rule
+213113,Support Activities for Coal Mining,21,mining.support_services,high,naics4_rule
+213114,Support Activities for Metal Mining,21,mining.support_services,high,naics4_rule
+213115,Support Activities for Nonmetallic Minerals (except Fuels) Mining,21,mining.support_services,high,naics4_rule
+# Session 6 OOS reroute: utilities.electric — sector 22 is OOS-by-spec (regulated utilities; not BizRadar customer base).
+221111,Hydroelectric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221112,Fossil Fuel Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221113,Nuclear Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221114,Solar Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221115,Wind Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221116,Geothermal Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221117,Biomass Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221118,Other Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221121,Electric Bulk Power Transmission and Control,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221122,Electric Power Distribution,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+# Session 6 OOS reroute: utilities.gas — sector 22 OOS regulated utility.
+221210,Natural Gas Distribution,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+# Session 6 OOS reroute: utilities.water_sewage — sector 22 OOS regulated utility.
+221310,Water Supply and Irrigation Systems,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221320,Sewage Treatment Facilities,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+221330,Steam and Air-Conditioning Supply,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+236115,New Single-Family Housing Construction (except For-Sale Builders),23,construction.residential_trades,high,naics6_override
+236116,New Multifamily Housing Construction (except For-Sale Builders),23,construction.residential_trades,high,naics6_override
+236117,New Housing For-Sale Builders,23,construction.residential_trades,high,naics6_override
+236118,Residential Remodelers,23,construction.residential_trades,high,naics6_override
+236210,Industrial Building Construction,23,construction.commercial_gc,high,naics6_override
+236220,Commercial and Institutional Building Construction,23,construction.commercial_gc,high,naics6_override
+237110,Water and Sewer Line and Related Structures Construction,23,construction.civil_heavy,high,naics4_rule
+237120,Oil and Gas Pipeline and Related Structures Construction,23,construction.civil_heavy,high,naics4_rule
+237130,Power and Communication Line and Related Structures Construction,23,construction.civil_heavy,high,naics4_rule
+237210,Land Subdivision,23,construction.civil_heavy,high,naics4_rule
+237310,"Highway, Street, and Bridge Construction",23,construction.civil_heavy,high,naics4_rule
+237990,Other Heavy and Civil Engineering Construction,23,construction.civil_heavy,high,naics4_rule
+238110,Poured Concrete Foundation and Structure Contractors,23,construction.residential_trades,high,naics4_rule
+238120,Structural Steel and Precast Concrete Contractors,23,construction.residential_trades,high,naics4_rule
+238130,Framing Contractors,23,construction.residential_trades,high,naics4_rule
+238140,Masonry Contractors,23,construction.residential_trades,high,naics4_rule
+238150,Glass and Glazing Contractors,23,construction.residential_trades,high,naics4_rule
+238160,Roofing Contractors,23,construction.residential_trades,high,naics4_rule
+238170,Siding Contractors,23,construction.residential_trades,high,naics4_rule
+238190,"Other Foundation, Structure, and Building Exterior Contractors",23,construction.residential_trades,high,naics4_rule
+238210,Electrical Contractors and Other Wiring Installation Contractors,23,construction.residential_trades,high,naics4_rule
+238220,"Plumbing, Heating, and Air-Conditioning Contractors",23,construction.residential_trades,high,naics4_rule
+238290,Other Building Equipment Contractors,23,construction.residential_trades,high,naics4_rule
+238310,Drywall and Insulation Contractors,23,construction.residential_trades,high,naics4_rule
+238320,Painting and Wall Covering Contractors,23,construction.residential_trades,high,naics4_rule
+238330,Flooring Contractors,23,construction.residential_trades,high,naics4_rule
+238340,Tile and Terrazzo Contractors,23,construction.residential_trades,high,naics4_rule
+238350,Finish Carpentry Contractors,23,construction.residential_trades,high,naics4_rule
+238390,Other Building Finishing Contractors,23,construction.residential_trades,high,naics4_rule
+238910,Site Preparation Contractors,23,construction.residential_trades,high,naics4_rule
+238990,All Other Specialty Trade Contractors,23,construction.residential_trades,high,naics4_rule
+311111,Dog and Cat Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311119,Other Animal Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311211,Flour Milling,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311212,Rice Milling,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311213,Malt Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311221,Wet Corn Milling and Starch Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311224,Soybean and Other Oilseed Processing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311225,Fats and Oils Refining and Blending,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311230,Breakfast Cereal Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311313,Beet Sugar Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311314,Cane Sugar Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311340,Nonchocolate Confectionery Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311351,Chocolate and Confectionery Manufacturing from Cacao Beans,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311352,Confectionery Manufacturing from Purchased Chocolate,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311411,"Frozen Fruit, Juice, and Vegetable Manufacturing",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311412,Frozen Specialty Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311421,Fruit and Vegetable Canning,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311422,Specialty Canning,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311423,Dried and Dehydrated Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311511,Fluid Milk Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311512,Creamery Butter Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311513,Cheese Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311514,"Dry, Condensed, and Evaporated Dairy Product Manufacturing",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311520,Ice Cream and Frozen Dessert Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311611,Animal (except Poultry) Slaughtering,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311612,Meat Processed from Carcasses,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311613,Rendering and Meat Byproduct Processing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311615,Poultry Processing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311710,Seafood Product Preparation and Packaging,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311811,Retail Bakeries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311812,Commercial Bakeries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311813,"Frozen Cakes, Pies, and Other Pastries Manufacturing",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311821,Cookie and Cracker Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311824,"Dry Pasta, Dough, and Flour Mixes Manufacturing from Purchased Flour",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311830,Tortilla Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311911,Roasted Nuts and Peanut Butter Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311919,Other Snack Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311920,Coffee and Tea Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics6_override
+311930,Flavoring Syrup and Concentrate Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311941,"Mayonnaise, Dressing, and Other Prepared Sauce Manufacturing",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311942,Spice and Extract Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311991,Perishable Prepared Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311999,All Other Miscellaneous Food Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312111,Soft Drink Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312112,Bottled Water Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312113,Ice Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312120,Breweries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312130,Wineries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312140,Distilleries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312230,Tobacco Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+313110,"Fiber, Yarn, and Thread Mills",31-33,manufacturing.textile_apparel,high,naics4_rule
+313210,Broadwoven Fabric Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+313220,Narrow Fabric Mills and Schiffli Machine Embroidery,31-33,manufacturing.textile_apparel,high,naics4_rule
+313230,Nonwoven Fabric Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+313240,Knit Fabric Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+313310,Textile and Fabric Finishing Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+313320,Fabric Coating Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+314110,Carpet and Rug Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+314120,Curtain and Linen Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+314910,Textile Bag and Canvas Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+314994,"Rope, Cordage, Twine, Tire Cord, and Tire Fabric Mills",31-33,manufacturing.textile_apparel,high,naics4_rule
+314999,All Other Miscellaneous Textile Product Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+315120,Apparel Knitting Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
+315210,Cut and Sew Apparel Contractors,31-33,manufacturing.textile_apparel,high,naics4_rule
+315250,Cut and Sew Apparel Manufacturing (except Contractors),31-33,manufacturing.textile_apparel,high,naics4_rule
+315990,Apparel Accessories and Other Apparel Manufacturing,31-33,manufacturing.textile_apparel,high,naics4_rule
+316110,Leather and Hide Tanning and Finishing,31-33,manufacturing.textile_apparel,high,naics4_rule
+316210,Footwear Manufacturing,31-33,manufacturing.textile_apparel,high,naics4_rule
+316990,Other Leather and Allied Product Manufacturing,31-33,manufacturing.textile_apparel,high,naics4_rule
+321113,Sawmills,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321114,Wood Preservation,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321211,Hardwood Veneer and Plywood Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321212,Softwood Veneer and Plywood Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321215,Engineered Wood Member Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321219,Reconstituted Wood Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321911,Wood Window and Door Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321912,"Cut Stock, Resawing Lumber, and Planing",31-33,manufacturing.wood_paper_print,high,naics4_rule
+321918,Other Millwork (including Flooring),31-33,manufacturing.wood_paper_print,high,naics4_rule
+321920,Wood Container and Pallet Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321991,Manufactured Home (Mobile Home) Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321992,Prefabricated Wood Building Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+321999,All Other Miscellaneous Wood Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322110,Pulp Mills,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322120,Paper Mills,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322130,Paperboard Mills,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322211,Corrugated and Solid Fiber Box Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322212,Folding Paperboard Box Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322219,Other Paperboard Container Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322220,Paper Bag and Coated and Treated Paper Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322230,Stationery Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322291,Sanitary Paper Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+322299,All Other Converted Paper Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+323111,Commercial Printing (except Screen and Books),31-33,manufacturing.wood_paper_print,high,naics4_rule
+323113,Commercial Screen Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+323117,Books Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+323120,Support Activities for Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
+324110,Petroleum Refineries,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+324121,Asphalt Paving Mixture and Block Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+324122,Asphalt Shingle and Coating Materials Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+324191,Petroleum Lubricating Oil and Grease Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+324199,All Other Petroleum and Coal Products Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325110,Petrochemical Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325120,Industrial Gas Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325130,Synthetic Dye and Pigment Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325180,Other Basic Inorganic Chemical Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325193,Ethyl Alcohol Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325194,"Cyclic Crude, Intermediate, and Gum and Wood Chemical Manufacturing",31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325199,All Other Basic Organic Chemical Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325211,Plastics Material and Resin Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325212,Synthetic Rubber Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325220,Artificial and Synthetic Fibers and Filaments Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325311,Nitrogenous Fertilizer Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325312,Phosphatic Fertilizer Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325314,Fertilizer (Mixing Only) Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325315,Compost Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325320,Pesticide and Other Agricultural Chemical Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325411,Medicinal and Botanical Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+325412,Pharmaceutical Preparation Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+325413,In-Vitro Diagnostic Substance Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+325414,Biological Product (except Diagnostic) Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+325510,Paint and Coating Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325520,Adhesive Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325611,Soap and Other Detergent Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325612,Polish and Other Sanitation Good Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325613,Surface Active Agent Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325620,Toilet Preparation Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325910,Printing Ink Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325920,Explosives Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325991,Custom Compounding of Purchased Resins,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325992,"Photographic Film, Paper, Plate, Chemical, and Copy Toner Manufacturing",31-33,manufacturing.chemical_petroleum,high,naics4_rule
+325998,All Other Miscellaneous Chemical Product and Preparation Manufacturing,31-33,manufacturing.chemical_petroleum,high,naics4_rule
+326111,Plastics Bag and Pouch Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326112,Plastics Packaging Film and Sheet (including Laminated) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326113,Unlaminated Plastics Film and Sheet (except Packaging) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326121,Unlaminated Plastics Profile Shape Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326122,Plastics Pipe and Pipe Fitting Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326130,"Laminated Plastics Plate, Sheet (except Packaging), and Shape Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+326140,Polystyrene Foam Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326150,Urethane and Other Foam Product (except Polystyrene) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326160,Plastics Bottle Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326191,Plastics Plumbing Fixture Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326199,All Other Plastics Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326211,Tire Manufacturing (except Retreading),31-33,manufacturing.industrial_b2b,high,naics4_rule
+326212,Tire Retreading,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326220,Rubber and Plastics Hoses and Belting Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326291,Rubber Product Manufacturing for Mechanical Use,31-33,manufacturing.industrial_b2b,high,naics4_rule
+326299,All Other Rubber Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327110,"Pottery, Ceramics, and Plumbing Fixture Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+327120,Clay Building Material and Refractories Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327211,Flat Glass Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327212,Other Pressed and Blown Glass and Glassware Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327213,Glass Container Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327215,Glass Product Manufacturing Made of Purchased Glass,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327310,Cement Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327320,Ready-Mix Concrete Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327331,Concrete Block and Brick Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327332,Concrete Pipe Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327390,Other Concrete Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327410,Lime Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327420,Gypsum Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327910,Abrasive Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327991,Cut Stone and Stone Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327992,Ground or Treated Mineral and Earth Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327993,Mineral Wool Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+327999,All Other Miscellaneous Nonmetallic Mineral Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331110,Iron and Steel Mills and Ferroalloy Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331210,Iron and Steel Pipe and Tube Manufacturing from Purchased Steel,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331221,Rolled Steel Shape Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331222,Steel Wire Drawing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331313,Alumina Refining and Primary Aluminum Production,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331314,Secondary Smelting and Alloying of Aluminum,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331315,"Aluminum Sheet, Plate, and Foil Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+331318,"Other Aluminum Rolling, Drawing, and Extruding",31-33,manufacturing.industrial_b2b,high,naics4_rule
+331410,Nonferrous Metal (except Aluminum) Smelting and Refining,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331420,"Copper Rolling, Drawing, Extruding, and Alloying",31-33,manufacturing.industrial_b2b,high,naics4_rule
+331491,"Nonferrous Metal (except Copper and Aluminum) Rolling, Drawing, and Extruding",31-33,manufacturing.industrial_b2b,high,naics4_rule
+331492,"Secondary Smelting, Refining, and Alloying of Nonferrous Metal (except Copper and Aluminum)",31-33,manufacturing.industrial_b2b,high,naics4_rule
+331511,Iron Foundries,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331512,Steel Investment Foundries,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331513,Steel Foundries (except Investment),31-33,manufacturing.industrial_b2b,high,naics4_rule
+331523,Nonferrous Metal Die-Casting Foundries,31-33,manufacturing.industrial_b2b,high,naics4_rule
+331524,Aluminum Foundries (except Die-Casting),31-33,manufacturing.industrial_b2b,high,naics4_rule
+331529,Other Nonferrous Metal Foundries (except Die-Casting),31-33,manufacturing.industrial_b2b,high,naics4_rule
+332111,Iron and Steel Forging,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332112,Nonferrous Forging,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332114,Custom Roll Forming,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332117,Powder Metallurgy Part Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332119,"Metal Crown, Closure, and Other Metal Stamping (except Automotive)",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332215,"Metal Kitchen Cookware, Utensil, Cutlery, and Flatware (except Precious) Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332216,Saw Blade and Handtool Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332311,Prefabricated Metal Building and Component Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332312,Fabricated Structural Metal Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332313,Plate Work Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332321,Metal Window and Door Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332322,Sheet Metal Work Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332323,Ornamental and Architectural Metal Work Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332410,Power Boiler and Heat Exchanger Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332420,Metal Tank (Heavy Gauge) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332431,Metal Can Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332439,Other Metal Container Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332510,Hardware Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332613,Spring Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332618,Other Fabricated Wire Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332710,Machine Shops,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332721,Precision Turned Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332722,"Bolt, Nut, Screw, Rivet, and Washer Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332811,Metal Heat Treating,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332812,"Metal Coating, Engraving (except Jewelry and Silverware), and Allied Services to Manufacturers",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332813,"Electroplating, Plating, Polishing, Anodizing, and Coloring",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332911,Industrial Valve Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332912,Fluid Power Valve and Hose Fitting Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332913,Plumbing Fixture Fitting and Trim Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332919,Other Metal Valve and Pipe Fitting Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332991,Ball and Roller Bearing Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332992,Small Arms Ammunition Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332993,Ammunition (except Small Arms) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332994,"Small Arms, Ordnance, and Ordnance Accessories Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+332996,Fabricated Pipe and Pipe Fitting Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+332999,All Other Miscellaneous Fabricated Metal Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333111,Farm Machinery and Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333112,Lawn and Garden Tractor and Home Lawn and Garden Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333120,Construction Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333131,Mining Machinery and Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333132,Oil and Gas Field Machinery and Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333241,Food Product Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333242,Semiconductor Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333243,"Sawmill, Woodworking, and Paper Machinery Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333248,All Other Industrial Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333310,Commercial and Service Industry Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333413,Industrial and Commercial Fan and Blower and Air Purification Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333414,Heating Equipment (except Warm Air Furnaces) Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333415,Air-Conditioning and Warm Air Heating Equipment and Commercial and Industrial Refrigeration Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333511,Industrial Mold Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333514,"Special Die and Tool, Die Set, Jig, and Fixture Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333515,Cutting Tool and Machine Tool Accessory Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333517,Machine Tool Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333519,Rolling Mill and Other Metalworking Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333611,Turbine and Turbine Generator Set Units Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333612,"Speed Changer, Industrial High-Speed Drive, and Gear Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333613,Mechanical Power Transmission Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333618,Other Engine Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333912,Air and Gas Compressor Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333914,"Measuring, Dispensing, and Other Pumping Equipment Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333921,Elevator and Moving Stairway Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333922,Conveyor and Conveying Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333923,"Overhead Traveling Crane, Hoist, and Monorail System Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333924,"Industrial Truck, Tractor, Trailer, and Stacker Machinery Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+333991,Power-Driven Handtool Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333992,Welding and Soldering Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333993,Packaging Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333994,Industrial Process Furnace and Oven Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333995,Fluid Power Cylinder and Actuator Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333996,Fluid Power Pump and Motor Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+333998,All Other Miscellaneous General Purpose Machinery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+334111,Electronic Computer Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334112,Computer Storage Device Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334118,Computer Terminal and Other Computer Peripheral Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334210,Telephone Apparatus Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334220,Radio and Television Broadcasting and Wireless Communications Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334290,Other Communications Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334310,Audio and Video Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+334412,Bare Printed Circuit Board Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334413,Semiconductor and Related Device Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334416,"Capacitor, Resistor, Coil, Transformer, and Other Inductor Manufacturing",31-33,manufacturing.advanced_regulated,high,naics4_rule
+334417,Electronic Connector Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334418,Printed Circuit Assembly (Electronic Assembly) Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334419,Other Electronic Component Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334510,Electromedical and Electrotherapeutic Apparatus Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334511,"Search, Detection, Navigation, Guidance, Aeronautical, and Nautical System and Instrument Manufacturing",31-33,manufacturing.advanced_regulated,high,naics4_rule
+334512,"Automatic Environmental Control Manufacturing for Residential, Commercial, and Appliance Use",31-33,manufacturing.advanced_regulated,high,naics4_rule
+334513,"Instruments and Related Products Manufacturing for Measuring, Displaying, and Controlling Industrial Process Variables",31-33,manufacturing.advanced_regulated,high,naics4_rule
+334514,Totalizing Fluid Meter and Counting Device Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334515,Instrument Manufacturing for Measuring and Testing Electricity and Electrical Signals,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334516,Analytical Laboratory Instrument Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334517,Irradiation Apparatus Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334519,Other Measuring and Controlling Device Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+334610,Manufacturing and Reproducing Magnetic and Optical Media,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335131,Residential Electric Lighting Fixture Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335132,"Commercial, Industrial, and Institutional Electric Lighting Fixture Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+335139,Electric Lamp Bulb and Other Lighting Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335210,Small Electrical Appliance Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335220,Major Household Appliance Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335311,"Power, Distribution, and Specialty Transformer Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+335312,Motor and Generator Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335313,Switchgear and Switchboard Apparatus Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335314,Relay and Industrial Control Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335910,Battery Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335921,Fiber Optic Cable Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335929,Other Communication and Energy Wire Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335931,Current-Carrying Wiring Device Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335932,Noncurrent-Carrying Wiring Device Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335991,Carbon and Graphite Product Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+335999,All Other Miscellaneous Electrical Equipment and Component Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336110,Automobile and Light Duty Motor Vehicle Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336120,Heavy Duty Truck Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336211,Motor Vehicle Body Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336212,Truck Trailer Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336213,Motor Home Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336214,Travel Trailer and Camper Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336310,Motor Vehicle Gasoline Engine and Engine Parts Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336320,Motor Vehicle Electrical and Electronic Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336330,Motor Vehicle Steering and Suspension Components (except Spring) Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336340,Motor Vehicle Brake System Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336350,Motor Vehicle Transmission and Power Train Parts Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336360,Motor Vehicle Seating and Interior Trim Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336370,Motor Vehicle Metal Stamping,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336390,Other Motor Vehicle Parts Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336411,Aircraft Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336412,Aircraft Engine and Engine Parts Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336413,Other Aircraft Parts and Auxiliary Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336414,Guided Missile and Space Vehicle Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336415,Guided Missile and Space Vehicle Propulsion Unit and Propulsion Unit Parts Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336419,Other Guided Missile and Space Vehicle Parts and Auxiliary Equipment Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336510,Railroad Rolling Stock Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+336611,Ship Building and Repairing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336612,Boat Building,31-33,manufacturing.industrial_b2b,high,naics4_rule
+336991,"Motorcycle, Bicycle, and Parts Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+336992,"Military Armored Vehicle, Tank, and Tank Component Manufacturing",31-33,manufacturing.industrial_b2b,high,naics4_rule
+336999,All Other Transportation Equipment Manufacturing,31-33,manufacturing.industrial_b2b,high,naics4_rule
+337110,Wood Kitchen Cabinet and Countertop Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337121,Upholstered Household Furniture Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337122,Nonupholstered Wood Household Furniture Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337126,Household Furniture (except Wood and Upholstered) Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337127,Institutional Furniture Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337211,Wood Office Furniture Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337212,Custom Architectural Woodwork and Millwork Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337214,Office Furniture (except Wood) Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337215,"Showcase, Partition, Shelving, and Locker Manufacturing",31-33,manufacturing.furniture_misc,high,naics4_rule
+337910,Mattress Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+337920,Blind and Shade Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339112,Surgical and Medical Instrument Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+339113,Surgical Appliance and Supplies Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+339114,Dental Equipment and Supplies Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+339115,Ophthalmic Goods Manufacturing,31-33,manufacturing.advanced_regulated,high,naics4_rule
+339116,Dental Laboratories,31-33,manufacturing.advanced_regulated,high,naics4_rule
+339910,Jewelry and Silverware Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339920,Sporting and Athletic Goods Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339930,"Doll, Toy, and Game Manufacturing",31-33,manufacturing.furniture_misc,high,naics4_rule
+339940,Office Supplies (except Paper) Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339950,Sign Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339991,"Gasket, Packing, and Sealing Device Manufacturing",31-33,manufacturing.furniture_misc,high,naics4_rule
+339992,Musical Instrument Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339993,"Fastener, Button, Needle, and Pin Manufacturing",31-33,manufacturing.furniture_misc,high,naics4_rule
+339994,"Broom, Brush, and Mop Manufacturing",31-33,manufacturing.furniture_misc,high,naics4_rule
+339995,Burial Casket Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+339999,All Other Miscellaneous Manufacturing,31-33,manufacturing.furniture_misc,high,naics4_rule
+423110,Automobile and Other Motor Vehicle Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423120,Motor Vehicle Supplies and New Parts Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423130,Tire and Tube Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423140,Motor Vehicle Parts (Used) Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423210,Furniture Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423220,Home Furnishing Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423310,"Lumber, Plywood, Millwork, and Wood Panel Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423320,"Brick, Stone, and Related Construction Material Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423330,"Roofing, Siding, and Insulation Material Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423390,Other Construction Material Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423410,Photographic Equipment and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423420,Office Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423430,Computer and Computer Peripheral Equipment and Software Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423440,Other Commercial Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423450,"Medical, Dental, and Hospital Equipment and Supplies Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423460,Ophthalmic Goods Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423490,Other Professional Equipment and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423510,Metal Service Centers and Other Metal Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423520,Coal and Other Mineral and Ore Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423610,"Electrical Apparatus and Equipment, Wiring Supplies, and Related Equipment Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423620,"Household Appliances, Electric Housewares, and Consumer Electronics Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423690,Other Electronic Parts and Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423710,Hardware Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423720,Plumbing and Heating Equipment and Supplies (Hydronics) Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423730,Warm Air Heating and Air-Conditioning Equipment and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423740,Refrigeration Equipment and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423810,Construction and Mining (except Oil Well) Machinery and Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423820,Farm and Garden Machinery and Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423830,Industrial Machinery and Equipment Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423840,Industrial Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423850,Service Establishment Equipment and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423860,Transportation Equipment and Supplies (except Motor Vehicle) Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423910,Sporting and Recreational Goods and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423920,Toy and Hobby Goods and Supplies Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423930,Recyclable Material Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+423940,"Jewelry, Watch, Precious Stone, and Precious Metal Merchant Wholesalers",42,wholesale.durable_goods,high,naics4_rule
+423990,Other Miscellaneous Durable Goods Merchant Wholesalers,42,wholesale.durable_goods,high,naics4_rule
+424110,Printing and Writing Paper Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424120,Stationery and Office Supplies Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424130,Industrial and Personal Service Paper Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424210,Drugs and Druggists' Sundries Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424310,"Piece Goods, Notions, and Other Dry Goods Merchant Wholesalers",42,wholesale.nondurable_food_grocery,high,naics4_rule
+424340,Footwear Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424350,Clothing and Clothing Accessories Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424410,General Line Grocery Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424420,Packaged Frozen Food Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424430,Dairy Product (except Dried or Canned) Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424440,Poultry and Poultry Product Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424450,Confectionery Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424460,Fish and Seafood Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424470,Meat and Meat Product Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424480,Fresh Fruit and Vegetable Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424490,Other Grocery and Related Products Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424510,Grain and Field Bean Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424520,Livestock Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424590,Other Farm Product Raw Material Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424610,Plastics Materials and Basic Forms and Shapes Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424690,Other Chemical and Allied Products Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424710,Petroleum Bulk Stations and Terminals,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424720,Petroleum and Petroleum Products Merchant Wholesalers (except Bulk Stations and Terminals),42,wholesale.nondurable_food_grocery,high,naics4_rule
+424810,Beer and Ale Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424820,Wine and Distilled Alcoholic Beverage Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424910,Farm Supplies Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424920,"Book, Periodical, and Newspaper Merchant Wholesalers",42,wholesale.nondurable_food_grocery,high,naics4_rule
+424930,"Flower, Nursery Stock, and Florists' Supplies Merchant Wholesalers",42,wholesale.nondurable_food_grocery,high,naics4_rule
+424940,Tobacco Product and Electronic Cigarette Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+424950,"Paint, Varnish, and Supplies Merchant Wholesalers",42,wholesale.nondurable_food_grocery,high,naics4_rule
+424990,Other Miscellaneous Nondurable Goods Merchant Wholesalers,42,wholesale.nondurable_food_grocery,high,naics4_rule
+425120,Wholesale Trade Agents and Brokers,42,wholesale.durable_goods,high,naics4_rule
+441110,New Car Dealers,44-45,retail.auto_dealers,high,naics6_override
+441120,Used Car Dealers,44-45,retail.auto_dealers,high,naics6_override
+441210,Recreational Vehicle Dealers,44-45,retail.auto_dealers,high,naics6_override
+441222,Boat Dealers,44-45,retail.auto_dealers,high,naics6_override
+441227,"Motorcycle, ATV, and All Other Motor Vehicle Dealers",44-45,retail.auto_dealers,high,naics6_override
+441330,Automotive Parts and Accessories Retailers,44-45,retail.auto_dealers,high,naics6_override
+441340,Tire Dealers,44-45,retail.auto_dealers,high,naics4_rule
+444110,Home Centers,44-45,retail.building_home,high,naics4_rule
+444120,Paint and Wallpaper Retailers,44-45,retail.building_home,high,naics4_rule
+444140,Hardware Retailers,44-45,retail.building_home,high,naics4_rule
+444180,Other Building Material Dealers,44-45,retail.building_home,high,naics4_rule
+444230,Outdoor Power Equipment Retailers,44-45,retail.building_home,high,naics4_rule
+444240,"Nursery, Garden Center, and Farm Supply Retailers",44-45,retail.building_home,high,naics4_rule
+445110,Supermarkets and Other Grocery Retailers (except Convenience Retailers),44-45,retail.grocery_food,high,naics4_rule
+445131,Convenience Retailers,44-45,retail.grocery_food,high,naics4_rule
+445132,Vending Machine Operators,44-45,retail.grocery_food,high,naics4_rule
+445230,Fruit and Vegetable Retailers,44-45,retail.grocery_food,high,naics4_rule
+445240,Meat Retailers,44-45,retail.grocery_food,high,naics4_rule
+445250,Fish and Seafood Retailers,44-45,retail.grocery_food,high,naics4_rule
+445291,Baked Goods Retailers,44-45,retail.grocery_food,high,naics4_rule
+445292,Confectionery and Nut Retailers,44-45,retail.grocery_food,high,naics4_rule
+445298,All Other Specialty Food Retailers,44-45,retail.grocery_food,high,naics4_rule
+445320,"Beer, Wine, and Liquor Retailers",44-45,retail.grocery_food,high,naics4_rule
+449110,Furniture Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+449121,Floor Covering Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+449122,Window Treatment Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+449129,All Other Home Furnishings Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+449210,Electronics and Appliance Retailers,44-45,retail.building_home,high,naics4_rule
+455110,Department Stores,44-45,retail.fuel_general_misc,high,naics4_rule
+455211,Warehouse Clubs and Supercenters,44-45,retail.specialty_brick_mortar,high,naics4_rule
+455219,All Other General Merchandise Retailers,44-45,retail.fuel_general_misc,high,naics4_rule
+# Phase 2 OOS override: 456110 (Pharmacies) routed to retail.specialty_brick_mortar by default but reclassified OUT_OF_SCOPE_REGULATED — DEA + state pharmacy-board oversight require a regulated-retail sub-profile.
+456110,Pharmacies and Drug Retailers,44-45,OUT_OF_SCOPE_REGULATED,high,phase2_oos_override
+456120,"Cosmetics, Beauty Supplies, and Perfume Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+# Phase 2 OOS override: 456130 (Optical) routed to retail.specialty_brick_mortar by default but reclassified OUT_OF_SCOPE_REGULATED — opticians/optometrists have state licensing outside the baseline retail profile.
+456130,Optical Goods Retailers,44-45,OUT_OF_SCOPE_REGULATED,high,phase2_oos_override
+456191,Food (Health) Supplement Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+456199,All Other Health and Personal Care Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+457110,Gasoline Stations with Convenience Stores,44-45,retail.fuel_general_misc,high,naics4_rule
+457120,Other Gasoline Stations,44-45,retail.fuel_general_misc,high,naics4_rule
+457210,Fuel Dealers,44-45,retail.fuel_general_misc,high,naics4_rule
+458110,Clothing and Clothing Accessories Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+458210,Shoe Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+458310,Jewelry Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+458320,Luggage and Leather Goods Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459110,Sporting Goods Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459120,"Hobby, Toy, and Game Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+459130,"Sewing, Needlework, and Piece Goods Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+459140,Musical Instrument and Supplies Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459210,Book Retailers and News Dealers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459310,Florists,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459410,Office Supplies and Stationery Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459420,"Gift, Novelty, and Souvenir Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+459510,Used Merchandise Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459910,Pet and Pet Supplies Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+459920,Art Dealers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+# Phase 2 OOS override: 459930 (Manufactured Home Dealers) routed to retail.specialty_brick_mortar by default but reclassified OUT_OF_SCOPE_NICHE — large-ticket lot-based mobile-home sales share no operational dynamics with specialty brick-and-mortar retail.
+459930,Manufactured (Mobile) Home Dealers,44-45,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
+459991,"Tobacco, Electronic Cigarette, and Other Smoking Supplies Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+459999,All Other Miscellaneous Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+481111,Scheduled Passenger Air Transportation,48-49,transportation.passenger,high,naics4_rule
+481112,Scheduled Freight Air Transportation,48-49,transportation.passenger,high,naics4_rule
+481211,Nonscheduled Chartered Passenger Air Transportation,48-49,transportation.passenger,high,naics4_rule
+481212,Nonscheduled Chartered Freight Air Transportation,48-49,transportation.passenger,high,naics4_rule
+481219,Other Nonscheduled Air Transportation,48-49,transportation.passenger,high,naics4_rule
+482111,Line-Haul Railroads,48-49,transportation.passenger,high,naics4_rule
+482112,Short Line Railroads,48-49,transportation.passenger,high,naics4_rule
+# Session 6 OOS reroute: transportation.pipeline_water — heavily regulated B2B per classifier OOS pattern 481*-486*.
+483111,Deep Sea Freight Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+483112,Deep Sea Passenger Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+483113,Coastal and Great Lakes Freight Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+483114,Coastal and Great Lakes Passenger Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+483211,Inland Water Freight Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+483212,Inland Water Passenger Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+484110,"General Freight Trucking, Local",48-49,transportation.trucking_freight,high,naics4_rule
+484121,"General Freight Trucking, Long-Distance, Truckload",48-49,transportation.trucking_freight,high,naics4_rule
+484122,"General Freight Trucking, Long-Distance, Less Than Truckload",48-49,transportation.trucking_freight,high,naics4_rule
+484210,Used Household and Office Goods Moving,48-49,transportation.trucking_freight,high,naics4_rule
+484220,"Specialized Freight (except Used Goods) Trucking, Local",48-49,transportation.trucking_freight,high,naics4_rule
+484230,"Specialized Freight (except Used Goods) Trucking, Long-Distance",48-49,transportation.trucking_freight,high,naics4_rule
+485111,Mixed Mode Transit Systems,48-49,transportation.passenger,high,naics4_rule
+485112,Commuter Rail Systems,48-49,transportation.passenger,high,naics4_rule
+485113,Bus and Other Motor Vehicle Transit Systems,48-49,transportation.passenger,high,naics4_rule
+485119,Other Urban Transit Systems,48-49,transportation.passenger,high,naics4_rule
+485210,Interurban and Rural Bus Transportation,48-49,transportation.passenger,high,naics4_rule
+485310,Taxi and Ridesharing Services,48-49,transportation.passenger,high,naics4_rule
+485320,Limousine Service,48-49,transportation.passenger,high,naics4_rule
+485410,School and Employee Bus Transportation,48-49,transportation.passenger,high,naics4_rule
+485510,Charter Bus Industry,48-49,transportation.passenger,high,naics4_rule
+485991,Special Needs Transportation,48-49,transportation.passenger,high,naics4_rule
+485999,All Other Transit and Ground Passenger Transportation,48-49,transportation.passenger,high,naics4_rule
+486110,Pipeline Transportation of Crude Oil,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+486210,Pipeline Transportation of Natural Gas,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+486910,Pipeline Transportation of Refined Petroleum Products,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+486990,All Other Pipeline Transportation,48-49,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
+487110,"Scenic and Sightseeing Transportation, Land",48-49,transportation.passenger,high,naics4_rule
+487210,"Scenic and Sightseeing Transportation, Water",48-49,transportation.passenger,high,naics4_rule
+487990,"Scenic and Sightseeing Transportation, Other",48-49,transportation.passenger,high,naics4_rule
+488111,Air Traffic Control,48-49,transportation.support_services,high,naics4_rule
+488119,Other Airport Operations,48-49,transportation.support_services,high,naics4_rule
+488190,Other Support Activities for Air Transportation,48-49,transportation.support_services,high,naics4_rule
+488210,Support Activities for Rail Transportation,48-49,transportation.support_services,high,naics4_rule
+488310,Port and Harbor Operations,48-49,transportation.support_services,high,naics4_rule
+488320,Marine Cargo Handling,48-49,transportation.support_services,high,naics4_rule
+488330,Navigational Services to Shipping,48-49,transportation.support_services,high,naics4_rule
+488390,Other Support Activities for Water Transportation,48-49,transportation.support_services,high,naics4_rule
+488410,Motor Vehicle Towing,48-49,transportation.support_services,high,naics4_rule
+488490,Other Support Activities for Road Transportation,48-49,transportation.support_services,high,naics4_rule
+488510,Freight Transportation Arrangement,48-49,transportation.trucking_freight,high,naics4_rule
+488991,Packing and Crating,48-49,transportation.support_services,high,naics4_rule
+488999,All Other Support Activities for Transportation,48-49,transportation.support_services,high,naics4_rule
+491110,Postal Service,48-49,transportation.support_services,high,naics4_rule
+492110,Couriers and Express Delivery Services,48-49,transportation.courier_last_mile,high,naics4_rule
+492210,Local Messengers and Local Delivery,48-49,transportation.courier_last_mile,high,naics4_rule
+493110,General Warehousing and Storage,48-49,transportation.warehousing_3pl,high,naics4_rule
+493120,Refrigerated Warehousing and Storage,48-49,transportation.warehousing_3pl,high,naics4_rule
+493130,Farm Product Warehousing and Storage,48-49,transportation.warehousing_3pl,high,naics4_rule
+493190,Other Warehousing and Storage,48-49,transportation.warehousing_3pl,high,naics4_rule
+512110,Motion Picture and Video Production,51,information.motion_picture_sound,high,naics4_rule
+512120,Motion Picture and Video Distribution,51,information.motion_picture_sound,high,naics4_rule
+512131,Motion Picture Theaters (except Drive-Ins),51,information.motion_picture_sound,high,naics4_rule
+512132,Drive-In Motion Picture Theaters,51,information.motion_picture_sound,high,naics4_rule
+512191,Teleproduction and Other Postproduction Services,51,information.motion_picture_sound,high,naics4_rule
+512199,Other Motion Picture and Video Industries,51,information.motion_picture_sound,high,naics4_rule
+512230,Music Publishers,51,information.motion_picture_sound,high,naics4_rule
+512240,Sound Recording Studios,51,information.motion_picture_sound,high,naics4_rule
+512250,Record Production and Distribution,51,information.motion_picture_sound,high,naics4_rule
+512290,Other Sound Recording Industries,51,information.motion_picture_sound,high,naics4_rule
+513110,Newspaper Publishers,51,information.media_publishing,high,naics4_rule
+513120,Periodical Publishers,51,information.media_publishing,high,naics4_rule
+513130,Book Publishers,51,information.media_publishing,high,naics4_rule
+513140,Directory and Mailing List Publishers,51,information.media_publishing,high,naics4_rule
+513191,Greeting Card Publishers,51,information.media_publishing,high,naics4_rule
+513199,All Other Publishers,51,information.media_publishing,high,naics4_rule
+513210,Software Publishers,51,information.saas_software,high,naics4_rule
+516110,Radio Broadcasting Stations,51,information.broadcasting_production,high,naics4_rule
+516120,Television Broadcasting Stations,51,information.broadcasting_production,high,naics4_rule
+516210,"Media Streaming Distribution Services, Social Networks, and Other Media Networks and Content Providers",51,information.broadcasting_production,high,naics4_rule
+517111,Wired Telecommunications Carriers,51,information.telecom_isp,high,naics4_rule
+517112,Wireless Telecommunications Carriers (except Satellite),51,information.telecom_isp,high,naics4_rule
+517121,Telecommunications Resellers,51,information.telecom_isp,high,naics4_rule
+517122,Agents for Wireless Telecommunications Services,51,information.telecom_isp,high,naics4_rule
+517410,Satellite Telecommunications,51,information.telecom_isp,high,naics4_rule
+517810,All Other Telecommunications,51,information.telecom_isp,high,naics4_rule
+518210,"Computing Infrastructure Providers, Data Processing, Web Hosting, and Related Services",51,information.data_processing_hosting,high,naics4_rule
+519210,Libraries and Archives,51,information.media_publishing,high,naics4_rule
+519290,Web Search Portals and All Other Information Services,51,information.media_publishing,high,naics4_rule
+521110,Monetary Authorities-Central Bank,52,finance.community_bank,high,naics4_rule
+522110,Commercial Banking,52,finance.community_bank,high,naics4_rule
+522130,Credit Unions,52,finance.community_bank,high,naics4_rule
+522180,Savings Institutions and Other Depository Credit Intermediation,52,finance.community_bank,high,naics4_rule
+522210,Credit Card Issuing,52,finance.community_bank,high,naics4_rule
+522220,Sales Financing,52,finance.community_bank,high,naics4_rule
+522291,Consumer Lending,52,finance.community_bank,high,naics4_rule
+522292,Real Estate Credit,52,finance.community_bank,high,naics4_rule
+522299,"International, Secondary Market, and All Other Nondepository Credit Intermediation",52,finance.community_bank,high,naics4_rule
+522310,Mortgage and Nonmortgage Loan Brokers,52,finance.community_bank,high,naics4_rule
+522320,"Financial Transactions Processing, Reserve, and Clearinghouse Activities",52,finance.community_bank,high,naics4_rule
+522390,Other Activities Related to Credit Intermediation,52,finance.community_bank,high,naics4_rule
+523150,Investment Banking and Securities Intermediation,52,finance.ria_wealth_management,high,naics4_rule
+523160,Commodity Contracts Intermediation,52,finance.ria_wealth_management,high,naics4_rule
+523210,Securities and Commodity Exchanges,52,finance.ria_wealth_management,high,naics4_rule
+523910,Miscellaneous Intermediation,52,finance.ria_wealth_management,high,naics4_rule
+523940,Portfolio Management and Investment Advice,52,finance.ria_wealth_management,high,naics4_rule
+523991,"Trust, Fiduciary, and Custody Activities",52,finance.ria_wealth_management,high,naics4_rule
+523999,Miscellaneous Financial Investment Activities,52,finance.ria_wealth_management,high,naics4_rule
+524113,Direct Life Insurance Carriers,52,finance.insurance_agency,high,naics4_rule
+524114,Direct Health and Medical Insurance Carriers,52,finance.insurance_agency,high,naics4_rule
+524126,Direct Property and Casualty Insurance Carriers,52,finance.insurance_agency,high,naics4_rule
+524127,Direct Title Insurance Carriers,52,finance.insurance_agency,high,naics4_rule
+524128,"Other Direct Insurance (except Life, Health, and Medical) Carriers",52,finance.insurance_agency,high,naics4_rule
+524130,Reinsurance Carriers,52,finance.insurance_agency,high,naics4_rule
+524210,Insurance Agencies and Brokerages,52,finance.insurance_agency,high,naics4_rule
+524291,Claims Adjusting,52,finance.insurance_agency,high,naics4_rule
+524292,Pharmacy Benefit Management and Other Third Party Administration of Insurance and Pension Funds,52,finance.insurance_agency,high,naics4_rule
+524298,All Other Insurance Related Activities,52,finance.insurance_agency,high,naics4_rule
+525110,Pension Funds,52,finance.insurance_agency,high,naics4_rule
+525120,Health and Welfare Funds,52,finance.insurance_agency,high,naics4_rule
+525190,Other Insurance Funds,52,finance.insurance_agency,high,naics4_rule
+525910,Open-End Investment Funds,52,finance.ria_wealth_management,high,naics4_rule
+525920,"Trusts, Estates, and Agency Accounts",52,finance.ria_wealth_management,high,naics4_rule
+525990,Other Financial Vehicles,52,finance.ria_wealth_management,high,naics4_rule
+531110,Lessors of Residential Buildings and Dwellings,53,real_estate.property_management,high,naics4_rule
+531120,Lessors of Nonresidential Buildings (except Miniwarehouses),53,real_estate.property_management,high,naics4_rule
+531130,Lessors of Miniwarehouses and Self-Storage Units,53,real_estate.self_storage,high,naics6_override
+531190,Lessors of Other Real Estate Property,53,real_estate.property_management,high,naics4_rule
+531210,Offices of Real Estate Agents and Brokers,53,real_estate.brokerage,high,naics4_rule
+531311,Residential Property Managers,53,real_estate.property_management,high,naics4_rule
+531312,Nonresidential Property Managers,53,real_estate.property_management,high,naics4_rule
+531320,Offices of Real Estate Appraisers,53,real_estate.property_management,high,naics4_rule
+531390,Other Activities Related to Real Estate,53,real_estate.property_management,high,naics4_rule
+532111,Passenger Car Rental,53,real_estate.equipment_rental,high,naics4_rule
+532112,Passenger Car Leasing,53,real_estate.equipment_rental,high,naics4_rule
+532120,"Truck, Utility Trailer, and RV (Recreational Vehicle) Rental and Leasing",53,real_estate.equipment_rental,high,naics4_rule
+532210,Consumer Electronics and Appliances Rental,53,real_estate.equipment_rental,high,naics4_rule
+532281,Formal Wear and Costume Rental,53,real_estate.equipment_rental,high,naics4_rule
+532282,Video Tape and Disc Rental,53,real_estate.equipment_rental,high,naics4_rule
+532283,Home Health Equipment Rental,53,real_estate.equipment_rental,high,naics4_rule
+532284,Recreational Goods Rental,53,real_estate.equipment_rental,high,naics4_rule
+532289,All Other Consumer Goods Rental,53,real_estate.equipment_rental,high,naics4_rule
+532310,General Rental Centers,53,real_estate.self_storage,high,naics4_rule
+532411,"Commercial Air, Rail, and Water Transportation Equipment Rental and Leasing",53,real_estate.equipment_rental,high,naics4_rule
+532412,"Construction, Mining, and Forestry Machinery and Equipment Rental and Leasing",53,real_estate.equipment_rental,high,naics4_rule
+532420,Office Machinery and Equipment Rental and Leasing,53,real_estate.equipment_rental,high,naics4_rule
+532490,Other Commercial and Industrial Machinery and Equipment Rental and Leasing,53,real_estate.equipment_rental,high,naics4_rule
+533110,Lessors of Nonfinancial Intangible Assets (except Copyrighted Works),53,real_estate.equipment_rental,high,naics4_rule
+541110,Offices of Lawyers,54,professional.legal,high,naics4_rule
+541120,Offices of Notaries,54,professional.legal,high,naics4_rule
+541191,Title Abstract and Settlement Offices,54,professional.legal,high,naics4_rule
+541199,All Other Legal Services,54,professional.legal,high,naics4_rule
+541211,Offices of Certified Public Accountants,54,professional.accounting,high,naics4_rule
+541213,Tax Preparation Services,54,professional.accounting,high,naics4_rule
+541214,Payroll Services,54,professional.accounting,high,naics4_rule
+541219,Other Accounting Services,54,professional.accounting,high,naics4_rule
+541310,Architectural Services,54,professional.architecture_engineering,high,naics4_rule
+541320,Landscape Architectural Services,54,professional.architecture_engineering,high,naics4_rule
+541330,Engineering Services,54,professional.architecture_engineering,high,naics4_rule
+541340,Drafting Services,54,professional.architecture_engineering,high,naics4_rule
+541350,Building Inspection Services,54,professional.architecture_engineering,high,naics4_rule
+541360,Geophysical Surveying and Mapping Services,54,professional.architecture_engineering,high,naics4_rule
+541370,Surveying and Mapping (except Geophysical) Services,54,professional.architecture_engineering,high,naics4_rule
+541380,Testing Laboratories and Services,54,professional.architecture_engineering,high,naics4_rule
+541410,Interior Design Services,54,professional.architecture_engineering,high,naics4_rule
+541420,Industrial Design Services,54,professional.architecture_engineering,high,naics4_rule
+541430,Graphic Design Services,54,professional.architecture_engineering,high,naics4_rule
+541490,Other Specialized Design Services,54,professional.architecture_engineering,high,naics4_rule
+541511,Custom Computer Programming Services,54,professional.consulting,high,naics4_rule
+541512,Computer Systems Design Services,54,professional.consulting,high,naics4_rule
+541513,Computer Facilities Management Services,54,professional.consulting,high,naics4_rule
+541519,Other Computer Related Services,54,professional.consulting,high,naics4_rule
+541611,Administrative Management and General Management Consulting Services,54,professional.consulting,high,naics4_rule
+541612,Human Resources Consulting Services,54,professional.consulting,high,naics4_rule
+541613,Marketing Consulting Services,54,professional.consulting,high,naics4_rule
+541614,"Process, Physical Distribution, and Logistics Consulting Services",54,professional.consulting,high,naics4_rule
+541618,Other Management Consulting Services,54,professional.consulting,high,naics4_rule
+541620,Environmental Consulting Services,54,professional.consulting,high,naics4_rule
+541690,Other Scientific and Technical Consulting Services,54,professional.consulting,high,naics4_rule
+541713,Research and Development in Nanotechnology,54,professional.consulting,high,naics4_rule
+541714,Research and Development in Biotechnology (except Nanobiotechnology),54,professional.consulting,high,naics4_rule
+541715,"Research and Development in the Physical, Engineering, and Life Sciences (except Nanotechnology and Biotechnology)",54,professional.consulting,high,naics4_rule
+541720,Research and Development in the Social Sciences and Humanities,54,professional.consulting,high,naics4_rule
+541810,Advertising Agencies,54,professional.consulting,high,naics4_rule
+541820,Public Relations Agencies,54,professional.consulting,high,naics4_rule
+541830,Media Buying Agencies,54,professional.consulting,high,naics4_rule
+541840,Media Representatives,54,professional.consulting,high,naics4_rule
+541850,Indoor and Outdoor Display Advertising,54,professional.consulting,high,naics4_rule
+541860,Direct Mail Advertising,54,professional.consulting,high,naics4_rule
+541870,Advertising Material Distribution Services,54,professional.consulting,high,naics4_rule
+541890,Other Services Related to Advertising,54,professional.consulting,high,naics4_rule
+541910,Marketing Research and Public Opinion Polling,54,professional.consulting,high,naics4_rule
+541921,"Photography Studios, Portrait",54,professional.consulting,high,naics4_rule
+541922,Commercial Photography,54,professional.consulting,high,naics4_rule
+541930,Translation and Interpretation Services,54,professional.consulting,high,naics4_rule
+541940,Veterinary Services,54,professional.veterinary,high,naics6_override
+541990,"All Other Professional, Scientific, and Technical Services",54,professional.consulting,high,naics4_rule
+551111,Offices of Bank Holding Companies,55,OUT_OF_SCOPE_55,high,naics4_rule
+551112,Offices of Other Holding Companies,55,OUT_OF_SCOPE_55,high,naics4_rule
+551114,"Corporate, Subsidiary, and Regional Managing Offices",55,OUT_OF_SCOPE_55,high,naics4_rule
+561110,Office Administrative Services,56,admin.office_business_support,high,naics4_rule
+561210,Facilities Support Services,56,admin.facility_services,high,naics4_rule
+561311,Employment Placement Agencies,56,admin.staffing_agency,high,naics4_rule
+561312,Executive Search Services,56,admin.staffing_agency,high,naics4_rule
+561320,Temporary Help Services,56,admin.staffing_agency,high,naics4_rule
+561330,Professional Employer Organizations,56,admin.staffing_agency,high,naics4_rule
+561410,Document Preparation Services,56,admin.office_business_support,high,naics4_rule
+561421,Telephone Answering Services,56,admin.office_business_support,high,naics4_rule
+561422,Telemarketing Bureaus and Other Contact Centers,56,admin.office_business_support,high,naics4_rule
+561431,Private Mail Centers,56,admin.office_business_support,high,naics4_rule
+561439,Other Business Service Centers (including Copy Shops),56,admin.office_business_support,high,naics4_rule
+561440,Collection Agencies,56,admin.office_business_support,high,naics4_rule
+561450,Credit Bureaus,56,admin.office_business_support,high,naics4_rule
+561491,Repossession Services,56,admin.office_business_support,high,naics4_rule
+561492,Court Reporting and Stenotype Services,56,admin.office_business_support,high,naics4_rule
+561499,All Other Business Support Services,56,admin.office_business_support,high,naics4_rule
+561510,Travel Agencies,56,admin.office_business_support,high,naics4_rule
+561520,Tour Operators,56,admin.office_business_support,high,naics4_rule
+561591,Convention and Visitors Bureaus,56,admin.office_business_support,high,naics4_rule
+561599,All Other Travel Arrangement and Reservation Services,56,admin.office_business_support,high,naics4_rule
+561611,Investigation and Personal Background Check Services,56,admin.security_pest,high,naics4_rule
+561612,Security Guards and Patrol Services,56,admin.security_pest,high,naics4_rule
+561613,Armored Car Services,56,admin.security_pest,high,naics4_rule
+561621,Security Systems Services (except Locksmiths),56,admin.security_pest,high,naics4_rule
+561622,Locksmiths,56,admin.security_pest,high,naics4_rule
+561710,Exterminating and Pest Control Services,56,admin.security_pest,high,naics6_override
+561720,Janitorial Services,56,admin.facility_services,high,naics4_rule
+561730,Landscaping Services,56,admin.facility_services,high,naics4_rule
+561740,Carpet and Upholstery Cleaning Services,56,admin.facility_services,high,naics4_rule
+561790,Other Services to Buildings and Dwellings,56,admin.facility_services,high,naics4_rule
+561910,Packaging and Labeling Services,56,admin.office_business_support,high,naics4_rule
+561920,Convention and Trade Show Organizers,56,admin.office_business_support,high,naics4_rule
+561990,All Other Support Services,56,admin.office_business_support,high,naics4_rule
+562111,Solid Waste Collection,56,admin.waste_management,high,naics4_rule
+562112,Hazardous Waste Collection,56,admin.waste_management,high,naics4_rule
+562119,Other Waste Collection,56,admin.waste_management,high,naics4_rule
+562211,Hazardous Waste Treatment and Disposal,56,admin.waste_management,high,naics4_rule
+562212,Solid Waste Landfill,56,admin.waste_management,high,naics4_rule
+562213,Solid Waste Combustors and Incinerators,56,admin.waste_management,high,naics4_rule
+562219,Other Nonhazardous Waste Treatment and Disposal,56,admin.waste_management,high,naics4_rule
+562910,Remediation Services,56,admin.waste_management,high,naics4_rule
+562920,Materials Recovery Facilities,56,admin.waste_management,high,naics4_rule
+562991,Septic Tank and Related Services,56,admin.waste_management,high,naics4_rule
+562998,All Other Miscellaneous Waste Management Services,56,admin.waste_management,high,naics4_rule
+611110,Elementary and Secondary Schools,61,education.k12_private,high,naics4_rule
+611210,Junior Colleges,61,education.colleges_universities,high,naics4_rule
+611310,"Colleges, Universities, and Professional Schools",61,education.colleges_universities,high,naics4_rule
+611410,Business and Secretarial Schools,61,education.bootcamps_online,high,naics4_rule
+611420,Computer Training,61,education.bootcamps_online,high,naics4_rule
+611430,Professional and Management Development Training,61,education.bootcamps_online,high,naics4_rule
+611511,Cosmetology and Barber Schools,61,education.trade_technical,high,naics4_rule
+611512,Flight Training,61,education.trade_technical,high,naics4_rule
+611513,Apprenticeship Training,61,education.trade_technical,high,naics4_rule
+611519,Other Technical and Trade Schools,61,education.trade_technical,high,naics4_rule
+611610,Fine Arts Schools,61,education.tutoring_test_prep,high,naics6_override
+611620,Sports and Recreation Instruction,61,education.tutoring_test_prep,high,naics6_override
+611630,Language Schools,61,education.tutoring_test_prep,high,naics6_override
+611691,Exam Preparation and Tutoring,61,education.tutoring_test_prep,high,naics6_override
+611692,Automobile Driving Schools,61,education.tutoring_test_prep,high,naics6_override
+611699,All Other Miscellaneous Schools and Instruction,61,education.tutoring_test_prep,high,naics6_override
+611710,Educational Support Services,61,education.support_services,high,naics4_rule
+621111,Offices of Physicians (except Mental Health Specialists),62,healthcare.medical_practice,high,naics4_rule
+621112,"Offices of Physicians, Mental Health Specialists",62,healthcare.behavioral_health,high,naics6_override
+621210,Offices of Dentists,62,healthcare.dental_practice,high,naics4_rule
+621310,Offices of Chiropractors,62,healthcare.allied_health,high,naics4_rule
+621320,Offices of Optometrists,62,healthcare.allied_health,high,naics4_rule
+621330,Offices of Mental Health Practitioners (except Physicians),62,healthcare.behavioral_health,high,naics6_override
+621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",62,healthcare.allied_health,high,naics4_rule
+621391,Offices of Podiatrists,62,healthcare.allied_health,high,naics4_rule
+621399,Offices of All Other Miscellaneous Health Practitioners,62,healthcare.allied_health,high,naics4_rule
+621410,Family Planning Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621420,Outpatient Mental Health and Substance Abuse Centers,62,healthcare.behavioral_health,high,naics6_override
+621491,HMO Medical Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621492,Kidney Dialysis Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621493,Freestanding Ambulatory Surgical and Emergency Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621498,All Other Outpatient Care Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621511,Medical Laboratories,62,healthcare.specialty_clinic,high,naics4_rule
+621512,Diagnostic Imaging Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621610,Home Health Care Services,62,healthcare.medical_practice,high,naics4_rule
+621910,Ambulance Services,62,healthcare.specialty_clinic,high,naics6_override
+621991,Blood and Organ Banks,62,healthcare.specialty_clinic,high,naics4_rule
+621999,All Other Miscellaneous Ambulatory Health Care Services,62,healthcare.specialty_clinic,high,naics4_rule
+622110,General Medical and Surgical Hospitals,62,healthcare.hospital,high,naics4_rule
+622210,Psychiatric and Substance Abuse Hospitals,62,healthcare.behavioral_health,high,naics6_override
+622310,Specialty (except Psychiatric and Substance Abuse) Hospitals,62,healthcare.hospital,high,naics4_rule
+623110,Nursing Care Facilities (Skilled Nursing Facilities),62,healthcare.residential_care,high,naics4_rule
+623210,Residential Intellectual and Developmental Disability Facilities,62,healthcare.residential_care,high,naics4_rule
+623220,Residential Mental Health and Substance Abuse Facilities,62,healthcare.behavioral_health,high,naics6_override
+623311,Continuing Care Retirement Communities,62,healthcare.residential_care,high,naics4_rule
+623312,Assisted Living Facilities for the Elderly,62,healthcare.residential_care,high,naics4_rule
+623990,Other Residential Care Facilities,62,healthcare.residential_care,high,naics4_rule
+624110,Child and Youth Services,62,healthcare.social_assistance,high,naics4_rule
+624120,Services for the Elderly and Persons with Disabilities,62,healthcare.social_assistance,high,naics4_rule
+624190,Other Individual and Family Services,62,healthcare.social_assistance,high,naics4_rule
+624210,Community Food Services,62,healthcare.social_assistance,high,naics4_rule
+624221,Temporary Shelters,62,healthcare.social_assistance,high,naics4_rule
+624229,Other Community Housing Services,62,healthcare.social_assistance,high,naics4_rule
+624230,Emergency and Other Relief Services,62,healthcare.social_assistance,high,naics4_rule
+624310,Vocational Rehabilitation Services,62,healthcare.social_assistance,high,naics4_rule
+624410,Child Care Services,62,healthcare.social_assistance,high,naics4_rule
+711110,Theater Companies and Dinner Theaters,71,recreation.performing_arts,high,naics4_rule
+711120,Dance Companies,71,recreation.performing_arts,high,naics4_rule
+711130,Musical Groups and Artists,71,recreation.performing_arts,high,naics4_rule
+711190,Other Performing Arts Companies,71,recreation.performing_arts,high,naics4_rule
+711211,Sports Teams and Clubs,71,recreation.spectator_sports,high,naics4_rule
+711212,Racetracks,71,recreation.spectator_sports,high,naics4_rule
+711219,Other Spectator Sports,71,recreation.spectator_sports,high,naics4_rule
+711310,"Promoters of Performing Arts, Sports, and Similar Events with Facilities",71,recreation.spectator_sports,high,naics4_rule
+711320,"Promoters of Performing Arts, Sports, and Similar Events without Facilities",71,recreation.spectator_sports,high,naics4_rule
+711410,"Agents and Managers for Artists, Athletes, Entertainers, and Other Public Figures",71,recreation.spectator_sports,high,naics4_rule
+711510,"Independent Artists, Writers, and Performers",71,recreation.performing_arts,high,naics4_rule
+712110,Museums,71,recreation.museums_heritage,high,naics4_rule
+712120,Historical Sites,71,recreation.museums_heritage,high,naics4_rule
+712130,Zoos and Botanical Gardens,71,recreation.museums_heritage,high,naics4_rule
+712190,Nature Parks and Other Similar Institutions,71,recreation.museums_heritage,high,naics4_rule
+713110,Amusement and Theme Parks,71,recreation.amusement_attraction,high,naics4_rule
+713120,Amusement Arcades,71,recreation.amusement_attraction,high,naics4_rule
+713210,Casinos (except Casino Hotels),71,recreation.amusement_attraction,high,naics4_rule
+713290,Other Gambling Industries,71,recreation.amusement_attraction,high,naics4_rule
+713910,Golf Courses and Country Clubs,71,recreation.amusement_attraction,high,naics6_override
+713920,Skiing Facilities,71,recreation.amusement_attraction,high,naics6_override
+713930,Marinas,71,recreation.amusement_attraction,high,naics6_override
+713940,Fitness and Recreational Sports Centers,71,recreation.fitness_studio,high,naics6_override
+713950,Bowling Centers,71,recreation.amusement_attraction,high,naics6_override
+713990,All Other Amusement and Recreation Industries,71,recreation.amusement_attraction,high,naics6_override
+721110,Hotels (except Casino Hotels) and Motels,72,hospitality.lodging,high,naics4_rule
+721120,Casino Hotels,72,hospitality.lodging,high,naics4_rule
+721191,Bed-and-Breakfast Inns,72,hospitality.lodging,high,naics4_rule
+721199,All Other Traveler Accommodation,72,hospitality.lodging,high,naics4_rule
+721211,RV (Recreational Vehicle) Parks and Campgrounds,72,hospitality.lodging,high,naics4_rule
+721214,Recreational and Vacation Camps (except Campgrounds),72,hospitality.lodging,high,naics4_rule
+721310,"Rooming and Boarding Houses, Dormitories, and Workers' Camps",72,hospitality.lodging,high,naics4_rule
+722310,Food Service Contractors,72,hospitality.catering_special_food,high,naics6_override
+722320,Caterers,72,hospitality.catering_special_food,high,naics6_override
+722330,Mobile Food Services,72,hospitality.cafe_quick_service,high,naics6_override
+722410,Drinking Places (Alcoholic Beverages),72,hospitality.bar_nightlife,high,naics4_rule
+722511,Full-Service Restaurants,72,hospitality.full_service_restaurant,high,naics6_override
+722513,Limited-Service Restaurants,72,hospitality.cafe_quick_service,high,naics6_override
+722514,"Cafeterias, Grill Buffets, and Buffets",72,hospitality.cafe_quick_service,high,naics6_override
+722515,Snack and Nonalcoholic Beverage Bars,72,hospitality.cafe_quick_service,high,naics6_override
+811111,General Automotive Repair,81,other_services.auto_repair,high,naics4_rule
+811114,Specialized Automotive Repair,81,other_services.auto_repair,high,naics4_rule
+811121,"Automotive Body, Paint, and Interior Repair and Maintenance",81,other_services.auto_repair,high,naics4_rule
+811122,Automotive Glass Replacement Shops,81,other_services.auto_repair,high,naics4_rule
+811191,Automotive Oil Change and Lubrication Shops,81,other_services.auto_repair,high,naics4_rule
+811192,Car Washes,81,other_services.auto_repair,high,naics4_rule
+811198,All Other Automotive Repair and Maintenance,81,other_services.auto_repair,high,naics4_rule
+811210,Electronic and Precision Equipment Repair and Maintenance,81,other_services.repair_machinery_other,high,naics4_rule
+811310,Commercial and Industrial Machinery and Equipment (except Automotive and Electronic) Repair and Maintenance,81,other_services.repair_machinery_other,high,naics4_rule
+811411,Home and Garden Equipment Repair and Maintenance,81,other_services.repair_machinery_other,high,naics4_rule
+811412,Appliance Repair and Maintenance,81,other_services.repair_machinery_other,high,naics4_rule
+811420,Reupholstery and Furniture Repair,81,other_services.repair_machinery_other,high,naics4_rule
+811430,Footwear and Leather Goods Repair,81,other_services.repair_machinery_other,high,naics4_rule
+811490,Other Personal and Household Goods Repair and Maintenance,81,other_services.repair_machinery_other,high,naics4_rule
+812111,Barber Shops,81,other_services.personal_care,high,naics6_override
+812112,Beauty Salons,81,other_services.personal_care,high,naics6_override
+812113,Nail Salons,81,other_services.personal_care,high,naics6_override
+812191,Diet and Weight Reducing Centers,81,other_services.personal_care,high,naics4_rule
+812199,Other Personal Care Services,81,other_services.personal_care,high,naics6_override
+812210,Funeral Homes and Funeral Services,81,other_services.death_care,high,naics4_rule
+812220,Cemeteries and Crematories,81,other_services.death_care,high,naics4_rule
+812310,Coin-Operated Laundries and Drycleaners,81,other_services.dry_cleaning_laundry,high,naics4_rule
+812320,Drycleaning and Laundry Services (except Coin-Operated),81,other_services.dry_cleaning_laundry,high,naics4_rule
+812331,Linen Supply,81,other_services.dry_cleaning_laundry,high,naics4_rule
+812332,Industrial Launderers,81,other_services.dry_cleaning_laundry,high,naics4_rule
+812910,Pet Care (except Veterinary) Services,81,other_services.personal_care,high,naics6_override
+# Phase 2 OOS override: 812921 + 812922 (Photofinishing) routed to other_services.personal_care by default but reclassified OUT_OF_SCOPE_NICHE — photofinishing is a declining niche with no overlap with salon/barber/spa dynamics.
+812921,Photofinishing Laboratories (except One-Hour),81,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
+812922,One-Hour Photofinishing,81,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
+# Phase 2 OOS override: 812930 (Parking Lots and Garages) routed to other_services.personal_care by default but reclassified OUT_OF_SCOPE_NICHE — parking facilities are real-estate operations, not personal-care services.
+812930,Parking Lots and Garages,81,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
+812990,All Other Personal Services,81,other_services.personal_care,high,naics4_rule
+# Session 6 OOS reroute: other_services.religious_civic (813*) — per classifier OOS pattern; membership/religious/civic orgs not commercial businesses.
+813110,Religious Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813211,Grantmaking Foundations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813212,Voluntary Health Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813219,Other Grantmaking and Giving Services,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813311,Human Rights Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813312,"Environment, Conservation and Wildlife Organizations",81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813319,Other Social Advocacy Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813410,Civic and Social Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813910,Business Associations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813920,Professional Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813930,Labor Unions and Similar Labor Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813940,Political Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+813990,"Other Similar Organizations (except Business, Professional, Labor, and Political Organizations)",81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+814110,Private Households,81,other_services.private_household,high,naics4_rule
+921110,Executive Offices,92,OUT_OF_SCOPE_92,high,naics4_rule
+921120,Legislative Bodies,92,OUT_OF_SCOPE_92,high,naics4_rule
+921130,Public Finance Activities,92,OUT_OF_SCOPE_92,high,naics4_rule
+921140,"Executive and Legislative Offices, Combined",92,OUT_OF_SCOPE_92,high,naics4_rule
+921150,American Indian and Alaska Native Tribal Governments,92,OUT_OF_SCOPE_92,high,naics4_rule
+921190,Other General Government Support,92,OUT_OF_SCOPE_92,high,naics4_rule
+922110,Courts,92,OUT_OF_SCOPE_92,high,naics4_rule
+922120,Police Protection,92,OUT_OF_SCOPE_92,high,naics4_rule
+922130,Legal Counsel and Prosecution,92,OUT_OF_SCOPE_92,high,naics4_rule
+922140,Correctional Institutions,92,OUT_OF_SCOPE_92,high,naics4_rule
+922150,Parole Offices and Probation Offices,92,OUT_OF_SCOPE_92,high,naics4_rule
+922160,Fire Protection,92,OUT_OF_SCOPE_92,high,naics4_rule
+922190,"Other Justice, Public Order, and Safety Activities",92,OUT_OF_SCOPE_92,high,naics4_rule
+923110,Administration of Education Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+923120,Administration of Public Health Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+923130,"Administration of Human Resource Programs (except Education, Public Health, and Veterans' Affairs Programs)",92,OUT_OF_SCOPE_92,high,naics4_rule
+923140,Administration of Veterans' Affairs,92,OUT_OF_SCOPE_92,high,naics4_rule
+924110,Administration of Air and Water Resource and Solid Waste Management Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+924120,Administration of Conservation Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+925110,Administration of Housing Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+925120,Administration of Urban Planning and Community and Rural Development,92,OUT_OF_SCOPE_92,high,naics4_rule
+926110,Administration of General Economic Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+926120,Regulation and Administration of Transportation Programs,92,OUT_OF_SCOPE_92,high,naics4_rule
+926130,"Regulation and Administration of Communications, Electric, Gas, and Other Utilities",92,OUT_OF_SCOPE_92,high,naics4_rule
+926140,Regulation of Agricultural Marketing and Commodities,92,OUT_OF_SCOPE_92,high,naics4_rule
+926150,"Regulation, Licensing, and Inspection of Miscellaneous Commercial Sectors",92,OUT_OF_SCOPE_92,high,naics4_rule
+927110,Space Research and Technology,92,OUT_OF_SCOPE_92,high,naics4_rule
+928110,National Security,92,OUT_OF_SCOPE_92,high,naics4_rule
+928120,International Affairs,92,OUT_OF_SCOPE_92,high,naics4_rule

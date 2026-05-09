@@ -1,0 +1,455 @@
+modern_label,category,closest_naics_6,naics_title,sector_profile_id,confidence,mapping_method
+After-School Program,Education & Tutoring (modern formats),624410,Child Day Care Services,healthcare.social_assistance,high,modern_via_naics6
+Art Studio / Painting Classes,Education & Tutoring (modern formats),611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Bartending School,Education & Tutoring (modern formats),611519,Other Technical and Trade Schools,education.trade_technical,high,modern_via_naics6
+CDL / Truck Driving School,Education & Tutoring (modern formats),611692,Automobile Driving Schools,education.tutoring_test_prep,high,modern_via_naics6
+CPR / First Aid Training,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Coding Bootcamp,Education & Tutoring (modern formats),611420,Computer Training,education.bootcamps_online,high,modern_via_naics6
+Coding for Kids School,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Concealed Carry / Firearms Class,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Cooking School / Culinary Classes,Education & Tutoring (modern formats),611519,Other Technical and Trade Schools,education.trade_technical,high,modern_via_naics6
+Dog Training School,Education & Tutoring (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Driving School,Education & Tutoring (modern formats),611692,Automobile Driving Schools,education.tutoring_test_prep,high,modern_via_naics6
+ESL / English Language School,Education & Tutoring (modern formats),611630,Language Schools,education.tutoring_test_prep,high,modern_via_naics6
+Equestrian / Horse Riding Lessons,Education & Tutoring (modern formats),611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Flight School,Education & Tutoring (modern formats),611512,Flight Training,education.trade_technical,high,modern_via_naics6
+Foreign Language Tutor,Education & Tutoring (modern formats),611630,Language Schools,education.tutoring_test_prep,high,modern_via_naics6
+Math Learning Center (Kumon etc.),Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Music Lessons / Music School,Education & Tutoring (modern formats),611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Online Course Creator,Education & Tutoring (modern formats),611710,Educational Support Services,education.support_services,high,modern_via_naics6
+Online Tutor (1-on-1),Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Personal Training Certification,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Pottery Studio / Ceramics Classes,Education & Tutoring (modern formats),611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Reading / Literacy Tutor,Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Real Estate School,Education & Tutoring (modern formats),611519,Other Technical and Trade Schools,education.trade_technical,high,modern_via_naics6
+SAT / ACT Prep Service,Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Skateboard / Surf Lessons,Education & Tutoring (modern formats),611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Sleep-Away Camp / Summer Camp,Education & Tutoring (modern formats),721214,Recreational and Vacation Camps (except Campgrounds),hospitality.lodging,high,modern_via_naics6
+Summer Camp (Day),Education & Tutoring (modern formats),624410,Child Day Care Services,healthcare.social_assistance,high,modern_via_naics6
+Swim School,Education & Tutoring (modern formats),611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Tennis Lessons / Camp,Education & Tutoring (modern formats),611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+"Test Prep Center (LSAT, GRE, MCAT)",Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Tutoring Center,Education & Tutoring (modern formats),611691,Exam Preparation and Tutoring,education.tutoring_test_prep,high,modern_via_naics6
+Voice / Singing Lessons,Education & Tutoring (modern formats),611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Yoga Teacher Training,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,recreation.fitness_studio,high,modern_keyword_override
+Aerial Silks / Pole Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Aquarium (Private/Tourist),"Fitness, Wellness & Recreation",712130,Zoos and Botanical Gardens,recreation.museums_heritage,high,modern_via_naics6
+Axe Throwing Venue,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_keyword_override
+Ballet School,"Fitness, Wellness & Recreation",611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Barcade / Retro Arcade Bar,"Fitness, Wellness & Recreation",713120,Amusement Arcades,recreation.amusement_attraction,high,modern_via_naics6
+Barre Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Batting Cage / Indoor Baseball,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Bowling Alley (Boutique),"Fitness, Wellness & Recreation",713950,Bowling Centers,recreation.amusement_attraction,high,modern_via_naics6
+Boxing Gym,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Brazilian Jiu-Jitsu (BJJ) Gym,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Butterfly House / Garden,"Fitness, Wellness & Recreation",712130,Zoos and Botanical Gardens,recreation.museums_heritage,high,modern_via_naics6
+Children's Indoor Play Cafe,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Climbing Gym / Bouldering Gym,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+CrossFit Box,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Dance Studio,"Fitness, Wellness & Recreation",611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Driving Range,"Fitness, Wellness & Recreation",713910,Golf Courses and Country Clubs,recreation.amusement_attraction,high,modern_via_naics6
+Duckpin Bowling,"Fitness, Wellness & Recreation",713950,Bowling Centers,recreation.amusement_attraction,high,modern_via_naics6
+Escape Room,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_keyword_override
+F45 / HIIT Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Go-Kart Track,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Hip-Hop / Street Dance Studio,"Fitness, Wellness & Recreation",611610,Fine Arts Schools,education.tutoring_test_prep,high,modern_via_naics6
+Hot Yoga Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Ice Skating Rink,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Indoor Golf / Golf Simulator,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Indoor Playground / Family FEC,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Indoor Skydiving,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Indoor Soccer Facility,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Indoor Trampoline Fitness,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Karate / Taekwondo Dojo,"Fitness, Wellness & Recreation",611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Kickboxing Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Knife Throwing Venue,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Laser Tag Arena,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+MMA Gym,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Martial Arts School,"Fitness, Wellness & Recreation",611620,Sports and Recreation Instruction,recreation.fitness_studio,high,modern_keyword_override
+Mini Golf Course,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Ninja Warrior Gym,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Orange Theory / Group Fitness,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Padel Club,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Paintball Field / Airsoft Field,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Petting Zoo / Animal Encounter,"Fitness, Wellness & Recreation",712130,Zoos and Botanical Gardens,recreation.museums_heritage,high,modern_via_naics6
+Pickleball Club / Court,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Pilates Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+"Recovery Studio (cold plunge, etc.)","Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Reformer Pilates Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Roller Skating Rink,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Skate Park,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Spin / Cycle Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Squash Club,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Stretching Studio (StretchLab etc.),"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Topgolf-style Venue,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+Trampoline Park,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
+VR Arcade / Virtual Reality Venue,"Fitness, Wellness & Recreation",713120,Amusement Arcades,recreation.amusement_attraction,high,modern_via_naics6
+Yoga Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
+Acai Bowl Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Bagel Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
+Board Game Cafe,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Boba Tea / Bubble Tea Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Brewery Taproom,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),manufacturing.food_beverage_dtc,high,modern_keyword_override
+Build-Your-Own-Bowl Restaurant,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_via_naics6
+Cat Cafe,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Cereal Bar,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Cidery / Hard Cider Maker,Food Service (modern formats not in NAICS),312130,Wineries,manufacturing.food_beverage_dtc,high,modern_keyword_override
+Cigar Bar / Cigar Lounge,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
+Cocktail Lounge / Speakeasy,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
+Coffee Cart / Mobile Coffee,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Cookie Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
+Cupcake Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
+Dessert Cafe,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Distillery Tasting Room,Food Service (modern formats not in NAICS),312140,Distilleries,manufacturing.food_beverage_dtc,high,modern_keyword_override
+Donut Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
+Food Truck,Food Service (modern formats not in NAICS),722330,Mobile Food Services,hospitality.cafe_quick_service,high,modern_keyword_override
+Frozen Yogurt Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Ghost Kitchen / Cloud Kitchen,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_keyword_override
+Hookah Lounge,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
+Hot Dog Stand,Food Service (modern formats not in NAICS),722330,Mobile Food Services,hospitality.cafe_quick_service,high,modern_via_naics6
+Hot Pot Restaurant,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Ice Cream Shop / Gelato Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Juice Bar / Smoothie Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Kombucha Brewery,Food Service (modern formats not in NAICS),312111,Soft Drink Manufacturing,manufacturing.food_beverage_dtc,high,modern_keyword_override
+Korean BBQ Restaurant,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Meadery,Food Service (modern formats not in NAICS),312130,Wineries,manufacturing.food_beverage_dtc,high,modern_keyword_override
+Meal Prep / Meal Kit Service,Food Service (modern formats not in NAICS),722320,Caterers,hospitality.catering_special_food,high,modern_keyword_override
+Personal Chef Service,Food Service (modern formats not in NAICS),722320,Caterers,hospitality.catering_special_food,high,modern_keyword_override
+Pho Restaurant,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Poke Bowl Restaurant,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_via_naics6
+Pop-Up Restaurant,Food Service (modern formats not in NAICS),722320,Caterers,hospitality.catering_special_food,high,modern_via_naics6
+Pretzel Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Ramen Shop,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Salad Bar Restaurant,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_via_naics6
+Sports Bar,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
+Sushi Bar,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Taco Truck,Food Service (modern formats not in NAICS),722330,Mobile Food Services,hospitality.cafe_quick_service,high,modern_via_naics6
+Tapas Bar,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
+Virtual Restaurant Brand,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_via_naics6
+Wine Bar,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
+ABA Therapy / Autism Services,Healthcare & Medical (modern formats),621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",healthcare.allied_health,high,modern_via_naics6
+ADHD / Behavioral Health Coach,Healthcare & Medical (modern formats),621330,Offices of Mental Health Practitioners (except Physicians),healthcare.behavioral_health,high,modern_via_naics6
+Acupuncturist,Healthcare & Medical (modern formats),621399,Offices of All Other Miscellaneous Health Practitioners,healthcare.allied_health,high,modern_via_naics6
+Botox / Aesthetics Clinic,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Chiropractor,Healthcare & Medical (modern formats),621310,Offices of Chiropractors,healthcare.allied_health,high,modern_via_naics6
+Concierge Medicine Practice,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Couples / Marriage Counselor,Healthcare & Medical (modern formats),621330,Offices of Mental Health Practitioners (except Physicians),healthcare.behavioral_health,high,modern_via_naics6
+Dental Hygiene Studio,Healthcare & Medical (modern formats),621210,Offices of Dentists,healthcare.dental_practice,high,modern_via_naics6
+Dental Practice,Healthcare & Medical (modern formats),621210,Offices of Dentists,healthcare.dental_practice,high,modern_via_naics6
+Direct Primary Care (DPC),Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Family Therapist,Healthcare & Medical (modern formats),621330,Offices of Mental Health Practitioners (except Physicians),healthcare.behavioral_health,high,modern_via_naics6
+Fertility Clinic,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Functional Medicine Practice,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Hair Restoration Clinic,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Holistic / Integrative Medicine,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Home Health Aide Service,Healthcare & Medical (modern formats),621610,Home Health Care Services,healthcare.medical_practice,high,modern_keyword_override
+Hormone / Testosterone Clinic,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Hospice Care,Healthcare & Medical (modern formats),621610,Home Health Care Services,healthcare.medical_practice,high,modern_via_naics6
+Ketamine Clinic,Healthcare & Medical (modern formats),621498,All Other Outpatient Care Centers,healthcare.specialty_clinic,high,modern_via_naics6
+Memory Care Facility,Healthcare & Medical (modern formats),623312,Assisted Living Facilities for the Elderly,healthcare.residential_care,high,modern_via_naics6
+Mobile Eye Care,Healthcare & Medical (modern formats),621320,Offices of Optometrists,healthcare.allied_health,high,modern_via_naics6
+Mobile Vet,Healthcare & Medical (modern formats),541940,Veterinary Services,professional.veterinary,high,modern_via_naics6
+Naturopath,Healthcare & Medical (modern formats),621399,Offices of All Other Miscellaneous Health Practitioners,healthcare.allied_health,high,modern_via_naics6
+Optometrist (Private),Healthcare & Medical (modern formats),621320,Offices of Optometrists,healthcare.allied_health,high,modern_via_naics6
+Orthodontist,Healthcare & Medical (modern formats),621210,Offices of Dentists,healthcare.dental_practice,high,modern_via_naics6
+Pediatric Dentist,Healthcare & Medical (modern formats),621210,Offices of Dentists,healthcare.dental_practice,high,modern_via_naics6
+Pediatric Occupational Therapy,Healthcare & Medical (modern formats),621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",healthcare.allied_health,high,modern_via_naics6
+Pediatric Speech Therapy,Healthcare & Medical (modern formats),621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",healthcare.allied_health,high,modern_via_naics6
+Pet Hospice,Healthcare & Medical (modern formats),541940,Veterinary Services,professional.veterinary,high,modern_via_naics6
+Physical Therapy Clinic,Healthcare & Medical (modern formats),621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",healthcare.allied_health,high,modern_via_naics6
+Psychiatrist (Private),Healthcare & Medical (modern formats),621112,"Offices of Physicians, Mental Health Specialists",healthcare.behavioral_health,high,modern_via_naics6
+Senior Care / In-Home Care,Healthcare & Medical (modern formats),624120,Services for the Elderly and Persons with Disabilities,healthcare.social_assistance,high,modern_via_naics6
+Sleep Clinic,Healthcare & Medical (modern formats),621498,All Other Outpatient Care Centers,healthcare.specialty_clinic,high,modern_via_naics6
+Sober Living Home,Healthcare & Medical (modern formats),623220,Residential Mental Health and Substance Abuse Facilities,healthcare.behavioral_health,high,modern_via_naics6
+Sports Medicine Clinic,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_via_naics6
+Substance Abuse Recovery Center,Healthcare & Medical (modern formats),621420,Outpatient Mental Health and Substance Abuse Centers,healthcare.behavioral_health,high,modern_via_naics6
+Telehealth Provider,Healthcare & Medical (modern formats),621111,Offices of Physicians (except Mental Health Specialists),healthcare.medical_practice,high,modern_keyword_override
+Therapist / Counselor (Private),Healthcare & Medical (modern formats),621330,Offices of Mental Health Practitioners (except Physicians),healthcare.behavioral_health,high,modern_via_naics6
+Urgent Care Clinic,Healthcare & Medical (modern formats),621493,Freestanding Ambulatory Surgical and Emergency Centers,healthcare.medical_practice,high,modern_keyword_override
+Veterinary Clinic,Healthcare & Medical (modern formats),541940,Veterinary Services,professional.veterinary,high,modern_via_naics6
+Walk-In Clinic,Healthcare & Medical (modern formats),621498,All Other Outpatient Care Centers,healthcare.specialty_clinic,high,modern_via_naics6
+Weight Loss Clinic / GLP-1 Clinic,Healthcare & Medical (modern formats),621498,All Other Outpatient Care Centers,healthcare.specialty_clinic,high,modern_via_naics6
+Airbnb Host / Short-Term Rental,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
+Bed and Breakfast Inn,Lodging & Hospitality (modern formats),721191,Bed-and-Breakfast Inns,hospitality.lodging,high,modern_via_naics6
+Boutique Hotel,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Capsule Hotel,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Dude Ranch / Guest Ranch,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
+Eco-Lodge,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Glamping Site,Lodging & Hospitality (modern formats),721211,RV (Recreational Vehicle) Parks and Campgrounds,hospitality.lodging,high,modern_via_naics6
+Hostel,Lodging & Hospitality (modern formats),721310,"Rooming and Boarding Houses, Dormitories, and Workers' Camps",hospitality.lodging,high,modern_via_naics6
+Pod Hotel,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Tiny House / Cabin Rental,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
+Treehouse Rental,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
+Vacation Rental Management,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
+Wellness Retreat,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Yurt Rental,Lodging & Hospitality (modern formats),721211,RV (Recreational Vehicle) Parks and Campgrounds,hospitality.lodging,high,modern_via_naics6
+ATM Operator / Route,Niche & Emerging,522390,Other Activities Related to Credit Intermediation,finance.community_bank,high,modern_via_naics6
+Aquaculture / Fish Farm,Niche & Emerging,112519,Other Aquaculture,agriculture.livestock,high,modern_via_naics6
+Boat Storage / Indoor Storage,Niche & Emerging,531130,Lessors of Miniwarehouses and Self-Storage Units,real_estate.self_storage,high,modern_via_naics6
+Cannabis Cultivation (state-legal),Niche & Emerging,111419,Other Food Crops Grown Under Cover,agriculture.crop_farming,high,modern_via_naics6
+Christmas Tree Farm,Niche & Emerging,111421,Nursery and Tree Production,agriculture.crop_farming,high,modern_via_naics6
+Container Yard / Cold Storage,Niche & Emerging,493120,Refrigerated Warehousing and Storage,transportation.warehousing_3pl,high,modern_via_naics6
+Course Marketplace Instructor,Niche & Emerging,611710,Educational Support Services,education.support_services,high,modern_via_naics6
+Crypto Trader / DeFi,Niche & Emerging,523910,Miscellaneous Intermediation,finance.ria_wealth_management,high,modern_via_naics6
+Day Trader / Prop Trader,Niche & Emerging,523910,Miscellaneous Intermediation,finance.ria_wealth_management,high,modern_via_naics6
+Domain Investor / Flipper,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Drone Light Show Operator,Niche & Emerging,711190,Other Performing Arts Companies,recreation.performing_arts,high,modern_via_naics6
+Dry Cleaner,Niche & Emerging,812320,Drycleaning and Laundry Services (except Coin-Operated),other_services.dry_cleaning_laundry,high,modern_via_naics6
+Forex Trader,Niche & Emerging,523910,Miscellaneous Intermediation,finance.ria_wealth_management,high,modern_via_naics6
+Hemp Farm / Processor,Niche & Emerging,111998,All Other Miscellaneous Crop Farming,agriculture.crop_farming,high,modern_via_naics6
+Honey / Beekeeper,Niche & Emerging,112910,Apiculture,agriculture.livestock,high,modern_via_naics6
+Hydroponics / Vertical Farm,Niche & Emerging,111419,Other Food Crops Grown Under Cover,agriculture.crop_farming,high,modern_via_naics6
+Laundromat,Niche & Emerging,812310,Coin-Operated Laundries and Drycleaners,other_services.dry_cleaning_laundry,high,modern_via_naics6
+Maze / Agritourism Farm,Niche & Emerging,111998,All Other Miscellaneous Crop Farming,agriculture.crop_farming,high,modern_via_naics6
+Membership Site Operator,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Microgreens Producer,Niche & Emerging,111419,Other Food Crops Grown Under Cover,agriculture.crop_farming,high,modern_via_naics6
+Mobile Billboard / LED Truck,Niche & Emerging,541850,Outdoor Advertising,professional.consulting,high,modern_via_naics6
+Mobile Laundry / Pickup Service,Niche & Emerging,812320,Drycleaning and Laundry Services (except Coin-Operated),other_services.dry_cleaning_laundry,high,modern_via_naics6
+Mushroom Farm (Specialty),Niche & Emerging,111419,Other Food Crops Grown Under Cover,agriculture.crop_farming,high,modern_via_naics6
+NFT Artist / Web3 Creator,Niche & Emerging,711510,"Independent Artists, Writers, and Performers",recreation.performing_arts,high,modern_via_naics6
+Newsletter Acquirer,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_keyword_override
+Online Community Operator (Discord),Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Oyster / Shellfish Farm,Niche & Emerging,112512,Shellfish Farming,agriculture.livestock,high,modern_via_naics6
+"Reseller (Amazon, eBay, Whatnot)",Niche & Emerging,454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_via_naics6
+Self-Storage Facility,Niche & Emerging,531130,Lessors of Miniwarehouses and Self-Storage Units,real_estate.self_storage,high,modern_via_naics6
+Sports Bettor / Handicapper,Niche & Emerging,713290,Other Gambling Industries,recreation.amusement_attraction,high,modern_via_naics6
+Subscription Newsletter (paid),Niche & Emerging,511210,Software Publishers,information.media_publishing,high,modern_keyword_override
+Substack / Patreon Creator,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Trade Show Booth Builder,Niche & Emerging,561920,Convention and Trade Show Organizers,admin.office_business_support,high,modern_via_naics6
+U-Pick Farm / Pumpkin Patch,Niche & Emerging,111219,Other Vegetable (except Potato) and Melon Farming,agriculture.crop_farming,high,modern_via_naics6
+Vending Machine Route,Niche & Emerging,454210,Vending Machine Operators,retail.fuel_general_misc,high,modern_via_naics6
+Wash-and-Fold Service,Niche & Emerging,812320,Drycleaning and Laundry Services (except Coin-Operated),other_services.dry_cleaning_laundry,high,modern_via_naics6
+Website Flipper,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Whatnot / Live Shopping Streamer,Niche & Emerging,454110,Electronic Shopping and Mail-Order Houses,information.media_publishing,high,modern_keyword_override
+rather than having their own. For example: a food truck operator and a hot dog stand both share NAICS,Niche & Emerging,722330,(Mobile,hospitality.cafe_quick_service,high,modern_keyword_override
+single person running a TikTok account is technically classified as,Niche & Emerging,519290,but isn't typically registered as a business,information.media_publishing,high,modern_via_naics6
+Babysitting Service,Personal Services (modern formats),624410,Child Day Care Services,healthcare.social_assistance,high,modern_via_naics6
+Barbershop,Personal Services (modern formats),812111,Barber Shops,other_services.personal_care,high,modern_via_naics6
+Blowout Bar,Personal Services (modern formats),812112,Beauty Salons,other_services.personal_care,high,modern_via_naics6
+Brow Bar / Microblading Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Career Coach,Personal Services (modern formats),611430,Professional and Management Development Training,education.bootcamps_online,high,modern_via_naics6
+Closet Organizer / Home Organizer,Personal Services (modern formats),561720,Janitorial Services,admin.facility_services,high,modern_via_naics6
+Cryotherapy Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Day Spa,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Dog Daycare,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Dog Walker,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Doggy Hotel / Pet Resort,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Doula / Birth Coach,Personal Services (modern formats),621399,Offices of All Other Miscellaneous Health Practitioners,healthcare.allied_health,high,modern_via_naics6
+Errand Service,Personal Services (modern formats),812990,All Other Personal Services,other_services.personal_care,high,modern_via_naics6
+Float Tank / Sensory Deprivation,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Hair Braiding Salon,Personal Services (modern formats),812112,Beauty Salons,other_services.personal_care,high,modern_via_naics6
+Hair Replacement Studio,Personal Services (modern formats),812112,Beauty Salons,other_services.personal_care,high,modern_via_naics6
+Hair Salon,Personal Services (modern formats),812112,Beauty Salons,other_services.personal_care,high,modern_via_naics6
+Home Cleaning Service,Personal Services (modern formats),561720,Janitorial Services,admin.facility_services,high,modern_via_naics6
+IV Hydration Bar,Personal Services (modern formats),621498,All Other Outpatient Care Centers,healthcare.specialty_clinic,high,modern_keyword_override
+Infrared Sauna Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Lash Studio / Eyelash Extensions,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Life Coach,Personal Services (modern formats),624190,Other Individual and Family Services,healthcare.social_assistance,high,modern_via_naics6
+Massage Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Med Spa / Medical Spa,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_keyword_override
+Mobile Pet Grooming,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Move-Out Cleaning,Personal Services (modern formats),561720,Janitorial Services,admin.facility_services,high,modern_via_naics6
+Nail Salon,Personal Services (modern formats),812113,Nail Salons,other_services.personal_care,high,modern_via_naics6
+Nanny / Au Pair Service,Personal Services (modern formats),624410,Child Day Care Services,healthcare.social_assistance,high,modern_via_naics6
+Permanent Makeup Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Personal Concierge,Personal Services (modern formats),812990,All Other Personal Services,other_services.personal_care,high,modern_via_naics6
+Personal Shopper / Stylist,Personal Services (modern formats),812990,All Other Personal Services,other_services.personal_care,high,modern_via_naics6
+Personal Trainer,Personal Services (modern formats),713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
+Pet Boarding / Kennel,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Pet Grooming,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Pet Sitter,Personal Services (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
+Piercing Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Postpartum Doula,Personal Services (modern formats),624110,Child and Youth Services,healthcare.social_assistance,high,modern_via_naics6
+Press-On Nail Studio,Personal Services (modern formats),812113,Nail Salons,other_services.personal_care,high,modern_via_naics6
+Spray Tan Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Tanning Salon,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Tattoo Parlor,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Thai Massage Studio,Personal Services (modern formats),812199,Other Personal Care Services,other_services.personal_care,high,modern_via_naics6
+Wig Shop,Personal Services (modern formats),458110,Clothing and Clothing Accessories Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Adventure Tour Operator,Professional Services (modern formats),561520,Tour Operators,admin.office_business_support,high,modern_via_naics6
+Auction House,Professional Services (modern formats),454390,Other Direct Selling Establishments,retail.fuel_general_misc,high,modern_via_naics6
+Bookkeeper / Virtual Bookkeeper,Professional Services (modern formats),541219,Other Accounting Services,professional.accounting,high,modern_via_naics6
+Branding Agency,Professional Services (modern formats),541613,Marketing Consulting Services,professional.consulting,high,modern_via_naics6
+Business Coach,Professional Services (modern formats),541611,Administrative Management and General Management Consulting Services,professional.consulting,high,modern_via_naics6
+CPA Firm,Professional Services (modern formats),541211,Offices of Certified Public Accountants,professional.accounting,high,modern_via_naics6
+City / Walking Tour Operator,Professional Services (modern formats),561520,Tour Operators,admin.office_business_support,high,modern_via_naics6
+Court Reporter,Professional Services (modern formats),541990,"All Other Professional, Scientific, and Technical Services",professional.consulting,high,modern_via_naics6
+Death Doula,Professional Services (modern formats),624190,Other Individual and Family Services,healthcare.social_assistance,high,modern_via_naics6
+Enrolled Agent / IRS Representative,Professional Services (modern formats),541213,Tax Preparation Services,professional.accounting,high,modern_via_naics6
+Estate Sale Company,Professional Services (modern formats),541990,"All Other Professional, Scientific, and Technical Services",professional.consulting,high,modern_via_naics6
+Executive Coach,Professional Services (modern formats),541611,Administrative Management and General Management Consulting Services,professional.consulting,high,modern_via_naics6
+Food Tour Operator,Professional Services (modern formats),561520,Tour Operators,admin.office_business_support,high,modern_via_naics6
+Fractional CFO Service,Professional Services (modern formats),541219,Other Accounting Services,professional.accounting,high,modern_via_naics6
+Genealogist,Professional Services (modern formats),541990,"All Other Professional, Scientific, and Technical Services",professional.consulting,high,modern_via_naics6
+HR Consultant,Professional Services (modern formats),541612,Human Resources Consulting Services,professional.consulting,high,modern_via_naics6
+Immigration Consultant,Professional Services (modern formats),541990,"All Other Professional, Scientific, and Technical Services",professional.consulting,high,modern_via_naics6
+Mediator,Professional Services (modern formats),541199,All Other Legal Services,professional.legal,high,modern_via_naics6
+Mobile Notary,Professional Services (modern formats),541199,All Other Legal Services,professional.legal,high,modern_via_naics6
+Mobile Pet Cremation,Professional Services (modern formats),812220,Cemeteries and Crematories,other_services.death_care,high,modern_via_naics6
+Notary Public (Mobile),Professional Services (modern formats),541199,All Other Legal Services,professional.legal,high,modern_via_naics6
+Officiant / Wedding Officiant,Professional Services (modern formats),813110,Religious Organizations,other_services.religious_civic,high,modern_via_naics6
+Online Auction (Estate),Professional Services (modern formats),454390,Other Direct Selling Establishments,retail.fuel_general_misc,high,modern_via_naics6
+Operations Consultant,Professional Services (modern formats),541611,Administrative Management and General Management Consulting Services,professional.consulting,high,modern_via_naics6
+PR / Public Relations Agency,Professional Services (modern formats),541820,Public Relations Agencies,professional.consulting,high,modern_via_naics6
+Patent / Trademark Agent,Professional Services (modern formats),541110,Offices of Lawyers,professional.legal,high,modern_via_naics6
+Private Investigator,Professional Services (modern formats),561611,Investigation and Personal Background Check Services,admin.security_pest,high,modern_via_naics6
+Private Security / Bodyguard,Professional Services (modern formats),561612,Security Guards and Patrol Services,admin.security_pest,high,modern_via_naics6
+Process Server,Professional Services (modern formats),561499,All Other Business Support Services,admin.office_business_support,high,modern_via_naics6
+Recruiter / Headhunter,Professional Services (modern formats),561312,Executive Search Services,admin.staffing_agency,high,modern_via_naics6
+Resume Writer / Career Services,Professional Services (modern formats),541612,Human Resources Consulting Services,professional.consulting,high,modern_via_naics6
+Sales Trainer,Professional Services (modern formats),611430,Professional and Management Development Training,education.bootcamps_online,high,modern_via_naics6
+Tax Prep Service / Tax Office,Professional Services (modern formats),541213,Tax Preparation Services,professional.accounting,high,modern_via_naics6
+Tour Guide / Tour Operator,Professional Services (modern formats),561520,Tour Operators,admin.office_business_support,high,modern_via_naics6
+Translator / Interpreter,Professional Services (modern formats),541930,Translation and Interpretation Services,professional.consulting,high,modern_via_naics6
+Travel Agent,Professional Services (modern formats),561510,Travel Agencies,admin.office_business_support,high,modern_via_naics6
+Amazon FBA Seller,Retail & E-commerce (modern formats),454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_keyword_override
+Antique Mall / Antique Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Bike Shop,Retail & E-commerce (modern formats),459110,Sporting Goods Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Board Game Store,Retail & E-commerce (modern formats),459120,"Hobby, Toy, and Game Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Bookstore (Independent),Retail & E-commerce (modern formats),459210,Book Retailers and News Dealers,retail.specialty_brick_mortar,high,modern_via_naics6
+Bulk / Whole Foods Store,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+CBD Store,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_keyword_override
+Cannabis Dispensary (state-legal),Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_keyword_override
+Cheese Shop,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Chocolate Shop / Chocolatier,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Comic Book Shop,Retail & E-commerce (modern formats),459420,"Gift, Novelty, and Souvenir Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Consignment Shop,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Crystal / Metaphysical Shop,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_via_naics6
+Dropshipping Store,Retail & E-commerce (modern formats),454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_keyword_override
+Etsy / Handmade Seller,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_via_naics6
+Farmers Market Vendor,Retail & E-commerce (modern formats),445230,Fruit and Vegetable Retailers,retail.grocery_food,high,modern_via_naics6
+Flea Market Vendor,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_via_naics6
+Game Store / Video Game Retailer,Retail & E-commerce (modern formats),459120,"Hobby, Toy, and Game Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Olive Oil / Vinegar Tasting Shop,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Online-Only Store / DTC Brand,Retail & E-commerce (modern formats),455110,Department Stores,retail.fuel_general_misc,high,modern_via_naics6
+Outdoor Outfitter,Retail & E-commerce (modern formats),459110,Sporting Goods Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Pawn Shop,Retail & E-commerce (modern formats),522298,All Other Nondepository Credit Intermediation,finance.community_bank,high,modern_via_naics6
+Plant Shop / Indoor Plant Boutique,Retail & E-commerce (modern formats),444240,"Nursery, Garden Center, and Farm Supply Retailers",retail.building_home,high,modern_via_naics6
+Pop-Up Shop,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_via_naics6
+Print-on-Demand Shop,Retail & E-commerce (modern formats),454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_via_naics6
+Record Store / Vinyl Shop,Retail & E-commerce (modern formats),459140,Musical Instrument and Supplies Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Refill / Zero-Waste Store,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Religious Goods Store,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_via_naics6
+Reseller / Flipper,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Smoke Shop / Head Shop,Retail & E-commerce (modern formats),459991,"Tobacco, Electronic Cigarette, and Other Smoking Supplies Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Sneaker Resale Shop,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Specialty Coffee Roaster,Retail & E-commerce (modern formats),311920,Coffee and Tea Manufacturing,manufacturing.food_beverage_dtc,high,modern_keyword_override
+Spice Shop,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Subscription Box Service,Retail & E-commerce (modern formats),454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_keyword_override
+Surf Shop / Skate Shop,Retail & E-commerce (modern formats),459110,Sporting Goods Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Tabletop Gaming / TCG Shop,Retail & E-commerce (modern formats),459120,"Hobby, Toy, and Game Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Tea Shop,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
+Thrift Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Trading Card Shop,Retail & E-commerce (modern formats),459420,"Gift, Novelty, and Souvenir Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Used Book Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Vape Shop / Vape Store,Retail & E-commerce (modern formats),459991,"Tobacco, Electronic Cigarette, and Other Smoking Supplies Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
+Vintage Clothing Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+3D Printing Service,"Tech, Digital & Creative",323111,Commercial Printing (except Screen and Books),manufacturing.wood_paper_print,high,modern_via_naics6
+AI Consultant / Prompt Engineer,"Tech, Digital & Creative",541512,Computer Systems Design Services,professional.consulting,high,modern_via_naics6
+Animation / Motion Graphics Studio,"Tech, Digital & Creative",512110,Motion Picture and Video Production,information.motion_picture_sound,high,modern_via_naics6
+Balloon Decor / Balloon Artist,"Tech, Digital & Creative",812990,All Other Personal Services,other_services.personal_care,high,modern_via_naics6
+Boudoir Photographer,"Tech, Digital & Creative",541921,"Photography Studios, Portrait",professional.consulting,high,modern_via_naics6
+Bounce House / Inflatable Rental,"Tech, Digital & Creative",532289,All Other Consumer Goods Rental,real_estate.equipment_rental,high,modern_via_naics6
+Brand / Logo Designer,"Tech, Digital & Creative",541430,Graphic Design Services,professional.architecture_engineering,high,modern_via_naics6
+Calligrapher,"Tech, Digital & Creative",711510,"Independent Artists, Writers, and Performers",recreation.performing_arts,high,modern_via_naics6
+Computer Repair Shop,"Tech, Digital & Creative",811210,Electronic and Precision Equipment Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+Content Marketing / Copywriting,"Tech, Digital & Creative",541613,Marketing Consulting Services,professional.consulting,high,modern_via_naics6
+Coworking Space,"Tech, Digital & Creative",531120,Lessors of Nonresidential Buildings (except Miniwarehouses),real_estate.property_management,high,modern_via_naics6
+Cybersecurity Consultant,"Tech, Digital & Creative",541512,Computer Systems Design Services,professional.consulting,high,modern_keyword_override
+DJ Service,"Tech, Digital & Creative",711130,Musical Groups and Artists,recreation.performing_arts,high,modern_via_naics6
+Data Analyst / BI Consultant,"Tech, Digital & Creative",541612,Human Resources Consulting Services,professional.consulting,high,modern_via_naics6
+Drone Operator / Aerial Imaging,"Tech, Digital & Creative",541922,Commercial Photography,professional.consulting,high,modern_via_naics6
+Drone Repair / Service,"Tech, Digital & Creative",811210,Electronic and Precision Equipment Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+E-Bike / E-Scooter Repair,"Tech, Digital & Creative",811490,Other Personal and Household Goods Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+Embroidery / Custom Apparel,"Tech, Digital & Creative",315250,Cut and Sew Apparel Manufacturing,manufacturing.textile_apparel,high,modern_via_naics6
+Event Planner / Wedding Planner,"Tech, Digital & Creative",812990,All Other Personal Services,other_services.personal_care,high,modern_via_naics6
+Event Rental Company,"Tech, Digital & Creative",532289,All Other Consumer Goods Rental,real_estate.equipment_rental,high,modern_via_naics6
+Game Console Repair,"Tech, Digital & Creative",811210,Electronic and Precision Equipment Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+Graphic Designer (Freelance),"Tech, Digital & Creative",541430,Graphic Design Services,professional.architecture_engineering,high,modern_via_naics6
+Influencer / Content Creator,"Tech, Digital & Creative",519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Laser Engraving / Cutting Service,"Tech, Digital & Creative",323111,Commercial Printing (except Screen and Books),manufacturing.wood_paper_print,high,modern_via_naics6
+Maker Space / Hacker Space,"Tech, Digital & Creative",611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Mobile App Developer,"Tech, Digital & Creative",541511,Custom Computer Programming Services,information.saas_software,high,modern_keyword_override
+Mobile Bar / Bartending Service,"Tech, Digital & Creative",722320,Caterers,hospitality.catering_special_food,high,modern_via_naics6
+Music Producer / Recording Studio,"Tech, Digital & Creative",512240,Sound Recording Studios,information.motion_picture_sound,high,modern_via_naics6
+Newborn / Maternity Photographer,"Tech, Digital & Creative",541921,"Photography Studios, Portrait",professional.consulting,high,modern_via_naics6
+OnlyFans / Adult Content Creator,"Tech, Digital & Creative",519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
+Photo Booth Rental,"Tech, Digital & Creative",532289,All Other Consumer Goods Rental,real_estate.equipment_rental,high,modern_via_naics6
+Photography Studio,"Tech, Digital & Creative",541921,"Photography Studios, Portrait",professional.consulting,high,modern_via_naics6
+Podcast Host / Producer,"Tech, Digital & Creative",512240,Sound Recording Studios,information.media_publishing,high,modern_keyword_override
+Podcast Production Studio,"Tech, Digital & Creative",512240,Sound Recording Studios,information.media_publishing,high,modern_keyword_override
+Real Estate Photographer,"Tech, Digital & Creative",541922,Commercial Photography,professional.consulting,high,modern_via_naics6
+SEO / Digital Marketing Agency,"Tech, Digital & Creative",541613,Marketing Consulting Services,professional.consulting,high,modern_keyword_override
+SaaS Startup,"Tech, Digital & Creative",541511,Custom Computer Programming Services,information.saas_software,high,modern_keyword_override
+Sign Shop / Custom Signage,"Tech, Digital & Creative",323113,Commercial Screen Printing,manufacturing.wood_paper_print,high,modern_via_naics6
+Social Media Management Agency,"Tech, Digital & Creative",541613,Marketing Consulting Services,professional.consulting,high,modern_via_naics6
+Tech Repair Shop / Phone Repair,"Tech, Digital & Creative",811210,Electronic and Precision Equipment Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+UX/UI Designer (Freelance),"Tech, Digital & Creative",541430,Graphic Design Services,professional.architecture_engineering,high,modern_via_naics6
+Videographer / Video Production,"Tech, Digital & Creative",512110,Motion Picture and Video Production,information.motion_picture_sound,high,modern_via_naics6
+Vinyl / Decal Maker,"Tech, Digital & Creative",323113,Commercial Screen Printing,manufacturing.wood_paper_print,high,modern_via_naics6
+Voice-Over Artist,"Tech, Digital & Creative",512240,Sound Recording Studios,information.motion_picture_sound,high,modern_via_naics6
+Web Design Agency,"Tech, Digital & Creative",541512,Computer Systems Design Services,information.saas_software,high,modern_keyword_override
+Wedding DJ,"Tech, Digital & Creative",711130,Musical Groups and Artists,recreation.performing_arts,high,modern_via_naics6
+Wedding Photographer,"Tech, Digital & Creative",541921,"Photography Studios, Portrait",professional.consulting,high,modern_via_naics6
+Wedding Videographer,"Tech, Digital & Creative",512110,Motion Picture and Video Production,information.motion_picture_sound,high,modern_via_naics6
+WordPress / Shopify Developer,"Tech, Digital & Creative",541511,Custom Computer Programming Services,professional.consulting,high,modern_via_naics6
+YouTuber / Streamer (Twitch),"Tech, Digital & Creative",519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_keyword_override
+Boat / Marine Repair,Trades & Home Services,811490,Other Personal and Household Goods Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+Cabinet Maker,Trades & Home Services,337110,Wood Kitchen Cabinet and Countertop Manufacturing,manufacturing.furniture_misc,high,modern_via_naics6
+Ceramic Coating / Auto Spa,Trades & Home Services,811192,Car Washes,other_services.auto_repair,high,modern_via_naics6
+Chimney Sweep,Trades & Home Services,561790,Other Services to Buildings and Dwellings,admin.facility_services,high,modern_via_naics6
+Christmas Light Installation,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Closet / Custom Storage Installer,Trades & Home Services,238350,Finish Carpentry Contractors,construction.residential_trades,high,modern_via_naics6
+Concrete Contractor,Trades & Home Services,238110,Poured Concrete Foundation and Structure Contractors,construction.residential_trades,high,modern_via_naics6
+Crime Scene Cleanup,Trades & Home Services,562910,Remediation Services,admin.waste_management,high,modern_via_naics6
+Deck Builder,Trades & Home Services,238350,Finish Carpentry Contractors,construction.residential_trades,high,modern_via_naics6
+Diesel Mechanic,Trades & Home Services,811111,General Automotive Repair,other_services.auto_repair,high,modern_via_naics6
+Driveway Sealing,Trades & Home Services,238990,All Other Specialty Trade Contractors,construction.residential_trades,high,modern_via_naics6
+Drone Roof Inspection,Trades & Home Services,541350,Building Inspection Services,professional.architecture_engineering,high,modern_via_naics6
+Dumpster Rental,Trades & Home Services,532490,Other Commercial and Industrial Machinery and Equipment Rental and Leasing,real_estate.equipment_rental,high,modern_via_naics6
+EV Charger Installer,Trades & Home Services,238210,Electrical Contractors and Other Wiring Installation Contractors,construction.residential_trades,high,modern_via_naics6
+Fence Installer,Trades & Home Services,238990,All Other Specialty Trade Contractors,construction.residential_trades,high,modern_via_naics6
+Fire Damage Restoration,Trades & Home Services,562910,Remediation Services,admin.waste_management,high,modern_via_naics6
+Garage Door Installer / Repair,Trades & Home Services,238290,Other Building Equipment Contractors,construction.residential_trades,high,modern_via_naics6
+Generator Installer,Trades & Home Services,238210,Electrical Contractors and Other Wiring Installation Contractors,construction.residential_trades,high,modern_via_naics6
+Gutter Cleaning,Trades & Home Services,561790,Other Services to Buildings and Dwellings,admin.facility_services,high,modern_via_naics6
+Handyman Service,Trades & Home Services,236118,Residential Remodelers,construction.residential_trades,high,modern_via_naics6
+Hauling Service,Trades & Home Services,562119,Other Waste Collection,admin.waste_management,high,modern_via_naics6
+Hoarding Cleanup,Trades & Home Services,562910,Remediation Services,admin.waste_management,high,modern_via_naics6
+Holiday Decorating Service,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Home Inspector,Trades & Home Services,541350,Building Inspection Services,professional.architecture_engineering,high,modern_via_naics6
+Home Stager,Trades & Home Services,541410,Interior Design Services,professional.architecture_engineering,high,modern_via_naics6
+Home Theater Installer,Trades & Home Services,238210,Electrical Contractors and Other Wiring Installation Contractors,construction.residential_trades,high,modern_via_naics6
+Hot Tub Installer / Service,Trades & Home Services,238220,"Plumbing, Heating, and Air-Conditioning Contractors",construction.residential_trades,high,modern_via_naics6
+Interior Decorator,Trades & Home Services,541410,Interior Design Services,professional.architecture_engineering,high,modern_via_naics6
+Junk Removal Service,Trades & Home Services,562119,Other Waste Collection,admin.waste_management,high,modern_via_naics6
+Lawn Care / Mowing,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Locksmith,Trades & Home Services,561622,Locksmiths,admin.security_pest,high,modern_via_naics6
+Mobile Detailer / Auto Detailer,Trades & Home Services,811192,Car Washes,other_services.auto_repair,high,modern_via_naics6
+Mobile Mechanic,Trades & Home Services,811111,General Automotive Repair,other_services.auto_repair,high,modern_via_naics6
+Mold Remediation,Trades & Home Services,562910,Remediation Services,admin.waste_management,high,modern_via_naics6
+Mosquito Control Service,Trades & Home Services,561710,Exterminating and Pest Control Services,admin.security_pest,high,modern_via_naics6
+Motorcycle Repair,Trades & Home Services,811490,Other Personal and Household Goods Repair and Maintenance,other_services.repair_machinery_other,high,modern_via_naics6
+Mulch / Landscape Supply,Trades & Home Services,444240,"Nursery, Garden Center, and Farm Supply Retailers",retail.building_home,high,modern_via_naics6
+Oil Change Shop,Trades & Home Services,811191,General Automotive Repair (Quick Lube),other_services.auto_repair,high,modern_via_naics6
+Painter / House Painter,Trades & Home Services,238320,Painting and Wall Covering Contractors,construction.residential_trades,high,modern_via_naics6
+Patio / Hardscape Contractor,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Pest Control / Exterminator,Trades & Home Services,561710,Exterminating and Pest Control Services,admin.security_pest,high,modern_via_naics6
+Pool Cleaning / Service,Trades & Home Services,561790,Other Services to Buildings and Dwellings,admin.facility_services,high,modern_via_naics6
+Pool Installation,Trades & Home Services,238990,All Other Specialty Trade Contractors,construction.residential_trades,high,modern_via_naics6
+Pressure Washing / Power Washing,Trades & Home Services,561790,Other Services to Buildings and Dwellings,admin.facility_services,high,modern_via_naics6
+RV Repair,Trades & Home Services,811198,All Other Automotive Repair and Maintenance,other_services.auto_repair,high,modern_via_naics6
+Residential Window Tinting,Trades & Home Services,238150,Glass and Glazing Contractors,construction.residential_trades,high,modern_via_naics6
+Security System Installer,Trades & Home Services,561621,Security Systems Services (except Locksmiths),admin.security_pest,high,modern_via_naics6
+Septic Tank Service,Trades & Home Services,562991,Septic Tank and Related Services,admin.waste_management,high,modern_via_naics6
+Smart Home Installer,Trades & Home Services,238210,Electrical Contractors and Other Wiring Installation Contractors,construction.residential_trades,high,modern_via_naics6
+Snow Removal Service,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Solar Panel Installer,Trades & Home Services,238220,"Plumbing, Heating, and Air-Conditioning Contractors",construction.residential_trades,high,modern_via_naics6
+Stump Grinding,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Tire Shop,Trades & Home Services,811198,All Other Automotive Repair and Maintenance,other_services.auto_repair,high,modern_via_naics6
+Tree Service / Arborist,Trades & Home Services,561730,Landscaping Services,admin.facility_services,high,modern_via_naics6
+Vinyl Wrap Shop,Trades & Home Services,811121,"Automotive Body, Paint, and Interior Repair and Maintenance",other_services.auto_repair,high,modern_via_naics6
+Water Damage Restoration,Trades & Home Services,562910,Remediation Services,admin.waste_management,high,modern_via_naics6
+Wildlife Removal,Trades & Home Services,561710,Exterminating and Pest Control Services,admin.security_pest,high,modern_via_naics6
+Window Cleaning,Trades & Home Services,561720,Janitorial Services,admin.facility_services,high,modern_via_naics6
+Window Tinting / Auto,Trades & Home Services,811121,"Automotive Body, Paint, and Interior Repair and Maintenance",other_services.auto_repair,high,modern_via_naics6

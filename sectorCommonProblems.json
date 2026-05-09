@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "spec": "BATCH16.pdf — Sector Common-Problem Registries",
+    "version": "1.0.0",
+    "comment": "Keys are profile_id (matches profileRegistry). Each entry maps to a sector vocabulary with complaint themes. Themes are matched case-insensitively against review text. Weighting: 1-star=1.5, 2-star=1.2, 3-star=1.0, 4-star=0.5, 5-star=0.3. Threshold: weighted_theme_score >= 1.5. Take top 3."
+  },
+  "hospitality.lodging": {
+    "sector_label": "hotels & motels",
+    "themes": [
+      { "name": "bugs / pests", "keywords": ["bug", "bugs", "bedbug", "bed bug", "roach", "ants", "cockroach", "spider", "mice", "infestation"], "fix_direction": "Pest control contract verification + room rotation policy" },
+      { "name": "wifi / connectivity", "keywords": ["wifi", "wi-fi", "internet", "connection", "router", "signal", "slow internet"], "fix_direction": "Bandwidth audit + access-point coverage check" },
+      { "name": "cleanliness — bathroom", "keywords": ["dirty", "bathroom", "shower", "moldy", "grime", "soap scum", "hair in"], "fix_direction": "Housekeeping audit + visible-cleaning standards" },
+      { "name": "cleanliness — bedding/room", "keywords": ["sheets", "stained", "smelly", "musty", "mildew", "carpet stain"], "fix_direction": "Linen rotation + room-deep-clean schedule" },
+      { "name": "parking", "keywords": ["parking", "no spaces", "lot full", "valet", "tow"], "fix_direction": "Reservation-linked parking guidance pre-arrival" },
+      { "name": "check-in friction", "keywords": ["check in", "check-in", "front desk", "lobby line", "long wait at desk"], "fix_direction": "Mobile/kiosk check-in or staffing-during-peak audit" },
+      { "name": "noise", "keywords": ["loud", "noisy", "thin walls", "highway noise", "road noise", "couldn't sleep"], "fix_direction": "Sound-isolation upgrade for affected rooms" },
+      { "name": "AC / heat / temperature", "keywords": ["ac broken", "air conditioning", "heater", "freezing", "too hot", "thermostat"], "fix_direction": "HVAC service contract + thermostat ranges" }
+    ]
+  },
+  "hospitality.full_service_restaurant": {
+    "sector_label": "full-service restaurants",
+    "themes": [
+      { "name": "wait time — to be seated", "keywords": ["long wait", "waited forever", "hostess", "host stand", "table wait", "seating wait"], "fix_direction": "Reservation-system audit + waitlist communication" },
+      { "name": "wait time — for food", "keywords": ["food took", "took forever", "slow service", "kitchen slow", "cold by the time"], "fix_direction": "Kitchen-pacing review + portion-prep audit" },
+      { "name": "food quality", "keywords": ["overcooked", "undercooked", "bland", "tough", "raw", "tasteless", "burnt"], "fix_direction": "Recipe consistency + station-cook accountability" },
+      { "name": "server attitude", "keywords": ["rude server", "rude waitress", "rude waiter", "attitude", "ignored", "snobby", "unfriendly"], "fix_direction": "Server training + table-rotation review" },
+      { "name": "pricing surprise", "keywords": ["expensive", "overpriced", "pricey", "not worth", "rip off", "menu price"], "fix_direction": "Menu transparency + portion-photo verification" },
+      { "name": "portion size", "keywords": ["small portion", "tiny", "not filling", "hungry after", "skimpy"], "fix_direction": "Portion-size standardization audit" },
+      { "name": "allergens / dietary", "keywords": ["allergic", "allergy", "gluten", "vegan", "vegetarian", "dietary"], "fix_direction": "Allergen-handling protocol + visible menu marks" }
+    ]
+  },
+  "hospitality.cafe_quick_service": {
+    "sector_label": "cafes & quick-service",
+    "themes": [
+      { "name": "wait time", "keywords": ["long wait", "slow", "took forever", "line was long"], "fix_direction": "Peak-hour staffing + order-flow review" },
+      { "name": "order accuracy", "keywords": ["wrong order", "missing", "got the wrong", "messed up"], "fix_direction": "Order-confirmation step + receipt double-check" },
+      { "name": "food quality", "keywords": ["stale", "cold", "burnt", "soggy", "bland"], "fix_direction": "Recipe + freshness audit" },
+      { "name": "staff friendliness", "keywords": ["rude", "unfriendly", "ignored", "annoyed"], "fix_direction": "Counter-staff training + greeting protocol" },
+      { "name": "cleanliness", "keywords": ["dirty", "not clean", "tables dirty", "bathroom dirty"], "fix_direction": "Cleaning rotation + visible-cleaning standards" }
+    ]
+  },
+  "other_services.auto_repair": {
+    "sector_label": "auto repair",
+    "themes": [
+      { "name": "pricing transparency", "keywords": ["overcharge", "rip off", "estimate", "quoted", "different price"], "fix_direction": "Written estimates + posted labor rates" },
+      { "name": "repair quality / comeback", "keywords": ["broke again", "didn't fix", "still broken", "had to come back", "same problem"], "fix_direction": "Diagnostic verification + post-repair test protocol" },
+      { "name": "time estimates", "keywords": ["took longer", "all day", "promised", "took forever"], "fix_direction": "Realistic time estimates + status-update SMS" },
+      { "name": "diagnostic accuracy", "keywords": ["wrong diagnosis", "didn't need", "told me wrong", "second opinion", "actually was"], "fix_direction": "Diagnostic process review + technician training" },
+      { "name": "communication", "keywords": ["never called", "didn't tell me", "no update", "no one answered", "couldn't reach"], "fix_direction": "Service-status SMS automation + phone-coverage audit" }
+    ]
+  },
+  "healthcare.dental_practice": {
+    "sector_label": "dental practices",
+    "themes": [
+      { "name": "phone reachability", "keywords": ["never answered", "couldn't reach", "voicemail", "no answer", "ring forever"], "fix_direction": "Phone coverage + voicemail-callback SLA" },
+      { "name": "scheduling friction", "keywords": ["couldn't get appointment", "wait weeks", "rescheduled", "cancelled on me"], "fix_direction": "Online scheduling + cancellation policy" },
+      { "name": "billing / insurance friction", "keywords": ["billing", "insurance", "bill", "charge", "coverage"], "fix_direction": "Pre-treatment cost estimate + insurance verification" },
+      { "name": "wait time in office", "keywords": ["waited", "appointment time", "behind schedule", "30 minutes late"], "fix_direction": "Schedule-buffer review + delay-communication" },
+      { "name": "treatment explanation", "keywords": ["didn't explain", "didn't tell me", "what they did", "rushed through", "no time"], "fix_direction": "Treatment-walkthrough script + visual aids" }
+    ]
+  },
+  "recreation.fitness_studio": {
+    "sector_label": "gyms & fitness",
+    "themes": [
+      { "name": "equipment availability", "keywords": ["equipment broken", "machines down", "out of order", "had to wait", "no equipment"], "fix_direction": "Equipment maintenance schedule + repair SLA" },
+      { "name": "cleanliness — equipment / floor", "keywords": ["dirty", "sweaty", "not cleaned", "smell", "wipes empty"], "fix_direction": "Cleaning rotation + visible cleaning standards" },
+      { "name": "staff helpfulness", "keywords": ["rude staff", "no one helped", "ignored", "front desk rude"], "fix_direction": "Member-greeting protocol + staff training" },
+      { "name": "class scheduling", "keywords": ["class cancelled", "instructor", "schedule changed", "couldn't book"], "fix_direction": "Substitute-instructor list + advance-notice policy" },
+      { "name": "locker room", "keywords": ["locker room", "showers", "broken locker", "no soap"], "fix_direction": "Locker-room cleaning rotation" }
+    ]
+  },
+  "other_services.personal_care": {
+    "sector_label": "salons & personal care",
+    "themes": [
+      { "name": "appointment timing — late start", "keywords": ["waited", "late", "behind", "running behind"], "fix_direction": "Schedule-buffer review + apology-discount policy" },
+      { "name": "service quality / not what I asked", "keywords": ["not what I wanted", "asked for", "wrong cut", "wrong color", "didn't listen"], "fix_direction": "Pre-service consultation script + reference photos" },
+      { "name": "hygiene / cleanliness", "keywords": ["dirty tools", "not sanitized", "stained chair", "sketchy"], "fix_direction": "Sanitation protocol + visible-tools storage" },
+      { "name": "communication / feeling rushed", "keywords": ["rushed", "didn't explain", "felt ignored", "talked over me"], "fix_direction": "Service-pace review + technician training" },
+      { "name": "pricing surprise", "keywords": ["charged extra", "didn't tell me", "added on", "more than quoted"], "fix_direction": "Written estimate before service start" }
+    ]
+  },
+  "retail.specialty_brick_mortar": {
+    "sector_label": "independent specialty retail",
+    "themes": [
+      { "name": "stock availability", "keywords": ["out of stock", "didn't have", "not in stock", "sold out"], "fix_direction": "Inventory-system audit + restock cadence" },
+      { "name": "staff helpfulness", "keywords": ["unhelpful", "rude", "ignored me", "didn't help", "couldn't find anyone"], "fix_direction": "Floor-coverage + staff product-knowledge training" },
+      { "name": "pricing / accuracy", "keywords": ["wrong price", "scanned wrong", "not on sale", "different price"], "fix_direction": "Tag/POS reconciliation + signage audit" },
+      { "name": "store cleanliness", "keywords": ["dirty", "messy", "cluttered", "disorganized"], "fix_direction": "Cleaning rotation + merchandising review" },
+      { "name": "checkout speed", "keywords": ["long line", "slow register", "one cashier", "wait to pay"], "fix_direction": "Peak-hour staffing + self-checkout consideration" }
+    ]
+  }
+}

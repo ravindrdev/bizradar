@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BizRadar — Know your market. Own your city.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Brand tokens ──────────────────────────────────────────────── */
+    :root {
+      --navy: #0F1729;
+      --navy-soft: #1E293B;
+      --blue: #2563EB;
+      --blue-deep: #1D4ED8;
+      --blue-tint: rgba(37, 99, 235, 0.10);
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-soft: #F1F5F9;
+      --text: #1E293B;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --danger: #DC2626;
+      --danger-bg: #FEE2E2;
+      --danger-border: #FCA5A5;
+      --radius-card: 8px;
+      --radius-btn: 6px;
+      --radius-input: 4px;
+      --shadow-card: 0 4px 16px rgba(15, 23, 41, 0.06);
+      --shadow-cta: 0 8px 24px rgba(37, 99, 235, 0.18);
+      --transition: 200ms ease;
+    }
+
+    /* ── Base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: 15px; line-height: 1.55;
+      background: var(--bg); color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; }
+
+    /* ── Navbar ────────────────────────────────────────────────────── */
+    .lp-nav {
+      background: var(--navy); padding: 14px 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .lp-nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      color: #FFFFFF; font-weight: 700; font-size: 18px; letter-spacing: -0.01em;
+    }
+    .lp-nav-logo svg { width: 22px; height: 22px; color: var(--blue); }
+
+    /* ── Hero ──────────────────────────────────────────────────────── */
+    .lp-hero {
+      background: linear-gradient(180deg, var(--navy) 0%, #131D33 100%);
+      color: #FFFFFF;
+      padding: 72px 24px 96px;
+      text-align: center;
+    }
+    .lp-hero h1 {
+      font-size: 56px; font-weight: 700; line-height: 1.05;
+      letter-spacing: -0.02em; margin-bottom: 14px;
+    }
+    .lp-hero h1 .accent { color: var(--blue); }
+    .lp-hero .tagline {
+      font-size: 19px; color: #CBD5E1; margin-bottom: 18px; font-weight: 500;
+    }
+    .lp-hero .body {
+      font-size: 15px; color: #94A3B8;
+      max-width: 580px; margin: 0 auto; line-height: 1.6;
+    }
+
+    /* ── Mode cards (overlap hero/main boundary) ───────────────────── */
+    .lp-modes {
+      max-width: 900px; margin: -48px auto 0; padding: 0 24px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      position: relative; z-index: 2;
+    }
+    .lp-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 28px 24px;
+      cursor: pointer; text-align: left;
+      transition: border-color var(--transition), box-shadow var(--transition), transform 100ms ease;
+      position: relative;
+      width: 100%;
+      color: var(--text);
+    }
+    .lp-card:hover { border-color: #94A3B8; transform: translateY(-1px); }
+    .lp-card.selected {
+      border-color: var(--blue);
+      box-shadow: var(--shadow-cta);
+    }
+    .lp-card.selected::after {
+      content: "✓"; position: absolute; top: 16px; right: 16px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--blue); color: #FFFFFF;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .lp-card-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: var(--blue-tint); color: var(--blue);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .lp-card-icon svg { width: 22px; height: 22px; }
+    .lp-card h3 {
+      font-size: 18px; font-weight: 600; color: var(--navy);
+      margin-bottom: 8px; letter-spacing: -0.01em;
+    }
+    .lp-card p {
+      font-size: 14px; color: var(--muted);
+      margin-bottom: 16px; line-height: 1.55;
+    }
+    .lp-card-cta {
+      font-size: 14px; font-weight: 600; color: var(--blue);
+    }
+
+    /* ── Input section ─────────────────────────────────────────────── */
+    .lp-input-section {
+      max-width: 720px; margin: 32px auto 0;
+      padding: 0 24px;
+    }
+    .lp-input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .lp-input-card[hidden] { display: none; }
+    .lp-input-label {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      margin-bottom: 8px; display: block;
+    }
+    .lp-input {
+      width: 100%; padding: 12px 14px;
+      font: 500 15px Inter, system-ui, sans-serif;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-input);
+      color: var(--text); outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .lp-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .lp-input::placeholder { color: #94A3B8; }
+    .lp-input-row {
+      display: flex; gap: 8px;
+    }
+    .lp-input-row input[name="city"] { flex: 1; }
+    .lp-input-row input[name="state"] {
+      width: 80px; text-transform: uppercase; text-align: center;
+    }
+    .lp-submit {
+      width: 100%; margin-top: 14px;
+      padding: 13px 20px;
+      font: 600 15px Inter, system-ui, sans-serif;
+      background: var(--blue); color: #FFFFFF;
+      border: none; border-radius: var(--radius-btn);
+      cursor: pointer;
+      transition: background var(--transition), transform 100ms ease;
+    }
+    .lp-submit:hover:not(:disabled) { background: var(--blue-deep); }
+    .lp-submit:active { transform: translateY(1px); }
+    .lp-submit:disabled { opacity: 0.6; cursor: wait; }
+    .lp-submit[hidden] { display: none; }
+
+    .lp-error {
+      margin-top: 14px; padding: 10px 14px;
+      background: var(--danger-bg); color: var(--danger);
+      border: 1px solid var(--danger-border); border-radius: var(--radius-input);
+      font-size: 14px;
+    }
+    .lp-error[hidden] { display: none; }
+
+    /* ── Terminal-style loading widget ─────────────────────────────
+       Replaces the form area while a request is in flight. Dark navy
+       block with emerald log text, animated progress bar, ticking
+       counters, and a countdown ETA. Lines stack via insertBefore on
+       the trailing cursor; oldest fade off via a top mask gradient. */
+    .lp-terminal {
+      max-width: 600px; margin: 24px auto 0;
+      background: #0F1729;
+      color: #10B981;
+      font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 13px; line-height: 1.55;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(15, 23, 41, 0.35);
+    }
+    .lp-terminal[hidden] { display: none; }
+    .lp-term-header {
+      display: flex; align-items: center; gap: 8px;
+      color: #FFFFFF; font-weight: 600; font-size: 14px;
+      letter-spacing: 0.01em;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+    .lp-term-header .lp-term-cursor {
+      color: #10B981; font-weight: 400;
+      animation: lp-blink 1.05s steps(2) infinite;
+    }
+    @keyframes lp-blink { 50% { opacity: 0; } }
+
+    .lp-term-progress {
+      height: 3px; margin-top: 14px;
+      background: rgba(148, 163, 184, 0.16);
+      border-radius: 2px; overflow: hidden;
+    }
+    .lp-term-progress-bar {
+      width: 0%; height: 100%;
+      background: #2563EB;
+      transition: width 0ms linear, background 200ms ease;
+    }
+    .lp-term-progress-bar.complete { background: #10B981; }
+
+    .lp-term-log {
+      margin-top: 16px; max-height: 220px;
+      overflow-y: auto; overflow-x: hidden;
+      mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 100%);
+      scrollbar-width: none;
+    }
+    .lp-term-log::-webkit-scrollbar { display: none; }
+    .lp-term-line {
+      display: flex; gap: 8px; margin: 4px 0;
+      word-break: break-word;
+    }
+    .lp-term-prefix {
+      flex-shrink: 0; font-weight: 600;
+      width: 28px;
+    }
+    .lp-term-prefix-arrow { color: #2563EB; }
+    .lp-term-prefix-check { color: #10B981; }
+    .lp-term-prefix-cross { color: #EF4444; }
+    .lp-term-line-text { color: #CBD5E1; flex: 1; }
+    .lp-term-line.latest .lp-term-line-text::after {
+      content: '▋'; color: #10B981; margin-left: 2px;
+      animation: lp-blink 1.05s steps(2) infinite;
+    }
+
+    .lp-term-counters {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px;
+      margin-top: 18px; padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      color: #94A3B8; font-size: 12px;
+    }
+    .lp-term-counters > div { display: flex; justify-content: space-between; gap: 8px; }
+    .lp-term-counters span { color: #FFFFFF; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .lp-term-status {
+      margin-top: 14px;
+      color: #64748B; font-size: 12px;
+      text-align: right;
+    }
+    .lp-term-status span { color: #FFFFFF; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 720px) {
+      .lp-terminal { padding: 18px 16px; font-size: 12px; }
+      .lp-term-header { font-size: 13px; }
+      .lp-term-prefix { width: 24px; }
+      .lp-term-counters { grid-template-columns: 1fr; gap: 4px; }
+      .lp-term-log { max-height: 180px; }
+    }
+
+    /* ── Trust bar ─────────────────────────────────────────────────── */
+    .lp-trust {
+      background: var(--surface-soft);
+      padding: 32px 24px; margin-top: 48px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .lp-trust-label {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); font-weight: 600; margin-bottom: 14px;
+    }
+    .lp-trust-row {
+      display: flex; justify-content: center; gap: 24px 36px;
+      flex-wrap: wrap; max-width: 900px; margin: 0 auto;
+      color: var(--navy-soft); font-size: 14px; font-weight: 600;
+    }
+
+    /* ── How it works ──────────────────────────────────────────────── */
+    .lp-how {
+      background: var(--surface); padding: 64px 24px;
+    }
+    .lp-how-inner { max-width: 900px; margin: 0 auto; }
+    .lp-how h2 {
+      text-align: center; font-size: 28px; font-weight: 700;
+      color: var(--navy); margin-bottom: 36px;
+      letter-spacing: -0.02em;
+    }
+    .lp-steps {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+    }
+    .lp-step { text-align: center; }
+    .lp-step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--blue); color: #FFFFFF;
+      font-weight: 700; font-size: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .lp-step h3 {
+      font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 6px;
+    }
+    .lp-step p { font-size: 14px; color: var(--muted); line-height: 1.55; }
+
+    /* ── Result section (where report HTML injects) ────────────────── */
+    #result-section {
+      padding: 40px 24px 80px;
+      background: var(--bg);
+      animation: fade-in 240ms ease;
+    }
+    #result-section[hidden] { display: none; }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .result-wrap {
+      max-width: 900px; margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: 40px;
+    }
+    .result-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; color: var(--muted); font-weight: 500;
+      margin-bottom: 24px; cursor: pointer;
+      background: none; border: none; padding: 0;
+    }
+    .result-back:hover { color: var(--blue); }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    .lp-footer {
+      background: var(--navy); color: #94A3B8;
+      padding: 24px; text-align: center;
+      font-size: 13px;
+    }
+
+    /* ── Mobile ────────────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      .lp-hero { padding: 48px 20px 80px; }
+      .lp-hero h1 { font-size: 38px; }
+      .lp-hero .tagline { font-size: 16px; }
+      .lp-modes { grid-template-columns: 1fr; gap: 12px; }
+      .lp-card { padding: 22px 18px; }
+      .lp-steps { grid-template-columns: 1fr; gap: 28px; }
+      .lp-input-row { flex-direction: column; }
+      .lp-input-row input[name="state"] { width: 100%; }
+      .result-wrap { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ──────────────────────────────────────────────────── -->
+<nav class="lp-nav">
+  <div class="lp-nav-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <circle cx="12" cy="12" r="6"></circle>
+      <circle cx="12" cy="12" r="2"></circle>
+      <line x1="12" y1="2" x2="12" y2="22"></line>
+      <line x1="2" y1="12" x2="22" y2="12"></line>
+    </svg>
+    BizRadar
+  </div>
+</nav>
+
+<!-- ─── MAIN PAGE (hero + modes + input + trust + how) ─────────── -->
+<section id="page-main">
+  <div class="lp-hero">
+    <h1>Know your market. <span class="accent">Own your city.</span></h1>
+    <p class="tagline">Real data → ranked actions.</p>
+    <p class="body">BizRadar analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next — or what business to start.</p>
+  </div>
+
+  <div class="lp-modes" role="tablist" aria-label="Mode">
+    <button type="button" class="lp-card selected" data-mode="rate" role="tab" aria-selected="true" aria-controls="form-rate">
+      <div class="lp-card-icon">
+        <!-- chart-bar icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="20" x2="21" y2="20"></line>
+          <rect x="5" y="11" width="3" height="9"></rect>
+          <rect x="10.5" y="6" width="3" height="14"></rect>
+          <rect x="16" y="13" width="3" height="7"></rect>
+        </svg>
+      </div>
+      <h3>Rate My Business</h3>
+      <p>Get a full competitive analysis of your existing business with ranked action items.</p>
+      <div class="lp-card-cta">Analyze My Business →</div>
+    </button>
+    <button type="button" class="lp-card" data-mode="market" role="tab" aria-selected="false" aria-controls="form-market">
+      <div class="lp-card-icon">
+        <!-- map-pin icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 7-8 13-8 13S4 17 4 10a8 8 0 0 1 16 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      </div>
+      <h3>Find the Best Business to Start</h3>
+      <p>Discover which businesses are missing in your city based on real market gaps and competitor data.</p>
+      <div class="lp-card-cta">Explore My Market →</div>
+    </button>
+  </div>
+
+  <div class="lp-input-section">
+    <!-- MODE 1: Rate my business -->
+    <div class="lp-input-card" id="form-rate" role="tabpanel">
+      <form id="f-rate" novalidate>
+        <label class="lp-input-label" for="q">Enter your business name and address</label>
+        <input class="lp-input" id="q" name="query" type="text"
+               placeholder="e.g. AmericInn by Wyndham, 3637 WI-23, Dodgeville, WI 53533" autofocus>
+        <button type="submit" class="lp-submit" id="btn-rate">Analyze →</button>
+      </form>
+      <div class="lp-error" id="err-rate" hidden></div>
+    </div>
+
+    <!-- MODE 2: Market analysis -->
+    <div class="lp-input-card" id="form-market" role="tabpanel" hidden>
+      <form id="f-market" novalidate>
+        <label class="lp-input-label">Enter your city and state</label>
+        <div class="lp-input-row">
+          <input class="lp-input" id="city" name="city" type="text" placeholder="City">
+          <input class="lp-input" id="state" name="state" type="text" placeholder="WI" maxlength="2" autocapitalize="characters">
+        </div>
+        <button type="submit" class="lp-submit" id="btn-market">Find Opportunities →</button>
+      </form>
+      <div class="lp-error" id="err-market" hidden></div>
+    </div>
+
+    <!-- Shared terminal-style loading widget — visible during fetch,
+         hidden otherwise. Driven by Server-Sent Events from
+         /progress/:sessionId so each line + the % bar reflect actual
+         pipeline phase the server just entered. -->
+    <div class="lp-terminal" id="lp-terminal" role="status" aria-live="polite" hidden>
+      <div class="lp-term-header">
+        <span>⚡ BizRadar Intelligence Engine</span>
+        <span class="lp-term-cursor">▋</span>
+      </div>
+      <div class="lp-term-progress">
+        <div class="lp-term-progress-bar" id="term-bar"></div>
+      </div>
+      <!-- Current step message (live) + step counter -->
+      <div id="term-current-message" style="margin-top:14px;color:#10B981;font-size:13px;min-height:20px">Connecting...</div>
+      <div id="term-step-counter" style="color:#64748B;font-size:11px;margin-top:4px">Step 0 of —</div>
+      <div class="lp-term-log" id="term-log"></div>
+      <div class="lp-term-status">
+        Estimated time remaining: <span id="term-eta">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="lp-trust">
+    <div class="lp-trust-label">Powered by real data from</div>
+    <div class="lp-trust-row">
+      <span>Google Places</span>
+      <span>US Census</span>
+      <span>BLS</span>
+      <span>HUD</span>
+      <span>Open-Meteo</span>
+      <span>Foursquare</span>
+    </div>
+  </div>
+
+  <div class="lp-how">
+    <div class="lp-how-inner">
+      <h2>How it works</h2>
+      <div class="lp-steps">
+        <div class="lp-step">
+          <div class="lp-step-num">1</div>
+          <h3>Enter your business or city</h3>
+          <p>Drop a single line. We handle the rest.</p>
+        </div>
+        <div class="lp-step">
+          <div class="lp-step-num">2</div>
+          <h3>We analyze 15+ live data sources</h3>
+          <p>Google, Census, BLS, HUD, and more in seconds.</p>
+        </div>
+        <div class="lp-step">
+          <div class="lp-step-num">3</div>
+          <h3>Get ranked, actionable intelligence</h3>
+          <p>Every recommendation cited. Every number sourced.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── RESULT SECTION (hidden until report returns) ──────────── -->
+<section id="result-section" hidden>
+  <div class="result-wrap">
+    <button type="button" class="result-back" id="result-back">← Start over</button>
+    <div id="result"></div>
+  </div>
+</section>
+
+<footer class="lp-footer">© 2026 BizRadar · Real data, ranked actions.</footer>
+
+<script>
+  // ── Mode selector ────────────────────────────────────────────────
+  const TITLES = {
+    rate:   'BizRadar — Rate your business',
+    market: 'BizRadar — Find your best business',
+  };
+  const cards       = document.querySelectorAll('.lp-card');
+  const panelRate   = document.getElementById('form-rate');
+  const panelMarket = document.getElementById('form-market');
+
+  function setMode(mode) {
+    cards.forEach((c) => {
+      const on = c.dataset.mode === mode;
+      c.classList.toggle('selected', on);
+      c.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panelRate.hidden   = mode !== 'rate';
+    panelMarket.hidden = mode !== 'market';
+    document.title     = TITLES[mode] || 'BizRadar';
+    // Clear stale errors when switching modes (don't touch result, the
+    // user might want to keep the previous report visible behind the form).
+    document.getElementById('err-rate').hidden   = true;
+    document.getElementById('err-market').hidden = true;
+    const focusable = (mode === 'rate' ? panelRate : panelMarket).querySelector('input');
+    if (focusable) focusable.focus();
+  }
+  cards.forEach((c) => c.addEventListener('click', () => setMode(c.dataset.mode)));
+
+  // ── SSE-driven progress — replaces the old fake animations ──────
+  // The flow:
+  //   1. User clicks Analyze.
+  //   2. We generate a sessionId, open EventSource('/progress/' + id).
+  //   3. We POST the form with sessionId in the body.
+  //   4. The server emits progress events at each pipeline phase.
+  //   5. Each event updates the bar / message / step / ETA / log line.
+  //   6. POST returns full HTML, we close the stream, swap to the report.
+
+  function genSessionId() {
+    return Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+  }
+
+  function showError(el, msg) { el.textContent = msg; el.hidden = false; }
+  function clearError(el)     { el.hidden = true; el.textContent = ''; }
+
+  function resetTerminal() {
+    document.getElementById('term-log').innerHTML = '';
+    const bar = document.getElementById('term-bar');
+    bar.classList.remove('complete');
+    bar.style.transition = 'width 0.5s ease, background 200ms ease';
+    bar.style.width = '0%';
+    document.getElementById('term-current-message').textContent = 'Connecting...';
+    document.getElementById('term-step-counter').textContent = 'Step 0 of —';
+    document.getElementById('term-eta').textContent = '—';
+  }
+
+  // Append a single log line styled like the existing [→] / [✓] rows.
+  function appendLogLine(prefix, text) {
+    const logEl = document.getElementById('term-log');
+    const prev = logEl.querySelector('.lp-term-line.latest');
+    if (prev) prev.classList.remove('latest');
+    const lineEl = document.createElement('div');
+    lineEl.className = 'lp-term-line latest';
+    const prefixEl = document.createElement('span');
+    prefixEl.className = 'lp-term-prefix lp-term-prefix-' + (prefix === '✗' ? 'cross' : (prefix === '→' ? 'arrow' : 'check'));
+    prefixEl.textContent = '[' + prefix + ']';
+    const textEl = document.createElement('span');
+    textEl.className = 'lp-term-line-text';
+    textEl.textContent = text;
+    lineEl.appendChild(prefixEl);
+    lineEl.appendChild(textEl);
+    logEl.appendChild(lineEl);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function completeProgressBar() {
+    const bar = document.getElementById('term-bar');
+    bar.style.transition = 'width 200ms ease, background 200ms ease';
+    bar.style.width = '100%';
+    bar.classList.add('complete');
+  }
+
+  // Main submit flow. mode is 'rate' or 'market'.
+  async function submitForm({ mode, url, body, btn, errEl }) {
+    const main          = document.getElementById('page-main');
+    const resultSection = document.getElementById('result-section');
+    const resultDiv     = document.getElementById('result');
+    const terminal      = document.getElementById('lp-terminal');
+
+    document.getElementById('form-rate').hidden = true;
+    document.getElementById('form-market').hidden = true;
+    resetTerminal();
+    terminal.hidden = false;
+    btn.hidden = true;
+
+    const sessionId = genSessionId();
+    const startTime = Date.now();
+
+    // Open the progress stream BEFORE posting so the first event isn't
+    // missed. Browser EventSource auto-reconnects on transient drops.
+    const evt = new EventSource('/progress/' + sessionId);
+    let lastPct = 0;
+
+    evt.onmessage = (e) => {
+      let data; try { data = JSON.parse(e.data); } catch (_) { return; }
+      if (!data || typeof data.pct !== 'number') return;
+      if (data.message === 'connected') return;
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+      // Progress bar — only ever advances forward.
+      if (data.pct >= lastPct) {
+        lastPct = data.pct;
+        document.getElementById('term-bar').style.width = data.pct + '%';
+      }
+
+      // Current message + step counter.
+      if (data.message) {
+        document.getElementById('term-current-message').textContent = '→ ' + data.message;
+      }
+      if (typeof data.step === 'number' && typeof data.total === 'number' && data.total > 0) {
+        document.getElementById('term-step-counter').textContent =
+          'Step ' + data.step + ' of ' + data.total;
+      }
+
+      // Append this event to the rolling log with elapsed-time prefix.
+      if (data.message) {
+        appendLogLine('✓', '[' + elapsed + 's] ' + data.message);
+      }
+
+      // Time-remaining estimator. Uses observed elapsed seconds and the
+      // current % to project total wall clock, then subtracts elapsed.
+      if (data.pct > 0 && data.pct < 100) {
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        const projectedTotal = elapsedSec / (data.pct / 100);
+        const remaining = Math.max(0, Math.round(projectedTotal - elapsedSec));
+        document.getElementById('term-eta').textContent =
+          remaining > 0 ? remaining + 's' : 'almost done…';
+      }
+
+      if (data.pct >= 100) {
+        completeProgressBar();
+        document.getElementById('term-eta').textContent = '✓ complete';
+        try { evt.close(); } catch (_) {}
+      }
+    };
+    evt.onerror = () => { /* keep streaming if possible; final close is in finally */ };
+
+    // Fire the actual POST.
+    let html = null;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body + '&sessionId=' + encodeURIComponent(sessionId),
+      });
+      html = await res.text();
+    } catch (err) {
+      try { evt.close(); } catch (_) {}
+      terminal.hidden = true;
+      document.getElementById('form-' + mode).hidden = false;
+      btn.hidden = false;
+      showError(errEl, 'Request failed: ' + err.message);
+      return;
+    }
+
+    // Even if the final progress event hasn't arrived (slow stream),
+    // the POST returning means the report is ready — finalise the bar.
+    try { evt.close(); } catch (_) {}
+    completeProgressBar();
+    await new Promise((r) => setTimeout(r, 220));
+
+    resultDiv.innerHTML = html;
+    main.style.display   = 'none';
+    resultSection.hidden = false;
+    terminal.hidden      = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Mode 1 submit → POST /classify ──────────────────────────────
+  const fRate   = document.getElementById('f-rate');
+  const errRate = document.getElementById('err-rate');
+  fRate.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    clearError(errRate);
+    const q = document.getElementById('q').value.trim();
+    if (!q) return showError(errRate, 'Please enter a business name and address.');
+    submitForm({
+      mode: 'rate',
+      url: '/classify',
+      body: 'query=' + encodeURIComponent(q),
+      btn: document.getElementById('btn-rate'),
+      errEl: errRate,
+    });
+  });
+
+  // ── Mode 2 submit → POST /market-analysis ───────────────────────
+  const fMarket   = document.getElementById('f-market');
+  const errMarket = document.getElementById('err-market');
+  fMarket.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    clearError(errMarket);
+    const city  = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim().toUpperCase();
+    if (!city)                     return showError(errMarket, 'Please enter a city.');
+    if (!/^[A-Z]{2}$/.test(state)) return showError(errMarket, 'State must be exactly 2 letters (e.g. WI, NY, CA).');
+    submitForm({
+      mode: 'market',
+      url: '/market-analysis',
+      body: 'city=' + encodeURIComponent(city) + '&state=' + encodeURIComponent(state),
+      btn: document.getElementById('btn-market'),
+      errEl: errMarket,
+    });
+  });
+
+  // ── Start over button (top of result wrap) ──────────────────────
+  document.getElementById('result-back').addEventListener('click', () => {
+    document.getElementById('result-section').hidden = true;
+    document.getElementById('result').innerHTML      = '';
+    document.getElementById('page-main').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>
+</body>
+</html>

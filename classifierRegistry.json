@@ -1,0 +1,1611 @@
+{
+  "version": "12.0",
+  "generated": "2026-05-05",
+  "spec_source": "BizRadar v4 Universal Algorithm Spec \u2014 Batches 10-12",
+  "outOfScope": {
+    "naics2": [
+      {
+        "naics2": "21",
+        "label": "Mining, Quarrying, Oil & Gas Extraction",
+        "reason": "B2B/heavy-industry; no local-discovery surface.",
+        "user_message": "BizRadar is designed for consumer-facing local businesses. Mining and extraction operations don't fit that pattern."
+      },
+      {
+        "naics2": "22",
+        "label": "Utilities (regulated)",
+        "reason": "Regulated utilities; not BizRadar's customer base.",
+        "user_message": "BizRadar serves consumer-facing businesses. Regulated utilities have different industry dynamics."
+      },
+      {
+        "naics2": "55",
+        "label": "Management of Companies & Enterprises",
+        "reason": "Holding companies, regional HQs; not consumer-facing.",
+        "user_message": "BizRadar is built for businesses with customer touchpoints. Holding companies and corporate offices don't fit."
+      },
+      {
+        "naics2": "92",
+        "label": "Public Administration",
+        "reason": "Government agencies; not BizRadar customers by design.",
+        "user_message": "BizRadar serves private-sector businesses. Government agencies have different operational frameworks."
+      }
+    ],
+    "naics6Patterns": [
+      {
+        "pattern": "311111-311999",
+        "exception_codes": [
+          "311811",
+          "312120",
+          "312130",
+          "312140"
+        ],
+        "label": "Most manufacturing",
+        "reason": "B2B production; consumer-facing exceptions only (retail bakery, brewery, winery, distillery)."
+      },
+      {
+        "pattern": "481*-486*",
+        "label": "Air, rail, water, pipeline transport",
+        "reason": "B2B / regulated."
+      },
+      {
+        "pattern": "511*-518*",
+        "label": "Most information sub-sectors",
+        "reason": "Software publishers, broadcasting, ISPs not local-discovery."
+      },
+      {
+        "pattern": "521*-525*",
+        "label": "Banks, securities, funds",
+        "reason": "Regulated finance; not BizRadar fit."
+      },
+      {
+        "pattern": "531110, 531120, 531190",
+        "label": "Lessors of real estate (large)",
+        "reason": "Commercial leasing; B2B."
+      },
+      {
+        "pattern": "813*",
+        "label": "Membership/religious orgs",
+        "reason": "Not commercial businesses."
+      }
+    ]
+  },
+  "layer0Modes": [
+    {
+      "mode": "invalid",
+      "priority": 1,
+      "rule": "input length < 3 OR matches blocklist (out-of-scope NAICS-21/22/55/92 keyword)",
+      "downstream": "reject with explanation message"
+    },
+    {
+      "mode": "url",
+      "priority": 2,
+      "rule": "input contains a known directory hostname",
+      "downstream": "fetch the listing directly via Google Places / Yelp APIs",
+      "directory_hostnames": [
+        "maps.google.com",
+        "g.co/kgs",
+        "share.google",
+        "yelp.com/biz",
+        "yelp.to",
+        "tripadvisor.com",
+        "fb.me",
+        "facebook.com/",
+        "instagram.com/",
+        "tiktok.com/@",
+        "doordash.com/store",
+        "ubereats.com/store",
+        "grubhub.com/restaurant"
+      ]
+    },
+    {
+      "mode": "place_id",
+      "priority": 3,
+      "rule": "input matches Google place_id pattern (ChIJ-prefix, 27 chars)",
+      "downstream": "direct dispatch to Google Places Details API"
+    },
+    {
+      "mode": "naics_direct",
+      "priority": 4,
+      "rule": "input is a 6-digit numeric NAICS code",
+      "downstream": "direct lookup in registry.sectors"
+    },
+    {
+      "mode": "brand_chain",
+      "priority": 5,
+      "rule": "input fuzzy-matches an entry in registry.chains (Levenshtein distance \u2264 2 OR substring match)",
+      "downstream": "set chain template flag; route to chain-specific report variant"
+    },
+    {
+      "mode": "niche_typed",
+      "priority": 6,
+      "rule": "input contains one or more keywords from registry.keywords",
+      "downstream": "route to NAICS-6 candidate. If multi-match \u2192 mode=ambiguous"
+    },
+    {
+      "mode": "ambiguous",
+      "priority": 7,
+      "rule": "input matches multiple keywords with different NAICS-6 parents AND no deterministic disambiguation rule",
+      "downstream": "trigger user-clarification prompt with the candidate list"
+    },
+    {
+      "mode": "location",
+      "priority": 8,
+      "rule": "input has '<digits> <street>' AND '<city>, <state-code>' pattern",
+      "downstream": "geocode via Google + Nominatim fallback; classify via Google Places nearby"
+    },
+    {
+      "mode": "city",
+      "priority": 9,
+      "rule": "input has only ', <state-code>' pattern (no street number, no business type)",
+      "downstream": "city-level search; broader scope. Confidence: MEDIUM"
+    },
+    {
+      "mode": "free_form_geocode",
+      "priority": 10,
+      "rule": "anything else; last resort",
+      "downstream": "free-form geocode; confidence: LOW; tag report 'auto-detected'"
+    }
+  ],
+  "chains": [
+    {
+      "name": "McDonald's",
+      "naics6": "722513",
+      "label": "QSR \u2014 burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Subway",
+      "naics6": "722513",
+      "label": "QSR \u2014 sandwich",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Burger King",
+      "naics6": "722513",
+      "label": "QSR \u2014 burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Wendy's",
+      "naics6": "722513",
+      "label": "QSR \u2014 burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Taco Bell",
+      "naics6": "722513",
+      "label": "QSR \u2014 Mexican",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Chipotle Mexican Grill",
+      "naics6": "722513",
+      "label": "Fast-casual Mexican",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "KFC",
+      "naics6": "722513",
+      "label": "QSR \u2014 chicken",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Chick-fil-A",
+      "naics6": "722513",
+      "label": "QSR \u2014 chicken",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Popeyes Louisiana Kitchen",
+      "naics6": "722513",
+      "label": "QSR \u2014 chicken",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Domino's Pizza",
+      "naics6": "722513",
+      "label": "QSR \u2014 pizza",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Pizza Hut",
+      "naics6": "722513",
+      "label": "QSR \u2014 pizza",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Papa John's",
+      "naics6": "722513",
+      "label": "QSR \u2014 pizza",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Little Caesars",
+      "naics6": "722513",
+      "label": "QSR \u2014 pizza",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Panera Bread",
+      "naics6": "722513",
+      "label": "Fast-casual bakery-cafe",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Panda Express",
+      "naics6": "722513",
+      "label": "QSR \u2014 Asian",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Five Guys",
+      "naics6": "722513",
+      "label": "Fast-casual burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Shake Shack",
+      "naics6": "722513",
+      "label": "Fast-casual burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Sweetgreen",
+      "naics6": "722513",
+      "label": "Fast-casual salad",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Cava",
+      "naics6": "722513",
+      "label": "Fast-casual Mediterranean",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Jersey Mike's",
+      "naics6": "722513",
+      "label": "QSR \u2014 sandwich",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Jimmy John's",
+      "naics6": "722513",
+      "label": "QSR \u2014 sandwich",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Arby's",
+      "naics6": "722513",
+      "label": "QSR \u2014 sandwich",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Sonic Drive-In",
+      "naics6": "722513",
+      "label": "QSR \u2014 drive-in",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Dairy Queen",
+      "naics6": "722513",
+      "label": "QSR \u2014 burger/dessert",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Chili's",
+      "naics6": "722511",
+      "label": "Casual dining",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Olive Garden",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 Italian",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Applebee's",
+      "naics6": "722511",
+      "label": "Casual dining",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "IHOP",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 breakfast",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Denny's",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 diner",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Cracker Barrel",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 country",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Texas Roadhouse",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 steakhouse",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Buffalo Wild Wings",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 sports bar",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "The Cheesecake Factory",
+      "naics6": "722511",
+      "label": "Casual dining",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "P.F. Chang's",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 Asian",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Outback Steakhouse",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 steakhouse",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Red Lobster",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 seafood",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Red Robin",
+      "naics6": "722511",
+      "label": "Casual dining \u2014 burger",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Cheddar's Scratch Kitchen",
+      "naics6": "722511",
+      "label": "Casual dining",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Starbucks",
+      "naics6": "722515",
+      "label": "Coffee chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Dunkin'",
+      "naics6": "722515",
+      "label": "Coffee/donut chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Tim Hortons",
+      "naics6": "722515",
+      "label": "Coffee chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Peet's Coffee",
+      "naics6": "722515",
+      "label": "Coffee chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Caribou Coffee",
+      "naics6": "722515",
+      "label": "Coffee chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Marriott",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Marriott parent (Marriott, Courtyard, Residence Inn, Fairfield, Springhill, etc.)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Hilton",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Hilton parent (Hilton, Hampton, DoubleTree, Embassy, Hilton Garden, Home2)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Hyatt",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Hyatt parent (Hyatt, Hyatt Place, Hyatt House, Hyatt Centric)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "IHG (InterContinental Hotels Group)",
+      "naics6": "721110",
+      "label": "Hotels \u2014 IHG parent (Holiday Inn, Holiday Inn Express, Crowne Plaza, Staybridge, Candlewood)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Best Western",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Best Western",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Choice Hotels",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Choice parent (Comfort Inn, Quality, Sleep Inn, Mainstay)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Wyndham",
+      "naics6": "721110",
+      "label": "Hotels \u2014 Wyndham parent (Days Inn, Super 8, Ramada, La Quinta, Microtel)",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Motel 6",
+      "naics6": "721110",
+      "label": "Budget motel chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Red Roof Inn",
+      "naics6": "721110",
+      "label": "Budget motel chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Extended Stay America",
+      "naics6": "721110",
+      "label": "Extended-stay chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Planet Fitness",
+      "naics6": "713940",
+      "label": "Big-box gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "LA Fitness",
+      "naics6": "713940",
+      "label": "Big-box gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Anytime Fitness",
+      "naics6": "713940",
+      "label": "24-hr gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Crunch Fitness",
+      "naics6": "713940",
+      "label": "Big-box gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Equinox",
+      "naics6": "713940",
+      "label": "Premium gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "24 Hour Fitness",
+      "naics6": "713940",
+      "label": "Big-box gym chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Orangetheory Fitness",
+      "naics6": "713940",
+      "label": "HIIT studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "F45 Training",
+      "naics6": "713940",
+      "label": "HIIT studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Pure Barre",
+      "naics6": "713940",
+      "label": "Boutique studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "CorePower Yoga",
+      "naics6": "713940",
+      "label": "Yoga studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "SoulCycle",
+      "naics6": "713940",
+      "label": "Cycling studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Barry's Bootcamp",
+      "naics6": "713940",
+      "label": "HIIT studio chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "[solidcore]",
+      "naics6": "713940",
+      "label": "Pilates-megaformer chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Great Clips",
+      "naics6": "812112",
+      "label": "Walk-in salon chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "SuperCuts",
+      "naics6": "812112",
+      "label": "Walk-in salon chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Sport Clips",
+      "naics6": "812111",
+      "label": "Men's barbershop chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Fantastic Sams",
+      "naics6": "812112",
+      "label": "Walk-in salon chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Cost Cutters",
+      "naics6": "812112",
+      "label": "Walk-in salon chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "European Wax Center",
+      "naics6": "812199",
+      "label": "Personal-care chain \u2014 wax",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Massage Envy",
+      "naics6": "812199",
+      "label": "Massage/spa chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Hand & Stone",
+      "naics6": "812199",
+      "label": "Massage/spa chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Drybar",
+      "naics6": "812112",
+      "label": "Blow-dry-only chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Amazing Lash Studio",
+      "naics6": "812199",
+      "label": "Lash extension chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Jiffy Lube",
+      "naics6": "811191",
+      "label": "Quick-lube chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Midas",
+      "naics6": "811111",
+      "label": "Auto-repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Firestone Complete Auto Care",
+      "naics6": "811111",
+      "label": "Auto-repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Pep Boys",
+      "naics6": "811111",
+      "label": "Auto-repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Meineke Car Care Centers",
+      "naics6": "811111",
+      "label": "Auto-repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "AAMCO Transmissions",
+      "naics6": "811113",
+      "label": "Transmission specialty chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Valvoline Instant Oil Change",
+      "naics6": "811191",
+      "label": "Quick-lube chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Take 5 Oil Change",
+      "naics6": "811191",
+      "label": "Quick-lube chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Big O Tires",
+      "naics6": "811111",
+      "label": "Tire/repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Christian Brothers Automotive",
+      "naics6": "811111",
+      "label": "Auto-repair chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Walmart",
+      "naics6": "455211",
+      "label": "Supercenter / mass merchant",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Target",
+      "naics6": "455211",
+      "label": "Mass merchant",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Costco",
+      "naics6": "455211",
+      "label": "Warehouse club",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Sam's Club",
+      "naics6": "455211",
+      "label": "Warehouse club",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Home Depot",
+      "naics6": "444110",
+      "label": "Home center",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Lowe's",
+      "naics6": "444110",
+      "label": "Home center",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Best Buy",
+      "naics6": "449210",
+      "label": "Electronics retailer",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Walgreens",
+      "naics6": "456110",
+      "label": "Pharmacy chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "CVS Pharmacy",
+      "naics6": "456110",
+      "label": "Pharmacy chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Petco",
+      "naics6": "459910",
+      "label": "Pet retail chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "PetSmart",
+      "naics6": "459910",
+      "label": "Pet retail chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "GameStop",
+      "naics6": "459120",
+      "label": "Video-game retail chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Office Depot",
+      "naics6": "459410",
+      "label": "Office-supplies retail chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Staples",
+      "naics6": "459410",
+      "label": "Office-supplies retail chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Dollar General",
+      "naics6": "455219",
+      "label": "Dollar-store chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Dollar Tree",
+      "naics6": "455219",
+      "label": "Dollar-store chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Family Dollar",
+      "naics6": "455219",
+      "label": "Dollar-store chain",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "TJ Maxx",
+      "naics6": "458110",
+      "label": "Off-price clothing retail",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Marshalls",
+      "naics6": "458110",
+      "label": "Off-price clothing retail",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "Ross Dress for Less",
+      "naics6": "458110",
+      "label": "Off-price clothing retail",
+      "treatment": "chain_brand"
+    },
+    {
+      "name": "H&R Block",
+      "naics6": "541213",
+      "label": "Tax prep chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Jackson Hewitt",
+      "naics6": "541213",
+      "label": "Tax prep chain",
+      "treatment": "chain_independent"
+    },
+    {
+      "name": "Liberty Tax",
+      "naics6": "541213",
+      "label": "Tax prep chain",
+      "treatment": "chain_independent"
+    }
+  ],
+  "disambiguation": {
+    "bakery": {
+      "candidates": [
+        {
+          "naics6": "311811",
+          "label": "Retail Bakeries (mfg-attached)",
+          "when": "On-site oven; donuts/cupcakes/bagels"
+        },
+        {
+          "naics6": "722515",
+          "label": "Snack and Nonalcoholic Beverage Bars",
+          "when": "Coffee+pastries pattern"
+        },
+        {
+          "naics6": "445291",
+          "label": "Baked Goods Retailers",
+          "when": "Pure retail; no on-site production"
+        }
+      ],
+      "tiebreak": "Default 311811. Shift to 722515 if 'cafe'/'coffee' present; 445291 if 'retail-only' framing.",
+      "ask_user": false
+    },
+    "studio": {
+      "candidates": [
+        {
+          "naics6": "611620",
+          "label": "Sports & Recreation Instruction"
+        },
+        {
+          "naics6": "541921",
+          "label": "Photography Studios, Portrait"
+        },
+        {
+          "naics6": "541490",
+          "label": "Other Specialized Design Services"
+        },
+        {
+          "naics6": "711510",
+          "label": "Independent Artists, Writers, and Performers"
+        }
+      ],
+      "tiebreak": "yoga/pilates \u2192 611620; photo \u2192 541921; design/architecture \u2192 541490; recording/art \u2192 711510. If no modifier, ask user.",
+      "ask_user": true
+    },
+    "spa": {
+      "candidates": [
+        {
+          "naics6": "812199",
+          "label": "Other Personal Care Services"
+        },
+        {
+          "naics6": "721110",
+          "label": "Hotels (wellness retreats)"
+        },
+        {
+          "naics6": "621399",
+          "label": "Misc Health Practitioners (med spa)"
+        }
+      ],
+      "tiebreak": "Default 812199. Shift to 721110 if 'retreat'/'overnight'. Shift to 621399 if 'medical'/'aesthetic medicine'.",
+      "ask_user": false
+    },
+    "salon": {
+      "candidates": [
+        {
+          "naics6": "812112",
+          "label": "Beauty Salons"
+        },
+        {
+          "naics6": "812113",
+          "label": "Nail Salons"
+        },
+        {
+          "naics6": "812111",
+          "label": "Barber Shops"
+        }
+      ],
+      "tiebreak": "Default 812112. 'nail' \u2192 812113. 'barber'/'men' \u2192 812111.",
+      "ask_user": false
+    },
+    "shop": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Too generic"
+        }
+      ],
+      "tiebreak": "Always reject without modifier. Prompt: 'What kind of shop?'",
+      "ask_user": true
+    },
+    "agency": {
+      "candidates": [
+        {
+          "naics6": "541810",
+          "label": "Advertising Agencies"
+        },
+        {
+          "naics6": "561510",
+          "label": "Travel Agencies"
+        },
+        {
+          "naics6": "561311",
+          "label": "Employment Agencies"
+        },
+        {
+          "naics6": "541612",
+          "label": "HR Consulting"
+        }
+      ],
+      "tiebreak": "Modifier required. ad/marketing \u2192 541810; travel \u2192 561510; staffing/recruiting \u2192 561311; HR \u2192 541612.",
+      "ask_user": true
+    },
+    "clinic": {
+      "candidates": [
+        {
+          "naics6": "621498",
+          "label": "Urgent Care"
+        },
+        {
+          "naics6": "812199",
+          "label": "Med-spa clinic"
+        },
+        {
+          "naics6": "621399",
+          "label": "Specialty health practitioner"
+        },
+        {
+          "naics6": "621112",
+          "label": "Mental health practice"
+        }
+      ],
+      "tiebreak": "Default 621498. 'med spa' \u2192 812199 with cross-ref 621399. 'mental health' \u2192 621112.",
+      "ask_user": false
+    },
+    "school": {
+      "candidates": [
+        {
+          "naics6": "611110",
+          "label": "Elem/secondary (out of scope)"
+        },
+        {
+          "naics6": "611692",
+          "label": "Driving school"
+        },
+        {
+          "naics6": "611610",
+          "label": "Music/fine-arts school"
+        },
+        {
+          "naics6": "611699",
+          "label": "Coding bootcamp / other"
+        }
+      ],
+      "tiebreak": "Out-of-scope unless modifier. 'driving' \u2192 611692. 'music' \u2192 611610. 'coding/bootcamp' \u2192 611699.",
+      "ask_user": true
+    },
+    "center": {
+      "candidates": [
+        {
+          "naics6": "713940",
+          "label": "Fitness center"
+        },
+        {
+          "naics6": "812199",
+          "label": "Wellness center"
+        },
+        {
+          "naics6": "624410",
+          "label": "Day care center"
+        },
+        {
+          "naics6": "621498",
+          "label": "Urgent care center"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "services": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Too generic"
+        }
+      ],
+      "tiebreak": "Always reject without domain modifier. 'cleaning services' \u2192 561720; 'legal services' \u2192 5411*; 'IT services' \u2192 541512.",
+      "ask_user": true
+    },
+    "group": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Too generic"
+        }
+      ],
+      "tiebreak": "'medical group' \u2192 621* by specialty; 'law group' \u2192 5411* by area; 'consulting group' \u2192 541611/541612.",
+      "ask_user": true
+    },
+    "market": {
+      "candidates": [
+        {
+          "naics6": "445110",
+          "label": "Grocery"
+        },
+        {
+          "naics6": "445230",
+          "label": "Farmers market"
+        },
+        {
+          "naics6": "459999",
+          "label": "Flea market"
+        }
+      ],
+      "tiebreak": "Default 445110. 'farmers' \u2192 445230. 'flea' \u2192 459999. 'stock' \u2192 out of scope.",
+      "ask_user": false
+    },
+    "kitchen": {
+      "candidates": [
+        {
+          "naics6": "722513",
+          "label": "Ghost/cloud kitchen"
+        },
+        {
+          "naics6": "624210",
+          "label": "Soup kitchen (out of scope)"
+        }
+      ],
+      "tiebreak": "Default 722513. 'soup' \u2192 out of scope.",
+      "ask_user": false
+    },
+    "garage": {
+      "candidates": [
+        {
+          "naics6": "811111",
+          "label": "Auto repair garage"
+        },
+        {
+          "naics6": "812930",
+          "label": "Parking garage"
+        },
+        {
+          "naics6": "531130",
+          "label": "Storage garage"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "lounge": {
+      "candidates": [
+        {
+          "naics6": "722410",
+          "label": "Cigar/hookah lounge"
+        },
+        {
+          "naics6": "812199",
+          "label": "Massage/spa lounge"
+        }
+      ],
+      "tiebreak": "Default 722410. 'massage' \u2192 812199.",
+      "ask_user": false
+    },
+    "hub": {
+      "candidates": [
+        {
+          "naics6": "812199",
+          "label": "Wellness hub"
+        },
+        {
+          "naics6": "531120",
+          "label": "Coworking hub"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "collective": {
+      "candidates": [
+        {
+          "naics6": "711510",
+          "label": "Artist collective"
+        },
+        {
+          "naics6": "812199",
+          "label": "Wellness collective"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "space": {
+      "candidates": [
+        {
+          "naics6": "531120",
+          "label": "Coworking/event space"
+        },
+        {
+          "naics6": "various",
+          "label": "Studio space"
+        }
+      ],
+      "tiebreak": "'coworking'/'event' \u2192 531120. 'studio space' \u2192 see studio rules.",
+      "ask_user": true
+    },
+    "bar": {
+      "candidates": [
+        {
+          "naics6": "722410",
+          "label": "Drinking place (default)"
+        },
+        {
+          "naics6": "722515",
+          "label": "Juice/cereal/coffee-pastry bar"
+        },
+        {
+          "naics6": "812199",
+          "label": "Lash bar / oxygen bar"
+        },
+        {
+          "naics6": "722511",
+          "label": "Sushi bar / wine bar (full-service)"
+        }
+      ],
+      "tiebreak": "Default 722410. 'juice'/'cereal' \u2192 722515. 'lash'/'oxygen' \u2192 812199. 'sushi'/'wine' (full-service) \u2192 722511.",
+      "ask_user": false
+    },
+    "boutique": {
+      "candidates": [
+        {
+          "naics6": "458110",
+          "label": "Boutique clothing retail"
+        },
+        {
+          "naics6": "721110",
+          "label": "Boutique hotel"
+        },
+        {
+          "naics6": "713940",
+          "label": "Boutique fitness studio"
+        }
+      ],
+      "tiebreak": "Modifier required. 'hotel' \u2192 721110. 'fitness'/'pilates'/'barre' \u2192 713940. Default to clothing 458110 if no modifier.",
+      "ask_user": false
+    },
+    "lab": {
+      "candidates": [
+        {
+          "naics6": "621511",
+          "label": "Medical lab (out of natural scope)"
+        },
+        {
+          "naics6": "541512",
+          "label": "Computer/programming lab"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "house": {
+      "candidates": [
+        {
+          "naics6": "722511",
+          "label": "Restaurant 'XYZ House'"
+        },
+        {
+          "naics6": "721199",
+          "label": "Boarding/guesthouse"
+        }
+      ],
+      "tiebreak": "If business-name only, route via Google Places type. Modifier required.",
+      "ask_user": true
+    },
+    "place": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Too generic"
+        }
+      ],
+      "tiebreak": "Reject without modifier.",
+      "ask_user": true
+    },
+    "spot": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Too generic"
+        }
+      ],
+      "tiebreak": "Reject without modifier.",
+      "ask_user": true
+    },
+    "co": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Brand suffix"
+        }
+      ],
+      "tiebreak": "Strip and re-route to substantive noun. 'Plumbing Co' \u2192 238220.",
+      "ask_user": true
+    },
+    "pro": {
+      "candidates": [
+        {
+          "naics6": "various",
+          "label": "Marketing suffix"
+        }
+      ],
+      "tiebreak": "Treat as marketing suffix; route to substantive noun.",
+      "ask_user": true
+    },
+    "retreat": {
+      "candidates": [
+        {
+          "naics6": "721110",
+          "label": "Wellness/destination retreat"
+        },
+        {
+          "naics6": "813110",
+          "label": "Religious retreat (out of scope)"
+        }
+      ],
+      "tiebreak": "Default 721110. 'religious'/'church' \u2192 out of scope.",
+      "ask_user": false
+    },
+    "academy": {
+      "candidates": [
+        {
+          "naics6": "611620",
+          "label": "Sports academy"
+        },
+        {
+          "naics6": "611610",
+          "label": "Arts academy"
+        },
+        {
+          "naics6": "611699",
+          "label": "Other (coding, etc)"
+        }
+      ],
+      "tiebreak": "Modifier required.",
+      "ask_user": true
+    },
+    "consulting": {
+      "candidates": [
+        {
+          "naics6": "541611",
+          "label": "Management consulting"
+        },
+        {
+          "naics6": "541612",
+          "label": "HR consulting"
+        },
+        {
+          "naics6": "541613",
+          "label": "Marketing consulting"
+        },
+        {
+          "naics6": "541618",
+          "label": "Other consulting"
+        }
+      ],
+      "tiebreak": "Modifier required. 'management'/'strategy' \u2192 541611. 'HR'/'people' \u2192 541612. 'marketing'/'brand' \u2192 541613.",
+      "ask_user": false
+    },
+    "design": {
+      "candidates": [
+        {
+          "naics6": "541310",
+          "label": "Architectural design"
+        },
+        {
+          "naics6": "541410",
+          "label": "Interior design"
+        },
+        {
+          "naics6": "541420",
+          "label": "Industrial design"
+        },
+        {
+          "naics6": "541430",
+          "label": "Graphic design"
+        },
+        {
+          "naics6": "541490",
+          "label": "Other specialized design"
+        }
+      ],
+      "tiebreak": "'architecture' \u2192 541310. 'interior' \u2192 541410. 'graphic'/'logo' \u2192 541430. 'industrial'/'product' \u2192 541420. Default 541490.",
+      "ask_user": false
+    }
+  },
+  "sectorTemplates": [
+    {
+      "id": "TPL_CONSTRUCTION_RES",
+      "naics2": "23",
+      "title": "Residential Construction & Trades",
+      "naics6_scope": "236115, 236118 (residential GC); 238* (residential trades)",
+      "study_ids": [
+        "S021",
+        "S022",
+        "S023",
+        "S017",
+        "S015",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Channel mix audit",
+          "body": "Compare current acquisition spend vs S023. Aggregator (Angi/Thumbtack) target <10% of marketing budget. Google LSA + SEO are the dominant channels.",
+          "study_ids": [
+            "S023"
+          ]
+        },
+        {
+          "label": "Structured post-project feedback",
+          "body": "Implement milestone-triggered surveys per S021. Firms doing this see 15% higher margins and ~$1.8M referral revenue.",
+          "study_ids": [
+            "S021"
+          ]
+        },
+        {
+          "label": "Google Business Profile + LSA combo",
+          "body": "LSA close rate is 31% (S023). Combined with optimized GBP and SEO content, this is the highest-ROI channel stack.",
+          "study_ids": [
+            "S023"
+          ]
+        },
+        {
+          "label": "Referral velocity tracking",
+          "body": "Per S022 (Holt Homes case): structured CX programs lift referral share 25%\u219235%+ over 4 years. Track referral source at project intake.",
+          "study_ids": [
+            "S022",
+            "S017"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPL_RETAIL_INDIE",
+      "naics2": "44-45",
+      "title": "Independent Retail Trade",
+      "naics6_scope": "Independent retailers across 458110, 459110, 459210, 459310, 459910, 459920, 459999",
+      "study_ids": [
+        "S014",
+        "S010",
+        "S011",
+        "S012",
+        "S015",
+        "S017"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Hit the 43-review threshold",
+          "body": "Per S014: 43+ reviews \u2192 +26% revenue; 200+ reviews \u2192 +46%. Quarterly review cadence required (S011).",
+          "study_ids": [
+            "S014",
+            "S011"
+          ]
+        },
+        {
+          "label": "Google-first review strategy",
+          "body": "Per S012: bad Google rating hits revenue 33%; Yelp 19%; Facebook 9%. Recovery resources go to Google.",
+          "study_ids": [
+            "S012"
+          ]
+        },
+        {
+          "label": "Optimum band: 3.5-4.5 stars",
+          "body": "5.0-star establishments sometimes underperform 4.5-star (skepticism). Don't chase perfect.",
+          "study_ids": [
+            "S012"
+          ]
+        },
+        {
+          "label": "Repeat-customer focus",
+          "body": "Per S017: 5pp retention lift \u2192 25-95% profit lift. Loyalty programs and SMS reactivation are highest-leverage actions.",
+          "study_ids": [
+            "S017"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPL_PROFSVC_LEGAL",
+      "naics2": "54",
+      "title": "Legal Services and Professional Practice",
+      "naics6_scope": "5411* (legal); supplementary 541211 (CPA), 541330, 541612",
+      "study_ids": [
+        "S027",
+        "S028",
+        "S029",
+        "S015",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Multi-platform review presence",
+          "body": "Per S027: 82% of legal clients seek reviews; 50.6% highly influenced. Google + Avvo + 1 more platform required.",
+          "study_ids": [
+            "S027"
+          ]
+        },
+        {
+          "label": "Structured referral program",
+          "body": "Per S028: referred clients = 16% more profit, 37% retention, 30% conversion. Each referral generates 2.68 follow-ons.",
+          "study_ids": [
+            "S028"
+          ]
+        },
+        {
+          "label": "Practice-area content marketing",
+          "body": "Per S029: review influence is HIGHER in legal/medical/financial than retail. Educational content builds referral-converting credibility.",
+          "study_ids": [
+            "S029"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPL_HEALTHCARE_SMB",
+      "naics2": "62",
+      "title": "Small-Practice Healthcare and Allied Health",
+      "naics6_scope": "621210 (dental), 621310 (chiro), 621340 (PT), 621399 (other), 621498 (urgent care), 624410 (daycare)",
+      "study_ids": [
+        "S024",
+        "S025",
+        "S026",
+        "S015",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Multi-platform review presence",
+          "body": "Per S024: consumers use Google + Healthgrades + Vitals + Zocdoc. Healthcare needs more platforms than retail.",
+          "study_ids": [
+            "S024"
+          ]
+        },
+        {
+          "label": "Fix admin before clinical",
+          "body": "Per S026: ~80% of dental complaints are admin (phone, scheduling), not clinical. Admin improvements are higher-ROI than clinical changes.",
+          "study_ids": [
+            "S026"
+          ]
+        },
+        {
+          "label": "Insurance accepted = trust signal",
+          "body": "Per S024: ~90% of patients rate insurance-list importance high. Make insurance coverage explicit on GBP and website.",
+          "study_ids": [
+            "S024"
+          ]
+        },
+        {
+          "label": "Volume + recency on reviews",
+          "body": "Womply S010-S011 patterns apply. Note: review responses must be HIPAA-compliant (don't acknowledge specific patient details).",
+          "study_ids": [
+            "S010",
+            "S011"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPL_ADMIN_LOCAL",
+      "naics2": "56",
+      "title": "Local Building & Cleaning Services",
+      "naics6_scope": "561720 (cleaning), 561710 (pest), 561730 (landscaping), 561790 (other building); 484210 (moving)",
+      "study_ids": [
+        "S030",
+        "S031",
+        "S023",
+        "S015",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Channel mix is THE marketing decision",
+          "body": "Per S030: 8x CAC spread across channels. Aggregator spend should be <10% of budget.",
+          "study_ids": [
+            "S030"
+          ]
+        },
+        {
+          "label": "Word-of-mouth amplification",
+          "body": "Per S031: 60-70% of new clients in cleaning/landscaping/pest control come from word-of-mouth. Reviews are referral-amplification, not standalone marketing.",
+          "study_ids": [
+            "S031"
+          ]
+        },
+        {
+          "label": "Google Business Profile + LSA combo",
+          "body": "Per S023: LSAs deliver 31% close rate. Combined with maintained GBP and SEO service pages, this is the dominant channel stack.",
+          "study_ids": [
+            "S023"
+          ]
+        },
+        {
+          "label": "Response-time SLA",
+          "body": "Industry benchmark: <5 min response = 5x more likely to win the lead than >1 hour. Speed matters as much as price.",
+          "study_ids": []
+        }
+      ]
+    },
+    {
+      "id": "TPL_PERSONAL_AUTO",
+      "naics2": "81",
+      "title": "Personal Services and Auto Repair",
+      "naics6_scope": "811111-811198 (auto), 812112-812113 (salons), 812199 (other personal care)",
+      "study_ids": [
+        "S032",
+        "S033",
+        "S010",
+        "S011",
+        "S015",
+        "S016",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Auto repair: track 12-month retention as primary KPI",
+          "body": "Per S032: industry baseline is 40-50% retention. NADA target 72%+. Most independents are below this.",
+          "study_ids": [
+            "S032"
+          ]
+        },
+        {
+          "label": "Salon: 24/7 online booking is the retention lever",
+          "body": "Per S033: online-bookers return 78% vs walk-ins 39%. 46% of bookings happen outside business hours. Caveat: causal incremental lift ~1.3-1.5x, not 2x (selection effects).",
+          "study_ids": [
+            "S033"
+          ]
+        },
+        {
+          "label": "Neutral experience = non-return",
+          "body": "Per S032: largest driver of customer non-return is a NEUTRAL service experience. 'Wow' moments lift neutral\u2192positive at low cost.",
+          "study_ids": [
+            "S032"
+          ]
+        },
+        {
+          "label": "0.1-star elasticity at brick-and-mortar",
+          "body": "Per S016: 0.1-star Google rating increase ~25% conversion lift. Sharpest in 3.5-4.5 band.",
+          "study_ids": [
+            "S016"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPL_RECREATION_NONGYM",
+      "naics2": "71",
+      "title": "Recreation and Experiential Entertainment",
+      "naics6_scope": "713120 (arcades), 713910 (golf), 713950 (bowling), 713930 (marinas), 713990 (escape rooms, axe throwing, trampoline parks)",
+      "study_ids": [
+        "S034",
+        "S035",
+        "S015",
+        "S020"
+      ],
+      "key_recommendations": [
+        {
+          "label": "Reviews drive 50-70% of discovery",
+          "body": "Per S034 and S035: experiential entertainment 70%+ review-driven; golf and bowling ~50%. Review-management is the dominant marketing channel.",
+          "study_ids": [
+            "S034",
+            "S035"
+          ]
+        },
+        {
+          "label": "Channel-specific apps for category leaders",
+          "body": "Per S035: tee-time booking apps (GolfNow), bowling-league platforms add 20-30% of new customers.",
+          "study_ids": [
+            "S035"
+          ]
+        },
+        {
+          "label": "Photos and video drive booking conversion",
+          "body": "For experiential entertainment, the booking decision happens after visualizing the experience. Image quality measurably moves bookings.",
+          "study_ids": []
+        },
+        {
+          "label": "Group-booking optimization",
+          "body": "Recreation venues earn outsized revenue from group bookings (corporate events, birthdays, league nights). Dedicated landing page + email capture lifts this channel.",
+          "study_ids": []
+        }
+      ]
+    }
+  ],
+  "keywordRouter": {
+    "note": "The full keyword\u2192NAICS-6 router is shipped as keywordRouter.csv (454 rows). This registry references it by filename rather than embedding.",
+    "csv_filename": "keywordRouter.csv",
+    "row_count": 454
+  },
+  "naicsRouter": {
+    "note": "The full NAICS-6\u2192sector-profile router is shipped as naicsRouter.csv (1,012 rows).",
+    "csv_filename": "naicsRouter.csv",
+    "row_count": 1012
+  },
+  "stats": {
+    "chain_count": 109,
+    "disambiguation_rule_count": 30,
+    "sector_template_count": 7,
+    "out_of_scope_naics2_count": 4,
+    "out_of_scope_naics6_pattern_count": 6
+  }
+}
