@@ -422,14 +422,33 @@ app.post('/classify', async (req, res) => {
       lng: data.longitude,
       type: nearbyType,
       apiKey: API_KEY,
-      // Phase 5+ — passed through for the Source 2 (text-search)
-      // synonym query + name-based subject exclusion. All three are
-      // optional; the function degrades gracefully if any are null.
       city: data.city,
       state: data.state,
       subjectName: data.name,
+      // ── New competitor-detection inputs (FIX 1/2/3) ──
+      // buildCompetitorQuery uses naics6/naics2/googleTypes/businessName
+      // to construct a Google Text Search query that's far more
+      // category-accurate than the old type-filter Nearby Search.
+      // getCompetitorRadius picks the right search distance based on
+      // sector (hotels/healthcare/etc. need wider radii) and
+      // population. T1 RULE: population is null here because Census
+      // fires in the same Promise.allSettled batch — the helper
+      // defaults to a rural-sized radius when population is unknown.
+      businessName: data.name,
+      naics6: layer0Result.naics6,
+      naics2: data.sector_naics2,
+      googleTypes: data.google_types,
+      population: null,
     }),
-    dataFetchers.fetchCensusByZip(zip),
+    // FIX 1 — pass city + state so fetchCensusByZip's place-level branch
+    // fires. Without these args, _fetchCensusPlacePopulation is skipped
+    // and `total_population` falls back to the ZCTA-level number (which
+    // overstates the city by ~50% for Dodgeville WI: ZCTA 7,397 vs
+    // city 4,994). countyFIPS isn't known yet at this point in the
+    // route — the building-permits fetcher resolves it later — so we
+    // pass null and skip the county-income branch on /classify (income
+    // for cities >200k pop only; not a /classify use case).
+    dataFetchers.fetchCensusByZip(zip, addrParts.city, addrParts.state, null),
     dataFetchers.checkWebsiteExists(websiteUrl),
     dataFetchers.fetchWeather(data.latitude, data.longitude),
     dataFetchers.fetchLocationSignals(data.latitude, data.longitude),
@@ -1899,6 +1918,42 @@ function renderReport(ctx) {
   const allCitedIds = new Set();
   ranked.allTriggered.forEach((t) => t.rec.study_ids.forEach((id) => allCitedIds.add(id)));
 
+  // ── Competitor radius-tier note (matches the 8-step 1/3/8/15/30/50/75/150
+  // ladder in googlePlaces.js fetchNearbyCompetitors). Tier mapping:
+  //   1-3 mi   → no callout (healthy local pool, no message needed)
+  //   8-15 mi  → "Nearest competitors within X miles" (mild)
+  //   30-50 mi → "Limited local competition" (warning)
+  //   75 mi    → "Very limited competition — strong market position" (warning)
+  //   150 mi   → "No nearby competitors — potential monopoly" (positive)
+  function radiusTierNote() {
+    const radiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : null;
+    if (radiusMi == null) return '';
+
+    // Step 8 (150 mi) — ladder reached the end. Per spec, surface the
+    // monopoly note. Note: the message says "No nearby competitors";
+    // technically the ladder may have surfaced 1-4 competitors at 150
+    // mi, but the spec wording calls this "potential monopoly in your
+    // category in this region" regardless. If the rendered count
+    // line below shows a non-zero number, the user has the actual count.
+    if (radiusMi >= 150) {
+      return `<div class="rec rec-high"><strong>&#9888; No nearby competitors found</strong> &mdash; potential monopoly in your category in this region. Nearest matches found within 150 miles.</div>`;
+    }
+    // Step 7 (75 mi).
+    if (radiusMi >= 75) {
+      return `<div class="flag">&#9888; Very limited competition &mdash; nearest within ${radiusMi} miles. Strong market position in your area.</div>`;
+    }
+    // Steps 5-6 (30 / 50 mi).
+    if (radiusMi >= 30) {
+      return `<div class="flag">&#9888; Limited local competition &mdash; nearest within ${radiusMi} miles.</div>`;
+    }
+    // Steps 3-4 (8 / 15 mi) — mild informational note, no warning icon.
+    if (radiusMi >= 8) {
+      return `<div class="meta" style="margin:8px 0">Nearest competitors within ${radiusMi} miles.</div>`;
+    }
+    // Steps 1-2 (1 / 3 mi) — healthy dense local market, no callout.
+    return '';
+  }
+
   const fallbackTag = layer0Result._phase1Patch
     ? ' <small>(phase-1 hotel keyword patch)</small>'
     : layer0Result._typesFallback
@@ -2154,21 +2209,54 @@ Total assets: <strong>${assetM}</strong><br>
     const ratingFlag = ratingDelta == null ? '' : ratingDelta >= 0 ? ` <small>(+${ratingDelta.toFixed(1)})</small>` : ` <small>(${ratingDelta.toFixed(1)})</small>`;
     const reviewFlag = reviewDelta == null ? '' : reviewDelta >= 0 ? ` <small>(+${reviewDelta})</small>` : ` <small>(${reviewDelta})</small>`;
 
-    let topHtml = '';
-    if (Array.isArray(data.competitors_top3) && data.competitors_top3.length) {
-      topHtml = `<p class="meta">Top-rated nearby competitors:</p><ul>` + data.competitors_top3.map((c) => {
-        const dist = typeof c.distance_meters === 'number'
-          ? ` · ${(c.distance_meters / 1609.34).toFixed(1)} mi`
-          : '';
-        return `<li>${escapeHtml(c.name)} — ${c.rating.toFixed(1)}★ (${c.review_count} reviews)${dist}</li>`;
-      }).join('') + `</ul>`;
-    }
+    // ── Tier classification (per spec 2) ────────────────────────────
+    // Each top-5 competitor is bucketed into 'threat' (real competitive
+    // risk — render as a full card) or 'winning' (subject is meaningfully
+    // outperforming — render as a muted one-liner). Logic lives in
+    // googlePlaces.classifyCompetitorTier so the rule set can be reused.
+    const top5ForTier = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
+    const tieredCompetitors = top5ForTier.map((c) => ({
+      ...c,
+      tier: places.classifyCompetitorTier(c, data.google_rating, data.google_review_count),
+    }));
+    const threats = tieredCompetitors.filter((c) => c.tier === 'threat');
+    const winners = tieredCompetitors.filter((c) => c.tier === 'winning');
+    const threatCount = threats.length;
+    const winningCount = winners.length;
 
+    // Summary line (per spec).
+    const tierSummary = (threatCount + winningCount > 0)
+      ? `<p class="meta"><strong>${threatCount}</strong> real competitor${threatCount === 1 ? '' : 's'} to watch &middot; <strong>${winningCount}</strong> competitor${winningCount === 1 ? '' : 's'} you're beating</p>`
+      : '';
+
+    // Tier 1 list — full info per the existing list-item style.
+    const threatsHtml = threats.length
+      ? `<p class="meta">Real competitors to watch:</p><ul>` + threats.map((c) => {
+          const dist = typeof c.distance_meters === 'number'
+            ? ` &middot; ${(c.distance_meters / 1609.34).toFixed(1)} mi`
+            : (typeof c.distance_miles === 'number' ? ` &middot; ${c.distance_miles.toFixed(1)} mi` : '');
+          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '—';
+          return `<li><strong>${escapeHtml(c.name)}</strong> &mdash; ${rating}&#9733; (${c.review_count || 0} reviews)${dist}</li>`;
+        }).join('') + `</ul>`
+      : '';
+
+    // Tier 2 list — muted "you're winning" lines (no detailed card).
+    const winnersHtml = winners.length
+      ? `<div style="margin-top:10px">` + winners.map((c) => {
+          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '—';
+          return `<p class="meta" style="margin:4px 0;color:var(--muted)">&#10003; You're outperforming <strong>${escapeHtml(c.name)}</strong> (${rating}&#9733;, ${c.review_count || 0} reviews) &mdash; no action needed</p>`;
+        }).join('') + `</div>`
+      : '';
+
+    const reportedRadiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : 15;
     competitiveHtml = `<h2>Competitive context</h2>
-<p>${data.competitor_count} same-type competitors within 5 miles.<br>
+${radiusTierNote()}
+${tierSummary}
+<p>${data.competitor_count} same-type competitors within ${reportedRadiusMi} miles.<br>
 Your rating: <strong>${yourRating}</strong> vs local median: <strong>${medRating}</strong>${ratingFlag}<br>
 Your reviews: <strong>${yourReviews}</strong> vs local median: <strong>${medReviews}</strong>${reviewFlag}</p>
-${topHtml}
+${threatsHtml}
+${winnersHtml}
 ${fdicBlock}`;
   } else if (fdicBlock) {
     // Bank/finance with no Google competitors but FDIC data — still
@@ -2187,10 +2275,10 @@ ${fdicBlock}`;
   const ca = enriched && enriched.competitor_analysis;
   const top5 = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
   if (ca && top5.length) {
-    const radiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : null;
-    const expansionNote = (radiusMi != null && radiusMi > 5)
-      ? `<div class="flag">⚠️ Nearest competitors found within ${radiusMi} miles — local market has limited direct competition.</div>`
-      : '';
+    // Reuse the centralized radius-tier note (matches the 15/30/75/150
+    // ladder in googlePlaces.js fetchNearbyCompetitors). Returns '' for
+    // the 15-mile default case so we don't duplicate the callout.
+    const expansionNote = radiusTierNote();
 
     const better = Array.isArray(ca.what_they_do_better) ? ca.what_they_do_better : [];
     const win = Array.isArray(ca.what_you_can_win) ? ca.what_you_can_win : [];
@@ -2319,8 +2407,20 @@ ${fmrBlock}`;
   else if (data.website_exists === false) opsBits.push('website returned error');
   else if (data.website_url && data.website_exists == null) opsBits.push('website check inconclusive');
   if (data.website_url == null) opsBits.push('no website on Google Business Profile');
+  // FIX 4 — owner-response rate display logic. Google's legacy Places
+  // Details API frequently omits the owner-reply field even when the
+  // owner DID reply on the live GBP. With a sample of only 5 reviews
+  // (the legacy max), a "0%" reading is much more often a measurement
+  // gap than a real signal — show "insufficient data" instead.
   if (typeof data.response_rate_estimated === 'number') {
-    opsBits.push(`owner-response rate (sample): ${(data.response_rate_estimated * 100).toFixed(0)}%`);
+    const sampleSize = typeof data.reviews_sampled === 'number' ? data.reviews_sampled : 0;
+    if (data.response_rate_estimated === 0 && sampleSize <= 5) {
+      opsBits.push(`owner-response rate: insufficient data (sampled ${sampleSize} review${sampleSize === 1 ? '' : 's'} only)`);
+    } else if (data.response_rate_estimated === 0) {
+      opsBits.push(`owner-response rate: 0% — no responses detected (sample: ${sampleSize})`);
+    } else {
+      opsBits.push(`owner-response rate (sample of ${sampleSize}): ${(data.response_rate_estimated * 100).toFixed(0)}%`);
+    }
   }
   // Phase 5+ — PageSpeed mobile signals
   if (typeof data.website_mobile_score === 'number') {
@@ -2438,6 +2538,79 @@ ${fmrBlock}`;
   const cpAnalysis = analyzeCommonProblems(data.sample_reviews, profile.id);
   const commonProblemsHtml = renderCommonProblems(cpAnalysis);
 
+  // ── FIX 3 — 90-day action plan ────────────────────────────────────
+  // Renders when Claude enrichment returned a ninety_day_plan object.
+  // Three cards (month 1 = blue, month 2 = amber, month 3 = green).
+  // Month 1 has weekly granularity; months 2-3 have month-level focus.
+  // Section is omitted entirely when enriched.ninety_day_plan is missing
+  // — preserves backwards compat with reports that pre-date this fix.
+  let ninetyDayPlanHtml = '';
+  if (enriched && enriched.ninety_day_plan && typeof enriched.ninety_day_plan === 'object') {
+    const plan = enriched.ninety_day_plan;
+    const m1 = plan.month_1 || {};
+    const m2 = plan.month_2 || {};
+    const m3 = plan.month_3 || {};
+    const m1Html = `<div class="rec rec-medium">
+<h3>Month 1${m1.theme ? ` &mdash; ${escapeHtml(m1.theme)}` : ''}</h3>
+${m1.week_1 ? `<p><strong>Week 1:</strong> ${escapeHtml(m1.week_1)}</p>` : ''}
+${m1.week_2 ? `<p><strong>Week 2:</strong> ${escapeHtml(m1.week_2)}</p>` : ''}
+${m1.week_3 ? `<p><strong>Week 3:</strong> ${escapeHtml(m1.week_3)}</p>` : ''}
+${m1.week_4 ? `<p><strong>Week 4:</strong> ${escapeHtml(m1.week_4)}</p>` : ''}
+${m1.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m1.goal)}</p>` : ''}
+</div>`;
+    const m2Html = `<div class="rec rec-low">
+<h3>Month 2${m2.theme ? ` &mdash; ${escapeHtml(m2.theme)}` : ''}</h3>
+${m2.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m2.focus)}</p>` : ''}
+${m2.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m2.goal)}</p>` : ''}
+</div>`;
+    const m3Html = `<div class="rec rec-high">
+<h3>Month 3${m3.theme ? ` &mdash; ${escapeHtml(m3.theme)}` : ''}</h3>
+${m3.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m3.focus)}</p>` : ''}
+${m3.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m3.goal)}</p>` : ''}
+</div>`;
+    ninetyDayPlanHtml = `<h2>90-day action plan <span class="ai-badge">AI</span></h2>
+<p class="meta">Three months of progressive depth. Month 1 has weekly steps; months 2 and 3 have month-level focus and goals.</p>
+${m1Html}
+${m2Html}
+${m3Html}`;
+  }
+
+  // ── FIX 6 — Seasonal strategy ─────────────────────────────────────
+  // Four cards (Summer / Fall / Winter / Spring), rendered in order.
+  // Winter renders an extra amber off-season-survival callout when
+  // present (required for cold-winter markets per SYSTEM_PROMPT).
+  let seasonalStrategyHtml = '';
+  if (enriched && enriched.seasonal_strategy && typeof enriched.seasonal_strategy === 'object') {
+    const ss = enriched.seasonal_strategy;
+    const SEASON_ICONS = { summer: '☀️', fall: '🍂', winter: '❄️', spring: '🌸' };
+    function renderSeasonCard(season, s) {
+      if (!s || typeof s !== 'object') return '';
+      const icon = SEASON_ICONS[season] || '';
+      const title = `${icon} ${season.charAt(0).toUpperCase() + season.slice(1)}`;
+      const offSeasonBlock = (season === 'winter' && s.off_season_survival)
+        ? `<div class="honesty honesty-customer-must-validate"><strong>Off-season survival:</strong> ${escapeHtml(s.off_season_survival)}</div>`
+        : '';
+      return `<div class="rec rec-medium">
+<h3>${title}${s.dominant_persona ? ` <span class="meta">&mdash; ${escapeHtml(s.dominant_persona)}</span>` : ''}</h3>
+${s.what_to_add ? `<p><strong>What to add:</strong> ${escapeHtml(s.what_to_add)}</p>` : ''}
+${s.marketing_message ? `<div class="callout"><div class="callout-label">Headline</div><p>"${escapeHtml(s.marketing_message)}"</p></div>` : ''}
+${s.event_tie_in ? `<p><strong>Event tie-in:</strong> ${escapeHtml(s.event_tie_in)}</p>` : ''}
+${s.local_partner ? `<p><strong>Local partner:</strong> ${escapeHtml(s.local_partner)}</p>` : ''}
+${s.revenue_range ? `<p class="meta">Revenue: <strong>${escapeHtml(s.revenue_range)}</strong></p>` : ''}
+${offSeasonBlock}
+</div>`;
+    }
+    const cards = ['summer', 'fall', 'winter', 'spring']
+      .map((season) => renderSeasonCard(season, ss[season]))
+      .filter(Boolean)
+      .join('');
+    if (cards) {
+      seasonalStrategyHtml = `<h2>Seasonal strategy <span class="ai-badge">AI</span></h2>
+<p class="meta">Per-season playbook. Each season names a real local event tie-in and a real local partner from your competitor or nearby-venues data.</p>
+${cards}`;
+    }
+  }
+
   // Phase 5 — OPPORTUNITIES NOBODY IN YOUR MARKET IS DOING
   // (only renders when Claude enrichment succeeded and produced opportunities)
   let opportunitiesHtml = '';
@@ -2470,7 +2643,15 @@ ${fmrBlock}`;
   if (typeof data.google_rating === 'number') c1Items.push(`rating ${data.google_rating.toFixed(1)}`);
   if (typeof data.google_review_count === 'number') c1Items.push(`${data.google_review_count} reviews`);
   if (typeof data.review_recency_days === 'number') c1Items.push(`recency ${data.review_recency_days}d`);
-  if (typeof data.response_rate_estimated === 'number') c1Items.push(`owner-response ${(data.response_rate_estimated * 100).toFixed(0)}%`);
+  // FIX 4 — gate on sample size (same logic as the Ops & brand block).
+  if (typeof data.response_rate_estimated === 'number') {
+    const _ss = typeof data.reviews_sampled === 'number' ? data.reviews_sampled : 0;
+    if (data.response_rate_estimated === 0 && _ss <= 5) {
+      c1Items.push(`owner-response insufficient data (sample ${_ss})`);
+    } else {
+      c1Items.push(`owner-response ${(data.response_rate_estimated * 100).toFixed(0)}% (sample ${_ss})`);
+    }
+  }
   // Phase 5+ — TripAdvisor presence
   if (typeof data.ta_rating === 'number') {
     const reviews = typeof data.ta_review_count === 'number' ? `${data.ta_review_count.toLocaleString('en-US')} reviews` : '';
@@ -2692,6 +2873,8 @@ ${marketHtml}
 ${demandHtml}
 ${opsHtml}
 ${priorityHtml}
+${ninetyDayPlanHtml}
+${seasonalStrategyHtml}
 ${opportunitiesHtml}
 ${commonProblemsHtml}
 ${categoryCoverageHtml}

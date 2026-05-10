@@ -163,7 +163,7 @@ OUTPUT FORMAT:
       {
         "competitor_name": "exact name from the Top competitors list",
         "advantage": "what this competitor is doing better than the business — short phrase",
-        "evidence": "the specific data point that proves it (e.g. 'rated 4.6★ vs your 4.2★' or '1,820 reviews vs your 354')",
+        "evidence": "the specific data point that proves it (e.g. 'rated 4.6★ vs your 4.2★' or '1,820 reviews vs your 354'). When top_reviews is available for the competitor, the evidence MUST cite a real verbatim quote — see STEAL STRATEGY RULE below.",
         "your_action": "one concrete, specific thing the business should do in response — not generic advice"
       }
     ],
@@ -175,6 +175,61 @@ OUTPUT FORMAT:
       }
     ],
     "summary": "exactly 2 sentences. The first names the strongest competitor and the single biggest gap. The second states whether the business is ahead, behind, or competitive overall against the listed set."
+  },
+  "ninety_day_plan": {
+    "month_1": {
+      "theme": "string — what month 1 is focused on (e.g. 'Foundation: Reviews + Response')",
+      "week_1": "string — specific actions to take in week 1. Reference real local businesses/events by name.",
+      "week_2": "string — specific actions to take in week 2",
+      "week_3": "string — specific actions to take in week 3",
+      "week_4": "string — specific actions to take in week 4",
+      "goal": "string — what success looks like by end of month 1 (e.g. 'response rate above 50% on Google reviews')"
+    },
+    "month_2": {
+      "theme": "string — what month 2 is focused on",
+      "focus": "string — main actions this month, less granular than month 1",
+      "goal": "string — what success looks like by end of month 2"
+    },
+    "month_3": {
+      "theme": "string — what month 3 is focused on",
+      "focus": "string — main actions this month + measurement of months 1-2 results",
+      "goal": "string — what success looks like by end of month 3"
+    }
+  },
+  "seasonal_strategy": {
+    "summer": {
+      "dominant_persona": "string — who peaks in summer for this business in this city",
+      "what_to_add": "string — specific product/service to add this season",
+      "marketing_message": "string — exact headline to use in summer campaigns",
+      "event_tie_in": "string — REAL named local event from upcoming_events block, or known regional annual event for this city/state",
+      "local_partner": "string — REAL named local business from competitors or nearby_venues block",
+      "revenue_range": "$X,000-$Y,000/month"
+    },
+    "fall": {
+      "dominant_persona": "string",
+      "what_to_add": "string",
+      "marketing_message": "string",
+      "event_tie_in": "string — REAL named",
+      "local_partner": "string — REAL named",
+      "revenue_range": "$X,000-$Y,000/month"
+    },
+    "winter": {
+      "dominant_persona": "string",
+      "what_to_add": "string",
+      "marketing_message": "string",
+      "event_tie_in": "string — REAL named",
+      "local_partner": "string — REAL named",
+      "revenue_range": "$X,000-$Y,000/month",
+      "off_season_survival": "REQUIRED for cold-winter markets (weather.has_cold_winter === true) — specific strategy for the slowest month. Name the play."
+    },
+    "spring": {
+      "dominant_persona": "string",
+      "what_to_add": "string",
+      "marketing_message": "string",
+      "event_tie_in": "string — REAL named",
+      "local_partner": "string — REAL named",
+      "revenue_range": "$X,000-$Y,000/month"
+    }
   }
 }
 
@@ -188,6 +243,66 @@ COMPETITOR ANALYSIS RULES:
 - If search_radius_miles in the prompt is greater than 5 miles, the local market is thin — note "local competition is thin — regional competitors shown" verbatim in summary.
 - If the Top competitors list is empty, return what_they_do_better: [], what_you_can_win: [], and summary: "No competitors found in the search radius — direct comparison unavailable."
 - Aim for 1-3 entries each in what_they_do_better and what_you_can_win. Skip an array (return []) rather than padding with weak items.
+
+STEAL STRATEGY RULE — MANDATORY:
+competitor_analysis.what_they_do_better entries MUST cite real review quotes from competitors.top5[].top_reviews when those quotes are available.
+
+Format required:
+  "[Competitor name] earns 5-star reviews for [specific thing]. Evidence: [exact quote from top_reviews]"
+
+When top_reviews is empty for a competitor, write:
+  "Insufficient review data to cite specific evidence for [competitor name]"
+
+NEVER invent a competitor strength without a real review quote to support it.
+NEVER claim a competitor is good at something without citing their actual customer reviews.
+The previous behavior — inferring "competitor X excels at customer service" from rating delta alone — is now forbidden when top_reviews are present.
+
+90-DAY ACTION PLAN RULES:
+Generate ninety_day_plan with three months of progressive depth.
+
+Month 1 (highest specificity):
+  - Theme: focus on the SINGLE highest-impact action from enriched_recommendations[0]
+  - Break it into 4 weekly steps — specific enough that the owner knows exactly what to do each Monday morning
+  - Reference real local businesses, real events, and real numbers from the bundle
+  - Bad: "improve customer service"
+  - Good: "Respond to the 3 most recent negative Google reviews by Tuesday. Use the template: 'Hi [name], we hear you on [specific complaint]. Reach me directly at [phone] — I'd like to make this right.'"
+  - Goal must be measurable (e.g., "Hit 50% owner-response rate by end of month")
+
+Month 2 (medium specificity):
+  - Build on Month 1 progress
+  - Focus on enriched_recommendations[1] (the 2nd highest-impact action)
+  - Less granular than Month 1 (no weekly breakdown — month-level focus + goal)
+
+Month 3 (consolidation):
+  - Measure results from Months 1 and 2 against their goals
+  - Start enriched_recommendations[2] (the 3rd highest-impact action)
+  - Goal frames the 90-day result in business terms, not vanity metrics
+
+Every action must reference THIS business in THIS location. Forbidden phrases include "improve customer service," "engage with customers," "leverage social media," "build community" — replace with named, dated, specific actions.
+
+SEASONAL STRATEGY RULES:
+Generate seasonal_strategy with all four seasons.
+
+- Every season's event_tie_in MUST name a REAL local event. Check upcoming_events first. If no events found in the data, use a known regional annual event for this city/state. Generic phrasings like "summer festivals" or "holiday shopping season" are forbidden.
+- Every season's local_partner MUST be a real named business from the competitors or nearby_venues block in the bundle. Generic "a local cafe" / "a nearby gym" forbidden.
+- Cold-winter markets (when bundle.weather.has_cold_winter is true) MUST include winter.off_season_survival — a specific strategy for the slowest month, naming the actual play (subscription pre-sales, B2B catering pivot, off-season events, etc.).
+- Revenue ranges are projections, not guarantees — write them plainly as $X,000-$Y,000/month with no honesty tag.
+- Every season must reference THIS business in THIS location. The summer plan for a hotel in Dodgeville WI must look different from the summer plan for a hotel in Miami FL.
+
+DISTANCE RULE — MANDATORY:
+Never state a numeric distance in miles to any city other than the subject business location.
+
+WRONG: "Madison 70 miles east"
+WRONG: "45 miles from Milwaukee"
+WRONG: "located 30 miles from Chicago"
+
+CORRECT: "near Madison"
+CORRECT: "within driving distance of the Madison metro"
+CORRECT: "between Madison and the Mississippi River"
+
+You do not have verified distance data to nearby cities. Do not invent it. Only use distances that appear in the data provided to you — competitor distances (competitors.top5[].distance_miles) and venue distances (nearby_venues[].distance_meters) are computed from real lat/lon and are verified. City-to-city distances are NOT in the bundle and must never be stated as numeric miles.
+
+This applies to every output field — local_context, why_your_business, opportunities, ninety_day_plan, seasonal_strategy, competitor_analysis. ALL of them.
 
 THE 18 OPPORTUNITY CATEGORIES (fallback list — only used when the user prompt does NOT supply a profile-specific opportunity_categories list. Draw from at least 8 of these for the 10 opportunities):
 1. Sensory experience
@@ -277,11 +392,19 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       // Phase 5+ — top5 (with back-compat top3 slice) plus the actual
       // search radius the fetcher landed on, so Claude can flag thin
       // local markets in its competitor_analysis.summary.
+      // FIX 1 — top_reviews: real competitor review snippets fetched by
+      // googlePlaces.fetchNearbyCompetitors (Place Details enrichment).
+      // SYSTEM_PROMPT's STEAL STRATEGY RULE requires Claude to cite these
+      // verbatim in competitor_analysis.what_they_do_better instead of
+      // inferring competitor strengths from rating numbers alone.
       top5: Array.isArray(data.competitors_top5) ? data.competitors_top5.map((c) => ({
         name: c.name,
         rating: c.rating,
         review_count: c.review_count,
         distance_miles: typeof c.distance_meters === 'number' ? +(c.distance_meters / 1609.34).toFixed(2) : null,
+        top_reviews: Array.isArray(c.reviews) ? c.reviews.map((r) =>
+          `[${r.rating != null ? r.rating + '/5' : '—'} ${r.time || 'recent'}]: "${(r.text || '').slice(0, 300)}"`
+        ) : [],
       })) : [],
       top3: Array.isArray(data.competitors_top3) ? data.competitors_top3.map((c) => ({
         name: c.name,
@@ -291,6 +414,11 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       })) : [],
       search_radius_miles: typeof data.search_radius_miles === 'number' ? data.search_radius_miles : null,
     },
+    // FIX 4 — review sample size. The number of reviews Google's legacy
+    // Places Details actually returned (max 5). Used by renderReport to
+    // suppress the misleading "0% owner-response rate" callout when the
+    // sample is too small to draw any conclusion.
+    review_sample_size: typeof data.reviews_sampled === 'number' ? data.reviews_sampled : 0,
     census: {
       median_household_income: typeof data.median_household_income === 'number' ? data.median_household_income : null,
       population: typeof data.total_population === 'number' ? data.total_population : null,

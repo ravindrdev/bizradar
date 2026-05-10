@@ -361,6 +361,156 @@ ALLOWED when events block is empty:
 FORBIDDEN — never invent month/day combinations:
   "Iowa County Fair, August 14-18, 2026"  ← unless that exact date is in the events block`;
 
+// ── WIKIPEDIA_FRAMEWORK ────────────────────────────────────────────
+// Injected into Call A's deep-dive context immediately after the
+// Wikipedia city summary. NOT included in Call B's prompt — personas
+// and seasonal strategy don't need this prescriptive entity-mapping
+// framework. Gated via the `includeWikipediaFramework` parameter on
+// buildDeepDiveContext (default false; only buildPromptA passes true).
+//
+// Adds ~1,800 input tokens to Call A (~$0.005 per analysis).
+const WIKIPEDIA_FRAMEWORK = `
+═══════════════════════════════════════════════════
+WIKIPEDIA ANALYSIS FRAMEWORK — MANDATORY
+═══════════════════════════════════════════════════
+
+Read the Wikipedia summary above carefully.
+Every named entity is a business opportunity.
+
+MAJOR EMPLOYERS:
+→ Employees need lunch within walking distance
+→ Employees need coffee before early shifts
+→ Employees need dry cleaning, alterations
+→ HR buys corporate gifts and team catering
+→ Shift workers need late-night food after 9pm
+→ Relocating employees need real estate, movers
+→ Families need childcare near the workplace
+
+UNIVERSITIES AND COLLEGES:
+→ Students need cheap late-night food
+→ Students need tutoring and test prep
+→ Students need laundromats near campus
+→ Parents visiting need hotels and restaurants
+→ International students need notary, translation
+→ Faculty need accounting, legal, financial services
+→ Athletes need sports nutrition and physio
+
+HOSPITALS AND MEDICAL CENTERS:
+→ Nurses work 12-hour shifts — food at 3am
+→ Staff constantly buy gifts for colleagues
+→ Patients families need hotels and laundry
+→ Traveling nurses need short-term rentals
+→ Visitors need flowers and gifts nearby
+
+STATE PARKS AND NATURE ATTRACTIONS:
+→ Hikers need gear rental and trail food
+→ Campers need supplies they forgot to pack
+→ Pet owners need dog wash after muddy trails
+→ Cyclists need bike repair on the route
+→ Winter visitors need ski and snowshoe rental
+
+TOURIST ATTRACTIONS:
+→ Visitors will buy local gifts and food
+→ Gift shops near attractions are overpriced
+→ Visitors need restaurants not at the attraction
+→ Tour groups need bus parking and group dining
+
+MILITARY BASES:
+→ Soldiers need storage during deployment
+→ Families need childcare during deployment
+→ Young enlisted need affordable food and entertainment
+→ Contractors need temporary housing
+
+GOVERNMENT OFFICES AND COURTHOUSES:
+→ Workers are a captive lunch customer 5 days/week
+→ People in court need notary and copying nearby
+→ Jury pools need coffee in 45 minutes
+→ Contractors need meeting rooms
+
+MANUFACTURING PLANTS:
+→ Factory workers need breakfast before 6am shifts
+→ Industrial workers need safety equipment nearby
+→ Plant shutdowns spike demand for pawn and loans
+
+AIRPORTS:
+→ Travelers need parking and shuttles
+→ Airline crews need hotels with early breakfast
+→ Airport workers need affordable food
+
+SPORTS TEAMS AND STADIUMS:
+→ Game days bring thousands who need food
+→ Athletes need sports medicine and nutrition
+→ Youth sports families need gear and lodging
+
+ANY OTHER ENTITY NOT LISTED ABOVE:
+Ask these questions for every named entity:
+→ WHO comes because of it? They are your customers
+→ WHO works there? They need nearby services
+→ WHAT do people need before visiting?
+→ WHAT do people need right after visiting?
+→ WHAT is the #1 friction point? Solve it.
+→ WHAT seasonal patterns does it create?
+
+Non-obvious entity examples:
+Famous person born there → heritage tourism,
+  themed dining, walking tours, memorabilia
+Historical site → tour guides, costume rental,
+  specialized bookstore, heritage inn
+Food production → factory tours, tasting rooms,
+  culinary tourism, gift packaging
+Arts district → frame shop, art supply, studio
+  rental, gallery cafe
+Casino → pawn shop, check cashing, ride services
+Marina → boat repair, kayak rental, waterfront dining
+Vineyard region → wine shuttle, agritourism lodging,
+  cheese pairing retail
+
+IF NOTHING IS MENTIONED IN WIKIPEDIA
+or the city has no Wikipedia page, apply
+these universal angles:
+
+RESIDENTIAL POPULATION (always present):
+→ Families need daycare, tutoring, pediatric dentist
+→ Elderly need in-home care, meal delivery, transport
+→ Pet owners need grooming, boarding, training
+→ Homeowners need handyman, HVAC, landscaping
+→ Dog owners walk daily — capture them on the route
+
+SMALL BUSINESS ECOSYSTEM (always present):
+→ Local businesses need bookkeeping and tax prep
+→ Local businesses need printing and web design
+→ Restaurants need equipment repair and linen service
+
+LIFE EVENTS (always present):
+→ Weddings — photography, catering, flowers, venues
+→ Babies — maternity photos, gear consignment, pediatrics
+→ Deaths — estate sales, probate attorneys
+→ Retirements — financial planning, hobby classes
+
+FOOD AND SERVICE GAPS (check competitor data):
+→ No late-night food = ghost kitchen opportunity
+→ No healthy options = juice bar or salad gap
+→ No ethnic food matching demographics = cuisine gap
+→ No grocery within 5 miles = food desert opportunity
+
+INFRASTRUCTURE SIGNALS:
+→ New housing = new families need every service
+→ New highway exit = gas station, motel, fast food
+→ Declining downtown = anchor business opportunity
+
+THE MASTER RULE:
+Whatever Wikipedia mentions — no matter how
+unusual — ask: WHO needs WHAT because of this?
+The answer is always a business idea.
+Never skip a named entity.
+The most unusual entity is the most unique
+opportunity because nobody else thought of it.
+The best insights feel obvious AFTER someone
+points them out.
+At least ONE top opportunity must be anchored
+to a named entity from the Wikipedia summary.
+`;
+
 const SCHEMA_A = `{
   "tier1": {
     "_comment": "Full deep dive for the #1 ranked business only.",
@@ -511,7 +661,7 @@ const SCHEMA_B = `{
   }
 }`;
 
-function buildDeepDiveContext(city, state, top1, market, demographics, competition) {
+function buildDeepDiveContext(city, state, top1, market, demographics, competition, includeWikipediaFramework) {
   const wikiBlurb = market && market.city_wiki
     ? String(market.city_wiki).substring(0, 800)
     : '(no Wikipedia summary)';
@@ -566,7 +716,7 @@ Growth signal: ${market.growth_signal}
 
 --- WIKIPEDIA CITY SUMMARY ---
 ${wikiBlurb}
-
+${includeWikipediaFramework ? WIKIPEDIA_FRAMEWORK : ''}
 --- LOCAL BUSINESS INTELLIGENCE (top ${(competition && competition.local_businesses || []).length}) ---
 ${businessLines || '(no local businesses surfaced)'}
 
@@ -599,7 +749,9 @@ ${list || '  (none scored)'}`;
 function buildPromptA(city, state, top10, market, demographics, competition) {
   const top1 = (top10 && top10[0]) || null;
   if (!top1) return null;
-  const ctx = buildDeepDiveContext(city, state, top1, market, demographics, competition);
+  // Call A gets WIKIPEDIA_FRAMEWORK injected after the Wikipedia summary
+  // (4th-from-last arg = true). Call B intentionally omits it.
+  const ctx = buildDeepDiveContext(city, state, top1, market, demographics, competition, true);
   const top10Block = buildTopTenSummary(top10);
 
   // Build the human-readable list of which business goes in which tier
@@ -758,7 +910,7 @@ async function generateDeepDive(city, state, top10, market, demographics, compet
 // MAIN — analyzeCity()
 // ─────────────────────────────────────────────────────────────────────
 async function analyzeCity(city, state, apiKeys) {
-  const cacheKey = `market:v2:${city.toLowerCase()}|${state.toLowerCase()}`;
+  const cacheKey = `market:v3:${city.toLowerCase()}|${state.toLowerCase()}`;
   const cached = MARKET_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < MARKET_TTL) {
     console.log(`[market-cache] hit for ${cacheKey}`);
@@ -906,7 +1058,7 @@ async function chatFollowUp(city, state, question) {
   if (!city || !state || !question || !question.trim()) {
     throw new Error('city, state, and question are required');
   }
-  const cacheKey = `market:v2:${city.toLowerCase()}|${state.toLowerCase()}`;
+  const cacheKey = `market:v3:${city.toLowerCase()}|${state.toLowerCase()}`;
   const cached = MARKET_CACHE.get(cacheKey);
   if (!cached) {
     throw new Error(`No analysis cached for ${city}, ${state}. Run /market-analysis first.`);
