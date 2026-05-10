@@ -23,14 +23,14 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const MODEL = 'claude-sonnet-4-6';
-// Bumped from 3000 → 8000. The strengthened LAYER 2 / LAYER 3 prompt makes
-// each enriched recommendation longer (3-sentence WHY IT WORKS + 3-5 sentence
-// WHY YOUR BUSINESS), and 3-rec profiles (e.g. agriculture.livestock,
-// auto_repair) plus 5 opportunities + local_context were exceeding 3000 and
-// hitting `stop_reason: max_tokens`, returning truncated JSON. We're billed
-// only on actual output tokens, so the higher cap costs nothing for the
-// common 2-rec case (~3000 tokens) and unlocks the longer 3-rec case (~4000).
-const MAX_TOKENS = 8000;
+// Bumped 3000 → 8000 → 12000. The 8000 ceiling unlocked the 3-rec case
+// (~4000 tokens). The 12000 ceiling adds headroom for the new
+// priority_actions array (5-7 entries × ~150-300 tokens = ~1500-2100
+// extra) on top of the existing enriched_recommendations + opportunities
+// + 90-day plan + seasonal_strategy + competitor_analysis. Billed on
+// actual output tokens, so the higher cap costs nothing for shorter
+// reports.
+const MAX_TOKENS = 12000;
 
 // 24h in-memory cache keyed by place_id. Same Map pattern as the
 // google-places details cache (Phase 4 fix-batch).
@@ -130,6 +130,19 @@ multiple options — visible owner engagement tips the decision."
 
 OUTPUT FORMAT:
 {
+  "priority_actions": [
+    {
+      "id": "stable kebab-case id (e.g. rec_photo_volume, rec_cinema_partner, rec_phish_event)",
+      "impact": "HIGH | MEDIUM | LOW | MINIMAL",
+      "source": "AI",
+      "title": "short specific title that cites real data — e.g. 'Upload 30 photos — you have 10 vs Swagat at 1.1mi'",
+      "what": "exact steps. Names real venues / events / competitors / streets from the bundle. No generic 'find a partner' / 'use social media' / 'engage customers'.",
+      "why": "references actual numbers from the bundle (photo_count, review_recency_days, competitor names + ratings + distances, response_rate_estimated, median_household_income, anchor_tenant_names, upcoming_events). No hand-waving.",
+      "money_estimate": "$X,000-$Y,000/year. Math: <one-line calculation showing the unit economics>",
+      "cost": "$X one-time | $X/month | $0",
+      "timeline": "This week | Month 1 | Month 2 | Q3"
+    }
+  ],
   "enriched_recommendations": [
     {
       "id": "rec_id matching input",
@@ -232,6 +245,78 @@ OUTPUT FORMAT:
     }
   }
 }
+
+PRIORITY ACTIONS — MANDATORY RULES:
+
+Generate 5-7 priority_actions.
+
+CAP: MAX 1 action can be review-related (rating, review count,
+review recency, response rate, photo count). The other 4-6 MUST
+be operational, partnership, revenue, seasonal, or competitive.
+Reason: deterministic registry recommendations are dominated by
+review levers; priority_actions exist to surface the OTHER moves
+the operator can make. Putting 6 review actions in one report is
+the failure mode this section was added to fix.
+
+ORDERING: sort by impact descending (HIGH → MEDIUM → LOW →
+MINIMAL). The 1 allowed review action goes LAST, regardless of
+its impact label.
+
+SPECIFICITY RULES — non-negotiable:
+
+Every action MUST reference real data from the bundle. Generic
+advice is forbidden.
+
+GOOD title: "Upload 30 photos — you have 10 vs Swagat at 1.1mi"
+BAD title:  "Upload photos to Google"
+
+GOOD what: "Walk to Marcus Point Cinema (387m away) this week
+            and propose a Dinner+Movie combo: diners showing a
+            same-day movie ticket get 10% off entrée. Print 50
+            table-tent cards."
+BAD what:  "Partner with a nearby business"
+
+GOOD event: "Phish plays Kohl Center July 7-8, 2026 — create a
+             Show Night Thali at $38 for ticket holders. Promote
+             on r/phish and r/madisonwi 2 weeks before."
+BAD event:  "Capitalize on local events"
+
+REQUIRED FIELDS per action:
+  - id            : stable kebab-case identifier
+  - impact        : HIGH / MEDIUM / LOW / MINIMAL
+  - source        : always "AI" for these
+  - title         : short, specific, cites real data
+  - what          : exact steps; names real venues / competitors / events
+  - why           : references actual numbers from the bundle
+  - money_estimate: dollar range PLUS one-line math showing unit economics
+  - cost          : exact cost to implement ($0 / $X one-time / $X/month)
+  - timeline      : This week / Month 1 / Month 2 / Q3
+
+DATA FIELDS to draw from when generating actions:
+  google.photo_count            → photo-volume action
+  google.review_recency_days    → review-freshness action (the 1 allowed review action, often)
+  google.response_rate_estimated→ owner-engagement action (also a review action)
+  upcoming_events               → event-tie-in action (named event + date)
+  nearby_venues                 → partnership action (named venue + distance)
+  competitors.top5              → steal/positioning action (named competitor + rating + distance)
+  location_signals.anchor_tenants → anchor-tenant cross-promo action
+  census.median_household_income→ pricing/positioning action
+  weather.has_cold_winter       → off-season survival action
+  weather.peak_month            → peak-prep action
+  google.rating                 → rating-improvement action (review)
+  google.review_count           → review-volume action (review)
+
+COUNTING the cap: review-related = any action whose primary
+lever is one of: rating, review count, review recency, response
+rate, photo count. If you write a partnership action that
+mentions reviews as a side effect, that's NOT a review action.
+
+If the bundle has rich non-review data (events, anchor tenants,
+competitor names, weather), you should easily produce 4-6
+non-review actions. If the bundle is sparse (no events, no
+anchors), still produce at least 4 non-review actions using
+universal levers (loyalty programs, referral programs, channel
+expansion, off-peak pricing, repeat-visit incentives).
 
 COMPETITOR ANALYSIS RULES:
 - Use ONLY the Top competitors list provided in the user prompt — never invent competitor names, ratings, or attributes.
@@ -378,6 +463,12 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       review_recency_days: typeof data.review_recency_days === 'number' ? data.review_recency_days : null,
       photo_count: typeof data.photo_count === 'number' ? data.photo_count : null,
       responds_to_reviews: data.responds_to_reviews === true,
+      // Numeric response rate (0.0-1.0) — added so priority_actions can
+      // cite the actual rate (e.g. "0% across 1,392 reviews") instead of
+      // just the boolean. Falls back to null when not measured.
+      response_rate_estimated: typeof data.response_rate_estimated === 'number'
+        ? data.response_rate_estimated
+        : null,
       hours_complete: data.hours_complete === true,
       website_exists: data.website_exists,
       sample_reviews: (data.sample_reviews || []).slice(0, 5).map((r) => ({
@@ -799,6 +890,7 @@ Available verified studies (use ONLY these magnitudes and citations):
 ${JSON.stringify(bundle.top3_recommendations.flatMap((r) => r.study_details), null, 2)}
 
 Rules reminder:
+- Generate priority_actions[] (5-7 items) per the PRIORITY ACTIONS — MANDATORY RULES in the system prompt. MAX 1 review-related action; the rest must be operational/partnership/revenue/seasonal/competitive. Order by impact descending; the 1 review action goes LAST.
 - Be specific to ${b.city || 'this city'}, ${b.state || 'this state'}
 - Name real local businesses, events, landmarks
 - Never invent statistics

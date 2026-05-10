@@ -128,7 +128,11 @@
       "Bash(node -e \"require\\('dotenv'\\).config\\(\\); console.log\\('ANTHROPIC_API_KEY set:', !!process.env.ANTHROPIC_API_KEY\\); console.log\\('length:', process.env.ANTHROPIC_API_KEY?.length || 0\\);\")",
       "Bash(awk -F'=' '/^ANTHROPIC_API_KEY=/{print \"  total chars: \" length\\($0\\); print \"  value chars: \" length\\($2\\)}' .env)",
       "Bash(env)",
-      "Bash(node test_5_quick.js)"
+      "Bash(node test_5_quick.js)",
+      "Bash(git push *)",
+      "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\claudeEnricher.js\")",
+      "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\server.js\")",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')"
     ]
   }
 }

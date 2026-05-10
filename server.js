@@ -2486,11 +2486,38 @@ ${fmrBlock}`;
   }
 
   // BATCH16 — top-10 ranking with impact labels.
-  let priorityHtml = `<h2>Priority actions</h2>`;
+  // ── Priority actions ─────────────────────────────────────────────
+  // Two render paths:
+  //   (a) Claude returned enriched.priority_actions[] → render new
+  //       styled cards via renderActionCard (action.impact / source /
+  //       title / what / why / money_estimate / cost / timeline).
+  //   (b) Otherwise → fall through to the existing ranker-driven
+  //       renderRec3Layer rendering (preserved unchanged below).
+  const claudePriorityActions = (enriched && Array.isArray(enriched.priority_actions))
+    ? enriched.priority_actions.filter((a) => a && typeof a === 'object' && (a.title || a.what))
+    : [];
+
+  let priorityHtml = '';
   const top10 = ranked.top10 || [];
-  if (!top10.length) {
+
+  if (claudePriorityActions.length > 0) {
+    // Path (a) — Claude priority_actions present.
+    const total = claudePriorityActions.length;
+    const highCount = claudePriorityActions.filter((a) => String(a.impact || '').toUpperCase() === 'HIGH').length;
+    const headerNote = highCount > 0
+      ? `Of these ${total} actions, ${highCount} ${highCount === 1 ? 'is' : 'are'} HIGH IMPACT. AI-tagged actions are generated from your real business data.`
+      : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT — focus on the highest-ranked items first.`;
+    priorityHtml = `<div style="margin-bottom: 16px;">
+  <h2>Priority actions</h2>
+  <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
+</div>`;
+    priorityHtml += claudePriorityActions.map((a) => renderActionCard(a)).join('');
+  } else if (!top10.length) {
+    // Path (b) — empty fallback.
+    priorityHtml = `<h2>Priority actions</h2>`;
     priorityHtml += `<p>No recommendations triggered for this business.</p>`;
   } else {
+    priorityHtml = `<h2>Priority actions</h2>`;
     const total = top10.length;
     const high = ranked.highImpactCount || 0;
     const summary = high > 0
@@ -3252,6 +3279,57 @@ function opPhrase(op) {
    Phase 5: when `enrichedRec` is provided (top-3 only), Claude's enriched
    WHY-IT-WORKS / WHY-YOUR-BUSINESS / money_estimate replace the deterministic
    versions. WHAT (rec.claim) stays deterministic. */
+// ─────────────────────────────────────────────────────────────────────
+// renderActionCard — Claude priority_actions card renderer
+// ─────────────────────────────────────────────────────────────────────
+// Renders one card from the new enriched.priority_actions[] schema
+// (added in claudeEnricher SYSTEM_PROMPT). Each action carries impact
+// (HIGH/MEDIUM/LOW/MINIMAL), source ("AI" or "registry"), title, what,
+// why, money_estimate, cost, timeline. Inline styles per spec; left
+// border + impact pill + AI/VERIFIED-DATA pill + green money box.
+const IMPACT_COLORS = {
+  HIGH:    { border: '#10B981', bg: '#ECFDF5', text: '#065F46' },
+  MEDIUM:  { border: '#2563EB', bg: '#EFF6FF', text: '#1D4ED8' },
+  LOW:     { border: '#F59E0B', bg: '#FFFBEB', text: '#92400E' },
+  MINIMAL: { border: '#9CA3AF', bg: '#F9FAFB', text: '#374151' },
+};
+
+function renderActionCard(action) {
+  if (!action || typeof action !== 'object') return '';
+  const impact = String(action.impact || 'MEDIUM').toUpperCase();
+  const colors = IMPACT_COLORS[impact] || IMPACT_COLORS.MEDIUM;
+  const source = action.source === 'registry' ? 'registry' : 'AI';
+  const sourceBg = source === 'AI' ? '#EEF2FF' : '#F3F4F6';
+  const sourceFg = source === 'AI' ? '#4F46E5' : '#374151';
+  const sourceLabel = source === 'AI' ? 'AI' : 'VERIFIED DATA';
+
+  const title = escapeHtml(action.title || '');
+  const what = escapeHtml(action.what || '');
+  const why = escapeHtml(action.why || '');
+  const moneyEst = escapeHtml(action.money_estimate || '');
+  const cost = escapeHtml(action.cost || '');
+  const timeline = escapeHtml(action.timeline || '');
+
+  const metaParts = [];
+  if (cost) metaParts.push(`Cost: ${cost}`);
+  if (timeline) metaParts.push(`Timeline: ${timeline}`);
+  const metaLine = metaParts.length
+    ? `<div style="font-size: 13px; color: #6B7280;">${metaParts.join(' &middot; ')}</div>`
+    : '';
+
+  return `<div class="action-card" style="border-left: 4px solid ${colors.border}; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: ${colors.bg}; color: ${colors.text}; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${impact} IMPACT</span>
+    <span style="background: ${sourceBg}; color: ${sourceFg}; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">${sourceLabel}</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">${title}</h3>
+  ${what ? `<div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${what}</span></div>` : ''}
+  ${why ? `<div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
+  ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
+  ${metaLine}
+</div>`;
+}
+
 function renderRec3Layer(t, idx, data, studies, extraTags = [], enrichedRec = null) {
   const rec = t.rec;
   const impactClass = `impact impact-${t.impact.toLowerCase()}`;
