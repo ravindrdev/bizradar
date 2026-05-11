@@ -132,7 +132,22 @@
       "Bash(git push *)",
       "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\claudeEnricher.js\")",
       "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\server.js\")",
-      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')"
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(grep -nE \"What we analyzed|signalsTable|signals_table|^\\\\$\\\\{[a-z]+Html\\\\}|opportunitiesHtml|competitorAnalysisHtml|ninetyDayPlanHtml|seasonalStrategyHtml|localContextHtml\" server.js)",
+      "Bash(node score_profiles_tmp.js)",
+      "Bash(node diag_findplace_tmp.js)",
+      "Bash(grep -n '\"\\\\${PAGE_OPEN}\\\\|return \\\\`\\\\${PAGE_OPEN}' server.js)",
+      "Bash(grep -n 'headerHtml}$\\\\|^${headerHtml}' server.js)",
+      "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\test_findplace.js\")",
+      "Bash(rm -f test_findplace_results.json test_findplace.log)",
+      "Bash(node test_findplace.js)",
+      "Bash(rm -f test_findplace_results.json test_findplace.log test_findplace_stdout.log)",
+      "Bash(powershell -Command \"if \\(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue\\) { Write-Output 'still listening' } else { Write-Output 'port 3000 free' }\")",
+      "Bash(node --check \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\\\\test_findplace_v2.js\")",
+      "Bash(rm -f test_findplace_v2_results.json)",
+      "Bash(node test_findplace_v2.js)",
+      "Bash(node diagnose_competitors.js)",
+      "Bash(awk -F'=' '/^GOOGLE_PLACES_API_KEY=/{print length\\($2\\) \" chars\"}' .env)"
     ]
   }
 }

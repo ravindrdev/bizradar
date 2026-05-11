@@ -16,6 +16,28 @@ const DETAILS_URL =
   'https://maps.googleapis.com/maps/api/place/details/json';
 const NEARBY_URL =
   'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+const GEOCODE_URL =
+  'https://maps.googleapis.com/maps/api/geocode/json';
+
+// Words that should NOT count as meaningful business-name signals during
+// nameSimilarity scoring. Pure locality / direction / street-type words
+// only — brand-relevant words like 'inn', 'hotel', 'suites', 'lodge'
+// are KEPT because they actually distinguish brands ("Holiday Inn" vs
+// "Holiday Suites"). Stripping those would make every hotel look the
+// same to the matcher.
+const LOCALITY_WORDS = new Set([
+  'street','avenue','road','drive',
+  'lane','blvd','boulevard','court',
+  'place','north','south','east','west',
+  'suite','floor','unit','building',
+  'highway','hwy','route','ave','st',
+  'dr','rd','ln','ct','pl','pkwy',
+  'parkway','way','circle','ter',
+  'terrace','and','for','the',
+  'airport','center','mall','plaza',
+  'lake','river','hill','hills',
+  'village','town','city','county',
+]);
 
 // Phase-3 BATCH14: added geometry (for lat/lng → Nearby Search + distance
 // math), opening_hours (for hours_complete + is_open_now signals).
@@ -48,33 +70,484 @@ const COMPETITOR_TTL_MS = 24 * 60 * 60 * 1000;
 const DETAILS_CACHE = new Map();
 const DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
 
-async function findPlace(query, apiKey) {
-  // The full input string is passed verbatim to Google Places Text Search.
-  // For the Google-Maps-style format ("Business Name, Street Address,
-  // City, ST ZIP"), passing the WHOLE string — including the address —
-  // gives MORE accurate results than name+city alone, because Google's
-  // Text Search does fuzzy matching against business name + address +
-  // locality and returns the exact business at that street location.
-  // Do NOT strip the address portion.
-  const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(query)}&key=${apiKey}`;
+// 30-day cache for geocoding results — addresses don't move. Keyed by
+// the lowercase normalized address string (with state appended). Values
+// are { lat, lon } or null when geocoding failed (cached so we don't
+// re-fire on every retry).
+const GEOCODE_CACHE = new Map();
+const GEOCODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ─────────────────────────────────────────────────────────────────────
+// Module-level helpers used by findPlace. Lifted from prior inner
+// closures so the geocoding-fallback path can share them.
+// ─────────────────────────────────────────────────────────────────────
+
+// doTextSearch — single Google Places Text Search call, returns the
+// raw `results` array (matches the existing inline pattern used by
+// fetchNearbyCompetitors and fetchBusinessTypeCompetitors).
+async function doTextSearch(q, apiKey) {
+  const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(q)}&key=${apiKey}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Places Text Search HTTP ${res.status}`);
   const json = await res.json();
   if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
     throw new Error(`Places Text Search status=${json.status} ${json.error_message || ''}`);
   }
-  const top = (json.results || [])[0];
-  if (!top) return null;
-  return {
-    place_id: top.place_id,
-    name: top.name,
-    formatted_address: top.formatted_address,
-    types: Array.isArray(top.types) ? top.types : [],
-    // Phase 5+ — Text Search responses include geometry; surfacing it
-    // saves /market-analysis from making an extra getDetails round-trip
-    // just to read lat/lng for downstream fetchers.
-    geometry: top.geometry || null,
-  };
+  return Array.isArray(json.results) ? json.results : [];
+}
+
+// extractAddressPart — pulls the address portion (everything from the
+// first comma-segment that starts with "<digits> ") out of the user
+// input. Returns null when no street-numbered segment is found.
+//   "Baymont, 1581 W South Park, Oshkosh WI" → "1581 W South Park, Oshkosh WI"
+//   "Rajni Indian Cuisine, Madison WI"        → null
+//   "Holiday Inn, Suite 200, 1234 Main, Chicago" → "1234 Main, Chicago"
+function extractAddressPart(userInput) {
+  const parts = String(userInput || '').split(',');
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i].trim();
+    if (/^\d+\s/.test(part)) {
+      return parts.slice(i).join(',').trim();
+    }
+  }
+  return null;
+}
+
+// extractStreetNumber — leading "<digits> " in a string. Requires the
+// trailing space so suite numbers ("Suite 200") and zero-spaced runs
+// ("1800S Koeller") don't false-match.
+function extractStreetNumber(str) {
+  if (!str) return null;
+  const m = String(str).trim().match(/^(\d+)\s/);
+  return m ? m[1] : null;
+}
+
+// extractState — 2-letter US state code. Used to disambiguate common
+// city names ("Springfield") in the geocoder.
+function extractState(userInput) {
+  const m = String(userInput || '').match(/\b([A-Z]{2})\b(?:\s+\d{5})?/);
+  return m ? m[1] : null;
+}
+
+// extractKeyword — most-meaningful word from the BUSINESS NAME portion
+// of the input (everything before the first comma). Used to narrow the
+// nearby-search results to the right category, e.g. "baymont" pulls
+// only Baymont-branded hotels out of a 200-meter radius.
+//
+// FIX 3a: returns null when the first comma-segment LOOKS LIKE an
+// address (starts with digits). Pure-address inputs have no business
+// name to extract a keyword from — caller will then fall back to
+// "highest review-count business at that lat/lon" tiebreaker.
+function extractKeyword(userInput) {
+  const firstSegment = String(userInput || '').split(',')[0].trim();
+  // Pure-address input — no business-name keyword to extract.
+  if (/^\d+/.test(firstSegment)) return null;
+
+  const namePart = firstSegment
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .trim();
+  const words = namePart
+    .split(/\s+/)
+    .filter((w) => w.length > 3)
+    .filter((w) => !LOCALITY_WORDS.has(w))
+    .filter((w) => !/^\d+$/.test(w));
+  return words[0] || null;
+}
+
+// nameSimilarity — Jaccard-style overlap of meaningful words between
+// the user input and a candidate's name. Returns 0.0-1.0. Filters out
+// LOCALITY_WORDS + pure numbers + duplicates so common locality words
+// (e.g. "oshkosh") don't inflate similarity.
+function nameSimilarity(userInput, resultName) {
+  if (!userInput || !resultName) return 0;
+  const userWords = [
+    ...new Set(
+      String(userInput)
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 2)
+        .filter((w) => !LOCALITY_WORDS.has(w))
+        .filter((w) => !/^\d+$/.test(w))
+    ),
+  ];
+  if (userWords.length === 0) return 0;
+  const resultLower = String(resultName)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ');
+  const matches = userWords.filter((w) => resultLower.includes(w));
+  return matches.length / userWords.length;
+}
+
+// isRealBusiness — distinguishes a business POI from a geocoded street
+// address. Must carry establishment/POI types AND not be pure-address
+// types only.
+//
+// FIX 4 (relaxed): the prior rating>0 OR reviews>0 activity requirement
+// was disqualifying state parks, government buildings, museums, and
+// other landmarks that legitimately have no Google rating in the API
+// response. Now only the type signals are checked — that's enough to
+// distinguish a business from a `street_address` geocoded entry.
+function isRealBusiness(result) {
+  if (!result) return false;
+  const types = Array.isArray(result.types) ? result.types : [];
+  const REAL_BUSINESS_TYPES = new Set([
+    'establishment', 'point_of_interest',
+  ]);
+  const ADDRESS_ONLY_TYPES = new Set([
+    'route', 'street_address', 'geocode',
+    'premise', 'subpremise', 'plus_code',
+    'street_number', 'political',
+    'locality', 'postal_code',
+    'administrative_area_level_1',
+    'administrative_area_level_2',
+    'country', 'natural_feature',
+    'intersection',
+  ]);
+  const hasBusinessType = types.some((t) => REAL_BUSINESS_TYPES.has(t));
+  const onlyAddressTypes = types.length > 0 && types.every((t) => ADDRESS_ONLY_TYPES.has(t));
+  return hasBusinessType && !onlyAddressTypes;
+}
+
+// scoreResult — composite score for a candidate result.
+//   -999  = disqualified (not a real business)
+//   100+  = high confidence (skip geocoding fallback)
+//    60+  = medium confidence
+//   <60   = low confidence (mark _low_confidence in output)
+// Max possible: street(60) + name(60) + rating(10) + reviews(10) +
+//               >50 reviews(5) + >200 reviews(5) = 150
+function scoreResult(result, userInput) {
+  if (!result) return -999;
+  if (!isRealBusiness(result)) return -999;
+  let score = 0;
+
+  // Street-number scoring: 60 for exact match, 20 for "very close"
+  // (within 10 — same building complex / mall row).
+  const addressPart = extractAddressPart(userInput);
+  const userStreet = extractStreetNumber(addressPart);
+  const resultStreet = extractStreetNumber(result.formatted_address || result.vicinity || '');
+  if (userStreet && resultStreet) {
+    if (userStreet === resultStreet) {
+      score += 60;
+    } else {
+      const diff = Math.abs(parseInt(userStreet, 10) - parseInt(resultStreet, 10));
+      if (diff <= 10) score += 20;
+    }
+  }
+
+  // Name similarity: max +60 (perfect overlap of meaningful words).
+  const sim = nameSimilarity(userInput, result.name || '');
+  score += Math.round(sim * 60);
+
+  // Activity signals.
+  if (typeof result.rating === 'number' && result.rating > 0) score += 10;
+  const reviewCount = result.user_ratings_total || 0;
+  if (reviewCount > 0) score += 10;
+  if (reviewCount > 50) score += 5;
+  if (reviewCount > 200) score += 5;
+
+  return score;
+}
+
+// geocodeAddress — resolves an address string to { lat, lon }. Caches
+// results (and nulls) for 30 days. Always appends `state` when present
+// to disambiguate common city names.
+async function geocodeAddress(addressStr, state, apiKey) {
+  if (!addressStr) return null;
+  const fullAddress = state ? `${addressStr}, ${state}` : addressStr;
+  const cacheKey = fullAddress.toLowerCase().trim();
+  const cached = GEOCODE_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.ts < GEOCODE_TTL_MS) {
+    console.log(`[geocode] cache hit: ${fullAddress}`);
+    return cached.value;
+  }
+  try {
+    const url = `${GEOCODE_URL}?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.status !== 'OK' || !(data.results && data.results[0])) {
+      console.warn(`[geocode] no result for: ${fullAddress} status: ${data.status}`);
+      GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: null });
+      return null;
+    }
+    const loc = data.results[0].geometry.location;
+    const result = { lat: loc.lat, lon: loc.lng };
+    console.log(`[geocode] resolved: ${fullAddress} → ${result.lat}, ${result.lon}`);
+    GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: result });
+    return result;
+  } catch (e) {
+    console.error(`[geocode] error: ${e.message}`);
+    return null;
+  }
+}
+
+// doNearbySearch — calls Google Places Nearby Search at lat/lon with
+// optional keyword filter. Returns a filtered list of real businesses
+// (non-business POIs / geocoded entries are stripped via isRealBusiness).
+async function doNearbySearch(lat, lon, radiusMeters, keyword, apiKey) {
+  try {
+    let url = `${NEARBY_URL}?location=${lat},${lon}&radius=${radiusMeters}&key=${apiKey}`;
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.warn(`[nearby] status: ${data.status}`);
+      return [];
+    }
+    const results = (data.results || []).filter(isRealBusiness);
+    console.log(`[nearby] ${radiusMeters}m keyword: ${keyword || 'none'} → ${results.length} businesses`);
+    return results;
+  } catch (e) {
+    console.error(`[nearby] error: ${e.message}`);
+    return [];
+  }
+}
+
+async function findPlace(query, apiKey) {
+  // ─────────────────────────────────────────────────────────────────
+  // 7-STEP RESOLVER WITH GEOCODING FALLBACK
+  // ─────────────────────────────────────────────────────────────────
+  // Replaces the prior parallel-2-search approach which couldn't
+  // recover when Google's Text Search returned the wrong business
+  // (e.g. "Baymont by Wyndham Oshkosh Airport, 1581 W South Park Ave"
+  // → Wingate at 1800 S Koeller). The new resolver geocodes the
+  // user's address and does a Nearby Search at that lat/lon when
+  // text-search confidence is low — cutting through Google's name-
+  // weighted ranking volatility.
+  //
+  // STEP 1 — parse user input
+  // STEP 2 — run text searches in parallel (top-5 from each)
+  // STEP 3 — score every unique candidate
+  // STEP 4 — high-confidence (score ≥ 100) → return
+  // STEP 5 — geocoding fallback (50m → 100m → 200m radii with keyword)
+  // STEP 6 — return best text-search result with confidence markers
+  // STEP 7 — null if nothing usable
+  //
+  // toResult — preserves _low_confidence + _user_input markers when
+  // the resolver isn't sure (renderReport reads these to render a
+  // "closest match found" warning banner).
+  function toResult(top, opts) {
+    const out = {
+      place_id: top.place_id,
+      name: top.name,
+      // FIX 1: fall back to `vicinity` when formatted_address is absent.
+      // Nearby Search results carry their address in `vicinity`, not
+      // `formatted_address`. Without this fallback, geocoding-fallback
+      // winners were silently losing their address (Baymont test #31,
+      // Panera #64, Colectivo #71, etc. — 9 false-negative test cases).
+      formatted_address: top.formatted_address || top.vicinity || null,
+      types: Array.isArray(top.types) ? top.types : [],
+      // Phase 5+ — Text Search responses include geometry; surfacing it
+      // saves /market-analysis from making an extra getDetails round-trip
+      // just to read lat/lng for downstream fetchers.
+      geometry: top.geometry || null,
+    };
+    if (opts && opts.low_confidence) {
+      out._low_confidence = true;
+      out._user_input = opts.user_input || null;
+    }
+    return out;
+  }
+
+  console.log(`[findPlace] input: ${query}`);
+
+  // ── STEP 1 — Parse user input ───────────────────────────────────
+  const addressPart = extractAddressPart(query);
+  const userStreetNum = extractStreetNumber(addressPart);
+  const state = extractState(query);
+  const keyword = extractKeyword(query);
+  console.log(
+    `[findPlace] address: ${addressPart || '(none)'} | street: ${userStreetNum || '(none)'} | state: ${state || '(none)'} | keyword: ${keyword || '(none)'}`
+  );
+
+  // ── STEP 2 — Run text searches in parallel ──────────────────────
+  const searches = [doTextSearch(query, apiKey).catch((err) => {
+    console.warn(`[findPlace] search1 (full query) failed: ${err.message}`);
+    return [];
+  })];
+  if (addressPart) {
+    searches.push(doTextSearch(addressPart, apiKey).catch((err) => {
+      console.warn(`[findPlace] search2 (address-only) failed: ${err.message}`);
+      return [];
+    }));
+  }
+  const settled = await Promise.allSettled(searches);
+  const candidates = [];
+  for (let i = 0; i < settled.length; i++) {
+    if (settled[i].status === 'fulfilled') {
+      const arr = settled[i].value || [];
+      for (const r of arr.slice(0, 5)) candidates.push(r);
+    } else {
+      console.warn(`[findPlace] search${i + 1} rejected: ${settled[i].reason && settled[i].reason.message}`);
+    }
+  }
+  if (candidates.length === 0) {
+    console.warn(`[findPlace] both text searches returned 0 results for: ${query}`);
+    // Fall through to geocoding fallback if we have an address.
+  }
+
+  // Deduplicate by place_id.
+  const seen = new Set();
+  const uniqueCandidates = candidates.filter((c) => {
+    if (!c || !c.place_id) return false;
+    if (seen.has(c.place_id)) return false;
+    seen.add(c.place_id);
+    return true;
+  });
+
+  // ── STEP 3 — Score all candidates ───────────────────────────────
+  const scored = uniqueCandidates
+    .map((c) => ({ result: c, score: scoreResult(c, query) }))
+    .filter((s) => s.score > -999)
+    .sort((a, b) => b.score - a.score);
+
+  for (const s of scored) {
+    console.log(
+      `[findPlace] candidate: ${s.result.name} | ${s.result.formatted_address} `
+      + `| score: ${s.score} | sim: ${nameSimilarity(query, s.result.name).toFixed(2)}`
+    );
+  }
+  const best = scored[0] || null;
+
+  // ── STEP 4 — High confidence → return ──────────────────────────
+  // FIX 2: threshold depends on whether the user gave us a street
+  // number. With a street number, we should be MORE aggressive about
+  // forcing the geocoding fallback to kick in (chains like McDonald's
+  // / Subway / Starbucks return their most-popular location for the
+  // brand search and ignore the street number — only geocoding can
+  // disambiguate). Without a street number, we have nothing better
+  // to compare against, so the original 100 threshold stands.
+  const highConfidenceThreshold = userStreetNum ? 120 : 100;
+  if (best && best.score >= highConfidenceThreshold) {
+    console.log(`[findPlace] HIGH CONFIDENCE: ${best.result.name} score: ${best.score} (threshold: ${highConfidenceThreshold})`);
+    console.log(`[findPlace] using: ${best.result.name} ${best.result.formatted_address}`);
+    return toResult(best.result);
+  }
+
+  // ── STEP 5 — Geocoding fallback ─────────────────────────────────
+  // Fires when we have a parseable street address AND text-search
+  // confidence is below the threshold. Tries small radii first to
+  // keep results focused.
+  if (addressPart) {
+    console.log(
+      `[findPlace] low confidence: ${best ? best.score : 0} (threshold: ${highConfidenceThreshold}) — trying geocoding fallback`
+    );
+    const geo = await geocodeAddress(addressPart, state, apiKey);
+    if (geo) {
+      const radii = [50, 100, 200];
+      for (const radius of radii) {
+        const nearby = await doNearbySearch(geo.lat, geo.lon, radius, keyword, apiKey);
+        if (nearby.length === 0) {
+          console.log(`[findPlace] no results at ${radius}m — expanding`);
+          continue;
+        }
+
+        // FIX 2 score boost: nearby results that have an EXACT street
+        // match get a +50 bonus on top of their base score. This makes
+        // McDonald's-at-3902 (the user's actual address) crush
+        // McDonald's-at-4502 (Google's most-popular suggestion) when
+        // geocoding finds both within radius. Without this boost both
+        // chain locations score equally on name and we can't tell them
+        // apart.
+        const nearbyScored = nearby
+          .map((r) => {
+            let score = scoreResult(r, query);
+            const nearbyAddr = r.formatted_address || r.vicinity || '';
+            const nearbyStreetNum = extractStreetNumber(nearbyAddr);
+            const exactStreetMatch = userStreetNum
+              && nearbyStreetNum
+              && nearbyStreetNum === userStreetNum;
+            if (exactStreetMatch && score > -999) score += 50;
+            return {
+              result: r,
+              score,
+              sim: nameSimilarity(query, r.name || ''),
+              exactStreetMatch: !!exactStreetMatch,
+              reviews: typeof r.user_ratings_total === 'number' ? r.user_ratings_total : 0,
+            };
+          })
+          .filter((s) => s.score > -999);
+
+        // FIX 3b: when there's no business-name keyword (pure-address
+        // input), the winner is the most-established business at the
+        // address — sort by review count desc instead of by score, since
+        // all results have similar weak scores without a name to anchor.
+        if (!keyword) {
+          nearbyScored.sort((a, b) => {
+            if (a.exactStreetMatch !== b.exactStreetMatch) {
+              return a.exactStreetMatch ? -1 : 1;
+            }
+            return b.reviews - a.reviews;
+          });
+        } else {
+          nearbyScored.sort((a, b) => b.score - a.score);
+        }
+
+        for (const s of nearbyScored) {
+          const tag = s.exactStreetMatch ? ' [street+50]' : '';
+          console.log(
+            `[findPlace] nearby(${radius}m): ${s.result.name} `
+            + `| score: ${s.score}${tag} | sim: ${s.sim.toFixed(2)} | reviews: ${s.reviews}`
+          );
+        }
+        const bestNearby = nearbyScored[0];
+        if (!bestNearby) {
+          console.log(`[findPlace] nearby results all disqualified at ${radius}m`);
+          continue;
+        }
+
+        // Use nearby winner when ANY of:
+        //   (A) exact street match (FIX 2 — strongest signal possible)
+        //   (B) score-with-bonus ≥ 60 AND sim ≥ 0.2 (street match path)
+        //   (C) score meaningfully better than text result (best+10)
+        //   (D) keyword is null (pure address input — review-count winner)
+        const hasStreetMatch = bestNearby.score >= 60 && bestNearby.sim >= 0.2;
+        const betterThanText = bestNearby.score > (best ? best.score : 0) + 10;
+        const pureAddressInput = !keyword;
+        if (bestNearby.exactStreetMatch || hasStreetMatch || betterThanText || pureAddressInput) {
+          const reasons = [];
+          if (bestNearby.exactStreetMatch) reasons.push('exact street');
+          if (hasStreetMatch) reasons.push('street+sim');
+          if (betterThanText) reasons.push('beats text');
+          if (pureAddressInput) reasons.push('pure-address review-count winner');
+          console.log(
+            `[findPlace] GEOCODE WINNER: ${bestNearby.result.name} `
+            + `| score: ${bestNearby.score} | reasons: ${reasons.join(', ')}`
+          );
+          const winnerAddr = bestNearby.result.formatted_address || bestNearby.result.vicinity || '';
+          console.log(`[findPlace] using: ${bestNearby.result.name} ${winnerAddr}`);
+          return toResult(bestNearby.result);
+        }
+
+        console.log(
+          `[findPlace] nearby results not better than text search — stopping at ${radius}m`
+        );
+        break;
+      }
+    }
+  }
+
+  // ── STEP 6 — Use best text result, mark confidence ─────────────
+  if (best) {
+    if (best.score < 60) {
+      console.warn(
+        `[findPlace] LOW CONFIDENCE result: ${best.result.name} `
+        + `score: ${best.score} — may be wrong business`
+      );
+      console.log(`[findPlace] using: ${best.result.name} ${best.result.formatted_address}`);
+      return toResult(best.result, { low_confidence: true, user_input: query });
+    }
+    console.log(
+      `[findPlace] MEDIUM CONFIDENCE: ${best.result.name} score: ${best.score}`
+    );
+    console.log(`[findPlace] using: ${best.result.name} ${best.result.formatted_address}`);
+    return toResult(best.result);
+  }
+
+  // ── STEP 7 — Nothing found ─────────────────────────────────────
+  console.error(`[findPlace] no result found for: ${query}`);
+  return null;
 }
 
 async function getDetails(placeId, apiKey) {

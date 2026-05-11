@@ -1,0 +1,2951 @@
+[
+  {
+    "idx": 1,
+    "input": "Rajni Indian Cuisine, 429 Commerce Dr, Madison, WI 53719",
+    "expectedName": "Rajni",
+    "expectedStreet": 429,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Rajni Indian Cuisine",
+      "address": "429 Commerce Dr, Madison, WI 53719, USA",
+      "place_id": "ChIJFRpvb0OvB4gR4HfoAgRb4Pc",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 2,
+    "input": "Franklin Barbecue, 900 E 11th St, Austin, TX 78702",
+    "expectedName": "Franklin",
+    "expectedStreet": 900,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Franklin Barbecue",
+      "address": "900 E 11th St, Austin, TX 78702, USA",
+      "place_id": "ChIJM8w7rqS1RIYRhEz2-KuoqzE",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 3,
+    "input": "Nobu Restaurant, 105 Hudson St, New York, NY 10013",
+    "expectedName": "Nobu",
+    "expectedStreet": 105,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Nobu Downtown",
+      "address": "195 Broadway, New York, NY 10007, USA",
+      "place_id": "ChIJZc-EthlawokRIRUvwpkpltI",
+      "types": [
+        "bar",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 105, got 195 (Nobu Downtown)",
+    "confidence": "LOW",
+    "score": 42,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 4,
+    "input": "Uchi, 801 S Lamar Blvd, Austin, TX 78704",
+    "expectedName": "Uchi",
+    "expectedStreet": 801,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Uchi Austin",
+      "address": "801 S Lamar Blvd, Austin, TX 78704, USA",
+      "place_id": "ChIJz2Whyx61RIYR7mCeZje-QWw",
+      "types": [
+        "establishment",
+        "food",
+        "meal_takeaway",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 5,
+    "input": "Carbone, 181 Thompson St, New York, NY 10012",
+    "expectedName": "Carbone",
+    "expectedStreet": 181,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Carbone New York",
+      "address": "181 Thompson St, New York, NY 10012, USA",
+      "place_id": "ChIJmSvG_ZFZwokRTOFeiLXzkmA",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 135,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 6,
+    "input": "Zahav, 237 St James Pl, Philadelphia, PA 19106",
+    "expectedName": "Zahav",
+    "expectedStreet": 237,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Zahav",
+      "address": "237 St James Pl, Philadelphia",
+      "place_id": "ChIJzSVn2prIxokRx1kTchCYRwI",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 7,
+    "input": "Cosme, 35 E 21st St, New York, NY 10010",
+    "expectedName": "Cosme",
+    "expectedStreet": 35,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Cosme",
+      "address": "35 E 21st St, New York",
+      "place_id": "ChIJT-gYZKFZwokR7O8LLYuYMjU",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 8,
+    "input": "Alinea, 1723 N Halsted St, Chicago, IL 60614",
+    "expectedName": "Alinea",
+    "expectedStreet": 1723,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Alinea",
+      "address": "1723 N Halsted St, Chicago",
+      "place_id": "ChIJuyI60yLTD4gROwTWENq1He0",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 9,
+    "input": "Le Bernardin, 155 W 51st St, New York, NY 10019",
+    "expectedName": "Bernardin",
+    "expectedStreet": 155,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Le Bernardin",
+      "address": "155 W 51st St, New York",
+      "place_id": "ChIJV7QQ6kdZwokRax4615zpSGU",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 10,
+    "input": "Bestia, 2121 E 7th Pl, Los Angeles, CA 90021",
+    "expectedName": "Bestia",
+    "expectedStreet": 2121,
+    "category": "Restaurants Easy",
+    "returned": {
+      "name": "Bestia",
+      "address": "2121 E 7th Pl, Los Angeles",
+      "place_id": "ChIJSRvZ1yHGwoARcLrfvc-APl4",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 11,
+    "input": "The Grill, 9560 Dayton Way, Beverly Hills, CA 90210",
+    "expectedName": "Grill",
+    "expectedStreet": 9560,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "The Grill on the Alley",
+      "address": "9560 Dayton Wy, Beverly Hills",
+      "place_id": "ChIJnWHdWfi7woAR20yo_FubEI4",
+      "types": [
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 12,
+    "input": "Republique, 624 S La Brea Ave, Los Angeles, CA 90036",
+    "expectedName": "Republique",
+    "expectedStreet": 624,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "République",
+      "address": "624 S La Brea Ave, Los Angeles",
+      "place_id": "ChIJqaA5zt-4woARHGIEp3XlsZo",
+      "types": [
+        "bar",
+        "bakery",
+        "cafe",
+        "store",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Republique\", got \"République\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 13,
+    "input": "Bavel, 500 Mateo St, Los Angeles, CA 90013",
+    "expectedName": "Bavel",
+    "expectedStreet": 500,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Bavel",
+      "address": "500 Mateo St #102, Los Angeles",
+      "place_id": "ChIJAQDw5jzGwoARJ0ddsqWyCAQ",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 14,
+    "input": "Olmsted, 659 Vanderbilt Ave, Brooklyn, NY 11238",
+    "expectedName": "Olmsted",
+    "expectedStreet": 659,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Olmsted",
+      "address": "659 Vanderbilt Ave, Brooklyn",
+      "place_id": "ChIJ_dqqUKZbwokRAFWuNg_IkAs",
+      "types": [
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 15,
+    "input": "Smyth, 177 N Ada St, Chicago, IL 60607",
+    "expectedName": "Smyth",
+    "expectedStreet": 177,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Smyth",
+      "address": "177 N Ada St #101, Chicago",
+      "place_id": "ChIJxRcpzSctDogRBKHyFUKauHc",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 16,
+    "input": "Oxomoco, 128 Greenpoint Ave, Brooklyn, NY 11222",
+    "expectedName": "Oxomoco",
+    "expectedStreet": 128,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Oxomoco",
+      "address": "128 Greenpoint Ave, Brooklyn",
+      "place_id": "ChIJ__-z7kBZwokRezHqB39zBLI",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 17,
+    "input": "Lilia, 567 Union Ave, Brooklyn, NY 11211",
+    "expectedName": "Lilia",
+    "expectedStreet": 567,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Lilia",
+      "address": "567 Union Ave, Brooklyn",
+      "place_id": "ChIJJXCD6ltZwokRJ_cwjKQH63c",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 18,
+    "input": "Sqirl, 720 N Virgil Ave, Los Angeles, CA 90029",
+    "expectedName": "Sqirl",
+    "expectedStreet": 720,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Sqirl",
+      "address": "720 Virgil Ave #4, Los Angeles",
+      "place_id": "ChIJDX_-xETHwoARf6zx7LePHCo",
+      "types": [
+        "restaurant",
+        "cafe",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 19,
+    "input": "Superiority Burger, 119 Ave A, New York, NY 10009",
+    "expectedName": "Superiority",
+    "expectedStreet": 119,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Superiority Burger",
+      "address": "119 Avenue A, New York, NY 10009, USA",
+      "place_id": "ChIJ26fKep1ZwokRrPzNIqBj4xU",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 20,
+    "input": "Alma, 952 Commerce St, Nashville, TN 37203",
+    "expectedName": "Alma",
+    "expectedStreet": 952,
+    "category": "Restaurants Medium",
+    "returned": {
+      "name": "Saint Anejo",
+      "address": "1120 McGavock St, Nashville",
+      "place_id": "ChIJc87PvPRmZIgRyIDOhbP1pmM",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Alma\" at 952, got \"Saint Anejo\" at 1120",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 21,
+    "input": "AmericInn by Wyndham Dodgeville, 3637 WI-23, Dodgeville, WI 53533",
+    "expectedName": "AmericInn",
+    "expectedStreet": 3637,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "AmericInn by Wyndham Dodgeville",
+      "address": "3637 WI-23, Dodgeville, WI 53533, USA",
+      "place_id": "ChIJqaxB7Yll_YcRqFrF_CFgPAc",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 150,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 22,
+    "input": "Hilton Garden Inn Oshkosh, 1355 W 20th Ave, Oshkosh, WI 54902",
+    "expectedName": "Hilton",
+    "expectedStreet": 1355,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "Hilton Garden Inn Oshkosh",
+      "address": "1355 W 20th Ave, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJaar5lr7uA4gRiK4T4ZwObi8",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 138,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 23,
+    "input": "Marriott Marquis Times Square, 1535 Broadway, New York, NY 10036",
+    "expectedName": "Marriott",
+    "expectedStreet": 1535,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "New York Marriott Marquis",
+      "address": "1535 Broadway, New York, NY 10036, USA",
+      "place_id": "ChIJiVXoAFVYwokREqPijh-d8xg",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 124,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 24,
+    "input": "The Pfister Hotel, 424 E Wisconsin Ave, Milwaukee, WI 53202",
+    "expectedName": "Pfister",
+    "expectedStreet": 424,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "The Pfister Hotel",
+      "address": "424 E Wisconsin Ave, Milwaukee, WI 53202, USA",
+      "place_id": "ChIJZ973iacZBYgR2Wf99vl-6QU",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 25,
+    "input": "Ace Hotel New York, 20 W 29th St, New York, NY 10001",
+    "expectedName": "Ace",
+    "expectedStreet": 20,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "Ace Hotel New York",
+      "address": "20 W 29th St, New York, NY 10001, USA",
+      "place_id": "ChIJT2h1HKZZwokR_Nwoxn8RfU0",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 138,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 26,
+    "input": "Graduate Madison, 601 Langdon St, Madison, WI 53703",
+    "expectedName": "Graduate",
+    "expectedStreet": 601,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "Graduate by Hilton Madison",
+      "address": "601 Langdon St, Madison, WI 53703, USA",
+      "place_id": "ChIJbWjGmjVTBogRCOKhkv51K7Y",
+      "types": [
+        "establishment",
+        "food",
+        "lodging",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 27,
+    "input": "The Iron Horse Hotel, 500 W Florida St, Milwaukee, WI 53204",
+    "expectedName": "Iron Horse",
+    "expectedStreet": 500,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "The Iron Horse Hotel",
+      "address": "500 W Florida St, Milwaukee, WI 53204, USA",
+      "place_id": "ChIJDQPT4ZYZBYgRd2dYJjBjyl4",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 28,
+    "input": "Kimpton Journeyman Hotel, 310 E Chicago St, Milwaukee, WI 53202",
+    "expectedName": "Journeyman",
+    "expectedStreet": 310,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "Kimpton Journeyman Hotel",
+      "address": "310 E Chicago St, Milwaukee, WI 53202, USA",
+      "place_id": "ChIJqeeoTaQZBYgRAy6v4ocLFmk",
+      "types": [
+        "establishment",
+        "food",
+        "lodging",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 29,
+    "input": "Comfort Suites Oshkosh West, 1515 Planeview Dr, Oshkosh, WI 54904",
+    "expectedName": "Comfort",
+    "expectedStreet": 1515,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "AmericInn by Wyndham Oshkosh",
+      "address": "1515 Planeview Dr, Oshkosh",
+      "place_id": "ChIJp4PELb_uA4gRmwOkMPWb2kc",
+      "types": [
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Comfort\", got \"AmericInn by Wyndham Oshkosh\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 30,
+    "input": "Cobblestone Suites Oshkosh, 1515 Planeview Dr, Oshkosh, WI 54904",
+    "expectedName": "Cobblestone",
+    "expectedStreet": 1515,
+    "category": "Hotels Easy",
+    "returned": {
+      "name": "Cobblestone Suites - Oshkosh",
+      "address": "3105 S Washburn St, Oshkosh, WI 54904, USA",
+      "place_id": "ChIJE-0qcvDuA4gRpePn91KCysI",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1515, got 3105 (Cobblestone Suites - Oshkosh)",
+    "confidence": "MEDIUM",
+    "score": 70,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 31,
+    "input": "Baymont by Wyndham Oshkosh Airport, 1581 W South Park Ave, Oshkosh, WI 54902",
+    "expectedName": "Baymont",
+    "expectedStreet": 1581,
+    "category": "Hotels Hard",
+    "returned": {
+      "name": "Baymont inn by Wyndham Oshkosh Airport",
+      "address": "1581 W South Park Ave, Oshkosh",
+      "place_id": "ChIJNYxFGZTvA4gR4ifv2lxl8kI",
+      "types": [
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 32,
+    "input": "Wingate by Wyndham Oshkosh, 1800 S Koeller St, Oshkosh, WI 54902",
+    "expectedName": "Wingate",
+    "expectedStreet": 1800,
+    "category": "Hotels Hard",
+    "returned": {
+      "name": "Wingate by Wyndham Oshkosh",
+      "address": "1800 S Koeller St, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJr2dGtknvA4gRCc4iOTuklH8",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 33,
+    "input": "Quality Inn Oshkosh Aviation Park, 1495 W South Park Ave, Oshkosh, WI 54902",
+    "expectedName": "Quality",
+    "expectedStreet": 1495,
+    "category": "Hotels Hard",
+    "returned": {
+      "name": "Quality Inn Oshkosh Aviation Park",
+      "address": "1495 W South Park Ave, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJiSgjon_vA4gRRRwCSYPwDHA",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 145,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 34,
+    "input": "La Quinta Inn and Suites Madison, 5217 E Terrace Dr, Madison, WI 53718",
+    "expectedName": "Quinta",
+    "expectedStreet": 5217,
+    "category": "Hotels Hard",
+    "returned": {
+      "name": "La Quinta Inn & Suites by Wyndham Madison American Center",
+      "address": "5217 E Terrace Dr, Madison, WI 53718, USA",
+      "place_id": "ChIJ0cDE31FWBogROVsaLBx2x7Q",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 150,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 35,
+    "input": "Hampton Inn Madison West, 1620 W Beltline Hwy, Madison, WI 53713",
+    "expectedName": "Hampton",
+    "expectedStreet": 1620,
+    "category": "Hotels Hard",
+    "returned": {
+      "name": "Hampton Inn & Suites Madison-West",
+      "address": "483 Commerce Dr, Madison, WI 53719, USA",
+      "place_id": "ChIJv9S4FKivB4gR_0pzuEiN0yc",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1620, got 483 (Hampton Inn & Suites Madison-West)",
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 36,
+    "input": "Madison Smiles Dentistry, 2702 International Ln, Madison, WI 53704",
+    "expectedName": "Madison Smiles",
+    "expectedStreet": 2702,
+    "category": "Dental",
+    "returned": {
+      "name": "Madison Dentistry",
+      "address": "6519 University Ave, Middleton, WI 53562, USA",
+      "place_id": "ChIJNX2ZIjGvB4gRV1Bt8vjb9Fo",
+      "types": [
+        "dentist",
+        "establishment",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2702, got 6519 (Madison Dentistry)",
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 37,
+    "input": "Aspen Dental, 2801 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Aspen",
+    "expectedStreet": 2801,
+    "category": "Dental",
+    "returned": {
+      "name": "Aspen Dental - Madison, WI",
+      "address": "4602 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJRZQX84tWBogRxG1Xxy5MYsM",
+      "types": [
+        "dentist",
+        "doctor",
+        "establishment",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2801, got 4602 (Aspen Dental - Madison, WI)",
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 38,
+    "input": "University Dental Associates, 280 N Midvale Blvd, Madison, WI 53705",
+    "expectedName": "University Dental",
+    "expectedStreet": 280,
+    "category": "Dental",
+    "returned": {
+      "name": "Dental Health Associates - University Clinic",
+      "address": "2713 Marshall Ct, Madison, WI 53705, USA",
+      "place_id": "ChIJ4_MqafWsB4gRXOOa0zAev2E",
+      "types": [
+        "dentist",
+        "establishment",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 280, got 2713 (Dental Health Associates - University Clinic)",
+    "confidence": "MEDIUM",
+    "score": 66,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 2
+    }
+  },
+  {
+    "idx": 39,
+    "input": "Ideal Dental, 3241 W Airport Fwy, Irving, TX 75062",
+    "expectedName": "Ideal Dental",
+    "expectedStreet": 3241,
+    "category": "Dental",
+    "returned": {
+      "name": "Ideal Dental North Irving",
+      "address": "3351 Regent Blvd Ste 120, Irving, TX 75063, USA",
+      "place_id": "ChIJ35vfPJspTIYRcDtEk8_5o0Q",
+      "types": [
+        "dentist",
+        "establishment",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 3241, got 3351 (Ideal Dental North Irving)",
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 2
+    }
+  },
+  {
+    "idx": 40,
+    "input": "Smile Direct Club, 945 E 86th St, Indianapolis, IN 46240",
+    "expectedName": "Smile",
+    "expectedStreet": 945,
+    "category": "Dental",
+    "returned": {
+      "name": "Smile Direct Club",
+      "address": "55 Monument Cir Located in Expansive Cowork Floor 7, Studio 723, Indianapolis, IN 46204, USA",
+      "place_id": "ChIJ54Hy_BdRa4gRBvhs2GoKJiY",
+      "types": [
+        "establishment",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 945, got 55 (Smile Direct Club)",
+    "confidence": "LOW",
+    "score": 36,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 41,
+    "input": "Jiffy Lube, 2202 S Park St, Madison, WI 53713",
+    "expectedName": "Jiffy",
+    "expectedStreet": 2202,
+    "category": "Auto Repair",
+    "returned": {
+      "name": "Jiffy Lube Oil Change",
+      "address": "2605 Fish Hatchery Rd, Madison, WI 53713, USA",
+      "place_id": "ChIJs61MxUmtB4gREdw9hPtrNoI",
+      "types": [
+        "car_repair",
+        "establishment",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2202, got 2605 (Jiffy Lube Oil Change)",
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 42,
+    "input": "Firestone Complete Auto Care, 2824 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Firestone",
+    "expectedStreet": 2824,
+    "category": "Auto Repair",
+    "returned": {
+      "name": "Firestone Complete Auto Care",
+      "address": "4601 E Towne Blvd, Madison, WI 53704, USA",
+      "place_id": "ChIJXeebYYxWBogRy-b_4wq1xs4",
+      "types": [
+        "car_repair",
+        "establishment",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2824, got 4601 (Firestone Complete Auto Care)",
+    "confidence": "MEDIUM",
+    "score": 70,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 43,
+    "input": "Maaco Collision Repair, 1625 S Stoughton Rd, Madison, WI 53716",
+    "expectedName": "Maaco",
+    "expectedStreet": 1625,
+    "category": "Auto Repair",
+    "returned": {
+      "name": "Maaco Auto Body Shop & Painting",
+      "address": "4416 Pflaum Rd, Madison, WI 53716, USA",
+      "place_id": "ChIJ0812wnNRBogRFOTF6uKlkq8",
+      "types": [
+        "car_repair",
+        "establishment",
+        "point_of_interest"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1625, got 4416 (Maaco Auto Body Shop & Painting)",
+    "confidence": "LOW",
+    "score": 42,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 44,
+    "input": "Christian Brothers Automotive, 6020 Hwy 6 N, Houston, TX 77084",
+    "expectedName": "Christian Brothers",
+    "expectedStreet": 6020,
+    "category": "Auto Repair",
+    "returned": {
+      "name": "Christian Brothers Automotive Copperfield",
+      "address": "17320 FM 529, Houston, TX 77095, USA",
+      "place_id": "ChIJYaCoaRTXQIYRocZa2WbaoT0",
+      "types": [
+        "car_repair",
+        "establishment",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 6020, got 17320 (Christian Brothers Automotive Copperfield)",
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 45,
+    "input": "Midas, 5805 Odana Rd, Madison, WI 53719",
+    "expectedName": "Midas",
+    "expectedStreet": 5805,
+    "category": "Auto Repair",
+    "returned": {
+      "name": "Midas",
+      "address": "5201 West University, Madison, WI 53705, USA",
+      "place_id": "ChIJ7yzYQB-sB4gR6qY-e8szoeY",
+      "types": [
+        "car_repair",
+        "establishment",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 5805, got 5201 (Midas)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 46,
+    "input": "Aveda Institute Madison, 22 N Carroll St, Madison, WI 53703",
+    "expectedName": "Aveda",
+    "expectedStreet": 22,
+    "category": "Salons",
+    "returned": {
+      "name": "The Institute of Beauty & Wellness - Madison",
+      "address": "7021 Tree Ln, Madison, WI 53717, USA",
+      "place_id": "ChIJqTPCMMusB4gRZm1QQo6PrvY",
+      "types": [
+        "establishment",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Aveda\" at 22, got \"The Institute of Beauty & Wellness - Madison\" at 7021",
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 47,
+    "input": "Great Clips, 750 S Gammon Rd, Madison, WI 53719",
+    "expectedName": "Great Clips",
+    "expectedStreet": 750,
+    "category": "Salons",
+    "returned": {
+      "name": "Great Clips",
+      "address": "2860 University Ave, Madison, WI 53705, USA",
+      "place_id": "ChIJn1P41YNvYogR61nij9fz8VE",
+      "types": [
+        "beauty_salon",
+        "establishment",
+        "hair_care",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 750, got 2860 (Great Clips)",
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 48,
+    "input": "Sport Clips Haircuts, 7475 Mineral Point Rd, Madison, WI 53717",
+    "expectedName": "Sport Clips",
+    "expectedStreet": 7475,
+    "category": "Salons",
+    "returned": {
+      "name": "Hy-Vee Wine & Spirits",
+      "address": "7475 Mineral Point Rd, Madison",
+      "place_id": "ChIJ-US-UE-vB4gRSojDwTAY_5g",
+      "types": [
+        "liquor_store",
+        "food",
+        "store",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Sport Clips\", got \"Hy-Vee Wine & Spirits\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 49,
+    "input": "Drybar, 395 Santa Monica Pl, Santa Monica, CA 90401",
+    "expectedName": "Drybar",
+    "expectedStreet": 395,
+    "category": "Salons",
+    "returned": {
+      "name": "Drybar - Santa Monica",
+      "address": "1426 Montana Ave #8, Santa Monica, CA 90403, USA",
+      "place_id": "ChIJ4WnvGrGkwoAR_ZhhwcO2pC8",
+      "types": [
+        "beauty_salon",
+        "establishment",
+        "hair_care",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 395, got 1426 (Drybar - Santa Monica)",
+    "confidence": "MEDIUM",
+    "score": 85,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 50,
+    "input": "Gene Juarez Salon, 600 Pine St, Seattle, WA 98101",
+    "expectedName": "Gene Juarez",
+    "expectedStreet": 600,
+    "category": "Salons",
+    "returned": {
+      "name": "Gene Juarez Salon & Spa - West Seattle",
+      "address": "4730 California Ave SW Ste C, Seattle, WA 98116, USA",
+      "place_id": "ChIJQVwyZ_NBkFQR2i4liH6hesc",
+      "types": [
+        "beauty_salon",
+        "establishment",
+        "hair_care",
+        "point_of_interest",
+        "spa"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 600, got 4730 (Gene Juarez Salon & Spa - West Seattle)",
+    "confidence": "MEDIUM",
+    "score": 73,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 51,
+    "input": "LA Fitness, 1745 N Farwell Ave, Milwaukee, WI 53202",
+    "expectedName": "Fitness",
+    "expectedStreet": 1745,
+    "category": "Fitness",
+    "returned": {
+      "name": "Anytime Fitness",
+      "address": "2170 N Farwell Ave, Milwaukee, WI 53202, USA",
+      "place_id": "ChIJ_UPuL9sYBYgRWVfdHaGyQus",
+      "types": [
+        "establishment",
+        "gym",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1745, got 2170 (Anytime Fitness)",
+    "confidence": "LOW",
+    "score": 45,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 52,
+    "input": "Orange Theory Fitness, 4813 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Orange",
+    "expectedStreet": 4813,
+    "category": "Fitness",
+    "returned": {
+      "name": "Orangetheory Fitness",
+      "address": "2501 W Beltline Hwy #105, Madison, WI 53713, USA",
+      "place_id": "ChIJkQY-mGutB4gRU_s7uR5oYL0",
+      "types": [
+        "establishment",
+        "gym",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 4813, got 2501 (Orangetheory Fitness)",
+    "confidence": "MEDIUM",
+    "score": 61,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 53,
+    "input": "Anytime Fitness, 6246 Mckee Rd, Fitchburg, WI 53719",
+    "expectedName": "Anytime",
+    "expectedStreet": 6246,
+    "category": "Fitness",
+    "returned": {
+      "name": "Anytime Fitness",
+      "address": "6250 Nesbitt Rd, Madison, WI 53719, USA",
+      "place_id": "ChIJScsKcPqxB4gRBf62NHEciqM",
+      "types": [
+        "establishment",
+        "gym",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 6246, got 6250 (Anytime Fitness)",
+    "confidence": "MEDIUM",
+    "score": 80,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 54,
+    "input": "CrossFit Madison, 2001 W Beltline Hwy, Madison, WI 53713",
+    "expectedName": "CrossFit",
+    "expectedStreet": 2001,
+    "category": "Fitness",
+    "returned": {
+      "name": "Allegro Fitness: CrossFit + Hyrox (formerly CrossFit Big Dane)",
+      "address": "813 Post Rd, Madison, WI 53713, USA",
+      "place_id": "ChIJU54BwIZTBogRrcPFqChBbUU",
+      "types": [
+        "establishment",
+        "gym",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2001, got 813 (Allegro Fitness: CrossFit + Hyrox (formerly CrossFit Big Dane))",
+    "confidence": "LOW",
+    "score": 45,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 55,
+    "input": "Planet Fitness, 2702 Dryden Dr, Madison, WI 53704",
+    "expectedName": "Planet",
+    "expectedStreet": 2702,
+    "category": "Fitness",
+    "returned": {
+      "name": "Planet Fitness",
+      "address": "89 E Towne Way, Madison, WI 53704, USA",
+      "place_id": "ChIJaQ7euYxWBogRrn1EYYspU3Q",
+      "types": [
+        "establishment",
+        "gym",
+        "health",
+        "point_of_interest",
+        "spa"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2702, got 89 (Planet Fitness)",
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 56,
+    "input": "REI Co-op, 2502 E Washington Ave, Madison, WI 53704",
+    "expectedName": "REI",
+    "expectedStreet": 2502,
+    "category": "Retail",
+    "returned": {
+      "name": "Assumption Greek Orthodox Church",
+      "address": "11 North 7th Street, Madison",
+      "place_id": "ChIJT9BfNHdUBogR310yhZwND54",
+      "types": [
+        "church",
+        "place_of_worship",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"REI\" at 2502, got \"Assumption Greek Orthodox Church\" at 11",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 57,
+    "input": "Barnes and Noble, 7433 Mineral Point Rd, Madison, WI 53717",
+    "expectedName": "Barnes",
+    "expectedStreet": 7433,
+    "category": "Retail",
+    "returned": {
+      "name": "Barnes & Noble",
+      "address": "7433 Mineral Point Rd, Madison",
+      "place_id": "ChIJX6TC2AGvB4gRIBzMFD3BLqY",
+      "types": [
+        "book_store",
+        "cafe",
+        "food",
+        "point_of_interest",
+        "store",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 58,
+    "input": "Guitar Center, 7475 Mineral Point Rd, Madison, WI 53717",
+    "expectedName": "Guitar",
+    "expectedStreet": 7475,
+    "category": "Retail",
+    "returned": {
+      "name": "Guitar Center",
+      "address": "1661 Deming Way Suite 110, Middleton, WI 53562, USA",
+      "place_id": "ChIJI5bvGtatB4gRul5eiGxt0Zk",
+      "types": [
+        "establishment",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 7475, got 1661 (Guitar Center)",
+    "confidence": "LOW",
+    "score": 45,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 59,
+    "input": "Trader Joes, 7116 Tree Line Dr, Madison, WI 53717",
+    "expectedName": "Trader",
+    "expectedStreet": 7116,
+    "category": "Retail",
+    "returned": {
+      "name": "Trader Joe's",
+      "address": "1810 Monroe St, Madison, WI 53711, USA",
+      "place_id": "ChIJVTR7ZN2sB4gRNGeDwR0B2Dk",
+      "types": [
+        "establishment",
+        "food",
+        "grocery_or_supermarket",
+        "health",
+        "liquor_store",
+        "point_of_interest",
+        "store",
+        "supermarket"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 7116, got 1810 (Trader Joe's)",
+    "confidence": "LOW",
+    "score": 42,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 60,
+    "input": "Whole Foods Market, 3313 University Ave, Madison, WI 53705",
+    "expectedName": "Whole Foods",
+    "expectedStreet": 3313,
+    "category": "Retail",
+    "returned": {
+      "name": "Whole Foods Market",
+      "address": "4710 Madison Yards Way, Madison, WI 53705, USA",
+      "place_id": "ChIJ_7aIEF2sB4gRHqbg1lM-gHs",
+      "types": [
+        "bakery",
+        "establishment",
+        "food",
+        "grocery_or_supermarket",
+        "health",
+        "point_of_interest",
+        "store",
+        "supermarket"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 3313, got 4710 (Whole Foods Market)",
+    "confidence": "MEDIUM",
+    "score": 66,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 61,
+    "input": "Chipotle Mexican Grill, 2438 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Chipotle",
+    "expectedStreet": 2438,
+    "category": "Fast Food",
+    "returned": {
+      "name": "Chipotle Mexican Grill",
+      "address": "4628 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJQ_QLDotWBogRVQjt8pV9R1E",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2438, got 4628 (Chipotle Mexican Grill)",
+    "confidence": "MEDIUM",
+    "score": 66,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 62,
+    "input": "Starbucks, 4141 N Mayfair Rd, Wauwatosa, WI 53222",
+    "expectedName": "Starbucks",
+    "expectedStreet": 4141,
+    "category": "Fast Food",
+    "returned": {
+      "name": "Starbucks Coffee Company",
+      "address": "2751 N Mayfair Rd, Wauwatosa, WI 53222, USA",
+      "place_id": "ChIJb4-yAokEBYgR3_OrZKAz1Jc",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 4141, got 2751 (Starbucks Coffee Company)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 63,
+    "input": "McDonald's, 3902 E Washington Ave, Madison, WI 53704",
+    "expectedName": "McDonald",
+    "expectedStreet": 3902,
+    "category": "Fast Food",
+    "returned": {
+      "name": "McDonald's",
+      "address": "4502 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJ0yZlsIxWBogR4pJ1JH-JOtg",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 3902, got 4502 (McDonald's)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 64,
+    "input": "Panera Bread, 3538 University Ave, Madison, WI 53705",
+    "expectedName": "Panera",
+    "expectedStreet": 3538,
+    "category": "Fast Food",
+    "returned": {
+      "name": "Panera Bread",
+      "address": "3416 University Ave, Madison",
+      "place_id": "ChIJgd_jsUKsB4gRUP7dVz-sbOo",
+      "types": [
+        "cafe",
+        "bakery",
+        "meal_takeaway",
+        "store",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 3538, got 3416 (Panera Bread)",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 65,
+    "input": "Subway, 810 W Johnson St, Madison, WI 53706",
+    "expectedName": "Subway",
+    "expectedStreet": 810,
+    "category": "Fast Food",
+    "returned": {
+      "name": "Subway",
+      "address": "1401 University Ave, Madison, WI 53715, USA",
+      "place_id": "ChIJQ1OPN8asB4gRB7mCHnkU1HI",
+      "types": [
+        "establishment",
+        "food",
+        "meal_takeaway",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 810, got 1401 (Subway)",
+    "confidence": "LOW",
+    "score": 45,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 2
+    }
+  },
+  {
+    "idx": 66,
+    "input": "UW Health at The American Center, 1685 Highland Ave, Madison, WI 53705",
+    "expectedName": "UW Health",
+    "expectedStreet": 1685,
+    "category": "Non-Restaurant",
+    "returned": {
+      "name": "UW Health American Family Children's Hospital",
+      "address": "1675 Highland Ave, Madison",
+      "place_id": "ChIJu6TgLYusB4gRctRpHmhjgoQ",
+      "types": [
+        "hospital",
+        "health",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1685, got 1675 (UW Health American Family Children's Hospital)",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 67,
+    "input": "SSM Health St. Mary's Hospital, 700 S Park St, Madison, WI 53715",
+    "expectedName": "Mary",
+    "expectedStreet": 700,
+    "category": "Non-Restaurant",
+    "returned": {
+      "name": "SSM Health St. Mary's Hospital - Madison",
+      "address": "700 S Brooks St, Madison, WI 53715, USA",
+      "place_id": "ChIJp7GIaNasB4gRxe_pa6xaYT0",
+      "types": [
+        "establishment",
+        "health",
+        "hospital",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 140,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 68,
+    "input": "Epic Systems Corporation, 1979 Milky Way, Verona, WI 53593",
+    "expectedName": "Epic",
+    "expectedStreet": 1979,
+    "category": "Non-Restaurant",
+    "returned": {
+      "name": "Epic",
+      "address": "1979 Milky Way, Verona",
+      "place_id": "ChIJKw6Yd5O6B4gRUU4Czutfj7I",
+      "types": [
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 69,
+    "input": "American Family Insurance, 6000 American Pkwy, Madison, WI 53783",
+    "expectedName": "American Family",
+    "expectedStreet": 6000,
+    "category": "Non-Restaurant",
+    "returned": {
+      "name": "American Family Insurance",
+      "address": "6000 American Pkwy, Madison, WI 53783, USA",
+      "place_id": "ChIJPWxb0892P4gRp7NdwApWBes",
+      "types": [
+        "establishment",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 70,
+    "input": "Unity Point Health, 1126 S 70th St, West Allis, WI 53214",
+    "expectedName": "Unity",
+    "expectedStreet": 1126,
+    "category": "Non-Restaurant",
+    "returned": {
+      "name": "UnityPoint Health - Meriter Hospital",
+      "address": "202 S Park St, Madison, WI 53715, USA",
+      "place_id": "ChIJdwF4G9KsB4gR9h4LMAaZxcA",
+      "types": [
+        "establishment",
+        "health",
+        "hospital",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1126, got 202 (UnityPoint Health - Meriter Hospital)",
+    "confidence": "MEDIUM",
+    "score": 66,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 71,
+    "input": "Colectivo Coffee, 2406 Monroe St, Madison, WI 53711",
+    "expectedName": "Colectivo",
+    "expectedStreet": 2406,
+    "category": "Coffee",
+    "returned": {
+      "name": "Colectivo Coffee Monroe St.",
+      "address": "2530 Monroe St, Madison",
+      "place_id": "ChIJZd3cQP2sB4gRvR_FrFnPpcI",
+      "types": [
+        "cafe",
+        "store",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2406, got 2530 (Colectivo Coffee Monroe St.)",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 72,
+    "input": "Ancora Coffee, 112 King St, Madison, WI 53703",
+    "expectedName": "Ancora",
+    "expectedStreet": 112,
+    "category": "Coffee",
+    "returned": {
+      "name": "Ancora Cafe + Bakery",
+      "address": "107 King St, Madison",
+      "place_id": "ChIJS8DXvD9TBogR2F22gGRZUKA",
+      "types": [
+        "cafe",
+        "bakery",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "store",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 112, got 107 (Ancora Cafe + Bakery)",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 73,
+    "input": "Intelligentsia Coffee, 53 W Jackson Blvd, Chicago, IL 60604",
+    "expectedName": "Intelligentsia",
+    "expectedStreet": 53,
+    "category": "Coffee",
+    "returned": {
+      "name": "Intelligentsia Coffee Monadnock Coffeebar",
+      "address": "Monadnock Building, 53 W Jackson Blvd, Chicago",
+      "place_id": "ChIJj_WHnaUsDogRPiO9gqm-Z3U",
+      "types": [
+        "cafe",
+        "point_of_interest",
+        "food",
+        "store",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 53, got null (Intelligentsia Coffee Monadnock Coffeebar)",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 74,
+    "input": "Blue Bottle Coffee, 300 Webster St, Oakland, CA 94607",
+    "expectedName": "Blue Bottle",
+    "expectedStreet": 300,
+    "category": "Coffee",
+    "returned": {
+      "name": "Blue Bottle Coffee",
+      "address": "300 Webster St, Oakland, CA 94607, USA",
+      "place_id": "ChIJzbObpcmAj4AR4YwzB63snm4",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 75,
+    "input": "Stumptown Coffee Roasters, 128 SW 3rd Ave, Portland, OR 97204",
+    "expectedName": "Stumptown",
+    "expectedStreet": 128,
+    "category": "Coffee",
+    "returned": {
+      "name": "Stumptown Coffee Roasters",
+      "address": "128 SW 3rd Ave, Portland, OR 97204, USA",
+      "place_id": "ChIJbT5i5AYKlVQRHZOtE8vGAz4",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 76,
+    "input": "Marcus Point Cinema, 7825 Big Sky Dr, Madison, WI 53719",
+    "expectedName": "Marcus",
+    "expectedStreet": 7825,
+    "category": "Entertainment",
+    "returned": {
+      "name": "Marcus Point Cinema",
+      "address": "7825 Big Sky Dr, Madison, WI 53719, USA",
+      "place_id": "ChIJtQi3hQevB4gRoufw0EZSc30",
+      "types": [
+        "establishment",
+        "movie_theater",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 77,
+    "input": "Kohl Center, 601 W Dayton St, Madison, WI 53715",
+    "expectedName": "Kohl",
+    "expectedStreet": 601,
+    "category": "Entertainment",
+    "returned": {
+      "name": "Kohl Center",
+      "address": "601 W Dayton St, Madison",
+      "place_id": "ChIJS-YVBTNTBogRSzSP74HpmrE",
+      "types": [
+        "stadium",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 2
+    }
+  },
+  {
+    "idx": 78,
+    "input": "American Family Field, 1 Brewers Way, Milwaukee, WI 53214",
+    "expectedName": "American Family",
+    "expectedStreet": 1,
+    "category": "Entertainment",
+    "returned": {
+      "name": "American Family Field",
+      "address": "1 Brewers Way, Milwaukee, WI 53214, USA",
+      "place_id": "ChIJ9XP-qlkaBYgRtNBQlN5HtME",
+      "types": [
+        "establishment",
+        "point_of_interest",
+        "stadium"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 79,
+    "input": "EAA AirVenture Museum, 3000 Poberezny Rd, Oshkosh, WI 54902",
+    "expectedName": "EAA",
+    "expectedStreet": 3000,
+    "category": "Entertainment",
+    "returned": {
+      "name": "EAA Aviation Museum",
+      "address": "3000 Poberezny Rd, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJg6T-PO_BA4gRRkVNAr3VGmY",
+      "types": [
+        "establishment",
+        "museum",
+        "point_of_interest",
+        "tourist_attraction"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "MEDIUM",
+    "score": 114,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 80,
+    "input": "House on the Rock, 5754 WI-23, Spring Green, WI 53588",
+    "expectedName": "House on the Rock",
+    "expectedStreet": 5754,
+    "category": "Entertainment",
+    "returned": {
+      "name": "The House on the Rock",
+      "address": "5754 WI-23, Spring Green, WI 53588, USA",
+      "place_id": "ChIJd2Kfkxh6_YcRMWhfdbUb_gg",
+      "types": [
+        "establishment",
+        "point_of_interest",
+        "tourist_attraction"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 81,
+    "input": "Rajni Indian Cuisine, Madison WI",
+    "expectedName": "Rajni",
+    "expectedStreet": null,
+    "category": "No Street Number",
+    "returned": {
+      "name": "Rajni Indian Cuisine",
+      "address": "429 Commerce Dr, Madison, WI 53719, USA",
+      "place_id": "ChIJFRpvb0OvB4gR4HfoAgRb4Pc",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 82,
+    "input": "Franklin Barbecue, Austin TX",
+    "expectedName": "Franklin",
+    "expectedStreet": null,
+    "category": "No Street Number",
+    "returned": {
+      "name": "Franklin Barbecue",
+      "address": "900 E 11th St, Austin, TX 78702, USA",
+      "place_id": "ChIJM8w7rqS1RIYRhEz2-KuoqzE",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "MEDIUM",
+    "score": 70,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 83,
+    "input": "Alinea, Chicago IL",
+    "expectedName": "Alinea",
+    "expectedStreet": null,
+    "category": "No Street Number",
+    "returned": {
+      "name": "Alinea",
+      "address": "1723 N Halsted St, Chicago, IL 60614, USA",
+      "place_id": "ChIJuyI60yLTD4gROwTWENq1He0",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 84,
+    "input": "Nobu, New York NY",
+    "expectedName": "Nobu",
+    "expectedStreet": null,
+    "category": "No Street Number",
+    "returned": {
+      "name": "Nobu Fifty Seven",
+      "address": "40 W 57th St, New York, NY 10019, USA",
+      "place_id": "ChIJPX5iCfpYwokRACnACAf2pJw",
+      "types": [
+        "bar",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": true
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 85,
+    "input": "Starbucks, Seattle WA",
+    "expectedName": "Starbucks",
+    "expectedStreet": null,
+    "category": "No Street Number",
+    "returned": {
+      "name": "Starbucks Coffee Company",
+      "address": "1912 Pike Pl, Seattle, WA 98101, USA",
+      "place_id": "ChIJryqIewBrkFQRkWfQIS8mzpc",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "MEDIUM",
+    "score": 60,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 86,
+    "input": "429 Commerce Dr, Madison, WI 53719",
+    "expectedName": "Rajni",
+    "expectedStreet": 429,
+    "category": "Address Only",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 87,
+    "input": "900 E 11th St, Austin, TX 78702",
+    "expectedName": "Franklin",
+    "expectedStreet": 900,
+    "category": "Address Only",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 88,
+    "input": "1723 N Halsted St, Chicago, IL 60614",
+    "expectedName": "Alinea",
+    "expectedStreet": 1723,
+    "category": "Address Only",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 89,
+    "input": "601 W Dayton St, Madison, WI 53715",
+    "expectedName": "Kohl",
+    "expectedStreet": 601,
+    "category": "Address Only",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 90,
+    "input": "5754 WI-23, Spring Green, WI 53588",
+    "expectedName": "House on the Rock",
+    "expectedStreet": 5754,
+    "category": "Address Only",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 1,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 91,
+    "input": "Starbucks, 2534 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Starbucks",
+    "expectedStreet": 2534,
+    "category": "Chain Multi-Loc",
+    "returned": {
+      "name": "Starbucks Coffee Company",
+      "address": "4202 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJm-GpCZRWBogRueKfBQgMxYI",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2534, got 4202 (Starbucks Coffee Company)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 92,
+    "input": "McDonald's, 1901 S Park St, Madison, WI 53713",
+    "expectedName": "McDonald",
+    "expectedStreet": 1901,
+    "category": "Chain Multi-Loc",
+    "returned": {
+      "name": "McDonald's",
+      "address": "2402 S Park St, Madison, WI 53713, USA",
+      "place_id": "ChIJo7PI0stSBogRFaaWEjn70VU",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1901, got 2402 (McDonald's)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 93,
+    "input": "Subway, 2702 International Ln, Madison, WI 53704",
+    "expectedName": "Subway",
+    "expectedStreet": 2702,
+    "category": "Chain Multi-Loc",
+    "returned": {
+      "name": "Subway",
+      "address": "3702 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJXW_O8CBUBogRDCPc1tGPfeI",
+      "types": [
+        "establishment",
+        "food",
+        "meal_takeaway",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2702, got 3702 (Subway)",
+    "confidence": "LOW",
+    "score": 50,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 94,
+    "input": "Chipotle Mexican Grill, 302 N Midvale Blvd, Madison, WI 53705",
+    "expectedName": "Chipotle",
+    "expectedStreet": 302,
+    "category": "Chain Multi-Loc",
+    "returned": {
+      "name": "Chipotle Mexican Grill",
+      "address": "4000 University Ave, Madison, WI 53705, USA",
+      "place_id": "ChIJB0yBPECsB4gRHbIzfVvvKak",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 302, got 4000 (Chipotle Mexican Grill)",
+    "confidence": "MEDIUM",
+    "score": 66,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 95,
+    "input": "Great Clips, 2502 E Washington Ave, Madison, WI 53704",
+    "expectedName": "Great Clips",
+    "expectedStreet": 2502,
+    "category": "Chain Multi-Loc",
+    "returned": {
+      "name": "Sport Clips Haircuts of Madison East Washington Center",
+      "address": "4622 E Washington Ave, Madison, WI 53704, USA",
+      "place_id": "ChIJVxab1Z1WBogRCyBsElprXKs",
+      "types": [
+        "establishment",
+        "hair_care",
+        "health",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2502, got 4622 (Sport Clips Haircuts of Madison East Washington Center)",
+    "confidence": "MEDIUM",
+    "score": 75,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 96,
+    "input": "Baymont by Wyndham Oshkosh Airport, 1581 W South Park Ave, Oshkosh, WI 54902",
+    "expectedName": "Baymont",
+    "expectedStreet": 1581,
+    "category": "Hard Edge",
+    "returned": {
+      "name": "Baymont inn by Wyndham Oshkosh Airport",
+      "address": "1581 W South Park Ave, Oshkosh",
+      "place_id": "ChIJNYxFGZTvA4gR4ifv2lxl8kI",
+      "types": [
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 97,
+    "input": "Don Q Inn, 3658 Vineyard Dr, Dodgeville, WI 53533",
+    "expectedName": "Don Q",
+    "expectedStreet": 3658,
+    "category": "Hard Edge",
+    "returned": {
+      "name": "Vibe Body Art LLC",
+      "address": "107 North Iowa Street, Dodgeville",
+      "place_id": "ChIJjSyacLxl_YcRTpjiTIXBQNo",
+      "types": [
+        "store",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Don Q\" at 3658, got \"Vibe Body Art LLC\" at 107",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 98,
+    "input": "Governor Dodge State Park, 4175 WI-23, Dodgeville, WI 53533",
+    "expectedName": "Governor Dodge",
+    "expectedStreet": 4175,
+    "category": "Hard Edge",
+    "returned": null,
+    "pass": false,
+    "reason": "findPlace returned null",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 99,
+    "input": "Sweet Bee Company, 30506 Trilby Rd, Sorrento, FL 32776",
+    "expectedName": "Sweet Bee",
+    "expectedStreet": 30506,
+    "category": "Hard Edge",
+    "returned": {
+      "name": "The Sweet Bee Company",
+      "address": "26356 County Rd 46A, Sorrento, FL 32776, USA",
+      "place_id": "ChIJmxsNn6Oh54gRlXCdb5mT2YY",
+      "types": [
+        "establishment",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 30506, got 26356 (The Sweet Bee Company)",
+    "confidence": "MEDIUM",
+    "score": 61,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 100,
+    "input": "The Don Q Inn, 3658 Vineyard Dr, Dodgeville, WI 53533",
+    "expectedName": "Don Q",
+    "expectedStreet": 3658,
+    "category": "Hard Edge",
+    "returned": {
+      "name": "Vibe Body Art LLC",
+      "address": "107 North Iowa Street, Dodgeville",
+      "place_id": "ChIJjSyacLxl_YcRTpjiTIXBQNo",
+      "types": [
+        "store",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong business: expected \"Don Q\" at 3658, got \"Vibe Body Art LLC\" at 107",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  }
+]

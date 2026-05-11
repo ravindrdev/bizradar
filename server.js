@@ -337,6 +337,13 @@ app.post('/classify', async (req, res) => {
   const data = places.toInputFields(detail);
   data.is_chain = (layer0Result.mode === 'brand_chain');
   data.chain_name = layer0Result.chain || null;
+  // BATCH-low-confidence: forward findPlace's confidence markers from
+  // the placeStub into the data object so renderReport can show the
+  // "closest match found" warning banner when the resolver wasn't sure.
+  if (placeStub && placeStub._low_confidence) {
+    data._low_confidence = true;
+    data._user_input = placeStub._user_input || input;
+  }
   // BATCH16 — pass the raw review array through for the Common Problems
   // section's keyword-mining pass. Google's legacy Places Details API
   // returns up to 5 reviews; ample for a v1 keyword scan.
@@ -1964,6 +1971,16 @@ function renderReport(ctx) {
   const chainTag = data.is_chain
     ? ` <small>(chain: ${escapeHtml(data.chain_name || 'detected')})</small>`
     : '';
+  // BATCH-low-confidence: warning banner shown at the top of the
+  // report when findPlace flagged the result as a closest-match
+  // (couldn't confidently resolve the user's input to a single
+  // business). Empty string when the resolver was confident.
+  const lowConfidenceBanner = data._low_confidence
+    ? `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#92400E;line-height:1.6;">
+&#9888;&#65039; <strong>Closest match found.</strong> We searched for <em>${escapeHtml(data._user_input || input)}</em> and returned the closest matching business. If this report is for the wrong business please try searching with the exact name as it appears on Google Maps.
+</div>`
+    : '';
+
   const headerHtml = `<h1>${escapeHtml(data.name || input)}</h1>
 <p class="meta">${escapeHtml(data.formatted_address || '')}<br>
 ${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}<br>
@@ -2561,6 +2578,20 @@ ${fmrBlock}`;
     }).join('');
   }
 
+  // ── Three new Claude-driven sections (rendered between priority
+  // actions and the 90-day plan): competitor deep-dive, key risks,
+  // execution templates. Each helper returns '' when data is missing
+  // so the section is silently omitted from the report.
+  const competitorDeepDiveHtml = enriched
+    ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors)
+    : '';
+  const keyRisksHtml = enriched
+    ? renderKeyRisks(enriched.key_risks)
+    : '';
+  const executionTemplatesHtml = enriched
+    ? renderExecutionTemplates(enriched.execution_templates)
+    : '';
+
   // BATCH16 — Common Problems Detected (review-mined themes)
   const cpAnalysis = analyzeCommonProblems(data.sample_reviews, profile.id);
   const commonProblemsHtml = renderCommonProblems(cpAnalysis);
@@ -2885,7 +2916,7 @@ ${cards}`;
   footerHtml += `<p class="meta"><small>Generated ${new Date().toISOString()}</small></p>`;
 
   return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-${headerHtml}
+${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
 ${localContextHtml}
 ${redFlagsHtml}
@@ -2900,6 +2931,9 @@ ${marketHtml}
 ${demandHtml}
 ${opsHtml}
 ${priorityHtml}
+${competitorDeepDiveHtml}
+${keyRisksHtml}
+${executionTemplatesHtml}
 ${ninetyDayPlanHtml}
 ${seasonalStrategyHtml}
 ${opportunitiesHtml}
@@ -3327,6 +3361,205 @@ function renderActionCard(action) {
   ${why ? `<div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
   ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
   ${metaLine}
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderCompetitorDeepDive — Claude competitor_deep_dive renderer
+// ─────────────────────────────────────────────────────────────────────
+// Renders the "why your top competitor is winning" section. Shows
+// red factor cards (why_they_are_winning), green opportunity cards
+// (their_weakness), and a dark "steal their customers" callout.
+// Returns '' when the data is missing or empty so the section is
+// silently omitted.
+// Renders one card for a single competitor deep-dive object. Returns
+// HTML string. Used internally by renderCompetitorDeepDive (which now
+// iterates an array of deep-dives).
+function renderSingleCompetitorCard(deep, index) {
+  if (!deep || typeof deep !== 'object') return '';
+  const wins = Array.isArray(deep.why_they_are_winning) ? deep.why_they_are_winning : [];
+  const weak = Array.isArray(deep.their_weakness) ? deep.their_weakness : [];
+  const steal = String(deep.steal_their_customers || '').trim();
+  const compName = escapeHtml(deep.competitor_name || 'Top competitor');
+  const reason = escapeHtml(deep.selection_reason || '');
+
+  const winsHtml = wins.length
+    ? `<h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+${wins.map((w) => `<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">${escapeHtml(w.factor || '')}</div>
+  ${w.their_position ? `<div style="font-size: 13px; color: #374151; margin-bottom: 6px;">${escapeHtml(w.their_position)}</div>` : ''}
+  ${w.evidence ? `<div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">${escapeHtml(w.evidence)}</div>` : ''}
+  ${w.your_gap ? `<div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> ${escapeHtml(w.your_gap)}</div>` : ''}
+  ${w.close_the_gap ? `<div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; ${escapeHtml(w.close_the_gap)}</div>` : ''}
+</div>`).join('')}`
+    : '';
+
+  const weakHtml = weak.length
+    ? `<h3 style="font-size: 14px; color: #065F46; margin: 20px 0 12px;">&#9989; Where they are vulnerable</h3>
+${weak.map((w) => `<div style="border-left: 3px solid #6EE7B7; padding: 12px 16px; margin-bottom: 12px; background: #F0FDF4; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #065F46; margin-bottom: 4px; font-size: 14px;">${escapeHtml(w.complaint || '')}</div>
+  ${w.evidence ? `<div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">${escapeHtml(w.evidence)}</div>` : ''}
+  ${w.your_opportunity ? `<div style="font-size: 13px; color: #374151;"><strong>Your move:</strong> ${escapeHtml(w.your_opportunity)}</div>` : ''}
+</div>`).join('')}`
+    : '';
+
+  const stealHtml = steal
+    ? `<div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">${escapeHtml(steal)}</div>
+</div>`
+    : '';
+
+  return `<div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">${index + 1}. ${compName}</div>
+    ${reason ? `<div style="font-size: 12px; color: #6B7280; margin-top: 4px;">${reason}</div>` : ''}
+  </div>
+  <div style="padding: 20px;">
+    ${winsHtml}
+    ${weakHtml}
+    ${stealHtml}
+  </div>
+</div>`;
+}
+
+// Renders the full competitor deep-dive section. Accepts either:
+//   - an array of deep-dive objects (current schema)
+//   - a single deep-dive object (legacy schema, wrapped into [obj])
+// Plus an optional outperformedCompetitors array (sibling field) that
+// surfaces a green "you're beating these" summary box. Section is
+// silently omitted only when BOTH arrays are empty.
+function renderCompetitorDeepDive(deepDive, outperformedCompetitors) {
+  const items = Array.isArray(deepDive)
+    ? deepDive.filter((d) => d && typeof d === 'object')
+    : (deepDive && typeof deepDive === 'object' ? [deepDive] : []);
+  const outperformed = Array.isArray(outperformedCompetitors)
+    ? outperformedCompetitors.filter((n) => typeof n === 'string' && n.trim().length > 0)
+    : [];
+
+  if (items.length === 0 && outperformed.length === 0) return '';
+
+  let html = '<div class="section">';
+  html += '<h2>&#128269; Competitor deep dive</h2>';
+  html += '<p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">'
+        + 'Only showing competitors where you are not already winning on both rating and review count.'
+        + '</p>';
+
+  items.forEach((deep, index) => {
+    html += renderSingleCompetitorCard(deep, index);
+  });
+
+  if (outperformed.length > 0) {
+    html += '<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px 20px; margin-top: 8px;">'
+          + '<div style="font-weight: 600; color: #065F46; font-size: 14px; margin-bottom: 6px;">&#9989; Competitors you are already beating</div>'
+          + '<div style="font-size: 13px; color: #374151;">'
+          + outperformed.map((n) => escapeHtml(n)).join(', ')
+          + ' &mdash; you outperform on both rating and review count. Keep doing what you are doing.'
+          + '</div>'
+          + '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderKeyRisks — Claude key_risks renderer
+// ─────────────────────────────────────────────────────────────────────
+// Severity-colored risk cards with early-warning, mitigation, and
+// cost-if-ignored boxes. HIGH=red, MEDIUM=amber, LOW=gray.
+const RISK_SEVERITY_COLORS = {
+  HIGH:   { border: '#DC2626', badgeBg: '#FEF2F2', badgeText: '#991B1B' },
+  MEDIUM: { border: '#F59E0B', badgeBg: '#FFFBEB', badgeText: '#92400E' },
+  LOW:    { border: '#6B7280', badgeBg: '#F9FAFB', badgeText: '#374151' },
+};
+
+function renderKeyRisks(risks) {
+  if (!Array.isArray(risks) || risks.length === 0) return '';
+  const cardsHtml = risks.map((r) => {
+    if (!r || typeof r !== 'object') return '';
+    const sev = String(r.severity || 'MEDIUM').toUpperCase();
+    const c = RISK_SEVERITY_COLORS[sev] || RISK_SEVERITY_COLORS.MEDIUM;
+    return `<div style="border: 1px solid #E5E7EB; border-left: 4px solid ${c.border}; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: ${c.badgeBg}; color: ${c.badgeText}; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">${sev} RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">${escapeHtml(r.risk_title || '')}</span>
+    </div>
+    ${r.description ? `<p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">${escapeHtml(r.description)}</p>` : ''}
+    ${r.early_warning_sign ? `<div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">${escapeHtml(r.early_warning_sign)}</span></div>` : ''}
+    ${r.mitigation ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">${escapeHtml(r.mitigation)}</span></div>` : ''}
+    ${r.cost_if_ignored ? `<div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> ${escapeHtml(r.cost_if_ignored)}</div>` : ''}
+  </div>`;
+  }).join('');
+
+  return `<div class="section">
+  <h2>&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
+  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now &mdash; with early warning signs so you can act before they become crises.</p>
+  ${cardsHtml}
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderExecutionTemplates — Claude execution_templates renderer
+// ─────────────────────────────────────────────────────────────────────
+// Each template is a copy-paste-ready card with a clipboard button.
+// The body is JSON-stringified into a data attribute and read back via
+// JSON.parse on click — robust against quotes/newlines/template-literal
+// chars in the body text.
+const TEMPLATE_TYPE_ICONS = {
+  email:        '&#128231;',  // 📧
+  script:       '&#128483;',  // 🗣
+  text_message: '&#128172;',  // 💬
+  proposal:     '&#128196;',  // 📄
+};
+
+// Encode for safe embedding in an HTML attribute. escapeHtml handles
+// & < > " ' but NOT newlines — browsers preserve attribute newlines
+// inconsistently. Encoding LF/CR as numeric character references
+// makes the round-trip predictable: when JS reads element.dataset.body
+// the entities decode back to actual \n characters.
+function escapeHtmlAttr(s) {
+  return escapeHtml(s).replace(/\r/g, '&#13;').replace(/\n/g, '&#10;');
+}
+
+function renderExecutionTemplates(templates) {
+  if (!Array.isArray(templates) || templates.length === 0) return '';
+  const cardsHtml = templates.map((t, idx) => {
+    if (!t || typeof t !== 'object') return '';
+    const type = String(t.template_type || 'email').toLowerCase();
+    const icon = TEMPLATE_TYPE_ICONS[type] || TEMPLATE_TYPE_ICONS.email;
+    const body = String(t.body || '');
+    const tmplId = `tmpl-${idx}`;
+
+    const subjectBlock = (type === 'email' && t.subject)
+      ? `<div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 13px;"><strong style="color: #1D4ED8;">Subject:</strong> <span style="color: #1E40AF;">${escapeHtml(t.subject)}</span></div>`
+      : '';
+
+    // Body div carries id + data-body. The display content is HTML-
+    // escaped (visible plaintext, white-space:pre-wrap preserves the
+    // visible newlines). The copy button reads dataset.body — which
+    // the browser decodes back to original characters including \n.
+    return `<div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">${icon}</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">${escapeHtml(t.template_title || '')}</div>
+        ${t.when_to_use ? `<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">${escapeHtml(t.when_to_use)}</div>` : ''}
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      ${subjectBlock}
+      <div id="${tmplId}" data-body="${escapeHtmlAttr(body)}" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">${escapeHtml(body)}</div>
+      <button onclick="const b=document.getElementById('${tmplId}').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      ${t.success_metric ? `<div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> ${escapeHtml(t.success_metric)}</div>` : ''}
+    </div>
+  </div>`;
+  }).join('');
+
+  return `<div class="section">
+  <h2>&#128203; Ready-to-use templates</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">Copy, fill the [brackets], send. No rewriting needed.</p>
+  ${cardsHtml}
 </div>`;
 }
 

@@ -23,14 +23,22 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const MODEL = 'claude-sonnet-4-6';
-// Bumped 3000 → 8000 → 12000. The 8000 ceiling unlocked the 3-rec case
-// (~4000 tokens). The 12000 ceiling adds headroom for the new
-// priority_actions array (5-7 entries × ~150-300 tokens = ~1500-2100
-// extra) on top of the existing enriched_recommendations + opportunities
-// + 90-day plan + seasonal_strategy + competitor_analysis. Billed on
-// actual output tokens, so the higher cap costs nothing for shorter
-// reports.
-const MAX_TOKENS = 12000;
+// Two parallel Claude calls split the enrichment payload to avoid
+// the previous truncation risk at 16000:
+//   Call A — existing fields + competitor_deep_dive (~14000 ceiling)
+//   Call B — key_risks + execution_templates only   (~8000 ceiling)
+// Both run via Promise.allSettled so one inner failure doesn't lose
+// the other call's work. Billed on ACTUAL output tokens — caps are
+// headroom.
+//
+// MAX_TOKENS_A bumped 10000 → 14000 after the Wingate Oshkosh report
+// hit exactly 10000 tokens mid-string (renovation context bloated
+// priority_actions content past the cap). 14000 gives breathing room
+// for data-rich businesses; callClaudeEnrichA additionally retries
+// once at MAX_TOKENS_A * 1.5 = 21000 if the first attempt still
+// truncates.
+const MAX_TOKENS_A = 18000;
+const MAX_TOKENS_B = 8000;
 
 // 24h in-memory cache keyed by place_id. Same Map pattern as the
 // google-places details cache (Phase 4 fix-batch).
@@ -41,7 +49,7 @@ const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-const SYSTEM_PROMPT = `You are BizRadar's AI recommendation engine.
+const SYSTEM_PROMPT_A = `You are BizRadar's AI recommendation engine.
 You receive verified real data about a specific local business. Your job is two things:
 
 1. Enrich the top 3 recommendations with psychology framework and local reasoning.
@@ -142,6 +150,32 @@ OUTPUT FORMAT:
       "cost": "$X one-time | $X/month | $0",
       "timeline": "This week | Month 1 | Month 2 | Q3"
     }
+  ],
+  "competitor_deep_dive": [
+    {
+      "competitor_name": "exact name of a competitor that the subject does NOT outperform on both rating AND review count",
+      "selection_reason": "one short sentence explaining why this competitor is a threat using real numbers — e.g. 'Silver Star has 5.0★ vs your 4.2★ — 0.8 star gap with 134 reviews in same market'",
+      "why_they_are_winning": [
+        {
+          "factor": "short label (e.g. 'Review velocity', 'Service speed', 'Menu breadth')",
+          "their_position": "specific data point — e.g. '1,691 reviews vs your 1,392 — gaining ~40 reviews/month'",
+          "evidence": "MUST start with one of: '[REVIEW QUOTE]: \"<verbatim quote from competitors.top5[].top_reviews>\"' OR '[RATING SIGNAL]: <inference from rating/review count/trajectory>' OR '[INFERRED FROM DATA]: <inference from types/location/price>'. NEVER plain text. NEVER invented quotes. NEVER write 'insufficient data' — use [RATING SIGNAL] or [INFERRED FROM DATA] when reviews aren't in the bundle.",
+          "your_gap": "specific gap (delta number or behavioral gap)",
+          "close_the_gap": "exact action to close this gap THIS WEEK or THIS MONTH"
+        }
+      ],
+      "their_weakness": [
+        {
+          "complaint": "most common complaint pattern from their 1-2 star reviews",
+          "evidence": "MUST use the same evidence-label format: '[REVIEW QUOTE]: \"<verbatim 1-2 star quote>\"' OR '[INFERRED FROM DATA]: <inference>'. If no negative reviews are present in the bundle, return their_weakness as [] — do NOT invent.",
+          "your_opportunity": "exact way to exploit this gap"
+        }
+      ],
+      "steal_their_customers": "ONE specific paragraph (max 80 words): based on their weaknesses, what exact MESSAGE and CHANNEL would pull their unhappy customers to you this week"
+    }
+  ],
+  "outperformed_competitors": [
+    "Name1", "Name2"
   ],
   "enriched_recommendations": [
     {
@@ -318,6 +352,96 @@ anchors), still produce at least 4 non-review actions using
 universal levers (loyalty programs, referral programs, channel
 expansion, off-peak pricing, repeat-visit incentives).
 
+COMPETITOR DEEP DIVE — MANDATORY RULES:
+
+You will receive up to 5 competitors in competitors.top5.
+
+For EACH of those competitors, apply this check FIRST:
+
+OUTPERFORMANCE CHECK:
+  Subject OUTPERFORMS a competitor if AND ONLY IF:
+      subject.rating > competitor.rating
+      AND
+      subject.review_count > competitor.review_count
+  Use strict greater-than. A tie on either metric is NOT
+  outperforming.
+
+  If subject outperforms a competitor on BOTH metrics → SKIP
+  that competitor: do NOT include them in competitor_deep_dive.
+  Instead, push their exact name into outperformed_competitors[].
+
+  If subject does NOT outperform on EITHER metric → INCLUDE
+  that competitor in competitor_deep_dive with the full deep
+  dive described below.
+
+For each competitor that needs a deep dive, generate:
+
+1. competitor_name — exact name from competitors.top5.
+
+2. selection_reason — ONE sentence with real numbers explaining
+   why this competitor is a threat. Examples:
+       "Silver Star has 5.0★ vs your 4.2★ — 0.8 star gap with
+        134 reviews in same market"
+       "Spring Valley Inn ties on rating (4.2★) but has 215 reviews
+        vs your 354 — review parity in a market where they may
+        catch up via velocity"
+
+3. why_they_are_winning — 3-5 factors. EACH factor's evidence
+   field must start with one of:
+       [REVIEW QUOTE]: "<verbatim quote from their top_reviews>"
+         Use when an actual quote is in the bundle. Quote exactly.
+       [RATING SIGNAL]: <inference from rating/review count>
+         Use when inferring from rating, count, or trajectory.
+         Example: "[RATING SIGNAL]: 1,691 reviews vs your 1,392
+         — ~40/month gain based on review-date distribution"
+       [INFERRED FROM DATA]: <inference from non-review data>
+         Use when inferring from Google types, price level,
+         location, or other non-review signals.
+
+   NEVER write evidence without one of these labels.
+   NEVER invent a quote.
+   NEVER write "insufficient data" — use [RATING SIGNAL] or
+   [INFERRED FROM DATA] when no reviews are in the bundle.
+
+4. their_weakness — 2-3 weaknesses. Use ONLY 1-star and 2-star
+   reviews from their top_reviews. Same evidence-label format
+   as step 3. If no negative reviews are available in the bundle,
+   return their_weakness as []. NEVER invent weaknesses.
+
+5. steal_their_customers — ONE paragraph, MAX 80 words. Must
+   include:
+       - Their specific weakness or gap
+       - The exact MESSAGE to use
+       - The exact CHANNEL (Google Ads targeting "<competitor>"
+         searches, Yelp, Instagram, local Reddit, Nextdoor,
+         ZIP-X postcards, etc.)
+   GOOD: "Google Ads targeting [competitor] searches in Madison
+         with headline: Higher rated, closer to campus — Rajni
+         Indian on Commerce Drive"
+   BAD:  "Market yourself as a better option"
+
+ORDER the competitor_deep_dive array by threat_score descending,
+where:
+    threat_score = rating × log10(review_count + 1)
+                   × (1 / (distance_miles + 0.5))
+Highest threat first.
+
+EDGE CASES:
+  - If ALL 5 competitors are outperformed → competitor_deep_dive
+    is [] (empty array) and outperformed_competitors lists all 5.
+  - If NO competitors are outperformed → competitor_deep_dive
+    has 1-5 entries and outperformed_competitors is [].
+  - If competitors.top5 is empty → both fields are [].
+
+SECTOR LENS — apply the sector-specific analysis lens to factors
+and weaknesses:
+  Restaurant  → service speed, price signals, menu breadth keywords
+  Hotel       → amenity mentions, location advantage, value signals
+  Dental      → wait time complaints, staff friendliness, insurance
+  Auto repair → speed, price transparency, warranty mentions
+  Retail      → selection, staff knowledge, return policy
+  Salon       → stylist skill, wait times, product quality
+
 COMPETITOR ANALYSIS RULES:
 - Use ONLY the Top competitors list provided in the user prompt — never invent competitor names, ratings, or attributes.
 - Base what_they_do_better ONLY on data we actually have: rating, review count, distance. Do NOT invent features, amenities, hours, prices, or service quality we did not measure.
@@ -485,7 +609,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       // local markets in its competitor_analysis.summary.
       // FIX 1 — top_reviews: real competitor review snippets fetched by
       // googlePlaces.fetchNearbyCompetitors (Place Details enrichment).
-      // SYSTEM_PROMPT's STEAL STRATEGY RULE requires Claude to cite these
+      // SYSTEM_PROMPT_A's STEAL STRATEGY RULE requires Claude to cite these
       // verbatim in competitor_analysis.what_they_do_better instead of
       // inferring competitor strengths from rating numbers alone.
       top5: Array.isArray(data.competitors_top5) ? data.competitors_top5.map((c) => ({
@@ -615,6 +739,15 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       readmission_rating: data.cms_readmission_rating,
       timeliness_rating: data.cms_timeliness_rating,
     } : null,
+    // BATCH-split-call: full set of triggered recommendation IDs from
+    // ranker.top10. Passed to Call B (key_risks + execution_templates)
+    // as priority_action_ids so templates can reference the same ids
+    // the user will see in priority_actions. Both calls run in
+    // parallel — neither sees the other's output — so we use the
+    // deterministic ranker IDs as the shared key.
+    triggered_rec_ids: (Array.isArray(ranked.top10) ? ranked.top10 : [])
+      .map((t) => t && t.rec && t.rec.id)
+      .filter(Boolean),
     top3_recommendations: top3.map((t) => ({
       id: t.rec.id,
       claim: t.rec.claim,
@@ -913,25 +1046,411 @@ Rules reminder:
 }
 
 // ───────────────────────────────────────────────────────────────────
-// Main entry — enrichWithClaude
+// safeParseJSON — strip ``` fences and parse, return null on failure
 // ───────────────────────────────────────────────────────────────────
+// Centralizes the JSON parse pattern for both Call A and Call B
+// responses. Logs the failure with a label so the two calls are
+// distinguishable in the server log.
+function safeParseJSON(text, label) {
+  if (!text || typeof text !== 'string') return null;
+  const clean = text.replace(/```json|```/g, '').trim();
+  try {
+    return JSON.parse(clean);
+  } catch (parseErr) {
+    console.warn(`[claude:${label}] JSON parse failed:`, parseErr.message);
+    console.warn(`[claude:${label}] raw text (first 400 chars):`, clean.slice(0, 400));
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// SYSTEM_PROMPT_B — Call B (key_risks + execution_templates only)
+// ───────────────────────────────────────────────────────────────────
+// Independent system prompt for the parallel Call B. Smaller than
+// Call A's prompt, focused on just the two sections it owns. Echoes
+// the same FORBIDDEN-generic-risk rules and template length caps so
+// quality is comparable to the previous single-call output.
+const SYSTEM_PROMPT_B = `You are BizRadar — a business intelligence engine. You are generating two sections of a business analysis report.
+
+The business data bundle and the priority_action_ids from the main analysis are provided in the user prompt below.
+
+OUTPUT — return ONLY valid JSON in this exact shape, no markdown, no preamble, no backticks:
+
+{
+  "key_risks": [
+    {
+      "risk_title": "short specific title — e.g. 'Phish concert staffing gap — July 7-8'. NEVER 'Operational risk'",
+      "severity": "HIGH | MEDIUM | LOW",
+      "description": "what specifically could go wrong, citing real numbers from the bundle (event names+dates, competitor metrics, weather flags, review signals)",
+      "early_warning_sign": "observable signal the owner can check WEEKLY without special tools",
+      "mitigation": "specific action achievable WITHIN 30 DAYS",
+      "cost_if_ignored": "dollar range OR named-impact estimate (never vague)"
+    }
+  ],
+  "execution_templates": [
+    {
+      "opportunity_id": "MUST match one of the priority_action_ids in the user prompt",
+      "template_title": "what this template is for — e.g. 'Email to BU catering coordinator'",
+      "when_to_use": "exact trigger / send time / who the recipient is",
+      "template_type": "email | script | text_message | proposal",
+      "subject": "for emails only — exact subject line. Empty string for non-emails.",
+      "body": "COMPLETE ready-to-send copy. Use [BRACKETS] for owner-fillable fields. Length per type: email 150 words MAX, script 50 words MAX, text 150 chars MAX, proposal 250 words MAX.",
+      "success_metric": "measurable target — e.g. 'Target 2 replies per 10 emails. If under 1 per 10, revise subject and resend.'"
+    }
+  ]
+}
+
+OUTPUT RULES — apply to both sections:
+- Specific to THIS business using real data from the bundle
+- Generic advice is forbidden
+- Every number must come from the bundle
+- Use real names: venues, competitors, events, streets
+
+══════════════════════════════
+SECTION 1: KEY RISKS
+══════════════════════════════
+
+Generate 4-6 risks. AT LEAST 1 must be HIGH severity.
+
+SELECTION RULES — use real data signals:
+  upcoming_events                → event execution risk
+  weather.has_cold_winter        → winter cash-flow risk
+  competitors.top5 (review velocity) → competitive encroachment
+  google.response_rate_estimated == 0 → reputation/engagement gap
+  google.photo_count < 20        → visibility risk
+  google.review_recency_days > 90 → freshness risk
+
+FORBIDDEN generic risks:
+  ❌ "Competition may increase"
+  ❌ "Economic conditions may change"
+  ❌ "Customer preferences may shift"
+  ❌ "Costs may rise"
+  ❌ "Operational challenges"
+
+REQUIRED format for each risk:
+
+risk_title — short and specific
+  GOOD: "Phish concert staffing gap — July 7-8"
+  BAD:  "Event management risk"
+
+description — must reference real numbers
+  GOOD: "Phish at Kohl Center July 7-8 could bring 30+ extra
+        covers. At current 3-server capacity, wait times exceed
+        45min, triggering negative reviews from a high-spend
+        audience that won't return."
+  BAD:  "Large events can overwhelm staff"
+
+early_warning_sign — observable WEEKLY without special tools
+  GOOD: "More than 5 July 7-8 reservations by June 15 — hire
+        immediately"
+  BAD:  "Monitor capacity levels"
+
+mitigation — actionable WITHIN 30 DAYS
+  GOOD: "Contact UW Madison hospitality dept by June 1 for 2
+        student servers for July 7-8 only. Cost: ~$200."
+  BAD:  "Consider hiring additional staff"
+
+cost_if_ignored — must contain a number (range OK)
+  GOOD: "~$2,000 lost revenue + 5-10 negative reviews potentially
+        dropping rating from 4.7 to 4.5"
+  BAD:  "Significant revenue impact"
+
+NON-REPETITION RULE — CRITICAL:
+key_risks must NOT restate priority_actions as opportunities. If
+the Phish concert is in priority_actions as an opportunity, the
+RISK is about EXECUTING that opportunity badly, not about the
+opportunity itself.
+  GOOD: priority_actions has "Create Phish concert menu"
+        → key_risks: "If Phish menu promotion succeeds beyond
+          expectation — kitchen and staffing gap"
+  BAD:  priority_actions has "Create Phish concert menu"
+        → key_risks also: "Phish concert is an opportunity"
+
+SECTOR COVERAGE:
+  Restaurant  → staffing, food cost margin, winter cash flow,
+                competitor encroachment, review-score protection
+  Hotel       → OTA fee dependency, seasonal occupancy floor,
+                deferred maintenance, breakfast cost control
+  Dental      → insurance reimbursement delays, hygienist
+                turnover, equipment failure, new-patient CAC
+  Auto repair → parts supply delays, technician shortage,
+                liability exposure, diagnostic equipment cost
+  Retail      → inventory carrying cost, big-box competition,
+                shoplifting, supplier minimum orders
+  Salon       → stylist departure taking clients, chair-rental
+                vs employee model, product inventory write-off
+
+══════════════════════════════
+SECTION 2: EXECUTION TEMPLATES
+══════════════════════════════
+
+Generate 3-5 templates.
+
+CRITICAL RULE — Templates must match the priority_action_ids
+passed in the user prompt. Each template's opportunity_id must
+be one of those IDs. Do NOT generate templates for opportunities
+not in the list.
+
+REQUIREMENTS:
+
+1. READY TO SEND — owner copies, fills [BRACKETS], sends.
+   No rewriting needed.
+
+2. HUMAN VOICE — not corporate, not AI-flavored. Write like a
+   real local business owner. Casual but professional.
+
+3. BRACKETS for fillable fields:
+       [your name]
+       [your phone number]
+       [specific date or time]
+       [specific dollar amount]
+   Every blank has a clear label. No unmarked gaps.
+
+4. HARD LENGTH LIMITS — cut if over:
+       email: 150 words MAX (short emails get replies)
+       script: 50 words MAX (in-person or phone)
+       text_message: 150 characters MAX (one SMS)
+       proposal: 250 words MAX
+
+5. SUBJECT LINES for emails — curiosity-driving + specific:
+       GOOD: "Dinner before the Phish show? — Rajni Indian, Commerce Drive"
+       BAD:  "Partnership Opportunity"
+       BAD:  "Hello"
+
+6. SUCCESS METRIC — measurable number:
+       GOOD: "2 replies per 10 emails. Under 1 per 10 — change
+              subject line and resend."
+       BAD:  "Monitor for responses"
+
+7. SECTOR TEMPLATES:
+   Restaurant  → catering pitch, event-promo text, partnership
+                 proposal, review-ask script, loyalty launch
+   Hotel       → corporate-rate email, travel-agent pitch,
+                 group-booking script, checkout review ask
+   Dental      → patient reactivation text, post-appointment
+                 referral ask, insurance verification script
+   Auto repair → fleet-account email, service follow-up text,
+                 review ask
+   Retail      → wholesale inquiry, event invite, loyalty
+                 enrollment script
+   Salon       → rebooking reminder text, referral-ask script,
+                 product-upsell email
+
+Return ONLY valid JSON. No text before or after. No markdown. No backticks.`;
+
+// ───────────────────────────────────────────────────────────────────
+// buildUserPromptB — compact prompt for Call B (risks + templates)
+// ───────────────────────────────────────────────────────────────────
+// Smaller than Call A's prompt — only includes the data Call B needs
+// to write specific risks + opportunity-matched templates.
+function buildUserPromptB(bundle, priorityActionIds) {
+  const b = bundle.business || {};
+  const g = bundle.google || {};
+  const c = bundle.competitors || {};
+  const cs = bundle.census || {};
+  const w = bundle.weather || null;
+  const ls = bundle.location_signals || null;
+  const events = Array.isArray(bundle.upcoming_events) ? bundle.upcoming_events : [];
+  const venues = Array.isArray(bundle.nearby_venues) ? bundle.nearby_venues : [];
+
+  const competitorLines = (c.top5 || []).map((x) =>
+    `  • ${x.name} | ${x.rating}★ | ${x.review_count} reviews | ${x.distance_miles}mi`
+  ).join('\n') || '  (none)';
+
+  const eventLines = events.slice(0, 6).map((e) =>
+    `  • ${e.name} — ${e.date ? e.date.replace('T', ' ').slice(0, 16) : 'TBA'}${e.venue ? ' at ' + e.venue : ''}`
+  ).join('\n') || '  (none)';
+
+  const venueLines = venues.slice(0, 6).map((v) => `  • ${v.name} (${v.category})`).join('\n') || '  (none)';
+
+  const anchorLine = (ls && Array.isArray(ls.anchor_tenants) && ls.anchor_tenants.length)
+    ? ls.anchor_tenants.join(', ')
+    : '(none within 500m)';
+
+  const weatherLine = w
+    ? `peak month=${w.peak_month || '—'}, peak season=${w.peak_tourist_season || '—'}, cold winter=${w.has_cold_winter}, hot summer=${w.has_hot_summer}`
+    : '(unknown)';
+
+  const idsBlock = priorityActionIds.length > 0
+    ? priorityActionIds.map((id) => `  • ${id}`).join('\n')
+    : '  (no triggered actions — generate templates for the strongest universal levers: review-ask script, referral-ask script, loyalty enrollment)';
+
+  return `Generate key_risks and execution_templates for this business.
+
+Business: ${b.name || '—'}
+Address: ${b.address || '—'}
+City/State: ${b.city || '—'}, ${b.state || '—'}
+Sector: ${b.sector_label || '—'} (NAICS ${b.naics6 || '—'})
+Chain: ${b.is_chain ? 'yes (' + (b.chain_name || 'detected') + ')' : 'no'}
+
+Google data:
+Rating: ${g.rating ?? '—'} stars (${g.review_count ?? '—'} reviews)
+Review recency: ${g.review_recency_days ?? '—'} days ago
+Response rate: ${g.response_rate_estimated ?? '—'}
+Photo count: ${g.photo_count ?? '—'}
+Hours complete: ${g.hours_complete}
+Website: ${g.website_exists}
+
+Top competitors (by threat):
+${competitorLines}
+
+Local demographics (ZIP ${b.zip || '—'}):
+Median income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '—'}
+Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '—'}
+
+Weather / seasonality: ${weatherLine}
+
+Anchor tenants within 500m: ${anchorLine}
+
+Upcoming events within 10 miles, next 90 days:
+${eventLines}
+
+Nearby venues (Foursquare):
+${venueLines}
+
+PRIORITY ACTION IDS — execution_templates.opportunity_id MUST be one of these:
+${idsBlock}
+
+Generate:
+- key_risks: 4-6 items, AT LEAST 1 HIGH severity, all SPECIFIC to this business
+- execution_templates: 3-5 items, each opportunity_id matching one of the IDs above
+
+Return ONLY valid JSON. No markdown.`;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// callClaudeEnrichA — existing fields + competitor_deep_dive
+// ───────────────────────────────────────────────────────────────────
+async function callClaudeEnrichA(bundle) {
+  const userPrompt = buildUserPrompt(bundle);
+  // Build params once so the truncation-retry can clone them with a
+  // bumped max_tokens. cache_control is preserved so the retry reads
+  // the now-warm system-prompt cache (cheap input).
+  const requestParams = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS_A,
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM_PROMPT_A,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [{ role: 'user', content: userPrompt }],
+  };
+
+  const t0 = Date.now();
+  try {
+    const response = await client.messages.create(requestParams);
+    const dt = Date.now() - t0;
+    const usage = response.usage || {};
+    console.log('[claude:A] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
+    console.log(`[claude:A] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+
+    // ── BATCH-truncation-retry: Claude returns HTTP 200 with truncated
+    // output when it hits max_tokens (it's not an exception). Detect
+    // the stop_reason and retry ONCE with 1.5× the cap. The retry
+    // reads the warm cache so the cost-delta is mostly extra output.
+    if (response.stop_reason === 'max_tokens') {
+      const retryMaxTokens = Math.round(MAX_TOKENS_A * 1.5);
+      console.warn(`[claude:A] hit max_tokens=${MAX_TOKENS_A} — retrying once with max_tokens=${retryMaxTokens}`);
+      const t1 = Date.now();
+      const retry = await client.messages.create({
+        ...requestParams,
+        max_tokens: retryMaxTokens,
+      });
+      const dt1 = Date.now() - t1;
+      const retryUsage = retry.usage || {};
+      console.log(`[claude:A] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
+      console.log(`[claude:A] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
+      if (retry.stop_reason === 'max_tokens') {
+        console.error(`[claude:A] retry ALSO truncated at max_tokens=${retryMaxTokens} — accepting truncated text (will likely fail JSON parse)`);
+      }
+      const retryText = (retry.content || [])
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text)
+        .join('');
+      return retryText;
+    }
+
+    const text = (response.content || [])
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    return text;
+  } catch (err) {
+    console.error('[claude:A] error:', err.message, '/', err.constructor.name);
+    if (err.status != null) console.error('[claude:A] status:', err.status);
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// callClaudeEnrichB — key_risks + execution_templates only
+// ───────────────────────────────────────────────────────────────────
+async function callClaudeEnrichB(bundle, priorityActionIds) {
+  const userPrompt = buildUserPromptB(bundle, priorityActionIds);
+  const t0 = Date.now();
+  try {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS_B,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT_B,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    const dt = Date.now() - t0;
+    console.log('[claude:B] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
+    if (response.stop_reason === 'max_tokens') {
+      console.error(`[claude:B] truncated — hit MAX_TOKENS_B=${MAX_TOKENS_B}`);
+    }
+    const text = (response.content || [])
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const usage = response.usage || {};
+    console.log(`[claude:B] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+    return text;
+  } catch (err) {
+    console.error('[claude:B] error:', err.message, '/', err.constructor.name);
+    if (err.status != null) console.error('[claude:B] status:', err.status);
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Main entry — enrichWithClaude (parallel two-call architecture)
+// ───────────────────────────────────────────────────────────────────
+// Calls A and B run in parallel via Promise.allSettled so an unexpected
+// throw in one inner function never discards the other call's work.
+// Results are merged into one object: A's full payload + B's key_risks
+// + B's execution_templates.
+//
+// PARTIAL ENRICHMENT: when A fails (returned null because the inner
+// function caught an error OR safeParseJSON threw on truncated output)
+// we no longer return null — instead we return a partial object with
+// B's data preserved + empty placeholders for A's fields. The renderer
+// helpers silently omit empty arrays/null objects, so the user still
+// sees key_risks + execution_templates + the deterministic ranker
+// fallback recs instead of the "AI insights unavailable" page on every
+// data-rich business.
 async function enrichWithClaude(bundle) {
-  // ── Phase 5 debug logging (Step 1) ────────────────────────────────
-  console.log('[claude] enrichment called');
+  console.log('[claude] enrichment called (parallel A+B)');
   console.log('[claude] API key present:', !!process.env.ANTHROPIC_API_KEY);
   console.log('[claude] API key length:', process.env.ANTHROPIC_API_KEY?.length);
-  console.log('[claude] making API request...');
-  // ──────────────────────────────────────────────────────────────────
 
   if (!client) {
     console.warn('[claude] enrichment skipped: ANTHROPIC_API_KEY not set');
     return null;
   }
-  const placeId = bundle.business && bundle.business.address;  // proxy key
-  // Use a stable cache key. Phase 5 spec: "Cache Claude output 24 hours
-  // per place_id". The bundle doesn't carry place_id directly (Phase 4's
-  // data passes through bundle.business via address); we key on the
-  // address string, which is a 1:1 proxy for place_id within Google.
+
+  // Stable cache key on the bundle's address (1:1 proxy for place_id).
+  const placeId = bundle.business && bundle.business.address;
   const cacheKey = 'claude_' + placeId;
   const cached = CLAUDE_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < CLAUDE_TTL_MS) {
@@ -939,71 +1458,84 @@ async function enrichWithClaude(bundle) {
     return cached.value;
   }
 
-  const userPrompt = buildUserPrompt(bundle);
+  // Pull triggered IDs from the bundle (added by buildDataBundle from
+  // ranker.top10). Both calls run in parallel — neither can see the
+  // other — so we use these deterministic IDs as the shared key for
+  // execution_templates.opportunity_id ↔ priority_actions[].id.
+  const triggeredIds = Array.isArray(bundle.triggered_rec_ids)
+    ? bundle.triggered_rec_ids
+    : [];
+
   const t0 = Date.now();
-  try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_PROMPT,
-          // Cache the system prompt (large + identical across every call).
-          // 5-minute TTL is the default; first request pays ~1.25× write
-          // premium, subsequent calls within the window read at ~0.1×.
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-    const dt = Date.now() - t0;
-    // ── Phase 5 debug logging (Step 2) ──────────────────────────────
-    // Note: the Anthropic SDK throws on non-2xx, so a successful response
-    // doesn't carry a `.status` field (will print as `undefined`). The
-    // useful fields on a SDK Message are .id, .stop_reason, .usage.
-    console.log('[claude] response status:', response.status);
-    console.log('[claude] response id:    ', response.id);
-    console.log('[claude] stop_reason:    ', response.stop_reason);
-    if (response.stop_reason === 'max_tokens') {
-      console.error(`[claude] response truncated — output hit MAX_TOKENS=${MAX_TOKENS}. JSON parse will fail. Bump MAX_TOKENS in claudeEnricher.js.`);
-    }
-    // ────────────────────────────────────────────────────────────────
+  // Promise.allSettled — if either inner function throws (rather than
+  // returning null per its catch block), the other call's result is
+  // still preserved instead of the whole thing rejecting.
+  const [resA, resB] = await Promise.allSettled([
+    callClaudeEnrichA(bundle),
+    callClaudeEnrichB(bundle, triggeredIds),
+  ]);
+  const dt = Date.now() - t0;
 
-    // Concatenate text blocks. Strip any ``` fences Claude might emit
-    // even though we asked for raw JSON.
-    const text = (response.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch (parseErr) {
-      console.warn('[claude] JSON parse failed:', parseErr.message);
-      console.warn('[claude] raw text (first 400 chars):', clean.slice(0, 400));
-      return null;
-    }
-
-    console.log(
-      `[claude] enrichment ok in ${dt}ms — ${(parsed.enriched_recommendations || []).length} recs, ${(parsed.opportunities || []).length} opps · usage in=${response.usage.input_tokens} out=${response.usage.output_tokens} cache_read=${response.usage.cache_read_input_tokens || 0} cache_write=${response.usage.cache_creation_input_tokens || 0}`
-    );
-
-    CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: parsed });
-    return parsed;
-  } catch (err) {
-    // ── Phase 5 debug logging (Step 3) ──────────────────────────────
-    console.error('[claude] full error:', err.message);
-    console.error('[claude] error type:', err.constructor.name);
-    // err.status is set on Anthropic.APIError subclasses (status code
-    // from the failed HTTP response). Log it when present so you can
-    // distinguish auth failures (401), rate limits (429), 5xx, etc.
-    if (err.status != null) console.error('[claude] error status:', err.status);
-    // ────────────────────────────────────────────────────────────────
-    return null;
+  const textA = resA.status === 'fulfilled' ? resA.value : null;
+  const textB = resB.status === 'fulfilled' ? resB.value : null;
+  if (resA.status === 'rejected') {
+    console.error('[claude:A] promise rejected:', resA.reason && resA.reason.message);
   }
+  if (resB.status === 'rejected') {
+    console.error('[claude:B] promise rejected:', resB.reason && resB.reason.message);
+  }
+
+  const A = textA ? safeParseJSON(textA, 'A') : null;
+  const B = textB ? safeParseJSON(textB, 'B') : null;
+
+  // ── PARTIAL ENRICHMENT ──────────────────────────────────────────
+  // A failed (HTTP error, max_tokens-after-retry truncation, or JSON
+  // parse failure on truncated text). Return whatever B produced so
+  // the report still has key_risks + execution_templates instead of
+  // the "AI insights unavailable" fallback.
+  if (!A) {
+    const partial = {
+      priority_actions: [],
+      enriched_recommendations: [],
+      opportunities: [],
+      local_context: null,
+      competitor_analysis: null,
+      ninety_day_plan: null,
+      seasonal_strategy: null,
+      // Array shape since the schema is now an array of competitors.
+      competitor_deep_dive: [],
+      outperformed_competitors: [],
+      key_risks: (B && Array.isArray(B.key_risks)) ? B.key_risks : [],
+      execution_templates: (B && Array.isArray(B.execution_templates)) ? B.execution_templates : [],
+      _partial: 'A_failed',
+    };
+    console.warn(
+      `[claude] Call A failed — returning partial enrichment with Call B data only (dt=${dt}ms, `
+      + `${partial.key_risks.length} risks, ${partial.execution_templates.length} templates)`
+    );
+    // Cache the partial too so we don't refire 200-second Call A's on
+    // every page refresh for a business that consistently breaks A.
+    CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: partial });
+    return partial;
+  }
+
+  const merged = {
+    ...A,
+    key_risks: (B && Array.isArray(B.key_risks)) ? B.key_risks : [],
+    execution_templates: (B && Array.isArray(B.execution_templates)) ? B.execution_templates : [],
+  };
+
+  console.log(
+    `[claude] enrichment ok in ${dt}ms — `
+    + `${(merged.priority_actions || []).length} priority_actions, `
+    + `${(merged.enriched_recommendations || []).length} recs, `
+    + `${(merged.opportunities || []).length} opps, `
+    + `${(merged.key_risks || []).length} risks, `
+    + `${(merged.execution_templates || []).length} templates`
+  );
+
+  CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: merged });
+  return merged;
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -1073,6 +1605,7 @@ module.exports = {
   buildDataBundle,
   parseAddress,
   // exposed for tests / debugging
-  _SYSTEM_PROMPT: SYSTEM_PROMPT,
+  _SYSTEM_PROMPT_A: SYSTEM_PROMPT_A,
+  _SYSTEM_PROMPT_B: SYSTEM_PROMPT_B,
   _buildUserPrompt: buildUserPrompt,
 };

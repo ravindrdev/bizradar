@@ -1,0 +1,1205 @@
+[
+  {
+    "idx": 1,
+    "name": "Rajni Indian Cuisine",
+    "input": "Rajni Indian Cuisine, 429 Commerce Dr, Madison, WI 53719, USA",
+    "expected_name": "Rajni",
+    "expected_street": "429",
+    "returned": {
+      "name": "Rajni Indian Cuisine",
+      "address": "429 Commerce Dr, Madison, WI 53719, USA",
+      "place_id": "ChIJFRpvb0OvB4gR4HfoAgRb4Pc",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 2,
+    "name": "Franklin Barbecue",
+    "input": "Franklin Barbecue, 900 E 11th St, Austin, TX 78702, USA",
+    "expected_name": "Franklin",
+    "expected_street": "900",
+    "returned": {
+      "name": "Franklin Barbecue",
+      "address": "900 E 11th St, Austin",
+      "place_id": "ChIJM8w7rqS1RIYRhEz2-KuoqzE",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 3,
+    "name": "AmericInn by Wyndham Dodgeville",
+    "input": "AmericInn by Wyndham Dodgeville, 3637 State Rd 23, Dodgeville, WI 53533, USA",
+    "expected_name": "AmericInn",
+    "expected_street": "3637",
+    "returned": {
+      "name": "AmericInn by Wyndham Dodgeville",
+      "address": "3637 WI-23, Dodgeville, WI 53533, USA",
+      "place_id": "ChIJqaxB7Yll_YcRqFrF_CFgPAc",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 4,
+    "name": "Don Q Inn",
+    "input": "Don Q Inn, 3658 WI-23, Dodgeville, WI 53533, USA",
+    "expected_name": "Don Q",
+    "expected_street": "3658",
+    "returned": {
+      "name": "Don Q Inn Dodgeville",
+      "address": "Don Q Inn, 3658 Wisconsin 23, Dodgeville",
+      "place_id": "ChIJ13MsQ2hl_YcRILqZRHKkFsk",
+      "types": [
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 5,
+    "name": "Nobu Downtown",
+    "input": "Nobu Downtown, 195 Broadway, New York, NY 10007, USA",
+    "expected_name": "Nobu",
+    "expected_street": "195",
+    "returned": {
+      "name": "Nobu Downtown",
+      "address": "195 Broadway, New York",
+      "place_id": "ChIJZc-EthlawokRIRUvwpkpltI",
+      "types": [
+        "bar",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 6,
+    "name": "Baymont by Wyndham Oshkosh Airport",
+    "input": "Baymont by Wyndham Oshkosh Airport, 1581 W South Park Ave, Oshkosh, WI 54902, USA",
+    "expected_name": "Baymont",
+    "expected_street": "1581",
+    "returned": {
+      "name": "Baymont inn by Wyndham Oshkosh Airport",
+      "address": "1581 W South Park Ave, Oshkosh",
+      "place_id": "ChIJNYxFGZTvA4gR4ifv2lxl8kI",
+      "types": [
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 7,
+    "name": "Wingate by Wyndham Oshkosh",
+    "input": "Wingate by Wyndham Oshkosh, 1800 S Koeller St, Oshkosh, WI 54902, USA",
+    "expected_name": "Wingate",
+    "expected_street": "1800",
+    "returned": {
+      "name": "Wingate by Wyndham Oshkosh",
+      "address": "1800 S Koeller St, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJr2dGtknvA4gRCc4iOTuklH8",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 121,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 8,
+    "name": "Alinea",
+    "input": "Alinea, 1723 N Halsted St, Chicago, IL 60614, USA",
+    "expected_name": "Alinea",
+    "expected_street": "1723",
+    "returned": {
+      "name": "Alinea",
+      "address": "1723 N Halsted St, Chicago",
+      "place_id": "ChIJuyI60yLTD4gROwTWENq1He0",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 9,
+    "name": "Marcus Point Cinema",
+    "input": "Marcus Point Cinema, 7825 Big Sky Dr, Madison, WI 53719, USA",
+    "expected_name": "Marcus",
+    "expected_street": "7825",
+    "returned": {
+      "name": "Marcus Point Cinema",
+      "address": "7825 Big Sky Dr, Madison",
+      "place_id": "ChIJtQi3hQevB4gRoufw0EZSc30",
+      "types": [
+        "movie_theater",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 10,
+    "name": "Kohl Center",
+    "input": "Kohl Center, 601 W Dayton St, Madison, WI 53715, USA",
+    "expected_name": "Kohl",
+    "expected_street": "601",
+    "returned": {
+      "name": "Kohl Center",
+      "address": "601 W Dayton St, Madison",
+      "place_id": "ChIJS-YVBTNTBogRSzSP74HpmrE",
+      "types": [
+        "stadium",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 11,
+    "name": "Uchi",
+    "input": "Uchi, 801 S Lamar Blvd, Austin, TX 78704, USA",
+    "expected_name": "Uchi",
+    "expected_street": "801",
+    "returned": {
+      "name": "Uchi Austin",
+      "address": "801 S Lamar Blvd, Austin, TX 78704, USA",
+      "place_id": "ChIJz2Whyx61RIYR7mCeZje-QWw",
+      "types": [
+        "establishment",
+        "food",
+        "meal_takeaway",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 12,
+    "name": "Carbone",
+    "input": "Carbone, 181 Thompson St, New York, NY 10012, USA",
+    "expected_name": "Carbone",
+    "expected_street": "181",
+    "returned": {
+      "name": "Carbone New York",
+      "address": "181 Thompson St, New York, NY 10012, USA",
+      "place_id": "ChIJmSvG_ZFZwokRTOFeiLXzkmA",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 126,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 13,
+    "name": "Le Bernardin",
+    "input": "Le Bernardin, 155 W 51st St, New York, NY 10019, USA",
+    "expected_name": "Bernardin",
+    "expected_street": "155",
+    "returned": {
+      "name": "Le Bernardin",
+      "address": "155 W 51st St, New York",
+      "place_id": "ChIJV7QQ6kdZwokRax4615zpSGU",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 14,
+    "name": "Zahav",
+    "input": "Zahav, 237 St James Pl, Philadelphia, PA 19106, USA",
+    "expected_name": "Zahav",
+    "expected_street": "237",
+    "returned": {
+      "name": "Zahav",
+      "address": "237 St James Pl, Philadelphia",
+      "place_id": "ChIJzSVn2prIxokRx1kTchCYRwI",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 15,
+    "name": "Cosme",
+    "input": "Cosme, 35 E 21st St, New York, NY 10010, USA",
+    "expected_name": "Cosme",
+    "expected_street": "35",
+    "returned": {
+      "name": "Cosme",
+      "address": "35 E 21st St, New York",
+      "place_id": "ChIJT-gYZKFZwokR7O8LLYuYMjU",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 16,
+    "name": "The House on the Rock",
+    "input": "The House on the Rock, 5754 State Rd 23, Spring Green, WI 53588, USA",
+    "expected_name": "House",
+    "expected_street": "5754",
+    "returned": {
+      "name": "The House on the Rock",
+      "address": "5754 WI-23, Spring Green",
+      "place_id": "ChIJd2Kfkxh6_YcRMWhfdbUb_gg",
+      "types": [
+        "tourist_attraction",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 17,
+    "name": "Lilia",
+    "input": "Lilia, 567 Union Ave, Brooklyn, NY 11222, USA",
+    "expected_name": "Lilia",
+    "expected_street": "567",
+    "returned": {
+      "name": "Lilia",
+      "address": "567 Union Ave, Brooklyn",
+      "place_id": "ChIJJXCD6ltZwokRJ_cwjKQH63c",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 18,
+    "name": "Canlis",
+    "input": "Canlis, 2576 Aurora Ave N, Seattle, WA 98109, USA",
+    "expected_name": "Canlis",
+    "expected_street": "2576",
+    "returned": {
+      "name": "Canlis",
+      "address": "2576 Aurora Ave N, Seattle",
+      "place_id": "ChIJRXCfNwUVkFQRxraD8U-dANE",
+      "types": [
+        "bar",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 19,
+    "name": "Osteria Mozza",
+    "input": "Osteria Mozza, 6602 Melrose Ave, Los Angeles, CA 90038, USA",
+    "expected_name": "Mozza",
+    "expected_street": "6602",
+    "returned": {
+      "name": "Osteria Mozza",
+      "address": "6602 Melrose Ave, Los Angeles",
+      "place_id": "ChIJBacpEtO4woAR8TxewBOIolo",
+      "types": [
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 20,
+    "name": "Stumptown Coffee Roasters",
+    "input": "Stumptown Coffee Roasters, 128 SW 3rd Ave, Portland, OR 97204, USA",
+    "expected_name": "Stumptown",
+    "expected_street": "128",
+    "returned": {
+      "name": "Stumptown Coffee Roasters",
+      "address": "128 SW 3rd Ave, Portland, OR 97204, USA",
+      "place_id": "ChIJbT5i5AYKlVQRHZOtE8vGAz4",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 21,
+    "name": "Governor Dodge State Park",
+    "input": "Governor Dodge State Park, 4175 State Rd 23, Dodgeville, WI 53533, USA",
+    "expected_name": "Dodge",
+    "expected_street": "4175",
+    "returned": {
+      "name": "Governor Dodge State Park",
+      "address": "4175 WI-23, Dodgeville, WI 53533, USA",
+      "place_id": "ChIJy8RRKil7_YcRG3JxeH2OUTk",
+      "types": [
+        "establishment",
+        "park",
+        "point_of_interest",
+        "tourist_attraction"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 22,
+    "name": "Colectivo Coffee",
+    "input": "Colectivo Coffee, 2406 Monroe St, Madison, WI 53711, USA",
+    "expected_name": "Colectivo",
+    "expected_street": "2406",
+    "returned": {
+      "name": "Colectivo Coffee Monroe St.",
+      "address": "2530 Monroe St, Madison",
+      "place_id": "ChIJZd3cQP2sB4gRvR_FrFnPpcI",
+      "types": [
+        "cafe",
+        "store",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2406, address shows \"2530 Monroe St, Madison\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 23,
+    "name": "Ancora Coffee",
+    "input": "Ancora Coffee, 112 King St, Madison, WI 53703, USA",
+    "expected_name": "Ancora",
+    "expected_street": "112",
+    "returned": {
+      "name": "Ancora Cafe + Bakery",
+      "address": "107 King St, Madison",
+      "place_id": "ChIJS8DXvD9TBogR2F22gGRZUKA",
+      "types": [
+        "cafe",
+        "bakery",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "store",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 112, address shows \"107 King St, Madison\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 24,
+    "name": "Hilton Garden Inn Oshkosh",
+    "input": "Hilton Garden Inn Oshkosh, 1355 W 20th Ave, Oshkosh, WI 54902, USA",
+    "expected_name": "Hilton",
+    "expected_street": "1355",
+    "returned": {
+      "name": "Hilton Garden Inn Oshkosh",
+      "address": "1355 W 20th Ave, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJaar5lr7uA4gRiK4T4ZwObi8",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 25,
+    "name": "Epic Systems Corporation",
+    "input": "Epic Systems Corporation, 1979 Milky Way, Verona, WI 53593, USA",
+    "expected_name": "Epic",
+    "expected_street": "1979",
+    "returned": {
+      "name": "Epic",
+      "address": "1979 Milky Way, Verona",
+      "place_id": "ChIJKw6Yd5O6B4gRUU4Czutfj7I",
+      "types": [
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 26,
+    "name": "Roberta's",
+    "input": "Roberta's, 261 Moore St, Brooklyn, NY 11206, USA",
+    "expected_name": "Roberta",
+    "expected_street": "261",
+    "returned": {
+      "name": "Roberta's",
+      "address": "261 Moore St, Brooklyn",
+      "place_id": "ChIJzSOyOg1dwokRfQ-5htUfsRY",
+      "types": [
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 27,
+    "name": "Au Cheval",
+    "input": "Au Cheval, 800 W Randolph St, Chicago, IL 60607, USA",
+    "expected_name": "Cheval",
+    "expected_street": "800",
+    "returned": {
+      "name": "Au Cheval",
+      "address": "800 W Randolph St, Chicago",
+      "place_id": "ChIJ78NyRsUsDogR6AqyYoPrts4",
+      "types": [
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 28,
+    "name": "Din Tai Fung",
+    "input": "Din Tai Fung, 2621 NE 46th St, Seattle, WA 98105, USA",
+    "expected_name": "Din Tai Fung",
+    "expected_street": "2621",
+    "returned": {
+      "name": "Din Tai Fung 鼎泰豐",
+      "address": "2621 NE 46th St, Seattle, WA 98105, USA",
+      "place_id": "ChIJKbLpOI8UkFQRC30sDr56TAs",
+      "types": [
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 29,
+    "name": "Pinewood Social",
+    "input": "Pinewood Social, 33 Peabody St, Nashville, TN 37210, USA",
+    "expected_name": "Pinewood",
+    "expected_street": "33",
+    "returned": {
+      "name": "Pinewood",
+      "address": "33 Peabody St, Nashville",
+      "place_id": "ChIJKZauwUNmZIgRblF0U05TJWI",
+      "types": [
+        "bar",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 30,
+    "name": "Intelligentsia Coffee",
+    "input": "Intelligentsia Coffee, 53 W Jackson Blvd, Chicago, IL 60604, USA",
+    "expected_name": "Intelligentsia",
+    "expected_street": "53",
+    "returned": {
+      "name": "Intelligentsia Coffee Monadnock Coffeebar",
+      "address": "Monadnock Building, 53 W Jackson Blvd, Chicago, IL 60604, USA",
+      "place_id": "ChIJj_WHnaUsDogRPiO9gqm-Z3U",
+      "types": [
+        "cafe",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "store"
+      ],
+      "_low_confidence": true
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "LOW",
+    "score": 54,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 31,
+    "name": "Colectivo Coffee",
+    "input": "Colectivo Coffee, 2406 Monroe St, Madison, WI 53711, USA",
+    "expected_name": "Colectivo",
+    "expected_street": "2406",
+    "returned": {
+      "name": "Colectivo Coffee Monroe St.",
+      "address": "2530 Monroe St, Madison",
+      "place_id": "ChIJZd3cQP2sB4gRvR_FrFnPpcI",
+      "types": [
+        "cafe",
+        "store",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 2406, address shows \"2530 Monroe St, Madison\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 32,
+    "name": "Ancora Coffee",
+    "input": "Ancora Coffee, 112 King St, Madison, WI 53703, USA",
+    "expected_name": "Ancora",
+    "expected_street": "112",
+    "returned": {
+      "name": "Ancora Cafe + Bakery",
+      "address": "107 King St, Madison",
+      "place_id": "ChIJS8DXvD9TBogR2F22gGRZUKA",
+      "types": [
+        "bakery",
+        "cafe",
+        "store",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 112, address shows \"107 King St, Madison\"",
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 33,
+    "name": "Hilton Garden Inn Oshkosh",
+    "input": "Hilton Garden Inn Oshkosh, 1355 W 20th Ave, Oshkosh, WI 54902, USA",
+    "expected_name": "Hilton",
+    "expected_street": "1355",
+    "returned": {
+      "name": "Hilton Garden Inn Oshkosh",
+      "address": "1355 W 20th Ave, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJaar5lr7uA4gRiK4T4ZwObi8",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 34,
+    "name": "Epic Systems Corporation",
+    "input": "Epic Systems Corporation, 1979 Milky Way, Verona, WI 53593, USA",
+    "expected_name": "Epic",
+    "expected_street": "1979",
+    "returned": {
+      "name": "Epic",
+      "address": "1979 Milky Way, Verona",
+      "place_id": "ChIJKw6Yd5O6B4gRUU4Czutfj7I",
+      "types": [
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 35,
+    "name": "Governor Dodge State Park",
+    "input": "Governor Dodge State Park, 4175 State Rd 23, Dodgeville, WI 53533, USA",
+    "expected_name": "Dodge",
+    "expected_street": "4175",
+    "returned": {
+      "name": "Governor Dodge State Park",
+      "address": "4175 WI-23, Dodgeville, WI 53533, USA",
+      "place_id": "ChIJy8RRKil7_YcRG3JxeH2OUTk",
+      "types": [
+        "establishment",
+        "park",
+        "point_of_interest",
+        "tourist_attraction"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 130,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 36,
+    "name": "Quality Inn Oshkosh",
+    "input": "Quality Inn Oshkosh, 1495 W South Park Ave, Oshkosh, WI 54902, USA",
+    "expected_name": "Quality",
+    "expected_street": "1495",
+    "returned": {
+      "name": "Quality Inn Oshkosh Aviation Park",
+      "address": "1495 W South Park Ave, Oshkosh, WI 54902, USA",
+      "place_id": "ChIJiSgjon_vA4gRRRwCSYPwDHA",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 133,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 37,
+    "name": "Cobblestone Hotel and Suites Oshkosh",
+    "input": "Cobblestone Hotel and Suites Oshkosh, 1515 Planeview Dr, Oshkosh, WI 54904, USA",
+    "expected_name": "Cobblestone",
+    "expected_street": "1515",
+    "returned": {
+      "name": "Cobblestone Suites - Oshkosh",
+      "address": "3105 S Washburn St, Oshkosh, WI 54904, USA",
+      "place_id": "ChIJE-0qcvDuA4gRpePn91KCysI",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "_low_confidence": true
+    },
+    "pass": false,
+    "reason": "Wrong street: expected 1515, address shows \"3105 S Washburn St, Oshkosh, WI 54904, USA\"",
+    "confidence": "LOW",
+    "score": 55,
+    "geocodeFired": true,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 3
+    }
+  },
+  {
+    "idx": 38,
+    "name": "Graduate Madison",
+    "input": "Graduate Madison, 601 Langdon St, Madison, WI 53703, USA",
+    "expected_name": "Graduate",
+    "expected_street": "601",
+    "returned": {
+      "name": "Graduate by Hilton Madison",
+      "address": "601 Langdon St, Madison, WI 53703, USA",
+      "place_id": "ChIJbWjGmjVTBogRCOKhkv51K7Y",
+      "types": [
+        "establishment",
+        "food",
+        "lodging",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  },
+  {
+    "idx": 39,
+    "name": "Morimoto",
+    "input": "Morimoto, 723 Chestnut St, Philadelphia, PA 19106, USA",
+    "expected_name": "Morimoto",
+    "expected_street": "723",
+    "returned": {
+      "name": "Morimoto",
+      "address": "723 Chestnut St, Philadelphia",
+      "place_id": "ChIJ6X1dkoLIxokRPv9FKJrlGqs",
+      "types": [
+        "restaurant",
+        "meal_takeaway",
+        "bar",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": null,
+    "score": null,
+    "geocodeFired": true,
+    "geocodeWinner": true,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 1,
+      "nearby": 1
+    }
+  },
+  {
+    "idx": 40,
+    "name": "Husk Nashville",
+    "input": "Husk Nashville, 37 Rutledge St, Nashville, TN 37210, USA",
+    "expected_name": "Husk",
+    "expected_street": "37",
+    "returned": {
+      "name": "Husk Nashville",
+      "address": "37 Rutledge St, Nashville, TN 37210, USA",
+      "place_id": "ChIJI8FYhUJmZIgRasB5ff6LRQI",
+      "types": [
+        "bar",
+        "establishment",
+        "food",
+        "point_of_interest",
+        "restaurant"
+      ],
+      "_low_confidence": false
+    },
+    "pass": true,
+    "reason": null,
+    "confidence": "HIGH",
+    "score": 120,
+    "geocodeFired": false,
+    "geocodeWinner": false,
+    "apiCalls": {
+      "textSearch": 2,
+      "geocode": 0,
+      "nearby": 0
+    }
+  }
+]
