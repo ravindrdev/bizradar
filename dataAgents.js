@@ -348,7 +348,9 @@ async function _fetchTypeCount(type, city, state, lat, lon, radius, apiKey) {
     if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
       throw new Error('status=' + json.status);
     }
-    const results = json.results || [];
+    // Drop CLOSED_PERMANENTLY / CLOSED_TEMPORARILY before counting so
+    // novelty score and top_3 reflect operational competition only.
+    const results = (json.results || []).filter(places.isOperationalOrUnknown);
     const value = {
       competitor_count: results.length,
       novelty_score: noveltyForCount(results.length),
@@ -410,7 +412,12 @@ async function runCompetitionAgent(city, state, geo, businessTypes, apiKey, popu
         if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
           throw new Error('status=' + json.status);
         }
-        return (json.results || []).slice(0, 3);
+        // Drop CLOSED_PERMANENTLY / CLOSED_TEMPORARILY before slicing
+        // — filter BEFORE .slice(0,3) so we don't lose operational
+        // candidates because closed ones were ranked higher.
+        return (json.results || [])
+          .filter(places.isOperationalOrUnknown)
+          .slice(0, 3);
       } finally {
         clearTimeout(timer);
       }

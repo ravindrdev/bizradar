@@ -68,6 +68,48 @@ STRICT RULES:
 - Tag every Layer 3 claim as one of: [VERIFIED] [REASONABLE INFERENCE] [CUSTOMER MUST VALIDATE]
 - Respond in valid JSON only. No markdown. No preamble. No explanation outside JSON.
 
+REVIEW RECENCY — BANNED TOPIC:
+Never mention how many days ago the last review was.
+Never say "your last review was X days ago."
+Never flag review recency as a problem or opportunity.
+Never recommend getting more recent reviews based on recency.
+
+Reason: Google Places API only returns 5 reviews sorted by relevance not by date. The recency data is unreliable for all business sizes and must not be used in recommendations.
+
+PHOTO COUNT RULES — MANDATORY:
+
+photo_count in the bundle means:
+
+  If photo_count is a NUMBER under 10 (e.g. 2, 4, 7):
+    This is the REAL exact count.
+    The business genuinely has very few photos on Google.
+    ✅ Say "you have X photos"
+    ✅ Make this HIGH impact action
+    ✅ Tell them to upload at least 20 photos this week
+    ✅ This is accurate and important
+
+  If photo_count is NOT in the bundle:
+    The business has 10 or more photos.
+    We do not know the exact number.
+    ❌ NEVER mention photo count
+    ❌ NEVER say "you have 10 photos"
+    ❌ NEVER make photos a priority action based on count alone
+    ❌ NEVER recommend uploading photos as HIGH impact
+
+    The only exception:
+    If competitor analysis shows a competitor has dramatically more visual content — you may suggest adding fresh seasonal photos as LOW impact only.
+    Do NOT cite a specific number.
+
+RESPONSE RATE — BANNED METRIC:
+Never mention the business's Google review response rate.
+Never say "your response rate is 0%"
+Never say "you respond to X% of reviews"
+Never make response rate a priority action.
+
+Reason: Google Places API only returns 5 reviews. Response rate calculated from 5 reviews is unreliable. A business with 1,393 reviews may have replied to 500 of them but we cannot verify this from 5 reviews.
+
+Exception: If a review in the sample has an owner_reply — this is a POSITIVE signal. You may note: "Owner actively responds to reviews" as a strength. But never flag 0 replies in the sample as a problem.
+
 LAYER 2 — WHY IT WORKS (mandatory 3-sentence structure):
 The why_it_works field MUST contain exactly three sentences in this order:
 
@@ -104,10 +146,9 @@ with [VERIFIED], [REASONABLE INFERENCE], or [CUSTOMER MUST VALIDATE] at the
 start of the sentence. Requirements:
 
   - Reference ACTUAL numbers from the data bundle: real google_rating, real
-    google_review_count, real review_recency_days, real competitor counts,
-    real competitor_median_rating, real median_household_income, real ZIP,
-    real chain_name, real top-3 competitor names. Quote the numbers; do not
-    paraphrase.
+    google_review_count, real competitor counts, real competitor_median_rating,
+    real median_household_income, real ZIP, real chain_name, real top-3
+    competitor names. Quote the numbers; do not paraphrase.
   - At least one sentence MUST mention specific local geography for THIS
     city/state — nearby attractions, landmarks, events, or named competitors
     drawn from the bundle. No generic "this market" framing.
@@ -145,7 +186,7 @@ OUTPUT FORMAT:
       "source": "AI",
       "title": "short specific title that cites real data — e.g. 'Upload 30 photos — you have 10 vs Swagat at 1.1mi'",
       "what": "exact steps. Names real venues / events / competitors / streets from the bundle. No generic 'find a partner' / 'use social media' / 'engage customers'.",
-      "why": "references actual numbers from the bundle (photo_count, review_recency_days, competitor names + ratings + distances, response_rate_estimated, median_household_income, anchor_tenant_names, upcoming_events). No hand-waving.",
+      "why": "references actual numbers from the bundle (photo_count, competitor names + ratings + distances, median_household_income, anchor_tenant_names, upcoming_events). No hand-waving.",
       "money_estimate": "$X,000-$Y,000/year. Math: <one-line calculation showing the unit economics>",
       "cost": "$X one-time | $X/month | $0",
       "timeline": "This week | Month 1 | Month 2 | Q3"
@@ -327,9 +368,7 @@ REQUIRED FIELDS per action:
   - timeline      : This week / Month 1 / Month 2 / Q3
 
 DATA FIELDS to draw from when generating actions:
-  google.photo_count            → photo-volume action
-  google.review_recency_days    → review-freshness action (the 1 allowed review action, often)
-  google.response_rate_estimated→ owner-engagement action (also a review action)
+  google.photo_count            → photo-volume action (only when present — see PHOTO COUNT RULES above for exact semantics)
   upcoming_events               → event-tie-in action (named event + date)
   nearby_venues                 → partnership action (named venue + distance)
   competitors.top5              → steal/positioning action (named competitor + rating + distance)
@@ -557,9 +596,27 @@ function parseAddress(formatted) {
 // ───────────────────────────────────────────────────────────────────
 // Build the data bundle from Phase 1-4 deterministic outputs
 // ───────────────────────────────────────────────────────────────────
+// Set of recommendation IDs that must NEVER reach Claude even when the
+// deterministic ranker fires them. Each one represents a metric we
+// cannot compute reliably from Google's 5-review / 10-photo sample.
+//   rec_review_recency — review_recency_days unreliable (relevance-sorted
+//                        5-review sample, not date-sorted)
+//   rec_response_rate  — response rate from 5 reviews unreliable for any
+//                        business with >> 5 total reviews
+const BANNED_REC_IDS = new Set([
+  'rec_review_recency',
+  'rec_response_rate',
+]);
+
 function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
   const addr = parseAddress(data.formatted_address || '');
-  const top3 = (ranked.top10 || []).slice(0, 3);
+  // Drop banned recs before slicing top3 so the LAYER-2/3 enrichment and
+  // 90-day plan pull from the next-best rec instead. Same filter is
+  // applied to triggered_rec_ids (Call B input) below.
+  const cleanedTop10 = (ranked.top10 || []).filter(
+    (t) => !(t && t.rec && BANNED_REC_IDS.has(t.rec.id))
+  );
+  const top3 = cleanedTop10.slice(0, 3);
 
   return {
     business: {
@@ -745,7 +802,10 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
     // the user will see in priority_actions. Both calls run in
     // parallel — neither sees the other's output — so we use the
     // deterministic ranker IDs as the shared key.
-    triggered_rec_ids: (Array.isArray(ranked.top10) ? ranked.top10 : [])
+    // Same BANNED_REC_IDS filter applied (via cleanedTop10) to Call B's
+    // priority_action_ids list so execution_templates never get generated
+    // for any banned rec.
+    triggered_rec_ids: cleanedTop10
       .map((t) => t && t.rec && t.rec.id)
       .filter(Boolean),
     top3_recommendations: top3.map((t) => ({
@@ -993,9 +1053,7 @@ Chain: ${b.is_chain ? 'yes' : 'no'} (${b.chain_name || 'independent'})
 
 Google data:
 Rating: ${g.rating ?? '—'} stars (${g.review_count ?? '—'} reviews)
-Review recency: ${g.review_recency_days ?? '—'} days ago
-Response rate: ${g.responds_to_reviews}
-Photo count: ${g.photo_count ?? '—'}
+${g.photo_count !== null ? 'Photo count: ' + g.photo_count : ''}
 Hours complete: ${g.hours_complete}
 Website loads: ${g.website_exists}
 
@@ -1116,9 +1174,7 @@ SELECTION RULES — use real data signals:
   upcoming_events                → event execution risk
   weather.has_cold_winter        → winter cash-flow risk
   competitors.top5 (review velocity) → competitive encroachment
-  google.response_rate_estimated == 0 → reputation/engagement gap
   google.photo_count < 20        → visibility risk
-  google.review_recency_days > 90 → freshness risk
 
 FORBIDDEN generic risks:
   ❌ "Competition may increase"
@@ -1285,9 +1341,7 @@ Chain: ${b.is_chain ? 'yes (' + (b.chain_name || 'detected') + ')' : 'no'}
 
 Google data:
 Rating: ${g.rating ?? '—'} stars (${g.review_count ?? '—'} reviews)
-Review recency: ${g.review_recency_days ?? '—'} days ago
-Response rate: ${g.response_rate_estimated ?? '—'}
-Photo count: ${g.photo_count ?? '—'}
+${g.photo_count !== null ? 'Photo count: ' + g.photo_count : ''}
 Hours complete: ${g.hours_complete}
 Website: ${g.website_exists}
 

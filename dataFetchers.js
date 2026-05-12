@@ -23,6 +23,25 @@ function parseIntOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+// isOperationalOrUnknown — keep Places results that are OPERATIONAL or
+// whose business_status field is missing; drop CLOSED_PERMANENTLY /
+// PERMANENTLY_CLOSED / CLOSED_TEMPORARILY with a console log so the
+// filter is auditable. Duplicated (intentionally) in googlePlaces.js
+// to avoid a circular require — dataFetchers must not depend on
+// googlePlaces (googlePlaces requires dataFetchers).
+function isOperationalOrUnknown(result) {
+  if (!result) return false;
+  const s = result.business_status;
+  if (s == null || s === 'OPERATIONAL') return true;
+  console.log(
+    '[places] filtered out:',
+    result.name,
+    '— status:',
+    result.business_status
+  );
+  return false;
+}
+
 // Haversine distance in meters between two (lat,lon) pairs. Used by the
 // Overpass fetcher to compute per-element distances from the business.
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -46,7 +65,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 //   B01001_001E — Total population (sex by age table — same number as B01003)
 //   B25010_001E — Average household size
 const CENSUS_URL =
-  'https://api.census.gov/data/2022/acs/acs5?get=B19013_001E,B01001_001E,B25010_001E&for=zip%20code%20tabulation%20area:';
+  'https://api.census.gov/data/2024/acs/acs5?get=B19013_001E,B01001_001E,B25010_001E&for=zip%20code%20tabulation%20area:';
 
 // In-memory cache, 30-day TTL keyed by ZIP. Process-lifetime only.
 const CENSUS_CACHE = new Map();
@@ -144,7 +163,7 @@ async function _fetchCensusPlacePopulation(city, state) {
   if (cached && Date.now() - cached.ts < CENSUS_TTL_MS) return cached.value;
 
   const apiKey = process.env.CENSUS_API_KEY;
-  const url = 'https://api.census.gov/data/2022/acs/acs5'
+  const url = 'https://api.census.gov/data/2024/acs/acs5'
     + '?get=NAME,B19013_001E,B01003_001E,B25010_001E'
     + `&for=place:*&in=state:${stateFIPS}`
     + (apiKey ? `&key=${apiKey}` : '');
@@ -214,7 +233,7 @@ async function _fetchCensusCountyIncome(countyFIPS) {
   const stateFIPS = countyFIPS.substring(0, 2);
   const countyCode = countyFIPS.substring(2, 5);
   const apiKey = process.env.CENSUS_API_KEY;
-  const url = 'https://api.census.gov/data/2022/acs/acs5'
+  const url = 'https://api.census.gov/data/2024/acs/acs5'
     + '?get=NAME,B19013_001E'
     + `&for=county:${countyCode}&in=state:${stateFIPS}`
     + (apiKey ? `&key=${apiKey}` : '');
@@ -278,12 +297,25 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
   }
 
   // ── Income resolution ──────────────────────────────────────────
-  // FIX 3: ZIP income for big cities is unreliable (downtown ZIPs
-  // skew low because of transient / student populations). For pop
-  // >200k WHERE we have a county FIPS, pull the county ACS median.
+  // Priority order:
+  //   1. CITY (place-level) income — when the place lookup returned a
+  //      number. City-level ACS median is more representative than
+  //      ZIP-level for any city size: small cities (Dodgeville) get a
+  //      tighter local figure than the ZCTA that bleeds into rural
+  //      land, and big cities (Chicago) skip the downtown-ZIP transient-
+  //      population skew because city-wide median averages across all
+  //      neighborhoods.
+  //   2. COUNTY income — defensive fallback for big cities (pop > 200k)
+  //      when the city place lookup misses for some reason but a county
+  //      FIPS is available. Still better than the downtown ZIP figure
+  //      for the transient-population case.
+  //   3. ZIP income — final fallback for everything else.
   let median_household_income = zipResult.median_household_income;
   let income_source = 'zip';
-  if (
+  if (placeResult && typeof placeResult.median_household_income === 'number') {
+    median_household_income = placeResult.median_household_income;
+    income_source = 'city';
+  } else if (
     typeof total_population === 'number'
     && total_population > 200000
     && typeof countyIncome === 'number'
@@ -961,6 +993,46 @@ function fsqCategoryLabel(catId, fallbackName) {
   return fallbackName || 'other';
 }
 
+// isVenueOpen — Google cross-check for a Foursquare venue.
+// Runs a single Text Search and inspects business_status on the top
+// hit. Returns false (drop the venue) when:
+//   - no Google hit (likely de-indexed because closed)
+//   - business_status is PERMANENTLY_CLOSED / CLOSED_PERMANENTLY
+//   - business_status is CLOSED_TEMPORARILY
+// Otherwise returns true (keep). Google's API uses 'CLOSED_PERMANENTLY'
+// in current responses; older docs and some SDKs use 'PERMANENTLY_CLOSED'
+// — we check both to be safe.
+// Cost note: ~$0.032 per Text Search call. Caller throttles to 200ms
+// between calls to avoid rate limits.
+async function isVenueOpen(venueName, venueAddress, apiKey) {
+  const query = venueName + ' ' + venueAddress;
+  const url = 'https://maps.googleapis.com/maps/api/place/textsearch/json'
+    + '?query=' + encodeURIComponent(query)
+    + '&key=' + apiKey;
+  const res = await fetch(url);
+  const data = await res.json();
+  const place = data.results && data.results[0];
+  if (!place) return false;
+  // Not found on Google = likely closed
+  const status = place.business_status;
+  if (status === 'PERMANENTLY_CLOSED' || status === 'CLOSED_PERMANENTLY') {
+    console.log(
+      '[venues] Google confirms CLOSED:',
+      venueName
+    );
+    return false;
+  }
+  if (status === 'CLOSED_TEMPORARILY') {
+    console.log(
+      '[venues] Google confirms TEMP CLOSED:',
+      venueName
+    );
+    return false;
+  }
+  return true;
+  // OPERATIONAL or no status = open
+}
+
 async function fetchNearbyVenues(lat, lon) {
   if (lat == null || lon == null) return [];
   const apiKey = process.env.FOURSQUARE_API_KEY;
@@ -973,12 +1045,18 @@ async function fetchNearbyVenues(lat, lon) {
     return cached.value;
   }
 
+  // Request `closed_bucket`, `hours`, and `location` explicitly — these
+  // are non-default fields on the new Foursquare /places/search endpoint.
+  // `closed_bucket` powers STEP 1 (free cheap filter); `location.address`
+  // is needed by STEP 2 (Google cross-check) to disambiguate names like
+  // "Hills Pub" that exist in multiple cities.
   const params = new URLSearchParams({
     ll: `${lat},${lon}`,
     radius: '1000',
     fsq_category_ids: FSQ_CATEGORIES,
     limit: '10',
     sort: 'POPULARITY',
+    fields: 'name,categories,distance,location,hours',
   });
   const url = `https://places-api.foursquare.com/places/search?${params.toString()}`;
 
@@ -1001,8 +1079,59 @@ async function fetchNearbyVenues(lat, lon) {
       return [];
     }
     const json = await res.json();
-    const results = Array.isArray(json.results) ? json.results : [];
-    const venues = results.map((r) => {
+    const rawResults = Array.isArray(json.results) ? json.results : [];
+
+    // ── STEP 1 — Foursquare closed_bucket filter (free, no API cost). ──
+    // Foursquare's `closed_bucket` is its own closure heuristic. Drop
+    // the most-confident closed buckets BEFORE we spend Google quota
+    // verifying them. Venues with bucket absent/unknown pass through
+    // to STEP 2 for the Google cross-check.
+    const fsqOpen = rawResults.filter((r) => {
+      const bucket = r.closed_bucket;
+      if (bucket === 'VeryLikelyClosed' || bucket === 'LikelyClosed') {
+        console.log(
+          '[foursquare] filtered closed:',
+          r.name,
+          '| closed_bucket:',
+          r.closed_bucket
+        );
+        return false;
+      }
+      return true;
+    });
+
+    // ── STEP 2 — Google cross-check on survivors. ──
+    // One Text Search per venue, 200ms gap between calls to avoid the
+    // Places API rate limit (~50 QPS, but we share quota with the
+    // competitor + findPlace pipelines). On a network error we keep
+    // the venue (conservative — fail-open rather than drop a real
+    // venue because of a transient blip).
+    const googleKey = process.env.GOOGLE_PLACES_API_KEY;
+    const verifiedVenues = [];
+    if (!googleKey) {
+      console.warn('[fetch-venues] no GOOGLE_PLACES_API_KEY — skipping cross-check');
+      for (const r of fsqOpen) verifiedVenues.push(r);
+    } else {
+      for (let i = 0; i < fsqOpen.length; i++) {
+        const r = fsqOpen[i];
+        const addr = (r.location && r.location.address) || '';
+        let open = true;
+        try {
+          open = await isVenueOpen(r.name, addr, googleKey);
+        } catch (err) {
+          console.warn('[venues] verify error for', r.name, ':', err.message);
+          open = true; // fail-open on transient error
+        }
+        if (open) verifiedVenues.push(r);
+        // 200ms inter-call delay (skip on the last iteration).
+        if (i < fsqOpen.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
+    }
+
+    // Shape verified venues for the data bundle (unchanged from before).
+    const venues = verifiedVenues.map((r) => {
       const primaryCat = (Array.isArray(r.categories) && r.categories[0]) || {};
       // Each category now has fsq_category_id (was: id) plus a name field.
       // The new API doesn't expose `popularity` directly — venues are
@@ -1844,7 +1973,10 @@ async function fetchGoogleTextCompetitors(type, lat, lon, city, state) {
           console.warn(`[fetch-text-comp] "${q}" status=${json.status}`);
           return [];
         }
-        return Array.isArray(json.results) ? json.results : [];
+        // Drop CLOSED_PERMANENTLY / CLOSED_TEMPORARILY before returning
+        // so the competitor waterfall in googlePlaces never sees them.
+        const raw = Array.isArray(json.results) ? json.results : [];
+        return raw.filter(isOperationalOrUnknown);
       } catch (err) {
         console.warn(`[fetch-text-comp] "${q}" failed:`, err.message);
         return [];
@@ -2151,7 +2283,7 @@ async function fetchCensusAgeProfile(zip) {
   }
 
   const apiKey = process.env.CENSUS_API_KEY;
-  const url = 'https://api.census.gov/data/2022/acs/acs5'
+  const url = 'https://api.census.gov/data/2024/acs/acs5'
     + '?get=' + ACS_AGE_VARS.join(',')
     + '&for=zip+code+tabulation+area:' + zip
     + (apiKey ? '&key=' + apiKey : '');

@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Google Places Autocomplete — API key is injected server-side
+       from process.env.GOOGLE_PLACES_API_KEY via the / route handler. -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=%%GOOGLE_API_KEY%%&libraries=places&callback=initAutocomplete" async defer></script>
   <style>
     /* ── Brand tokens ──────────────────────────────────────────────── */
     :root {
@@ -871,6 +874,46 @@
     document.getElementById('page-main').style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+</script>
+
+<!-- Google Places Autocomplete bootstrap.
+     Loaded by the Maps JS API <script> in <head> via callback=initAutocomplete.
+     Attaches to the Mode 1 search input (#q) and auto-fills it with
+     "<name>, <formatted_address>" when the user picks a suggestion. -->
+<script>
+function initAutocomplete() {
+  const input = document.getElementById('q');
+  if (!input) {
+    console.error('[autocomplete] input #q not found');
+    return;
+  }
+  const autocomplete = new google.maps.places.Autocomplete(input, {
+    types: ['establishment'],
+    fields: ['name', 'formatted_address', 'place_id']
+  });
+  autocomplete.setComponentRestrictions({ country: 'us' });
+  autocomplete.addListener('place_changed', function () {
+    const place = autocomplete.getPlace();
+    if (!place || !place.name) {
+      console.warn('[autocomplete] place_changed fired with no name');
+      return;
+    }
+    const fullInput = place.name + ', ' + (place.formatted_address || '');
+    input.value = fullInput;
+    console.log('[autocomplete] selected:', fullInput);
+    console.log('[autocomplete] place_id:', place.place_id);
+    let hidden = document.getElementById('bizradar-place-id');
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.id = 'bizradar-place-id';
+      hidden.name = 'place_id';
+      input.parentNode.appendChild(hidden);
+    }
+    hidden.value = place.place_id || '';
+  });
+  console.log('[autocomplete] initialized on:', input.id || input.name || 'search input');
+}
 </script>
 </body>
 </html>

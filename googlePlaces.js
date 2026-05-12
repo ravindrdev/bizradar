@@ -210,6 +210,26 @@ function isRealBusiness(result) {
   return hasBusinessType && !onlyAddressTypes;
 }
 
+// isOperationalOrUnknown — keeps a Places result if Google reports it
+// as OPERATIONAL or doesn't report business_status at all (some places
+// don't carry it). Drops CLOSED_PERMANENTLY / PERMANENTLY_CLOSED /
+// CLOSED_TEMPORARILY so Claude never sees closed businesses in the
+// data bundle (otherwise it suggests "partner with" / "match the menu
+// of" a permanently-shuttered competitor). Logs every drop so the
+// filter is auditable from the server console.
+function isOperationalOrUnknown(result) {
+  if (!result) return false;
+  const s = result.business_status;
+  if (s == null || s === 'OPERATIONAL') return true;
+  console.log(
+    '[places] filtered out:',
+    result.name,
+    '— status:',
+    result.business_status
+  );
+  return false;
+}
+
 // scoreResult — composite score for a candidate result.
 //   -999  = disqualified (not a real business)
 //   100+  = high confidence (skip geocoding fallback)
@@ -587,17 +607,32 @@ async function getDetails(placeId, apiKey) {
 function toInputFields(detail) {
   const reviews = detail.reviews || [];
 
-  // Review recency — days since most recent review.
-  let reviewRecencyDays = null;
-  if (reviews.length && reviews[0].time) {
-    const ageMs = Date.now() - reviews[0].time * 1000;
-    reviewRecencyDays = Math.max(0, Math.floor(ageMs / 86400000));
-  }
+  // Review recency — DISABLED.
+  // Google Places API returns max 5 reviews sorted by RELEVANCE, not by
+  // date. reviews[0] is therefore not guaranteed to be the most recent
+  // review, and the resulting "days ago" number is unreliable for any
+  // business size (verified: a 1,393-review restaurant returned reviews
+  // out of date order with the freshest at index #3). We force this to
+  // null so downstream code (claudeEnricher, ranker, server diag) skips
+  // every recency-based recommendation/risk rather than fire on noise.
+  const reviewRecencyDays = null;
 
-  // Owner-response detection. Legacy Places Details may put owner replies
-  // in `author_response`, `owner_response`, or `translated_response`
-  // depending on the API version. Check several known field shapes; fall
-  // back to false when none present.
+  // Owner-response detection — DISABLED for headline metrics.
+  // Google Places API returns max 5 reviews (sorted by relevance). A
+  // response rate computed from 5 reviews is unreliable for any business
+  // with meaningful review volume: a restaurant with 1,393 total reviews
+  // may have replied to 500 of them, but if the 5 we sampled have no
+  // visible owner_reply the calculated rate is 0% — a confidently wrong
+  // signal. We force responds_to_reviews and response_rate_estimated to
+  // null so downstream code (claudeEnricher, ranker, server diag) skips
+  // every response-rate-based recommendation/risk rather than fire on
+  // sample noise.
+  //
+  // We still compute reviewsWithResponse below because the sample may
+  // surface a POSITIVE signal (any reply present → owner is engaged at
+  // all). That positive signal could be useful for SYSTEM_PROMPT_A's
+  // optional "owner actively responds" mention, but is NOT exposed as
+  // a quantitative metric.
   const reviewsWithResponse = reviews.filter((r) =>
     r && (
       (r.author_response && (r.author_response.text || r.author_response)) ||
@@ -606,10 +641,11 @@ function toInputFields(detail) {
       r.translated_response
     )
   );
-  const respondsToReviews = reviews.length > 0 ? reviewsWithResponse.length > 0 : null;
-  const responseRateEstimated = reviews.length > 0
-    ? +(reviewsWithResponse.length / reviews.length).toFixed(2)
-    : null;
+  // Suppress reviewsWithResponse unused-variable lint when nothing
+  // downstream reads it (preserved as documentation of the sample).
+  void reviewsWithResponse;
+  const respondsToReviews = null;
+  const responseRateEstimated = null;
 
   // Hours completeness — opening_hours.weekday_text is an array of 7 strings
   // when fully populated. Some businesses list only a subset (e.g. "Mon–Fri"
@@ -633,7 +669,17 @@ function toInputFields(detail) {
     google_review_count:
       typeof detail.user_ratings_total === 'number' ? detail.user_ratings_total : 0,
     business_status: detail.business_status || null,
-    photo_count: Array.isArray(detail.photos) ? detail.photos.length : 0,
+    // Photo count semantics — Google Places API caps the `photos` array at
+    // 10 regardless of how many photos the business actually has on Google
+    // Maps. A business with 10 photos in the API response could have 10,
+    // 50, or 500+ in reality — there is no signal that distinguishes them.
+    // We therefore expose the count only when it's BELOW the cap (genuinely
+    // low, actionable data) and null it out at/above the cap (unknown).
+    // Downstream (claudeEnricher) treats null as "do not mention" and a
+    // real number as "the business genuinely has few photos — flag it".
+    photo_count: Array.isArray(detail.photos)
+      ? (detail.photos.length >= 10 ? null : detail.photos.length)
+      : 0,
     review_recency_days: reviewRecencyDays,
 
     // BATCH14 — review response
@@ -1980,6 +2026,9 @@ async function fetchNearbyCompetitors({
   const subjectLabel = businessName || subjectName || '(business)';
 
   function tryAdd(rawGoogleResult, source, maxRadiusMeters) {
+    // Drop closed businesses BEFORE pool insertion so Claude never sees
+    // them as competitors. isOperationalOrUnknown logs each drop.
+    if (!isOperationalOrUnknown(rawGoogleResult)) return;
     const c = toCompetitorFromGoogle(rawGoogleResult, lat, lng, source);
     // FIX 2 — post-filter by actual distance. Google Text Search treats
     // `radius` as a relevance bias (not a hard cap), so a 1-mile-bias
@@ -2209,7 +2258,11 @@ async function fetchBusinessTypeCompetitors(businessType, lat, lon, radiusMiles,
     if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
       return fallback(`status=${json.status}`);
     }
-    const results = Array.isArray(json.results) ? json.results : [];
+    // Drop CLOSED_PERMANENTLY / CLOSED_TEMPORARILY before counting so
+    // the novelty score reflects actual operational competition, not
+    // ghost listings.
+    const results = (Array.isArray(json.results) ? json.results : [])
+      .filter(isOperationalOrUnknown);
     const count = results.length;
     const top3 = results
       .filter((r) => typeof r.rating === 'number')
@@ -2244,4 +2297,5 @@ module.exports = {
   fetchBusinessTypeCompetitors,
   classifyCompetitorTier,
   buildCompetitorQuery,
+  isOperationalOrUnknown,
 };

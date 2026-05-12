@@ -28,6 +28,29 @@ const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve index.html with server-side API key injection so the
+// browser never sees a raw %%GOOGLE_API_KEY%% placeholder. Must
+// be registered BEFORE express.static so the static middleware
+// doesn't shortcut the root request.
+app.get('/', (req, res) => {
+  try {
+    const html = fs.readFileSync(
+      path.join(__dirname, 'public', 'index.html'),
+      'utf8'
+    );
+    const injected = html.replace(
+      /%%GOOGLE_API_KEY%%/g,
+      process.env.GOOGLE_PLACES_API_KEY || ''
+    );
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(injected);
+  } catch (e) {
+    console.error('[index] failed to render:', e.message);
+    res.status(500).send('Internal error');
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Server-Sent Events progress stream ─────────────────────────────

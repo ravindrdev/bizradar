@@ -1519,17 +1519,6 @@
         "tier3_disclosure_required": true
       },
       {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 90 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <90 days correlate with ~30% higher revenue than reviews >180 days. Craft producers ship seasonal releases, limited editions, and event-driven products — recent reviews show current quality and lineup, which directly drives tasting-room visit and purchase decisions.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
-        "tier3_disclosure_required": true
-      },
-      {
         "id": "rec_word_of_mouth",
         "study_ids": [
           "S020"
@@ -2914,17 +2903,6 @@
         "claim": "98% of consumers read local-business reviews (S015). Cross-industry: 200+ reviews -> 2x revenue (S010). Pure-play e-commerce and DTC brands rely heavily on review aggregation (Trustpilot, Sitejabber, Yotpo, Reviews.io) since they often lack physical-location Google presence.",
         "magnitude": "Up to 2x revenue at 200+ reviews",
         "ease": "medium_effort",
-        "tier3_disclosure_required": true
-      },
-      {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S014"
-        ],
-        "trigger": "review_recency_days > 90 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <90 days correlate with ~30% higher revenue (S011 / S014 patterns). E-commerce product launches and seasonal collections need fresh review signals at launch — solicit post-purchase reviews aggressively for new products.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
         "tier3_disclosure_required": true
       },
       {
@@ -5484,17 +5462,6 @@
         "claim": "98% of consumers read local-business reviews (S015). Cross-industry: 200+ reviews -> 2x revenue (S010). Rental businesses are local discovery-driven — customers search for nearby providers and book based on availability and reviews. Reach a 50-review floor for visibility.",
         "magnitude": "Up to 2x revenue at 200+ reviews",
         "ease": "medium_effort",
-        "tier3_disclosure_required": true
-      },
-      {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 90 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <90 days correlate with ~30% higher revenue than reviews >180 days. Rental inventory and condition change frequently — recent reviews show current state of equipment, response to issues, and pickup/return service quality.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
         "tier3_disclosure_required": true
       },
       {
@@ -8766,17 +8733,6 @@
         "tier3_disclosure_required": true
       },
       {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S035"
-        ],
-        "trigger": "review_recency_days > 60 OR is_unknown(review_recency_days)",
-        "claim": "Per S035: golf and bowling discovery is ~50% review-driven. Spectator-sports venues operate on similar dynamics — recent reviews show current concession quality, parking experience, and crowd vibe (which decay quickly).",
-        "magnitude": "~50% review-driven discovery",
-        "ease": "low_effort",
-        "tier3_disclosure_required": false
-      },
-      {
         "id": "rec_word_of_mouth",
         "study_ids": [
           "S020"
@@ -8873,17 +8829,6 @@
         "magnitude": "70%+ of bookings review-driven",
         "ease": "medium_effort",
         "tier3_disclosure_required": true
-      },
-      {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S035"
-        ],
-        "trigger": "review_recency_days > 60 OR is_unknown(review_recency_days)",
-        "claim": "Per S035: ~50% of arts/entertainment discovery is review-driven. Performance reviews decay quickly — production-specific reviews matter most when the show is running. Solicit reviews after each performance run.",
-        "magnitude": "~50% review-driven discovery",
-        "ease": "low_effort",
-        "tier3_disclosure_required": false
       },
       {
         "id": "rec_word_of_mouth",
@@ -9104,17 +9049,6 @@
         "tier3_disclosure_required": false
       },
       {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 60 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <=90 days old correlate with ~30% higher revenue than reviews >180 days old. QSR cadence: aim for fresh reviews monthly.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
-        "tier3_disclosure_required": true
-      },
-      {
         "id": "rec_optimum_band",
         "study_ids": [
           "S012"
@@ -9221,17 +9155,6 @@
         "tier3_disclosure_required": false
       },
       {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 90 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <=90 days old correlate with ~30% higher revenue than reviews >180 days old. Quarterly review-solicitation cadence required.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
-        "tier3_disclosure_required": true
-      },
-      {
         "id": "rec_optimum_band",
         "study_ids": [
           "S012"
@@ -9323,17 +9246,6 @@
         "claim": "Local businesses with 200+ reviews earn 2x revenue of those with <10. Reach 75-review floor for bar/nightlife discoverability.",
         "magnitude": "Up to 2x revenue at 200+ reviews",
         "ease": "medium_effort",
-        "tier3_disclosure_required": true
-      },
-      {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 60 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <90 days correlate with ~30% higher revenue than reviews >180 days. Bar/nightlife scenes turn over quickly — recent reviews especially important to signal current relevance and crowd quality.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
         "tier3_disclosure_required": true
       },
       {
@@ -9439,17 +9351,6 @@
     },
     "recommendations": [
       {
-        "id": "rec_response_rate",
-        "study_ids": [
-          "S004"
-        ],
-        "trigger": "response_rate_estimated < 0.40 OR is_unknown(response_rate_estimated)",
-        "claim": "Hotels responding to >40% of reviews see RevPAR lift; diminishing returns above 65%. Target band: 40-60%.",
-        "magnitude": "1-3% RevPAR per 10pp lift in response rate",
-        "ease": "low_effort",
-        "tier3_disclosure_required": false
-      },
-      {
         "id": "rec_reputation_index",
         "study_ids": [
           "S001",
@@ -9554,17 +9455,6 @@
         "claim": "98% of consumers read local-business reviews (S015). Cross-industry: 200+ reviews -> 2x revenue (S010). Catering decisions are event-stakes-high — clients research extensively before booking. Reach 50-review floor for booking-stage discoverability.",
         "magnitude": "Up to 2x revenue at 200+ reviews",
         "ease": "medium_effort",
-        "tier3_disclosure_required": true
-      },
-      {
-        "id": "rec_review_recency",
-        "study_ids": [
-          "S011"
-        ],
-        "trigger": "review_recency_days > 90 OR is_unknown(review_recency_days)",
-        "claim": "Reviews <90 days correlate with ~30% higher revenue than reviews >180 days. Catering menus and service quality evolve seasonally — recent reviews show current capability and freshness. Solicit reviews after each event closeout.",
-        "magnitude": "~30% recency premium",
-        "ease": "low_effort",
         "tier3_disclosure_required": true
       },
       {
@@ -9803,17 +9693,6 @@
         "claim": "Track 12-month customer retention as primary KPI. Industry baseline: 40-50%. NADA target: 72%+. Returning + best customers should be 70-80% of revenue.",
         "magnitude": "Returning + best customers should be 70-80% of revenue",
         "ease": "high_effort",
-        "tier3_disclosure_required": false
-      },
-      {
-        "id": "rec_response_rate",
-        "study_ids": [
-          "S031"
-        ],
-        "trigger": "responds_to_reviews == false OR response_rate_estimated < 0.50",
-        "claim": "92% of consumers trust word-of-mouth above advertising. Review responses signal an engaged operator and amplify the referrals that drive 60-70% of new clients in service businesses.",
-        "magnitude": "Direct trust signal; referral amplification",
-        "ease": "low_effort",
         "tier3_disclosure_required": false
       },
       {
