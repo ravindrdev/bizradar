@@ -839,10 +839,18 @@
     clearError(errRate);
     const q = document.getElementById('q').value.trim();
     if (!q) return showError(errRate, 'Please enter a business name and address.');
+    // Pull the place_id captured by initAutocomplete (hidden input
+    // created in the place_changed listener at the bottom of the page).
+    // When present, server.js will skip its 7-step findPlace resolver
+    // and use this place_id directly — guarantees the exact business
+    // Google's autocomplete showed in the dropdown.
+    const placeIdInput = document.getElementById('bizradar-place-id');
+    const placeId = placeIdInput ? placeIdInput.value : '';
     submitForm({
       mode: 'rate',
       url: '/classify',
-      body: 'query=' + encodeURIComponent(q),
+      body: 'query=' + encodeURIComponent(q)
+        + (placeId ? '&place_id=' + encodeURIComponent(placeId) : ''),
       btn: document.getElementById('btn-rate'),
       errEl: errRate,
     });

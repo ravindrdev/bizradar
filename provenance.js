@@ -116,11 +116,19 @@ function verifyQuotes(deepDive, provenance) {
     const extracted = extractQuote(q.quote);
     const norm = normalize(extracted);
 
-    if (norm.length < 20) {
+    // BUG 28 — Threshold lowered from 20 to 10 normalized chars.
+    // At 20 chars the verifier was producing 'unverified' false-negatives
+    // for short but distinctive quotes ("rude staff", "long wait time",
+    // "great pizza here"). 10 chars is still long enough to make
+    // substring-collision-with-unrelated-review unlikely (a 10-char
+    // string is roughly 2-3 words) but short enough to mark most
+    // legitimately quoted phrases as verified/fabricated rather than
+    // dodging the question.
+    if (norm.length < 10) {
       return {
         ...q,
         verified: null,
-        reason: 'too short to verify (under 20 normalized chars)',
+        reason: 'too short to verify (under 10 normalized chars)',
       };
     }
 

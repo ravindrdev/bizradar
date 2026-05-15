@@ -163,8 +163,8 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 311613,Rendering and Meat Byproduct Processing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 311615,Poultry Processing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 311710,Seafood Product Preparation and Packaging,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
-311811,Retail Bakeries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
-311812,Commercial Bakeries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+311811,Retail Bakeries,31-33,hospitality.retail_bakery,high,phase2_oos_override
+311812,Commercial Bakeries,31-33,hospitality.retail_bakery,high,phase2_oos_override
 311813,"Frozen Cakes, Pies, and Other Pastries Manufacturing",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 311821,Cookie and Cracker Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 311824,"Dry Pasta, Dough, and Flour Mixes Manufacturing from Purchased Flour",31-33,manufacturing.food_beverage_dtc,high,naics4_rule
@@ -180,9 +180,9 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 312111,Soft Drink Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 312112,Bottled Water Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 312113,Ice Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
-312120,Breweries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
-312130,Wineries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
-312140,Distilleries,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
+312120,Breweries,31-33,hospitality.bar_nightlife,high,phase2_oos_override
+312130,Wineries,31-33,hospitality.bar_nightlife,high,phase2_oos_override
+312140,Distilleries,31-33,hospitality.bar_nightlife,high,phase2_oos_override
 312230,Tobacco Manufacturing,31-33,manufacturing.food_beverage_dtc,high,naics4_rule
 313110,"Fiber, Yarn, and Thread Mills",31-33,manufacturing.textile_apparel,high,naics4_rule
 313210,Broadwoven Fabric Mills,31-33,manufacturing.textile_apparel,high,naics4_rule
@@ -226,7 +226,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 322230,Stationery Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
 322291,Sanitary Paper Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
 322299,All Other Converted Paper Product Manufacturing,31-33,manufacturing.wood_paper_print,high,naics4_rule
-323111,Commercial Printing (except Screen and Books),31-33,manufacturing.wood_paper_print,high,naics4_rule
+323111,Commercial Printing (except Screen and Books),31-33,professional.consulting,high,naics6_override
 323113,Commercial Screen Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
 323117,Books Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
 323120,Support Activities for Printing,31-33,manufacturing.wood_paper_print,high,naics4_rule
@@ -554,6 +554,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 441210,Recreational Vehicle Dealers,44-45,retail.auto_dealers,high,naics6_override
 441222,Boat Dealers,44-45,retail.auto_dealers,high,naics6_override
 441227,"Motorcycle, ATV, and All Other Motor Vehicle Dealers",44-45,retail.auto_dealers,high,naics6_override
+441330,Tire Dealers,44-45,retail.auto_dealers,high,naics6_override
 441330,Automotive Parts and Accessories Retailers,44-45,retail.auto_dealers,high,naics6_override
 441340,Tire Dealers,44-45,retail.auto_dealers,high,naics4_rule
 444110,Home Centers,44-45,retail.building_home,high,naics4_rule
@@ -575,7 +576,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 449110,Furniture Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
 449121,Floor Covering Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
 449122,Window Treatment Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
-449129,All Other Home Furnishings Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
+449129,All Other Home Furnishings Retailers,44-45,retail.building_home,high,naics6_override
 449210,Electronics and Appliance Retailers,44-45,retail.building_home,high,naics4_rule
 455110,Department Stores,44-45,retail.fuel_general_misc,high,naics4_rule
 455211,Warehouse Clubs and Supercenters,44-45,retail.specialty_brick_mortar,high,naics4_rule
@@ -588,6 +589,8 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 456191,Food (Health) Supplement Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
 456199,All Other Health and Personal Care Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
 457110,Gasoline Stations with Convenience Stores,44-45,retail.fuel_general_misc,high,naics4_rule
+# Phase 2 OOS override: 447110 (synthetic — historical NAICS-6 retired in 2022 revision) kept as registry-internal code to distinguish truck stops / travel centers (47.5%+ revenue from diesel + trucker amenities) from regular gas-with-c-stores at 457110. Routes to retail.fuel_general_misc.
+447110,Gasoline Stations with Convenience Stores (truck stop synthetic),44-45,retail.fuel_general_misc,high,phase2_oos_override
 457120,Other Gasoline Stations,44-45,retail.fuel_general_misc,high,naics4_rule
 457210,Fuel Dealers,44-45,retail.fuel_general_misc,high,naics4_rule
 458110,Clothing and Clothing Accessories Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
@@ -608,6 +611,8 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 # Phase 2 OOS override: 459930 (Manufactured Home Dealers) routed to retail.specialty_brick_mortar by default but reclassified OUT_OF_SCOPE_NICHE — large-ticket lot-based mobile-home sales share no operational dynamics with specialty brick-and-mortar retail.
 459930,Manufactured (Mobile) Home Dealers,44-45,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
 459991,"Tobacco, Electronic Cigarette, and Other Smoking Supplies Retailers",44-45,retail.specialty_brick_mortar,high,naics4_rule
+# Phase 2 OOS override: 459998 (synthetic code for state-legal Cannabis Dispensaries) reclassified OUT_OF_SCOPE_REGULATED — cannabis has unique compliance dynamics (Section 280E, banking restrictions, state licensing, advertising bans) that the generalized retail.specialty_brick_mortar profile cannot address safely. keywordRouter routes "Cannabis Dispensary (state-legal)" to this synthetic code; CBD stores and other 459999 retailers continue to route normally.
+459998,Cannabis Dispensaries (state-legal),44-45,OUT_OF_SCOPE_REGULATED,high,phase2_oos_override
 459999,All Other Miscellaneous Retailers,44-45,retail.specialty_brick_mortar,high,naics4_rule
 481111,Scheduled Passenger Air Transportation,48-49,transportation.passenger,high,naics4_rule
 481112,Scheduled Freight Air Transportation,48-49,transportation.passenger,high,naics4_rule
@@ -655,7 +660,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 488320,Marine Cargo Handling,48-49,transportation.support_services,high,naics4_rule
 488330,Navigational Services to Shipping,48-49,transportation.support_services,high,naics4_rule
 488390,Other Support Activities for Water Transportation,48-49,transportation.support_services,high,naics4_rule
-488410,Motor Vehicle Towing,48-49,transportation.support_services,high,naics4_rule
+488410,Motor Vehicle Towing,48-49,transportation.trucking_freight,high,naics6_override
 488490,Other Support Activities for Road Transportation,48-49,transportation.support_services,high,naics4_rule
 488510,Freight Transportation Arrangement,48-49,transportation.trucking_freight,high,naics4_rule
 488991,Packing and Crating,48-49,transportation.support_services,high,naics4_rule
@@ -669,8 +674,8 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 493190,Other Warehousing and Storage,48-49,transportation.warehousing_3pl,high,naics4_rule
 512110,Motion Picture and Video Production,51,information.motion_picture_sound,high,naics4_rule
 512120,Motion Picture and Video Distribution,51,information.motion_picture_sound,high,naics4_rule
-512131,Motion Picture Theaters (except Drive-Ins),51,information.motion_picture_sound,high,naics4_rule
-512132,Drive-In Motion Picture Theaters,51,information.motion_picture_sound,high,naics4_rule
+512131,Motion Picture Theaters (except Drive-Ins),51,recreation.amusement_attraction,high,naics6_override
+512132,Drive-In Motion Picture Theaters,51,recreation.amusement_attraction,high,naics6_override
 512191,Teleproduction and Other Postproduction Services,51,information.motion_picture_sound,high,naics4_rule
 512199,Other Motion Picture and Video Industries,51,information.motion_picture_sound,high,naics4_rule
 512230,Music Publishers,51,information.motion_picture_sound,high,naics4_rule
@@ -694,7 +699,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 517410,Satellite Telecommunications,51,information.telecom_isp,high,naics4_rule
 517810,All Other Telecommunications,51,information.telecom_isp,high,naics4_rule
 518210,"Computing Infrastructure Providers, Data Processing, Web Hosting, and Related Services",51,information.data_processing_hosting,high,naics4_rule
-519210,Libraries and Archives,51,information.media_publishing,high,naics4_rule
+519210,Libraries and Archives,51,professional.consulting,high,naics4_rule
 519290,Web Search Portals and All Other Information Services,51,information.media_publishing,high,naics4_rule
 521110,Monetary Authorities-Central Bank,52,finance.community_bank,high,naics4_rule
 522110,Commercial Banking,52,finance.community_bank,high,naics4_rule
@@ -703,7 +708,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 522210,Credit Card Issuing,52,finance.community_bank,high,naics4_rule
 522220,Sales Financing,52,finance.community_bank,high,naics4_rule
 522291,Consumer Lending,52,finance.community_bank,high,naics4_rule
-522292,Real Estate Credit,52,finance.community_bank,high,naics4_rule
+522292,Real Estate Credit,52,finance.ria_wealth_management,high,naics6_override
 522299,"International, Secondary Market, and All Other Nondepository Credit Intermediation",52,finance.community_bank,high,naics4_rule
 522310,Mortgage and Nonmortgage Loan Brokers,52,finance.community_bank,high,naics4_rule
 522320,"Financial Transactions Processing, Reserve, and Clearinghouse Activities",52,finance.community_bank,high,naics4_rule
@@ -824,7 +829,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 561492,Court Reporting and Stenotype Services,56,admin.office_business_support,high,naics4_rule
 561499,All Other Business Support Services,56,admin.office_business_support,high,naics4_rule
 561510,Travel Agencies,56,admin.office_business_support,high,naics4_rule
-561520,Tour Operators,56,admin.office_business_support,high,naics4_rule
+561520,Tour Operators,56,recreation.amusement_attraction,high,naics6_override
 561591,Convention and Visitors Bureaus,56,admin.office_business_support,high,naics4_rule
 561599,All Other Travel Arrangement and Reservation Services,56,admin.office_business_support,high,naics4_rule
 561611,Investigation and Personal Background Check Services,56,admin.security_pest,high,naics4_rule
@@ -861,8 +866,8 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 611512,Flight Training,61,education.trade_technical,high,naics4_rule
 611513,Apprenticeship Training,61,education.trade_technical,high,naics4_rule
 611519,Other Technical and Trade Schools,61,education.trade_technical,high,naics4_rule
-611610,Fine Arts Schools,61,education.tutoring_test_prep,high,naics6_override
-611620,Sports and Recreation Instruction,61,education.tutoring_test_prep,high,naics6_override
+611610,Fine Arts Schools,61,recreation.fitness_studio,high,naics6_override
+611620,Sports and Recreation Instruction,61,recreation.fitness_studio,high,naics6_override
 611630,Language Schools,61,education.tutoring_test_prep,high,naics6_override
 611691,Exam Preparation and Tutoring,61,education.tutoring_test_prep,high,naics6_override
 611692,Automobile Driving Schools,61,education.tutoring_test_prep,high,naics6_override
@@ -872,7 +877,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 621112,"Offices of Physicians, Mental Health Specialists",62,healthcare.behavioral_health,high,naics6_override
 621210,Offices of Dentists,62,healthcare.dental_practice,high,naics4_rule
 621310,Offices of Chiropractors,62,healthcare.allied_health,high,naics4_rule
-621320,Offices of Optometrists,62,healthcare.allied_health,high,naics4_rule
+621320,Offices of Optometrists,62,healthcare.optometry,high,naics6_override
 621330,Offices of Mental Health Practitioners (except Physicians),62,healthcare.behavioral_health,high,naics6_override
 621340,"Offices of Physical, Occupational and Speech Therapists, and Audiologists",62,healthcare.allied_health,high,naics4_rule
 621391,Offices of Podiatrists,62,healthcare.allied_health,high,naics4_rule
@@ -881,7 +886,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 621420,Outpatient Mental Health and Substance Abuse Centers,62,healthcare.behavioral_health,high,naics6_override
 621491,HMO Medical Centers,62,healthcare.specialty_clinic,high,naics4_rule
 621492,Kidney Dialysis Centers,62,healthcare.specialty_clinic,high,naics4_rule
-621493,Freestanding Ambulatory Surgical and Emergency Centers,62,healthcare.specialty_clinic,high,naics4_rule
+621493,Freestanding Ambulatory Surgical and Emergency Centers,62,healthcare.medical_practice,high,naics6_override
 621498,All Other Outpatient Care Centers,62,healthcare.specialty_clinic,high,naics4_rule
 621511,Medical Laboratories,62,healthcare.specialty_clinic,high,naics4_rule
 621512,Diagnostic Imaging Centers,62,healthcare.specialty_clinic,high,naics4_rule
@@ -914,13 +919,15 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 711211,Sports Teams and Clubs,71,recreation.spectator_sports,high,naics4_rule
 711212,Racetracks,71,recreation.spectator_sports,high,naics4_rule
 711219,Other Spectator Sports,71,recreation.spectator_sports,high,naics4_rule
-711310,"Promoters of Performing Arts, Sports, and Similar Events with Facilities",71,recreation.spectator_sports,high,naics4_rule
+711310,"Promoters of Performing Arts, Sports, and Similar Events with Facilities",71,recreation.performing_arts,high,naics6_override
 711320,"Promoters of Performing Arts, Sports, and Similar Events without Facilities",71,recreation.spectator_sports,high,naics4_rule
 711410,"Agents and Managers for Artists, Athletes, Entertainers, and Other Public Figures",71,recreation.spectator_sports,high,naics4_rule
 711510,"Independent Artists, Writers, and Performers",71,recreation.performing_arts,high,naics4_rule
 712110,Museums,71,recreation.museums_heritage,high,naics4_rule
 712120,Historical Sites,71,recreation.museums_heritage,high,naics4_rule
 712130,Zoos and Botanical Gardens,71,recreation.museums_heritage,high,naics4_rule
+# Phase 2 OOS override: 712219 (synthetic) for horse stables / equestrian centers — federal taxonomy splits boarding/lessons across 115210/611620/712190 but consumer-facing equestrian businesses have a unified recreation operating model. Routes to recreation.amusement_attraction.
+712219,Equestrian Centers (synthetic),71,recreation.amusement_attraction,high,phase2_oos_override
 712190,Nature Parks and Other Similar Institutions,71,recreation.museums_heritage,high,naics4_rule
 713110,Amusement and Theme Parks,71,recreation.amusement_attraction,high,naics4_rule
 713120,Amusement Arcades,71,recreation.amusement_attraction,high,naics4_rule
@@ -935,18 +942,20 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 721110,Hotels (except Casino Hotels) and Motels,72,hospitality.lodging,high,naics4_rule
 721120,Casino Hotels,72,hospitality.lodging,high,naics4_rule
 721191,Bed-and-Breakfast Inns,72,hospitality.lodging,high,naics4_rule
-721199,All Other Traveler Accommodation,72,hospitality.lodging,high,naics4_rule
+721199,All Other Traveler Accommodation,72,hospitality.short_term_rental,high,phase2_oos_override
 721211,RV (Recreational Vehicle) Parks and Campgrounds,72,hospitality.lodging,high,naics4_rule
 721214,Recreational and Vacation Camps (except Campgrounds),72,hospitality.lodging,high,naics4_rule
 721310,"Rooming and Boarding Houses, Dormitories, and Workers' Camps",72,hospitality.lodging,high,naics4_rule
 722310,Food Service Contractors,72,hospitality.catering_special_food,high,naics6_override
 722320,Caterers,72,hospitality.catering_special_food,high,naics6_override
-722330,Mobile Food Services,72,hospitality.cafe_quick_service,high,naics6_override
+722330,Mobile Food Services,72,hospitality.food_truck,high,phase2_oos_override
 722410,Drinking Places (Alcoholic Beverages),72,hospitality.bar_nightlife,high,naics4_rule
 722511,Full-Service Restaurants,72,hospitality.full_service_restaurant,high,naics6_override
 722513,Limited-Service Restaurants,72,hospitality.cafe_quick_service,high,naics6_override
 722514,"Cafeterias, Grill Buffets, and Buffets",72,hospitality.cafe_quick_service,high,naics6_override
 722515,Snack and Nonalcoholic Beverage Bars,72,hospitality.cafe_quick_service,high,naics6_override
+# Phase 2 OOS override: 722599 (synthetic code for ghost kitchens / cloud kitchens / delivery-only concepts) — real federal NAICS classifies these under 722513 alongside fast food, but keywordRouter routes "Ghost Kitchen / Cloud Kitchen" to this synthetic code so they get the delivery-platform-focused hospitality.ghost_kitchen profile instead of the walk-in cafe_quick_service profile.
+722599,Ghost Kitchens (synthetic),72,hospitality.ghost_kitchen,high,phase2_oos_override
 811111,General Automotive Repair,81,other_services.auto_repair,high,naics4_rule
 811114,Specialized Automotive Repair,81,other_services.auto_repair,high,naics4_rule
 811121,"Automotive Body, Paint, and Interior Repair and Maintenance",81,other_services.auto_repair,high,naics4_rule
@@ -978,7 +987,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 812922,One-Hour Photofinishing,81,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
 # Phase 2 OOS override: 812930 (Parking Lots and Garages) routed to other_services.personal_care by default but reclassified OUT_OF_SCOPE_NICHE — parking facilities are real-estate operations, not personal-care services.
 812930,Parking Lots and Garages,81,OUT_OF_SCOPE_NICHE,high,phase2_oos_override
-812990,All Other Personal Services,81,other_services.personal_care,high,naics4_rule
+812990,All Other Personal Services,81,professional.consulting,high,naics6_override
 # Session 6 OOS reroute: other_services.religious_civic (813*) — per classifier OOS pattern; membership/religious/civic orgs not commercial businesses.
 813110,Religious Organizations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override
 813211,Grantmaking Foundations,81,OUT_OF_SCOPE_NICHE,high,session6_oos_override

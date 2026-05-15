@@ -36,6 +36,9 @@ const dataAgents = require('./dataAgents');
 const marketScorer = require('./marketScorer');
 const dataFetchers = require('./dataFetchers');
 const places = require('./googlePlaces');
+// Bounded LRU cache wrapper — replaces the unbounded `new Map()`
+// instances below so memory stays flat under sustained traffic.
+const { LRUCache } = require('lru-cache');
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS_TYPES   = 500;
@@ -44,35 +47,69 @@ const MAX_TOKENS_DIVE_A  = 12000;  // bumped 8K→12K for tier1+tier2+tier3 in o
 const MAX_TOKENS_DIVE_B  = 6000;
 const MAX_TOKENS_CHAT    = 1000;
 
-const MARKET_CACHE = new Map();
 const MARKET_TTL   = 24 * 60 * 60 * 1000;
+const MARKET_CACHE = new LRUCache({ max: 1000, ttl: MARKET_TTL });
 
-const TYPES_CACHE  = new Map();
 const TYPES_TTL    = 7 * 24 * 60 * 60 * 1000;
+const TYPES_CACHE  = new LRUCache({ max: 1000, ttl: TYPES_TTL });
 
 const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
 // ── safeJSON — extract the first {…} (or […]) and repair truncation ─
+// Uses a brace-depth scanner instead of a greedy regex. Greedy regex
+// (`/\{[\s\S]*\}/`) goes from the first `{` to the LAST `}` — which
+// over-captures when Claude includes a stray `}` in a prose preamble
+// or trailing markdown. The depth scanner walks character by character,
+// honors quoted strings + escapes, and returns the FIRST balanced
+// brace/bracket run.
+function extractJSON(text) {
+  if (!text) return null;
+  // Find the earliest `{` or `[` (whichever opens the JSON value).
+  const firstObj = text.indexOf('{');
+  const firstArr = text.indexOf('[');
+  let start;
+  let openCh;
+  let closeCh;
+  if (firstObj === -1 && firstArr === -1) return null;
+  if (firstObj === -1) { start = firstArr; openCh = '['; closeCh = ']'; }
+  else if (firstArr === -1) { start = firstObj; openCh = '{'; closeCh = '}'; }
+  else if (firstObj < firstArr) { start = firstObj; openCh = '{'; closeCh = '}'; }
+  else { start = firstArr; openCh = '['; closeCh = ']'; }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === openCh) depth++;
+    else if (ch === closeCh) {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
 function safeJSON(text, label) {
   if (!text) throw new Error(label + ': empty response');
-  // Try object first, then array (Tier 2 returns an array).
-  const objMatch = text.match(/\{[\s\S]*\}/);
-  const arrMatch = text.match(/\[[\s\S]*\]/);
-  // Prefer whichever appears earlier in the text.
-  let match = null;
-  if (objMatch && arrMatch) {
-    match = objMatch.index <= arrMatch.index ? objMatch : arrMatch;
-  } else {
-    match = objMatch || arrMatch;
-  }
-  if (!match) {
+  const candidate = extractJSON(text);
+  if (!candidate) {
     throw new Error(label + ': no JSON found. Got: ' + text.slice(0, 200));
   }
-  try { return JSON.parse(match[0]); } catch (_) { /* repair */ }
+  try { return JSON.parse(candidate); } catch (_) { /* repair */ }
 
-  const lines = match[0].split('\n');
+  // Truncation repair — walk lines backward closing any unclosed
+  // braces/brackets at each step until JSON.parse accepts the chunk.
+  const lines = candidate.split('\n');
   for (let i = lines.length - 1; i > 5; i--) {
     const chunk = lines.slice(0, i).join('\n');
     const ob  = (chunk.match(/\{/g) || []).length - (chunk.match(/\}/g) || []).length;

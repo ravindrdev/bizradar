@@ -9,6 +9,12 @@
 // dependency: dataFetchers does not require googlePlaces.
 const dataFetchers = require('./dataFetchers');
 
+// LRU-Cache wrapper — bounded-size cache with per-entry TTL. Replaces
+// the raw `new Map()` caches throughout this file so the process can't
+// OOM under sustained traffic (each cache previously grew unbounded
+// because the only eviction was TTL on read, not size on write).
+const { LRUCache } = require('lru-cache');
+
 
 const TEXTSEARCH_URL =
   'https://maps.googleapis.com/maps/api/place/textsearch/json';
@@ -59,23 +65,23 @@ const DETAIL_FIELDS = [
 
 // Simple in-memory cache for competitor results, 24h TTL keyed by place_id.
 // (Process-lifetime only — not persistent. Phase 3 acceptable; persistent
-// cache deferred to future batch.)
-const COMPETITOR_CACHE = new Map();
+// cache deferred to future batch.) max=1000 caps memory under traffic.
 const COMPETITOR_TTL_MS = 24 * 60 * 60 * 1000;
+const COMPETITOR_CACHE = new LRUCache({ max: 1000, ttl: COMPETITOR_TTL_MS });
 
 // 24-hour cache for Google Places Details responses, keyed by place_id.
 // Each Details call costs ~$0.017; caching cuts repeat-lookup cost for
 // the same business to zero within the TTL window. BATCH13 spec p.5
-// calls for Redis with 24h TTL — this Map is the in-process v1 of that.
-const DETAILS_CACHE = new Map();
+// calls for Redis with 24h TTL — this LRU is the in-process v1 of that.
 const DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
+const DETAILS_CACHE = new LRUCache({ max: 1000, ttl: DETAILS_TTL_MS });
 
 // 30-day cache for geocoding results — addresses don't move. Keyed by
 // the lowercase normalized address string (with state appended). Values
 // are { lat, lon } or null when geocoding failed (cached so we don't
 // re-fire on every retry).
-const GEOCODE_CACHE = new Map();
 const GEOCODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const GEOCODE_CACHE = new LRUCache({ max: 1000, ttl: GEOCODE_TTL_MS });
 
 // ─────────────────────────────────────────────────────────────────────
 // Module-level helpers used by findPlace. Lifted from prior inner
@@ -769,26 +775,91 @@ const POOL_TARGET = 5;
 const NAICS_QUERIES = {
   // Agriculture
   '112910': 'honey farm apiary beekeeper',
-  '111': 'farm produce agriculture',
+  '111331': 'apple orchard fruit farm pick your own orchard',
+  '111332': 'vineyard grape farm winery grape supplier',
+  '111333': 'berry farm pick-your-own',
+  '111411': 'mushroom farm specialty fungi mushroom grower producer',
+  '111419': 'hydroponic farm vertical farm indoor growing controlled environment agriculture',
+  '111421': 'christmas tree farm nursery',
+  '111998': 'agritourism farm pick-your-own pumpkin patch',
+  '111':    'farm produce agriculture',
+  // Livestock (112xxx) — consumer-facing animal operations
+  '112120': 'dairy farm creamery milk farm cheese producer',
+  '112210': 'pig farm hog farm pork producer livestock',
+  '112300': 'chicken farm poultry farm egg farm hatchery',
+  '112410': 'sheep farm lamb farm wool producer',
+  '112420': 'goat farm goat dairy goat cheese livestock',
+  // Note: '112130' (Dual-Purpose Cattle Ranching) WAS keyed as 'petting
+  // zoo farm' — wrong NAICS (petting zoos are 712130, separate entry).
+  // Removed in this batch; petting zoos hit 712130 below.
+  '112':    'livestock farm ranch',
+  // Retail food manufacturing (consumer-facing storefronts).
+  '311811': 'bakery pastry shop donut shop bread artisan bakery',
+  '311812': 'bakery pastry shop donut shop bread artisan bakery',
+  // Food and beverage production (consumer-facing variants)
+  '312120': 'brewery taproom brewpub craft beer',
+  '312130': 'winery vineyard wine tasting room',
+  '312140': 'distillery spirits whiskey tasting room',
+  '312':    'brewery winery distillery',
+  // Real estate — food hall operators (lessor of food vendor space)
+  '531120': 'food hall market hall food market indoor market vendor',
   // Accommodation
   '721110': 'hotel motel inn',
   '721191': 'bed and breakfast inn',
-  '721211': 'campground RV park',
+  '721199': 'short term rental vacation rental airbnb vrbo holiday home',
+  '721211': 'campground camping rv park outdoor recreation tent camping',
+  '721310': 'hostel backpacker budget accommodation dormitory shared room lodging',
   // Food service
   '722511': 'restaurant dining',
   '722513': 'restaurant fast food',
   '722515': 'cafe coffee shop',
   '722410': 'bar pub brewery',
-  // Retail
+  '722330': 'food truck mobile food street food vendor',
+  '722320': 'event venue caterer wedding venue',
+  '722599': 'ghost kitchen cloud kitchen delivery restaurant virtual kitchen',
+  // Retail — grocery / specialty food
   '445110': 'grocery supermarket',
+  '445131': 'convenience store c-store corner store mini mart gas station',
+  '445230': 'farmers market outdoor market community market public market',
   '445298': 'specialty food store',
+  '445320': 'liquor store wine shop spirits store beer wine bottle shop',
+  // Retail — pets / home / general merchandise
   '459910': 'pet supply store',
   '444110': 'home center hardware',
+  '449110': 'furniture store home furnishings sofa mattress bedroom living room decor',
+  '449129': 'mattress store mattress firm sleep shop bedding store',
+  '459110': 'sporting goods store outdoor gear bike shop hunting fishing outdoor',
+  '459120': 'toy store game store hobby shop board game store kids toys educational toys',
+  '459210': 'bookstore independent books used books comic book store library bookshop',
+  '459310': 'florist flower shop floral design wedding flowers flower delivery',
+  '459420': 'gift shop souvenir store novelty shop gifts tourist shop',
+  '459510': 'antique store antique mall vintage shop consignment thrift store second hand',
+  '459991': 'vape shop e-cigarette smoke shop tobacco shop',
+  // Retail — apparel / shoes / jewelry
+  '458110': 'clothing store boutique fashion apparel retail women men clothing',
+  '458210': 'shoe store footwear retail sneaker store boot shop',
+  '458310': 'jewelry store jeweler diamond engagement ring watch store fine jewelry',
   // Health
   '621210': 'dental office dentist',
   '621111': 'medical clinic doctor',
   '621310': 'chiropractor',
+  '621320': 'optometrist eye doctor vision center optical',
   '621330': 'therapist counseling',
+  '621340': 'physical therapy sports rehabilitation PT clinic occupational therapy',
+  '621493': 'urgent care walk-in clinic immediate care after hours medical',
+  '622110': 'hospital medical center regional hospital health system general hospital',
+  '541940': 'veterinary clinic animal hospital pet care veterinarian vet',
+  '621399': 'acupuncture traditional chinese medicine holistic health alternative medicine wellness',
+  '812199': 'day spa massage spa wellness spa beauty spa med spa float tank cryotherapy',
+  // Instruction / fitness / recreation niches that share NAICS-3 with
+  // larger categories — explicit entries so competitor pools are
+  // on-target.
+  '611610': 'dance studio ballet jazz hip hop music school piano guitar violin lessons arts classes performing arts',
+  '611519': 'cooking school culinary classes cooking class chef trade school vocational school technical program career training',
+  '611310': 'university college campus higher education community college liberal arts four year university',
+  '624410': 'daycare preschool childcare early childhood education Montessori child development center learning',
+  '611620': 'martial arts school karate taekwondo judo dojo self defense classes MMA',
+  '713950': 'bowling alley bowling center lanes bowling league',
   '812112': 'hair salon beauty',
   '812111': 'barbershop',
   '812113': 'nail salon',
@@ -796,8 +867,27 @@ const NAICS_QUERIES = {
   '811111': 'auto repair mechanic',
   '811192': 'car wash',
   '441110': 'car dealership',
+  '441210': 'rv dealer motorhome camper trailer recreational vehicle RV sales Camping World',
+  '441222': 'boat dealer marine dealer pontoon fishing boat yacht dealer watercraft boat sales',
+  '713930': 'marina yacht club boat club harbor marina boat slip slip rental boat dock harbor master mooring',
+  '441227': 'motorcycle dealer Harley Davidson powersports dealer motorcycle shop motorbike dealer',
+  '441330': 'tire dealer tire shop tire store discount tire tire center tire warehouse wheel alignment',
+  '457110': 'gas station fuel station convenience store petrol service station filling station',
+  '447110': 'truck stop travel center travel plaza diesel fuel trucker amenities Pilot Flying J Loves',
+  '485310': 'taxi cab service taxi company airport taxi rideshare cab',
+  '485320': 'limousine service limo rental chauffeur wedding limo airport transportation luxury car service',
+  '484110': 'trucking company freight carrier logistics hauling commercial trucking long haul',
+  '484122': 'trucking freight carrier less than truckload LTL regional trucking shipping',
+  '488510': 'freight broker logistics broker shipping broker freight brokerage carrier network load board',
+  '488410': 'towing company roadside assistance wrecker service tow truck AAA',
+  '484210': 'moving company movers residential moving local movers long distance moving storage',
+  '812310': 'laundromat coin laundry self service laundry wash dry fold laundry mat',
+  '812320': 'dry cleaner laundry service dry cleaning alterations wash and fold pickup delivery',
+  '323111': 'print shop copy center printing service business cards banner sign printing custom t-shirt printing',
+  '541921': 'photography studio wedding photographer portrait studio headshots commercial photography photo booth',
+  '812990': 'event planner wedding planner event coordinator corporate event planning party planner',
   // Fitness
-  '713940': 'gym fitness center',
+  '713940': 'gym fitness center aquatic center swim club pool',
   // Education
   '611110': 'school education',
   '611691': 'tutoring center',
@@ -805,11 +895,67 @@ const NAICS_QUERIES = {
   '541110': 'law office attorney',
   '541211': 'accounting CPA',
   '522110': 'bank',
-  // Funeral
+  '523940': 'financial advisor wealth management investment advisor financial planner retirement planning CFP',
+  '524210': 'insurance agency auto home life insurance agent broker independent insurance State Farm Allstate',
+  '531210': 'real estate agency broker realtor home sales property listing agent Coldwell Banker RE/MAX Keller',
+  '522292': 'mortgage broker mortgage lender home loan refinance mortgage company home purchase loan',
+  // Alt-finance / nondepository credit (pawn shops, check cashing, payday,
+  // title loans, money transmitters). Routed to finance.alt_lending profile.
+  '522298': 'pawn shop cash for gold second hand store',
+  '522390': 'check cashing money transfer payday loan',
+  '522291': 'consumer lending personal loan title loan',
+  // Construction trades / home services
+  '238220': 'plumber plumbing service emergency plumber water heater drain cleaning sewer repair',
+  '238210': 'electrician electrical contractor licensed electrician wiring panel upgrade electrical repair service',
+  '238160': 'roofing contractor roofer roof repair roof replacement shingles gutter installation',
+  '238320': 'painter house painter interior exterior painting painting contractor',
+  '236220': 'general contractor commercial contractor building contractor construction company renovation contractor',
+  // Facility & property services
+  '561710': 'pest control exterminator termite control bed bug treatment rodent control',
+  '561720': 'cleaning service house cleaning maid service commercial cleaning janitorial deep cleaning',
+  '561730': 'landscaping lawn care tree service arborist lawn maintenance snow removal yard service',
+  '561790': 'pool service pool cleaning pool maintenance pool repair swimming pool service',
+  // Funeral / death care
   '812210': 'funeral home',
-  // Entertainment
+  '812220': 'cemetery memorial park burial ground funeral',
+  // Entertainment / experiences
   '713110': 'amusement park',
-  '713990': 'entertainment venue',
+  '713910': 'golf course country club golf resort public golf private golf course',
+  '459920': 'art gallery fine art gallery contemporary art painting sculpture exhibition',
+  '712120': 'historical site heritage site historic museum landmark historical society',
+  '712219': 'horse stable equestrian center horse boarding riding lessons horse ranch',
+  '711110': 'live theater community theater playhouse dinner theater performing arts theater company',
+  '711120': 'dance company ballet company dance troupe performing arts dance theater',
+  '711219': 'ice rink hockey rink ice arena skating rink ice complex figure skating',
+  '713920': 'ski resort ski area ski hill snowboard resort winter resort alpine skiing',
+  '532292': 'kayak rental canoe rental bike rental outdoor equipment rental paddleboard',
+  '487210': 'fishing charter boat charter sport fishing guided fishing hunting guide outfitter',
+  '713990': 'entertainment venue escape room axe throwing trampoline park',
+  '711510': 'paint and sip studio painting class wine art class creative studio art experience',
+  '712130': 'zoo aquarium wildlife park botanical garden nature center animal sanctuary',
+  '459999': 'crystal shop metaphysical store spiritual goods new age healing crystals tarot',
+  // NAICS-keyed targeted queries for niche businesses that fall through
+  // the generic catch-alls. Optometry covered separately above.
+  // NOTE: '812199' lives at line ~847 above with the richer spa query —
+  // a duplicate entry here was silently overwriting it (JS object-literal
+  // last-wins semantics) so day spas / massage spas / med spas were
+  // getting the narrow "float tank wellness specialty" query instead.
+  // Duplicate removed in this batch; richer query at line ~847 is canonical.
+  '561520': 'tour operator ghost tour walking tour company',
+  '711190': 'comedy club live entertainment performance venue',
+  '711310': 'concert hall performing arts center symphony orchestra cultural center auditorium',
+  '512131': 'movie theater cinema multiplex film theater AMC Regal Cinemark',
+  '512132': 'drive-in theater outdoor cinema movie theater',
+  '713120': 'arcade video game arcade barcade family entertainment center gaming',
+  // BUG 26 — Removed 11 keyword-keyed entries (knife_throwing, hookah,
+  // cat_cafe, rage_room, ghost_tour, sensory_deprivation, cryotherapy,
+  // iv_drip, oxygen_bar, psychic, crystal_shop). They were dead code:
+  // buildCompetitorQuery only ever looks up NAICS-6 keys, never these
+  // string keys. The niche queries they covered are now all reachable
+  // via NAICS routes — axe/knife throwing via 713990; cat cafe via the
+  // restaurant routes; hookah / oxygen bar / IV drip / cryotherapy /
+  // sensory deprivation via 812199 (specialty wellness); ghost tour
+  // via 561520; psychic / crystal shop via 459999.
 };
 
 const COMPETITOR_QUERY_SKIP_TYPES = new Set([
@@ -1513,7 +1659,9 @@ const FAST_FOOD_CHAINS = [
 // `queryNoLocality` inside fetchNearbyCompetitors pass different city/
 // state (the latter passes null), so they will trigger TWO calls per
 // new business; switch the cache key to name-only if cost matters.
-const CUISINE_CACHE = new Map();
+// Process-lifetime cache (no TTL — cuisine type doesn't change). Bounded
+// at max=1000 so memory stays flat under sustained traffic.
+const CUISINE_CACHE = new LRUCache({ max: 1000 });
 const VALID_CUISINES = new Set([
   'indian', 'chinese', 'japanese', 'korean', 'thai', 'vietnamese',
   'mexican', 'italian', 'french', 'greek', 'middleeastern', 'seafood',
@@ -1619,6 +1767,63 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
   const locality = [city, state].filter(Boolean).join(' ');
   const suffix = locality ? ` near ${locality}` : '';
   const naics6Str = naics6 != null ? String(naics6) : '';
+
+  // ─── MEAL PREP / MEAL KIT DETECTION (overrides the generic caterer query) ──
+  // NAICS 722320 (Caterers) covers BOTH traditional event caterers (wedding
+  // venues, banquet halls) and modern meal-prep / meal-kit subscriptions.
+  // The default 'event venue caterer wedding venue' query finds traditional
+  // caterers but is useless for a meal-prep subscription business. Detect
+  // meal-prep intent from the business name and use a subscription-focused
+  // query instead.
+  if (naics6Str === '722320') {
+    const nameLowerMP = String(businessName || '').toLowerCase();
+    if (
+      nameLowerMP.includes('meal prep') ||
+      nameLowerMP.includes('meal kit') ||
+      nameLowerMP.includes('meal plan') ||
+      nameLowerMP.includes('prepared meals')
+    ) {
+      const q = 'meal prep service meal kit healthy food delivery subscription';
+      console.log(`[competitor-query] ${businessName} → layer:meal_prep override category:"${q}"`);
+      return q + suffix;
+    }
+  }
+
+  // ─── RESORT DETECTION (overrides the generic hotel query) ─────────
+  // NAICS 721110 covers both limited-service hotels and full-service
+  // destination resorts. Names with "resort" or "lodge" signal the
+  // higher-amenity model — use a resort-targeted query so the competitor
+  // pool surfaces other resorts/destination lodges instead of generic
+  // chain hotels.
+  if (naics6Str === '721110') {
+    const nameLowerRS = String(businessName || '').toLowerCase();
+    if (nameLowerRS.includes('resort') || nameLowerRS.includes(' lodge')) {
+      const q = 'resort lodge destination hotel waterpark conference center';
+      console.log(`[competitor-query] ${businessName} → layer:resort override category:"${q}"`);
+      return q + suffix;
+    }
+  }
+
+  // ─── TATTOO / PIERCING DETECTION (overrides the generic 812199 spa
+  // query) ───────────────────────────────────────────────────────────
+  // NAICS 812199 (Other Personal Care Services) covers a broad mix of
+  // day spas, med spas, float tanks, cryotherapy, eyelash/microblading,
+  // AND tattoo parlors + body piercing studios. The default spa query
+  // is useless for a tattoo shop — surface tattoo-specific competitors
+  // when the name signals tattoo/piercing/body art.
+  if (naics6Str === '812199') {
+    const nameLowerTT = String(businessName || '').toLowerCase();
+    if (
+      nameLowerTT.includes('tattoo') ||
+      nameLowerTT.includes('piercing') ||
+      nameLowerTT.includes('ink') ||
+      nameLowerTT.includes('body art')
+    ) {
+      const q = 'tattoo parlor tattoo studio body piercing ink shop body art';
+      console.log(`[competitor-query] ${businessName} → layer:tattoo override category:"${q}"`);
+      return q + suffix;
+    }
+  }
 
   // ─── RESTAURANTS — cuisine detection runs FIRST ────────────────────
   // Only NAICS 722xxx (food service). Hotels (721xxx) skip this entire
@@ -1769,7 +1974,9 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
 
   // Priority 1 — exact NAICS-6 lookup
   if (naics6Str && NAICS_QUERIES[naics6Str]) {
-    return NAICS_QUERIES[naics6Str] + suffix;
+    const q = NAICS_QUERIES[naics6Str] + suffix;
+    console.log(`[competitors] search query: "${q}" (NAICS-6 exact ${naics6Str})`);
+    return q;
   }
 
   // Priority 2 — NAICS-4 prefix scan
@@ -1777,7 +1984,29 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     const naics4 = naics6Str.substring(0, 4);
     const naics4Match = Object.keys(NAICS_QUERIES).find((k) => k.startsWith(naics4));
     if (naics4Match) {
-      return NAICS_QUERIES[naics4Match] + suffix;
+      const q = NAICS_QUERIES[naics4Match] + suffix;
+      console.log(`[competitors] search query: "${q}" (NAICS-4 prefix ${naics4} → ${naics4Match})`);
+      return q;
+    }
+  }
+
+  // Priority 2b — NAICS-3 exact key lookup (e.g. '111', '312' entries)
+  if (naics6Str.length >= 3) {
+    const naics3 = naics6Str.substring(0, 3);
+    if (NAICS_QUERIES[naics3]) {
+      const q = NAICS_QUERIES[naics3] + suffix;
+      console.log(`[competitors] search query: "${q}" (NAICS-3 ${naics3})`);
+      return q;
+    }
+  }
+
+  // Priority 2c — NAICS-2 exact key lookup
+  if (naics6Str.length >= 2) {
+    const naics2Key = naics6Str.substring(0, 2);
+    if (NAICS_QUERIES[naics2Key]) {
+      const q = NAICS_QUERIES[naics2Key] + suffix;
+      console.log(`[competitors] search query: "${q}" (NAICS-2 ${naics2Key})`);
+      return q;
     }
   }
 
@@ -1884,40 +2113,90 @@ function competitorComparator(a, b) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// classifyCompetitorTier — TIER 1 ("threat") vs TIER 2 ("winning")
+// classifyCompetitorTier — 'threat' | 'winning' | 'neutral'
 // ─────────────────────────────────────────────────────────────────────
-// Compare each competitor against the SUBJECT business's rating + review
-// count. Tier 1 = real competitive threat, deserves a full comparison
-// card. Tier 2 = subject is meaningfully outperforming, render as a
-// muted "you're winning" line.
+// Compares a competitor against the SUBJECT business's rating + review
+// count using ABSOLUTE thresholds, not subject-relative ratios. The
+// prior subject-relative logic produced two failure modes:
+//   - Brand-new subjects (0 reviews) had every competitor flagged as a
+//     threat — even tiny 3-review competitors — because the "no signals"
+//     short-circuit returned 'threat' for everyone. Result: panic-
+//     inducing reports for the customer cohort that most needs an
+//     achievable benchmark.
+//   - Large established subjects (500+ reviews) had nearly every
+//     competitor flagged 'winning' because `compReviews > sReviews * 0.5`
+//     requires the competitor to have 250+ reviews to count as a threat —
+//     a high-rated 100-review competitor was silently dismissed.
 //
-// Conditions (any → tier 1):
-//   - competitor reviews > subject reviews × 0.5  (meaningful volume)
-//   - competitor rating > subject rating          (rating advantage)
-//   - rating within 0.3 AND reviews ≥ subject × 0.3  (similar enough)
-// Otherwise → tier 2.
+// New scheme — three tiers:
+//   threat   — genuinely better than the subject; render as a card.
+//   winning  — subject is meaningfully outperforming; render as a muted
+//              "you're winning" line.
+//   neutral  — similar level / not enough signal to judge. Caller (the
+//              renderer in server.js) currently filters by tier === 'threat'
+//              and tier === 'winning' — neutrals are silently dropped so
+//              the report doesn't get cluttered with no-information cards.
 //
-// Both subjectRating and subjectReviewCount are coerced safely — if
-// the subject has no rating or 0 reviews, the function falls back to
-// classifying everything as tier 1 (everyone is a threat to a fresh
-// business with no signals).
+// SMALL / NEW SUBJECT (sReviews < 25):
+//   Absolute rating thresholds only (review-count ratios are meaningless
+//   when the denominator is tiny). Rule order matters — the cReviews < 5
+//   neutral check runs BEFORE the weak-rating check so a low-rated
+//   competitor with too-few reviews bails to neutral instead of being
+//   confidently labeled winning on a 3-review sample:
+//     threat   = cRating >= 4.5 AND cReviews >= 10  (genuinely better)
+//     neutral  = cReviews < 5                       (too few to judge)
+//     winning  = cRating < 3.8 AND cReviews >= 5    (real weak signal)
+//     neutral  = everything else
+//
+// ESTABLISHED SUBJECT (sReviews >= 25):
+//   Rating-GAP-based — measures real outperformance, not raw review count:
+//     ratingGap = cRating - sRating
+//     threat   = ratingGap >= 0.5 AND cReviews >= 20
+//     winning  = ratingGap <= -0.3 OR cRating < 3.8
+//     neutral  = everything else
 function classifyCompetitorTier(comp, subjectRating, subjectReviewCount) {
-  const compRating  = (comp && typeof comp.rating === 'number') ? comp.rating : 0;
-  const compReviews = (comp && typeof comp.review_count === 'number') ? comp.review_count : 0;
+  const cRating  = (comp && typeof comp.rating === 'number') ? comp.rating : 0;
+  const cReviews = (comp && typeof comp.review_count === 'number') ? comp.review_count : 0;
   const sRating  = typeof subjectRating === 'number' ? subjectRating : 0;
   const sReviews = typeof subjectReviewCount === 'number' ? subjectReviewCount : 0;
 
-  // Subject has no signals → everyone counts as a threat.
-  if (sReviews === 0 || sRating === 0) return 'threat';
+  // SMALL / NEW SUBJECT — under 25 reviews. Use absolute rating thresholds;
+  // review-count comparisons are noise at this scale.
+  if (sReviews < 25) {
+    // Genuinely better than the subject — real threat.
+    if (cRating >= 4.5 && cReviews >= 10) {
+      return 'threat';
+    }
+    // Too few reviews to judge — could be a great new place or a bad one.
+    // Bail out as neutral BEFORE the weak-rating check so a 3.2★/3-review
+    // competitor doesn't get labeled winning on a tiny sample.
+    if (cReviews < 5) {
+      return 'neutral';
+    }
+    // Weak competitor (and enough reviews to trust the rating) — subject
+    // is already winning. cReviews >= 5 is guaranteed by the early-return above.
+    if (cRating < 3.8) {
+      return 'winning';
+    }
+    // Similar level / insufficient signal.
+    return 'neutral';
+  }
 
-  // Tier 1 condition A — meaningful review volume (≥ half the subject's).
-  if (compReviews > sReviews * 0.5) return 'threat';
-  // Tier 1 condition B — beats subject on rating regardless of volume.
-  if (compRating > sRating) return 'threat';
-  // Tier 1 condition C — similar enough on BOTH dimensions.
-  if (compRating >= sRating - 0.3 && compReviews >= sReviews * 0.3) return 'threat';
+  // ESTABLISHED SUBJECT — 25+ reviews. Use rating GAP as the signal.
+  const ratingGap = cRating - sRating;
 
-  return 'winning';
+  // Competitor is significantly better — genuine threat.
+  if (ratingGap >= 0.5 && cReviews >= 20) {
+    return 'threat';
+  }
+
+  // Subject is beating them on rating, OR competitor's absolute rating is weak.
+  if (ratingGap <= -0.3 || cRating < 3.8) {
+    return 'winning';
+  }
+
+  // Similar level.
+  return 'neutral';
 }
 
 // Fuzzy name dedup — collapse two entries with the same 20-char
@@ -2206,8 +2485,8 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 //   }
 //
 // 24h cache per `${type}|${lat@2dec}|${lon@2dec}`. 5s timeout.
-const BIZ_TYPE_CACHE = new Map();
 const BIZ_TYPE_TTL_MS = 24 * 60 * 60 * 1000;
+const BIZ_TYPE_CACHE = new LRUCache({ max: 1000, ttl: BIZ_TYPE_TTL_MS });
 
 function noveltyFromCount(count) {
   if (count === 0) return 10;

@@ -5,6 +5,7 @@ require('dotenv').config({ override: true });
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 
 const layer0 = require('./server_layer0');
@@ -16,7 +17,8 @@ const dataFetchers = require('./dataFetchers');
 const { scoreRecommendations, evaluateRedFlags } = require('./ranker');
 const triggerDsl = require('./triggerDsl');
 const claudeEnricher = require('./claudeEnricher');
-const marketScorer = require('./marketScorer');
+// marketScorer is required by claudeMarketAnalyst.js, not by server.js
+// directly — the prior import here was dead code.
 const claudeMarketAnalyst = require('./claudeMarketAnalyst');
 const { verifyQuotes } = require('./provenance');
 const studies = require('./verifiedStudies.json');
@@ -28,6 +30,132 @@ const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ─────────────────────────────────────────────────────────────────────
+// Password gate — blocks every route until the user signs in with the
+// shared access password. The session is held via an HttpOnly cookie
+// carrying a SHA-256-derived token (not the password itself), so the
+// cookie value alone isn't reversible to the password. 24-hour
+// lifetime; SameSite=Strict prevents CSRF.
+//
+// To rotate the password later, change ACCESS_PASSWORD (or move it to
+// process.env.BIZRADAR_PASSWORD and read it here) — ACCESS_TOKEN is
+// derived deterministically from it, so existing cookies will fail
+// the equality check and force re-login.
+// ─────────────────────────────────────────────────────────────────────
+const ACCESS_PASSWORD = process.env.BIZRADAR_PASSWORD || '9848';
+const ACCESS_COOKIE_NAME = 'bizradar_access';
+const ACCESS_TOKEN = crypto
+  .createHash('sha256')
+  .update('bizradar:' + ACCESS_PASSWORD)
+  .digest('hex')
+  .slice(0, 32);
+const ACCESS_COOKIE_MAX_AGE_SEC = 24 * 60 * 60;
+
+function parseCookieHeader(header) {
+  const out = {};
+  if (!header) return out;
+  for (const piece of header.split(';')) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    out[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
+  }
+  return out;
+}
+
+function isAuthed(req) {
+  const cookies = parseCookieHeader(req.headers.cookie || '');
+  return cookies[ACCESS_COOKIE_NAME] === ACCESS_TOKEN;
+}
+
+function renderLoginPage(showError) {
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>BizRadar &mdash; sign in</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #F8FAFC; color: #1E293B; margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 420px; margin: 60px auto; padding: 32px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: 0 4px 16px rgba(15, 23, 41, 0.05); }
+h1 { font-size: 24px; font-weight: 700; color: #0F1729; margin: 0 0 6px; letter-spacing: -0.02em; }
+.meta { color: #64748B; font-size: 13px; margin: 0 0 24px; }
+label { display: block; font-size: 13px; font-weight: 500; color: #1E293B; margin-bottom: 8px; }
+input[type=password] { width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.12s, box-shadow 0.12s; }
+input[type=password]:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+button { width: 100%; margin-top: 16px; padding: 12px 14px; background: #0F1729; color: #FFFFFF; border: 0; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.12s; }
+button:hover { background: #1E293B; }
+.error { margin-top: 16px; padding: 10px 14px; background: #FEE2E2; border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; font-size: 13px; }
+</style></head><body>
+<div class="wrap">
+<h1>BizRadar</h1>
+<p class="meta">Enter the access password to continue.</p>
+<form method="POST" action="/login" autocomplete="off">
+<label for="password">Password</label>
+<input id="password" name="password" type="password" autocomplete="current-password" autofocus required>
+<button type="submit">Sign in</button>
+${showError ? '<div class="error">Wrong password. Try again.</div>' : ''}
+</form>
+</div>
+</body></html>`;
+}
+
+// Login routes — registered BEFORE the gate so users without a cookie
+// can still reach them. (The gate also short-circuits these paths
+// defensively, but the route order makes it redundant.)
+app.get('/login', (req, res) => {
+  if (isAuthed(req)) return res.redirect('/');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderLoginPage(req.query.error === '1'));
+});
+
+app.post('/login', (req, res) => {
+  const submitted = ((req.body && req.body.password) || '').toString();
+  // Constant-time comparison on equal-length buffers — a length leak
+  // doesn't help an attacker (passwords stay short) but the timing
+  // safety is free and standard practice.
+  let ok = false;
+  if (submitted.length === ACCESS_PASSWORD.length) {
+    try {
+      ok = crypto.timingSafeEqual(
+        Buffer.from(submitted, 'utf8'),
+        Buffer.from(ACCESS_PASSWORD, 'utf8')
+      );
+    } catch (_) { ok = false; }
+  }
+  if (ok) {
+    res.set('Set-Cookie',
+      `${ACCESS_COOKIE_NAME}=${ACCESS_TOKEN}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${ACCESS_COOKIE_MAX_AGE_SEC}`
+    );
+    return res.redirect('/');
+  }
+  res.redirect('/login?error=1');
+});
+
+app.get('/logout', (req, res) => {
+  res.set('Set-Cookie',
+    `${ACCESS_COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`
+  );
+  res.redirect('/login');
+});
+
+// Gate every other route. The login/logout paths above are registered
+// first so Express never reaches this middleware for them; the path
+// check inside is belt-and-suspenders in case route order ever changes.
+app.use((req, res, next) => {
+  if (req.path === '/login' || req.path === '/logout') return next();
+  if (isAuthed(req)) return next();
+  // GET requests get a friendly redirect to the login form. Non-GET
+  // (POST /classify, /market-analysis, /market-chat) get JSON 401 —
+  // browser fetch() won't follow a redirect for those, and an SSE
+  // EventSource would just see HTML in the stream and choke.
+  if (req.method === 'GET') {
+    return res.redirect('/login');
+  }
+  return res.status(401).json({ error: 'Authentication required. Sign in at /login.' });
+});
 
 // Serve index.html with server-side API key injection so the
 // browser never sees a raw %%GOOGLE_API_KEY%% placeholder. Must
@@ -89,8 +217,62 @@ layer0.loadRegistries();
 naicsRouter.load();
 profileResolver.load();
 
+// BUG 29 — Startup validation: every study_id referenced by a profile
+// recommendation MUST exist in verifiedStudies.json. Catches typos and
+// dangling references before they cause silent rendering failures in
+// the citation linter (which only warn-logs at request time). Runs once
+// at boot and prints a summary line; if any unknown IDs are found, the
+// missing entries are logged with the offending profile.recommendation
+// pair so the fix is obvious from the log alone.
+(function validateStudyIds() {
+  try {
+    const knownIds = new Set(
+      (studies && Array.isArray(studies.studies) ? studies.studies : []).map((s) => s.id)
+    );
+    const allProfiles = profileResolver.getAllProfiles() || {};
+    let totalRefs = 0;
+    let missingCount = 0;
+    const missing = [];
+    for (const [profileId, profile] of Object.entries(allProfiles)) {
+      const recs = Array.isArray(profile && profile.recommendations) ? profile.recommendations : [];
+      for (const rec of recs) {
+        const ids = Array.isArray(rec && rec.study_ids) ? rec.study_ids : [];
+        for (const sid of ids) {
+          totalRefs += 1;
+          if (!knownIds.has(sid)) {
+            missingCount += 1;
+            missing.push({ profile: profileId, rec: rec.id || '(unnamed)', sid });
+          }
+        }
+      }
+    }
+    if (missingCount === 0) {
+      console.log(
+        '[startup] study_id validation OK — ' + totalRefs + ' references across ' +
+        Object.keys(allProfiles).length + ' profiles, all resolve to verifiedStudies.json'
+      );
+    } else {
+      console.error(
+        '[startup] study_id validation FAILED — ' + missingCount + ' of ' + totalRefs +
+        ' references point to unknown studies:'
+      );
+      for (const m of missing) {
+        console.error('  - profile=' + m.profile + ' rec=' + m.rec + ' study_id=' + m.sid);
+      }
+    }
+  } catch (e) {
+    console.error('[startup] study_id validation crashed:', e.message);
+  }
+})();
+
 app.post('/classify', async (req, res) => {
   const input = (req.body.query || '').trim();
+  // Optional — set by the landing-page autocomplete when the user picks
+  // a suggestion from the dropdown. Lets us skip the 7-step findPlace
+  // resolver and use Google's exact place_id directly. Empty string
+  // when the user typed free text without selecting a suggestion;
+  // falls back to findPlace in that case (backwards compatible).
+  const clientPlaceId = (req.body.place_id || '').trim();
   const sessionId = (req.body.sessionId || '').toString();
   if (!input) {
     res.status(400).send(renderError('Please enter a business name and city.'));
@@ -130,6 +312,38 @@ app.post('/classify', async (req, res) => {
   // name-based pattern match against the Place's name field. We stash
   // placeStub so we don't double-call Places below.
   let placeStub = null;
+  // Universal place_id short-circuit: when the landing-page autocomplete
+  // supplied a place_id, set placeStub up front so EVERY downstream
+  // `if (!placeStub)` guard (Phase-3 types fallback, claude-classify
+  // fallback, main resolver) skips findPlace and uses Google's exact
+  // selected place_id. Backwards compatible — when no place_id is
+  // present, placeStub stays null and findPlace runs as before.
+  if (clientPlaceId) {
+    placeStub = {
+      place_id: clientPlaceId,
+      name: input.split(',')[0].trim(),
+    };
+    console.log('[classify] place_id set early:', clientPlaceId, '— all findPlace calls skipped');
+    // BUG 8 — when the landing-page autocomplete supplied a place_id we
+    // short-circuited findPlace, but the resulting placeStub has only
+    // `place_id` + `name` — no `types`. That broke the Phase-3 types
+    // fallback (mapSpecificType / mapGenericType both got `undefined`)
+    // AND the Claude-classify fallback (which passes placeStub.types).
+    // Fetch details up front to populate types; the 24h DETAILS_CACHE
+    // means the later getDetails call at line ~385 is a free cache hit.
+    if (API_KEY) {
+      try {
+        const earlyDetail = await places.getDetails(clientPlaceId, API_KEY);
+        if (earlyDetail) {
+          placeStub.types = Array.isArray(earlyDetail.types) ? earlyDetail.types : [];
+          if (earlyDetail.name) placeStub.name = earlyDetail.name;
+          console.log('[classify] place_id early-details:', placeStub.types.length, 'types fetched');
+        }
+      } catch (e) {
+        console.warn('[classify] place_id early-details failed:', e.message, '— continuing without types');
+      }
+    }
+  }
   let typesFallback = null;
   let nameFallback = null;
   if (!layer0Result.naics6) {
@@ -140,7 +354,15 @@ app.post('/classify', async (req, res) => {
       return;
     }
     try {
-      placeStub = await places.findPlace(input, API_KEY);
+      // Guard: skip findPlace when the universal place_id short-circuit
+      // above already set placeStub from the landing-page autocomplete.
+      // Without this guard the Phase-3 types fallback (which runs when
+      // Layer 0 couldn't classify the input text) would overwrite the
+      // pre-set placeStub with a fresh Text Search result, discarding
+      // the exact place_id Google's autocomplete dropdown returned.
+      if (!placeStub) {
+        placeStub = await places.findPlace(input, API_KEY);
+      }
     } catch (err) {
       res.status(502).send(renderError(`Google Places search failed: ${err.message}`));
       return;
@@ -332,7 +554,16 @@ app.post('/classify', async (req, res) => {
   // Reuse placeStub from the Phase-3 types fallback if we already fetched it.
   if (!placeStub) {
     try {
-      placeStub = await places.findPlace(input, API_KEY);
+      if (clientPlaceId) {
+        console.log('[classify] using client place_id:', clientPlaceId, '— skipping findPlace');
+        placeStub = {
+          place_id: clientPlaceId,
+          name: input.split(',')[0].trim(),
+        };
+      } else {
+        console.log('[classify] no place_id — running findPlace');
+        placeStub = await places.findPlace(input, API_KEY);
+      }
     } catch (err) {
       res.status(502).send(renderError(`Google Places search failed: ${err.message}`));
       return;
@@ -412,6 +643,114 @@ app.post('/classify', async (req, res) => {
   data.business_name = data.name || input;
   data.city = addrParts.city;
   data.state = addrParts.state;
+
+  // ── AI Layer 0 verification ─────────────────────────────────────
+  // Runs for ALL businesses with Claude Haiku 4.5 + web_search to
+  // catch Google-types-based misclassifications (berry patch as
+  // restaurant, winery as bar, escape room as retail, etc.). Fires
+  // BEFORE data.sector_naics2 is computed so a correction flows into
+  // the sector-gated fetcher promises below. Profile is NOT re-
+  // resolved here — if NAICS changes, profile.id may end up stale
+  // (acceptable trade-off; flagged for follow-up).
+  try {
+    const aiVerification = await claudeEnricher.verifyBusinessClassification(data, layer0Result);
+    if (aiVerification && aiVerification.override_layer0) {
+      console.log(
+        '[layer0-ai] CORRECTING:', layer0Result.naics6,
+        '→', aiVerification.naics6, '(' + aiVerification.naics_title + ')',
+        '| reason:', (aiVerification.reasoning || '').slice(0, 100)
+      );
+      layer0Result.naics6 = aiVerification.naics6;
+      layer0Result.naics_title = aiVerification.naics_title;
+      layer0Result.sector = aiVerification.sector;
+      layer0Result.naics2 = aiVerification.sector;
+      layer0Result.confidence = aiVerification.confidence;
+      layer0Result.ai_verified = true;
+      layer0Result.ai_corrected = true;
+      layer0Result.ai_reasoning = aiVerification.reasoning;
+      layer0Result.original_naics = aiVerification.original_naics;
+
+      // Re-resolve profile with corrected NAICS so downstream
+      // bundle.opportunity_categories, fdicPromise gates, and any
+      // other profile-driven logic use the new sector rather than
+      // the stale one set at line 258. resolveProfile(naics6) takes
+      // a single arg per profileResolver.js; falls back gracefully
+      // to the original profile when no profile exists for the new
+      // NAICS (e.g. registry doesn't cover it yet).
+      let correctedProfileFound = false;
+      try {
+        const correctedProfile = profileResolver.resolveProfile(layer0Result.naics6);
+        if (correctedProfile) {
+          profile = correctedProfile;
+          data.profile_id = correctedProfile.sector_profile_id || correctedProfile.id || null;
+          correctedProfileFound = true;
+          console.log('[layer0-ai] profile re-resolved:', data.profile_id);
+        } else {
+          console.log(
+            '[layer0-ai] no profile found for corrected NAICS',
+            layer0Result.naics6,
+            '— attempting AI profile selection'
+          );
+        }
+      } catch (e) {
+        console.error('[layer0-ai] profile re-resolve failed:', e.message);
+      }
+
+      // BUG 9 — When correctedProfile was found AND the AI correction
+      // didn't move the high-level NAICS-2 sector, the registry-resolved
+      // profile is already a strong match — skipping selectBestProfile
+      // avoids an unnecessary Haiku call and prevents the cross-check
+      // from second-guessing a perfectly valid in-sector correction.
+      const originalSectorN2 = layer0Result.original_naics
+        ? String(layer0Result.original_naics).slice(0, 2)
+        : null;
+      const newSectorN2 = aiVerification.sector
+        ? String(aiVerification.sector)
+        : (layer0Result.naics6 ? String(layer0Result.naics6).slice(0, 2) : null);
+      const sectorChanged = !!(originalSectorN2 && newSectorN2 && originalSectorN2 !== newSectorN2);
+
+      // ── AI profile selector (FIX 2) ──────────────────────────────
+      // If the corrected NAICS produced no profile (or even if it did,
+      // we cross-check by asking Claude Haiku to pick the best matching
+      // profile_id from the full registry). When the picker returns a
+      // profile id that actually exists, override `profile` so the
+      // bundle's opportunity_categories + downstream profile-driven
+      // logic use the better match.
+      if (!correctedProfileFound || sectorChanged) {
+        try {
+          const allProfiles = profileResolver.getAllProfiles();
+          const selectedProfileId = await claudeEnricher.selectBestProfile(
+            layer0Result.naics6,
+            data.name,
+            layer0Result.ai_reasoning,
+            allProfiles
+          );
+          if (selectedProfileId && allProfiles && allProfiles[selectedProfileId]) {
+            profile = allProfiles[selectedProfileId];
+            data.profile_id = selectedProfileId;
+            layer0Result.profile_id = selectedProfileId;
+            layer0Result.sector_profile = allProfiles[selectedProfileId];
+            console.log('[profile-selector] using:', selectedProfileId);
+          }
+        } catch (e) {
+          console.error('[profile-selector] step failed:', e.message);
+        }
+      } else {
+        console.log(
+          '[profile-selector] skipped — correctedProfile found and sector unchanged (n2=' +
+          originalSectorN2 + ')'
+        );
+      }
+    } else if (aiVerification && !aiVerification.override_layer0) {
+      console.log('[layer0-ai] CONFIRMED:', layer0Result.naics6, 'is correct');
+      layer0Result.ai_verified = true;
+      layer0Result.ai_corrected = false;
+      layer0Result.ai_reasoning = aiVerification.reasoning;
+    }
+  } catch (e) {
+    console.error('[layer0-ai] verification failed:', e.message, '— continuing with original');
+  }
+
   data.sector_naics2 = naics2FromNaics6(layer0Result.naics6);
   data.profile_id = profile.id;
 
@@ -419,32 +758,189 @@ app.post('/classify', async (req, res) => {
   // when the business doesn't belong to the relevant NAICS-2 sector
   // or profile family — saves API budget and keeps the data bundle
   // free of fields that don't apply.
-  const blsPromise = ['54','61','62','23','44-45'].includes(data.sector_naics2)
+  // BLS employment by sector — expanded coverage:
+  //   54/61/62/23/44-45 (original — professional/edu/health/construction/retail)
+  //   71 (entertainment), 72 (hotels+restaurants), 81 (personal services)
+  const BLS_NAICS2 = new Set(['54','61','62','23','44','45','44-45','71','72','81']);
+  const blsPromise = BLS_NAICS2.has(data.sector_naics2)
     ? dataFetchers.fetchBLSEmployment(data.sector_naics2)
     : Promise.resolve(null);
-  const usdaPromise = data.sector_naics2 === '11'
-    ? dataFetchers.fetchUSDANASS(data.state, 'CORN')
-    : Promise.resolve(null);
-  const fmcsaPromise = data.sector_naics2 === '48-49'
+  // USDA NASS — detect crop type from business name so a berry farm
+  // gets BERRIES data instead of generic CORN. Fail-safe default to CORN
+  // (largest national commodity, broadest data coverage in NASS QuickStats).
+  const detectCrop = (name, naics6) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('berry') || n.includes('strawberry') || n.includes('blueberry') || n.includes('raspberry')) return 'BERRIES';
+    if (n.includes('honey') || n.includes('bee') || n.includes('apiary')) return 'HONEY';
+    if (n.includes('christmas tree') || n.includes('tree farm')) return 'CHRISTMAS TREES';
+    if (n.includes('mushroom')) return 'MUSHROOMS';
+    if (n.includes('apple') || n.includes('orchard')) return 'APPLES';
+    if (n.includes('grape') || n.includes('vineyard')) return 'GRAPES';
+    if (n.includes('pumpkin')) return 'PUMPKINS';
+    if (n.includes('tomato')) return 'TOMATOES';
+    if (n.includes('potato')) return 'POTATOES';
+    if (n.includes('wheat')) return 'WHEAT';
+    if (n.includes('soy') || n.includes('soybean')) return 'SOYBEANS';
+    return 'CORN';
+  };
+  // NAICS-6 source of truth for these gates: layer0Result.naics6 — NOT
+  // data.naics6 (the latter is never assigned by any upstream code).
+  // Captured once into a local const so the three gates below are
+  // consistent and don't fall back to undefined.
+  const gateNaics6 = (layer0Result && layer0Result.naics6) || '';
+  let usdaPromise = Promise.resolve(null);
+  if (data.sector_naics2 === '11') {
+    const crop = detectCrop(data.name || data.business_name, gateNaics6);
+    console.log('[usda-nass] detected crop:', crop, 'for:', data.name || data.business_name);
+    usdaPromise = dataFetchers.fetchUSDANASS(data.state, crop);
+  }
+  // FMCSA Safety — narrowed to actual trucking operations. Previously
+  // fired for all 48-49 (transit/limo/taxi/pipeline/scenic transport
+  // got safety lookups they don't need). naics3 derived from naics6
+  // distinguishes the trucking subset:
+  //   484 (truck transportation) — core target
+  //   488 (support activities for transportation, e.g., freight brokers)
+  // Excludes 485 transit/limo/taxi, 486 pipeline, 487 scenic, 492 courier.
+  const fmcsaNaics3 = gateNaics6.slice(0, 3);
+  const fmcsaPromise = (fmcsaNaics3 === '484' || fmcsaNaics3 === '488')
     ? dataFetchers.fetchFMCSA(data.business_name)
     : Promise.resolve(null);
-  const npiPromise = data.sector_naics2 === '62'
+  // NPI Registry — health-sector NAICS-2 = 62 plus veterinarians (541940,
+  // technically NAICS-2 = 54). Vets carry NPI numbers; previous gate
+  // missed them because of the NAICS-2 boundary.
+  const npiPromise = (data.sector_naics2 === '62' || gateNaics6 === '541940')
     ? dataFetchers.fetchNPIRegistry(data.business_name, data.city, data.state)
     : Promise.resolve(null);
   const fmrPromise = data.sector_naics2 === '53'
-    ? dataFetchers.fetchFairMarketRents(data.state)
+    ? dataFetchers.fetchFairMarketRents(data.state, data.city)
     : Promise.resolve(null);
   const fdicPromise = (data.profile_id && (data.profile_id.includes('bank') || data.profile_id.includes('finance')))
     ? dataFetchers.fetchFDICData(data.business_name, data.state)
     : Promise.resolve(null);
-  const cmsPromise = (data.profile_id && (data.profile_id.includes('hospital') || data.profile_id.includes('specialty_clinic')))
-    ? dataFetchers.fetchCMSProviderData(data.business_name, data.state)
+
+  // Phase 5+ — 4 new keyless sector-gated promises. NAICS prefix gates
+  // mirror the spec: only fire when the business sector benefits from
+  // that data source so we don't waste calls on every /classify.
+  const naics6 = (layer0Result && layer0Result.naics6) || '';
+  const naics2 = naics6.slice(0, 2);
+  const naics3 = naics6.slice(0, 3);
+  const naics4 = naics6.slice(0, 4);
+
+  // ── Resolve county EARLY for CDC Places + HRSA Dental ───────────
+  // The building-permits fetcher inside the main Promise.allSettled
+  // batch eventually populates data.county_name, but that's too late
+  // for CDC and HRSA — both promises are CONSTRUCTED before that
+  // batch runs. Pre-resolve via the Census geocoder (cached 30 days
+  // per city+state, so first call costs ~300ms, cached hits are 0ms).
+  // Fail-open: if the geocoder is unreachable or returns no county,
+  // the downstream fetchers see empty string and use their existing
+  // city-fallback / null-return paths.
+  let earlyCountyName = '';
+  let earlyCountyFIPS = '';
+  if (data.city && data.state) {
+    try {
+      console.log('[county-early] resolving county for:', data.city, data.state);
+      const countyResult = await dataFetchers.fetchCountyFIPSByCity(
+        data.city,
+        data.state,
+        data.latitude,
+        data.longitude
+      );
+      if (countyResult) {
+        earlyCountyName = countyResult.county_name || '';
+        earlyCountyFIPS = countyResult.county_fips || '';
+        console.log(
+          '[county-early] resolved:', earlyCountyName,
+          '| FIPS:', earlyCountyFIPS
+        );
+      } else {
+        console.log('[county-early] no county match for', data.city, data.state);
+      }
+    } catch (e) {
+      console.error(
+        '[county-early] failed:', e.message,
+        '— CDC/HRSA will use city fallback'
+      );
+    }
+  }
+  // Surface the resolved county on `data` so downstream consumers
+  // (renderer, claudeEnricher bundle, etc.) can read it without
+  // waiting for the building-permits result block. Permits will
+  // overwrite later with the same value (or a more authoritative
+  // one from the HUD ArcGIS layer) — safe to overwrite.
+  if (earlyCountyName) {
+    data.county_name = earlyCountyName;
+    data.county_fips = earlyCountyFIPS;
+  }
+
+  // CDC PLACES local health metrics — medical (621) / fitness (713) / restaurants (722)
+  const cdcPromise = (naics3 === '621' || naics3 === '713' || naics3 === '722')
+    ? dataFetchers.fetchCDCPlaces(
+        (addrParts && addrParts.city) || '',
+        (addrParts && addrParts.state) || '',
+        earlyCountyName
+      )
     : Promise.resolve(null);
+
+  // HRSA Dental Health Professional Shortage Area — dental practices only (6212)
+  // Uses the ArcGIS HPSA_Dental FeatureServer; needs state + county.
+  const hrsaPromise = (naics4 === '6212')
+    ? dataFetchers.fetchHRSADental(
+        (addrParts && addrParts.state) || '',
+        earlyCountyName
+      )
+    : Promise.resolve(null);
+
+  // USDA ERS ARMS farm economics — agriculture (11) / restaurants (722) /
+  // grocery (445) / food manufacturing (311 bakeries) / beverage
+  // manufacturing (312 breweries/wineries/distilleries). 311 and 312 are
+  // consumer-facing food producers with retail dynamics; ERS food-price
+  // trends apply.
+  const ersPromise = (naics2 === '11' || naics3 === '722' || naics3 === '445' || naics3 === '311' || naics3 === '312')
+    ? dataFetchers.fetchUSDAERS((addrParts && addrParts.state) || '')
+    : Promise.resolve(null);
+
+  // Phase 5+ — 5 more keyless / free-key sector-gated promises.
+  // FoodData + Open Food Facts both seed off a cuisine / food query;
+  // fall back to a sensible default for grocery (445) where no
+  // cuisine field is set by the cuisine-detection pipeline.
+  const foodQuery = data.cuisine || data.cuisine_type
+    || (naics3 === '445' ? 'grocery' : 'food');
+
+  // USDA FoodData Central — restaurants (722) / grocery (445) /
+  // food manufacturing (311 bakeries) / beverage manufacturing (312).
+  const foodDataPromise = (naics3 === '722' || naics3 === '445' || naics3 === '311' || naics3 === '312')
+    ? dataFetchers.fetchFoodData(foodQuery)
+    : Promise.resolve(null);
+
+  // Open Food Facts — restaurants (722) / grocery (445)
+  const offPromise = (naics3 === '722' || naics3 === '445')
+    ? dataFetchers.fetchOpenFoodFacts(foodQuery)
+    : Promise.resolve(null);
+
+  // Datamuse — fires for ALL sectors. Seeds off the business name so
+  // Claude has related-concept words for naming ideas.
+  const datamusePromise = dataFetchers.fetchDatamuse(
+    data.business_name || data.name || ''
+  );
+
+  // NPS — hotels (721) / restaurants (722) / retail (44-45) /
+  // entertainment (71 — golf, museums, escape rooms, zoos, amusement).
+  // Park proximity drives tourism traffic for all of these.
+  const npsPromise = (naics3 === '721' || naics3 === '722' || naics2 === '44' || naics2 === '45' || naics2 === '71')
+    ? dataFetchers.fetchNearbyParks((addrParts && addrParts.state) || '')
+    : Promise.resolve(null);
+
+  // NOAA Climate Data Online — fires for ALL sectors. Long-term
+  // temperature normals augment Open-Meteo's rolling 12-month signal.
+  const noaaPromise = dataFetchers.fetchNOAAClimate(data.latitude, data.longitude);
 
   const [
     competitorRes, censusRes, websiteRes, weatherRes, locationRes, permitsRes, eventsRes,
     venuesRes, tripAdvisorRes,
-    blsRes, usdaRes, fmcsaRes, npiRes, fmrRes, fdicRes, cmsRes,
+    blsRes, usdaRes, fmcsaRes, npiRes, fmrRes, fdicRes,
+    cdcRes, hrsaRes, ersRes,
+    foodDataRes, offRes, datamuseRes, npsRes, noaaRes,
   ] = await Promise.allSettled([
     places.fetchNearbyCompetitors({
       placeId: data.place_id,
@@ -505,7 +1001,16 @@ app.post('/classify', async (req, res) => {
     npiPromise,
     fmrPromise,
     fdicPromise,
-    cmsPromise,
+    // Phase 5+ — 3 new keyless sector-gated fetchers
+    cdcPromise,
+    hrsaPromise,
+    ersPromise,
+    // Phase 5+ — 5 more sector-gated / always-on fetchers
+    foodDataPromise,
+    offPromise,
+    datamusePromise,
+    npsPromise,
+    noaaPromise,
   ]);
   sendProgress(sessionId, { step: 4, total: 8, message: 'Census, weather, permits loaded — running scoring engine...', pct: 50 });
 
@@ -535,11 +1040,14 @@ app.post('/classify', async (req, res) => {
     data.total_population = censusRes.value.total_population;
     data.average_household_size = censusRes.value.average_household_size;
     data.census_zip = censusRes.value.zip;
+    // Phase 5+ — housing extension piggybacks on the same ACS call.
+    data.census_housing = censusRes.value.census_housing || null;
   } else {
     data.median_household_income = null;
     data.total_population = null;
     data.average_household_size = null;
     data.census_zip = zip;
+    data.census_housing = null;
     if (censusRes.status === 'rejected') {
       console.warn('[fetch2] census-acs failed:', censusRes.reason && censusRes.reason.message);
     }
@@ -783,25 +1291,83 @@ app.post('/classify', async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 18 — CMS Hospital General Information
-  if (cmsRes.status === 'fulfilled' && cmsRes.value) {
-    data.cms = cmsRes.value;
-    data.cms_overall_rating = cmsRes.value.overall_rating;
-    data.cms_patient_experience_rating = cmsRes.value.patient_experience_rating;
-    data.cms_mortality_rating = cmsRes.value.mortality_rating;
-    data.cms_safety_rating = cmsRes.value.safety_rating;
-    data.cms_readmission_rating = cmsRes.value.readmission_rating;
-    data.cms_timeliness_rating = cmsRes.value.timeliness_rating;
+  // Phase 5+ FETCH 20 — CDC PLACES local health metrics (sector-gated)
+  if (cdcRes.status === 'fulfilled' && cdcRes.value) {
+    data.cdc_health = cdcRes.value;
   } else {
-    data.cms = null;
-    data.cms_overall_rating = null;
-    data.cms_patient_experience_rating = null;
-    data.cms_mortality_rating = null;
-    data.cms_safety_rating = null;
-    data.cms_readmission_rating = null;
-    data.cms_timeliness_rating = null;
-    if (cmsRes.status === 'rejected') {
-      console.warn('[fetch18-cms] failed:', cmsRes.reason && cmsRes.reason.message);
+    data.cdc_health = null;
+    if (cdcRes.status === 'rejected') {
+      console.warn('[fetch20-cdc-places] failed:', cdcRes.reason && cdcRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 21 — HRSA Dental HPSA (dental practices only)
+  if (hrsaRes.status === 'fulfilled' && hrsaRes.value) {
+    data.hrsa_dental = hrsaRes.value;
+  } else {
+    data.hrsa_dental = null;
+    if (hrsaRes.status === 'rejected') {
+      console.warn('[fetch21-hrsa-dental] failed:', hrsaRes.reason && hrsaRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 22 — USDA ERS ARMS farm economics (sector-gated)
+  if (ersRes.status === 'fulfilled' && ersRes.value) {
+    data.usda_ers = ersRes.value;
+  } else {
+    data.usda_ers = null;
+    if (ersRes.status === 'rejected') {
+      console.warn('[fetch22-usda-ers] failed:', ersRes.reason && ersRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 23 — USDA FoodData Central (sector-gated)
+  if (foodDataRes.status === 'fulfilled' && foodDataRes.value) {
+    data.food_data = foodDataRes.value;
+  } else {
+    data.food_data = null;
+    if (foodDataRes.status === 'rejected') {
+      console.warn('[fetch23-fooddata] failed:', foodDataRes.reason && foodDataRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 24 — Open Food Facts (sector-gated)
+  if (offRes.status === 'fulfilled' && offRes.value) {
+    data.open_food_facts = offRes.value;
+  } else {
+    data.open_food_facts = null;
+    if (offRes.status === 'rejected') {
+      console.warn('[fetch24-openfoodfacts] failed:', offRes.reason && offRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 25 — Datamuse related words (all sectors)
+  if (datamuseRes.status === 'fulfilled' && datamuseRes.value) {
+    data.related_words = datamuseRes.value;
+  } else {
+    data.related_words = null;
+    if (datamuseRes.status === 'rejected') {
+      console.warn('[fetch25-datamuse] failed:', datamuseRes.reason && datamuseRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 26 — NPS national parks (sector-gated)
+  if (npsRes.status === 'fulfilled' && npsRes.value) {
+    data.nearby_nps_parks = npsRes.value;
+  } else {
+    data.nearby_nps_parks = null;
+    if (npsRes.status === 'rejected') {
+      console.warn('[fetch26-nps] failed:', npsRes.reason && npsRes.reason.message);
+    }
+  }
+
+  // Phase 5+ FETCH 27 — NOAA Climate Data Online (all sectors)
+  if (noaaRes.status === 'fulfilled' && noaaRes.value) {
+    data.noaa_climate = noaaRes.value;
+  } else {
+    data.noaa_climate = null;
+    if (noaaRes.status === 'rejected') {
+      console.warn('[fetch27-noaa] failed:', noaaRes.reason && noaaRes.reason.message);
     }
   }
 
@@ -905,6 +1471,23 @@ app.post('/classify', async (req, res) => {
   });
   sendProgress(sessionId, { step: 6, total: 8, message: 'Claude is analyzing your report...', pct: 75 });
   const enriched = await claudeEnricher.enrichWithClaude(dataBundle);
+  // Detect Call A failure so renderReport can surface the partial-report
+  // banner at the top of the page. enrichWithClaude returns a partial
+  // object with _partial:'A_failed' when callClaudeEnrichA returned null
+  // (main 20-min timeout AND 7-min fallback timeout both expired, or any
+  // other A-only failure). null indicates total Claude failure (no API
+  // key or unreachable client) — also treated as a partial state.
+  if (enriched && enriched._partial === 'A_failed') {
+    data.call_a_failed = true;
+    console.warn('[claude] Call A failed (Call B partial) — partial report banner will be shown');
+  } else if (!enriched) {
+    // Total Claude failure — no API key, network unreachable, or both
+    // calls rejected catastrophically. Render the Claude-unavailable
+    // banner instead of the partial-report banner so the user knows the
+    // AI-enhanced sections are entirely missing (not just half of them).
+    data.claude_unavailable = true;
+    console.warn('[claude] enrichWithClaude returned null — full Claude-unavailable banner will be shown');
+  }
   sendProgress(sessionId, { step: 7, total: 8, message: 'Building your report...', pct: 90 });
 
   const html = renderReport({
@@ -1032,7 +1615,16 @@ app.post('/market-analysis', async (req, res) => {
 // state + question; we look up the cached analysis and pass it as
 // context to a 1000-token Claude call.
 app.post('/market-chat', async (req, res) => {
-  const { city, state, question } = req.body || {};
+  const { city, state } = req.body || {};
+  // Sanitize the user question — cap length, strip HTML tags. The
+  // value still gets sent to Claude verbatim, but the cap blocks
+  // prompt-injection attacks that try to stuff thousands of tokens
+  // of "ignore previous instructions" content, and the HTML strip
+  // removes obvious markup that could confuse downstream rendering.
+  const question = String((req.body && req.body.question) || '')
+    .slice(0, 500)
+    .replace(/<[^>]*>/g, '')
+    .trim();
   if (!city || !state || !question) {
     return res.status(400).json({ error: 'city, state, and question are required' });
   }
@@ -1043,7 +1635,7 @@ app.post('/market-chat', async (req, res) => {
     const result = await claudeMarketAnalyst.chatFollowUp(
       String(city).trim(),
       String(state).trim().toUpperCase(),
-      String(question).trim()
+      question
     );
     res.json(result);
   } catch (err) {
@@ -1280,8 +1872,9 @@ function renderError(message) {
 
 /* OOS demand logging — every out-of-scope hit appended to oos_log.jsonl
    so we can prioritize sub-profile work based on what users actually type.
-   appendFileSync flushes synchronously; failures fall back to console.error
-   so a bad disk doesn't break the request. */
+   Async write (fs.promises.appendFile) — non-blocking; if the write
+   rejects we log to stderr but never break the request. */
+const fsPromises = fs.promises;
 function logOosHit(input, layer0Result, oosVariant) {
   const entry = {
     ts: new Date().toISOString(),
@@ -1290,19 +1883,39 @@ function logOosHit(input, layer0Result, oosVariant) {
     oos_variant: oosVariant,
     layer0_mode: layer0Result.mode,
   };
-  try {
-    fs.appendFileSync(
-      path.join(__dirname, 'oos_log.jsonl'),
-      JSON.stringify(entry) + '\n'
-    );
-  } catch (err) {
-    console.error('OOS log write failed:', err.message);
-  }
+  fsPromises.appendFile(
+    path.join(__dirname, 'oos_log.jsonl'),
+    JSON.stringify(entry) + '\n'
+  ).catch((err) => {
+    console.error('[oos] log write failed:', err.message);
+  });
 }
 
 function renderWaitlist(input, layer0Result, profileId) {
   let heading, reason, waitlistFooter;
-  switch (profileId) {
+  // NAICS-specific OOS messages — overrides the generic per-profile-id
+  // messages below for business types where the generic copy (e.g.,
+  // "DEA, pharmacy boards") doesn't apply. Falls through to the switch
+  // for any NAICS not in this list.
+  const naics6 = (layer0Result && layer0Result.naics6) || '';
+  const naics3 = naics6.slice(0, 3);
+  if (naics3 === '813') {
+    heading = 'Religious / faith-based organizations — out of scope';
+    reason = 'Religious and faith-based organizations have unique nonprofit governance, tax-exempt status, and community dynamics that require specialized guidance. BizRadar currently does not support this sector.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+  } else if (naics6 === '812930') {
+    heading = 'Parking operations — out of scope';
+    reason = 'Parking operations involve municipal permits, zoning regulations and real estate dynamics that need specialized advice beyond BizRadar’s current scope.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+  } else if (naics6 === '812921' || naics6 === '812922') {
+    heading = 'Photo finishing — not currently supported';
+    reason = 'This business sector is not currently supported by BizRadar. We are expanding our coverage regularly.';
+    waitlistFooter = 'Sub-profiles for this sector are on the roadmap. Add yourself to the waitlist (signup form coming in a later phase).';
+  } else if (naics6 === '459930') {
+    heading = 'Manufactured home dealers — out of scope';
+    reason = 'Manufactured home dealers operate under HUD regulations and unique financing structures that require specialized advice beyond BizRadar’s current scope.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+  } else switch (profileId) {
     case 'OUT_OF_SCOPE_REGULATED':
       heading = 'Regulated sector — waitlist';
       reason = 'This sector has industry-specific licensing or regulatory dynamics (e.g., DEA, state pharmacy/optical boards) that need a dedicated profile rather than the generalized retail/personal-care baseline.';
@@ -1338,9 +1951,11 @@ function renderWaitlist(input, layer0Result, profileId) {
 
 function renderUnsupported(input, layer0Result) {
   return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-<h1>BizRadar — phase 1</h1>
-<p>This phase only supports hotels and motels. Try something like
-<strong>"the edgewater hotel madison wi"</strong>.</p>
+<h1>BizRadar — business type not yet supported</h1>
+<p>This business type is not yet supported by BizRadar. We support 1400+
+business types — if you think your input should have matched one of them,
+please contact us at <a href="mailto:support@bizradar.com">support@bizradar.com</a>
+and we'll add coverage for your category.</p>
 <p class="meta">Your input "${escapeHtml(input)}" was classified as
 mode <code>${escapeHtml(layer0Result.mode)}</code>${
     layer0Result.naics6 ? ` (NAICS ${escapeHtml(layer0Result.naics6)})` : ''
@@ -1938,6 +2553,20 @@ ${chatHtml}
 
 function renderReport(ctx) {
   const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies } = ctx;
+
+  // BUG 21 — Null-safe competitor data. Upstream code can set
+  // data.competitors_top5 / competitors_top3 to null when the Nearby
+  // Search fetch fails or times out (see server.js ~line 850-854).
+  // Normalize to [] up front so downstream code (rating-delta logic,
+  // tier classification, competitor cards, Claude bundle wrapping)
+  // can iterate without scattering Array.isArray checks at every call
+  // site. Individual call sites still keep their guards as defense in
+  // depth, but new sites added later won't crash on the null case.
+  if (data) {
+    if (!Array.isArray(data.competitors_top5)) data.competitors_top5 = [];
+    if (!Array.isArray(data.competitors_top3)) data.competitors_top3 = [];
+  }
+
   const status = overallStatus(strengths, ranked);
   const statusClass = status.label.startsWith('HEALTHY')
     ? 'healthy'
@@ -1994,6 +2623,83 @@ function renderReport(ctx) {
   const chainTag = data.is_chain
     ? ` <small>(chain: ${escapeHtml(data.chain_name || 'detected')})</small>`
     : '';
+  // Partial-report banner: shown when Call A (claudeEnricher's main
+  // enrichment call) timed out twice (20-min main + 7-min fallback) or
+  // otherwise failed but Call B still produced data. Renders at the
+  // very top of the page so the user sees it before the (incomplete)
+  // report content. Empty string for normal full reports.
+  const partialReportBanner = data.call_a_failed
+    ? `<div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:8px;padding:20px 24px;margin:0 0 24px 0;font-family:sans-serif;">
+  <div style="font-size:18px;font-weight:bold;color:#B45309;margin-bottom:10px;">&#9888; Partial Report Generated</div>
+  <div style="color:#78350F;font-size:14px;line-height:1.6;">
+    Some sections could not be generated due to a technical error. The following sections are missing from this report:
+    <ul style="margin:8px 0 12px 0">
+      <li>Priority actions</li>
+      <li>Competitor deep dive</li>
+      <li>90-day action plan</li>
+      <li>Opportunities</li>
+      <li>Seasonal strategy</li>
+    </ul>
+    Please try again for the complete report. If the problem persists please contact support.
+  </div>
+  <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="/" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Try Again</a>
+    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
+  </div>
+</div>`
+    : '';
+
+  // Claude-unavailable banner: shown when enrichWithClaude returned null
+  // entirely (no API key / both calls rejected). Distinct from the
+  // partial-report case — the data sections (Census, BLS, competitor
+  // count, etc.) still render, only the AI-enhanced sections are
+  // missing. Tells the user clearly what's happening and that retry
+  // is free.
+  const claudeUnavailableBanner = (data.claude_unavailable && !data.call_a_failed)
+    ? `<div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:8px;padding:18px 22px;margin:0 0 24px 0;font-family:sans-serif;">
+  <div style="font-size:16px;font-weight:bold;color:#B45309;margin-bottom:8px;">&#9888; AI-enhanced sections temporarily unavailable</div>
+  <div style="color:#78350F;font-size:14px;line-height:1.55;">
+    The data sections of your report are complete. The AI-generated sections (priority actions, competitor deep dive, 90-day plan, opportunities, seasonal strategy) could not be generated this time.
+    <br><br>
+    Please retry in 10 minutes for full AI insights. You will not be charged again.
+  </div>
+  <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="/" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
+    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
+  </div>
+</div>`
+    : '';
+
+  // No-website banner: shown when Google could not find a website for
+  // this business (data.website_exists is false / null / undefined).
+  // Pairs with the NO WEBSITE RULE in SYSTEM_PROMPT_A which forces
+  // Claude to also emit a HIGH-impact no-website priority_action so
+  // the recommendation appears both as a banner AND inline in the
+  // priority actions list. Empty string when the business has a
+  // working website Google can see.
+  const noWebsiteBanner = !data.website_exists
+    ? `<div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:8px;padding:24px;margin:0 0 24px 0;font-family:sans-serif;">
+  <div style="font-size:20px;font-weight:bold;color:#C2410C;margin-bottom:12px;">&#127760; No Website Found</div>
+  <div style="color:#7C2D12;font-size:14px;line-height:1.8;">
+    We searched for a website for <strong>${escapeHtml(data.name || 'this business')}</strong> and could not find one.
+    <br><br>
+    This could mean:
+    <ul style="margin:8px 0;padding-left:20px;line-height:2.2;">
+      <li>You have <strong>no website at all</strong></li>
+      <li>You only have a <strong>personal page or Facebook page</strong> but no dedicated business website</li>
+      <li>Your website exists but <strong>Google cannot find or index it</strong></li>
+    </ul>
+    All three situations mean customers searching online cannot easily find your business.
+    <br><br>
+    <strong>BizRadar Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
+  </div>
+  <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support — Get Website Help</a>
+    <span style="font-size:13px;color:#9A3412;">support@bizradar.com</span>
+  </div>
+</div>`
+    : '';
+
   // BATCH-low-confidence: warning banner shown at the top of the
   // report when findPlace flagged the result as a closest-match
   // (couldn't confidently resolve the user's input to a single
@@ -2004,10 +2710,47 @@ function renderReport(ctx) {
 </div>`
     : '';
 
+  // AI Layer 0 verification badge — AMBER when Claude corrected the
+  // NAICS, GREEN when Claude confirmed the original. Sits inline with
+  // the Layer 0 line so the audit trail is visible in every report.
+  let aiVerifyHtml = '';
+  if (layer0Result.ai_corrected) {
+    const orig = escapeHtml(layer0Result.original_naics || '');
+    const fixed = escapeHtml(layer0Result.naics6 || '');
+    const title = escapeHtml(layer0Result.naics_title || '');
+    const reason = escapeHtml((layer0Result.ai_reasoning || '').slice(0, 200));
+    // BUG 24 — when Claude flags ai_corrected=true but ends up with the
+    // SAME NAICS-6 as the original, the "X → X" rendering is confusing.
+    // This happens when Claude's override flag fires for profile-level
+    // intent (e.g., berry-patch tagged as restaurant routed by Google
+    // types but actually agriculture — same NAICS bucket the
+    // selectBestProfile cascade pulls into a different profile_id).
+    // Render a distinct "NAICS confirmed, profile re-selected" message
+    // in that case so the user sees the audit trail without the
+    // misleading "X → X" arrow.
+    if (layer0Result.original_naics && layer0Result.naics6
+        && String(layer0Result.original_naics) === String(layer0Result.naics6)) {
+      aiVerifyHtml =
+        `<br><span style="color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
+        `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' — ' + title : ''})</span>` +
+        (reason ? `<br><span style="color:#92400E;font-size:12px;">Reason: ${reason}</span>` : '');
+    } else {
+      aiVerifyHtml =
+        `<br><span style="color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
+        `⚠ AI corrected: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}</span>` +
+        (reason ? `<br><span style="color:#92400E;font-size:12px;">Reason: ${reason}</span>` : '');
+    }
+  } else if (layer0Result.ai_verified) {
+    const fixed = escapeHtml(layer0Result.naics6 || '');
+    aiVerifyHtml =
+      `<br><span style="color:#166534;background:#DCFCE7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
+      `✓ AI verified: ${fixed} confirmed via web search</span>`;
+  }
+
   const headerHtml = `<h1>${escapeHtml(data.name || input)}</h1>
 <p class="meta">${escapeHtml(data.formatted_address || '')}<br>
 ${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}<br>
-Layer 0: <code>${escapeHtml(layer0Result.mode)}</code> · confidence ${escapeHtml(layer0Result.confidence)}${fallbackTag}${chainTag}</p>`;
+Layer 0: <code>${escapeHtml(layer0Result.mode)}</code> · confidence ${escapeHtml(layer0Result.confidence)}${fallbackTag}${chainTag}${aiVerifyHtml}</p>`;
 
   const overallHtml = `<div class="status ${statusClass}">${escapeHtml(status.label)}</div>
 ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
@@ -2251,9 +2994,11 @@ Total assets: <strong>${assetM}</strong><br>
 
     // ── Tier classification (per spec 2) ────────────────────────────
     // Each top-5 competitor is bucketed into 'threat' (real competitive
-    // risk — render as a full card) or 'winning' (subject is meaningfully
-    // outperforming — render as a muted one-liner). Logic lives in
-    // googlePlaces.classifyCompetitorTier so the rule set can be reused.
+    // risk — render as a full card), 'winning' (subject is meaningfully
+    // outperforming — render as a muted one-liner), or 'neutral'
+    // (similar level / insufficient signal — silently dropped from both
+    // lists). Logic lives in googlePlaces.classifyCompetitorTier so the
+    // rule set can be reused.
     const top5ForTier = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
     const tieredCompetitors = top5ForTier.map((c) => ({
       ...c,
@@ -2263,11 +3008,25 @@ Total assets: <strong>${assetM}</strong><br>
     const winners = tieredCompetitors.filter((c) => c.tier === 'winning');
     const threatCount = threats.length;
     const winningCount = winners.length;
+    // Neutrals are competitors at a similar level — counted so we can
+    // surface a friendly "all peers" message when threat+winning are
+    // both zero but there ARE competitors in the pool (otherwise the
+    // section would show "0 real competitors · 0 you're beating" —
+    // technically true but discouraging and informationally empty).
+    const neutralCount = top5ForTier.length - threatCount - winningCount;
 
-    // Summary line (per spec).
-    const tierSummary = (threatCount + winningCount > 0)
-      ? `<p class="meta"><strong>${threatCount}</strong> real competitor${threatCount === 1 ? '' : 's'} to watch &middot; <strong>${winningCount}</strong> competitor${winningCount === 1 ? '' : 's'} you're beating</p>`
-      : '';
+    // Summary line (per spec). Two render branches:
+    //   - At least one threat or winning competitor → render counts.
+    //   - All competitors are neutral (or no competitors at all but
+    //     the outer competitor_count > 0 branch is already true, so
+    //     neutralCount > 0 here) → render a friendly "similar level"
+    //     reassurance instead of the misleading "0 / 0" tally.
+    let tierSummary = '';
+    if (threatCount === 0 && winningCount === 0 && neutralCount > 0) {
+      tierSummary = '<p class="meta">All nearby competitors are at a similar level to your business right now. This is a good position to grow from.</p>';
+    } else if (threatCount + winningCount > 0) {
+      tierSummary = `<p class="meta"><strong>${threatCount}</strong> real competitor${threatCount === 1 ? '' : 's'} to watch &middot; <strong>${winningCount}</strong> competitor${winningCount === 1 ? '' : 's'} you're beating</p>`;
+    }
 
     // Tier 1 list — full info per the existing list-item style.
     const threatsHtml = threats.length
@@ -2616,7 +3375,12 @@ ${fmrBlock}`;
     : '';
 
   // BATCH16 — Common Problems Detected (review-mined themes)
-  const cpAnalysis = analyzeCommonProblems(data.sample_reviews, profile.id);
+  // BUG 20 — Defensive `|| []` at call site. The function already
+  // null-guards internally (returns {skip:true, reason:'no-reviews'}
+  // for non-array / empty input), but passing `[]` here makes intent
+  // explicit and matches the analyzeCommonProblems contract for any
+  // future callers who don't read the function body first.
+  const cpAnalysis = analyzeCommonProblems(data.sample_reviews || [], profile.id);
   const commonProblemsHtml = renderCommonProblems(cpAnalysis);
 
   // ── FIX 3 — 90-day action plan ────────────────────────────────────
@@ -2939,7 +3703,7 @@ ${cards}`;
   footerHtml += `<p class="meta"><small>Generated ${new Date().toISOString()}</small></p>`;
 
   return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-${lowConfidenceBanner}${headerHtml}
+${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
 ${localContextHtml}
 ${redFlagsHtml}

@@ -154,16 +154,31 @@ function classifyInput(raw) {
 // ════════════════════════════════════════════════════════════════════
 function matchChain(input) {
   const lower = input.toLowerCase();
+  // Test against the full input AND the business-name-only segment
+  // (text before the first comma). This lets autocomplete-fed inputs
+  // like "McDonald's, 123 Main St, Madison, WI 53703" still match the
+  // McDonald's chain — the full input fails the AND-ratio check
+  // (chain is too small a fraction of the full string), but the name
+  // segment "mcdonald's" passes both ratios.
+  const namePart = lower.split(',')[0].trim();
+  const candidates = [lower];
+  if (namePart && namePart !== lower) {
+    candidates.push(namePart);
+  }
   for (const chain of REGISTRY.chains) {
     const chainLower = chain.name.toLowerCase();
     // Substring match (e.g., input "subway sandwiches" matches "Subway")
-    if (lower.includes(chainLower) || chainLower.includes(lower)) {
-      // Avoid false positives — the chain name should be the dominant token
-      if (chainLower.length / lower.length > 0.4 ||
-          lower.length / chainLower.length > 0.4) {
-        return chain;
+    // AND-ratio check: both directions must pass to avoid false positives
+    // like "Express Yourself Tattoo" matching the Express clothing chain.
+    const matched = candidates.some((candidate) => {
+      if (!candidate.includes(chainLower) && !chainLower.includes(candidate)) {
+        return false;
       }
-    }
+      const r1 = chainLower.length / candidate.length;
+      const r2 = candidate.length / chainLower.length;
+      return r1 > 0.4 && r2 > 0.4;
+    });
+    if (matched) return chain;
   }
   return null;
 }
@@ -188,13 +203,24 @@ function loadKeywords() {
     trim: true,
     relax_quotes: true,
   });
+  // Split slash-separated phrases ("Cigar Bar / Cigar Lounge") into
+  // individual keyword entries so each variant is independently
+  // matchable. Without this, the matcher's `includes(phrase)` check
+  // requires the FULL slash-joined label as a literal substring of the
+  // input — which never happens for real business names.
   KEYWORDS = records
     .filter(r => r.modern_label && r.closest_naics_6)
-    .map(r => ({
-      phrase: r.modern_label.toLowerCase(),
-      naics6: r.closest_naics_6,
-      confidence: r.confidence,
-    }));
+    .flatMap(r => {
+      const variants = r.modern_label
+        .split(/\s*\/\s*/)
+        .map(v => v.trim())
+        .filter(Boolean);
+      return variants.map(v => ({
+        phrase: v.toLowerCase(),
+        naics6: r.closest_naics_6,
+        confidence: r.confidence,
+      }));
+    });
 }
 
 function matchKeywords(input) {

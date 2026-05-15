@@ -148,6 +148,7 @@
       "112120",
       "112130",
       "112210",
+      "112300",
       "112310",
       "112320",
       "112330",
@@ -1461,8 +1462,6 @@
       "311613",
       "311615",
       "311710",
-      "311811",
-      "311812",
       "311813",
       "311821",
       "311824",
@@ -2114,7 +2113,6 @@
       "322230",
       "322291",
       "322299",
-      "323111",
       "323113",
       "323117",
       "323120"
@@ -2734,7 +2732,6 @@
       "449110",
       "449121",
       "449122",
-      "449129",
       "456110",
       "456120",
       "456130",
@@ -3215,7 +3212,7 @@
   "retail.building_home": {
     "id": "retail.building_home",
     "sector_naics2": "44-45",
-    "name": "Building materials, home improvement, and home-furnishing retail (shared baseline — home centers, paint, hardware, nursery, electronics)",
+    "name": "Building materials, home improvement, and home-furnishing retail (shared baseline — home centers, paint, hardware, nursery, electronics, mattress + home furnishings)",
     "naics6_codes": [
       "444110",
       "444120",
@@ -3223,6 +3220,7 @@
       "444180",
       "444230",
       "444240",
+      "449129",
       "449210"
     ],
     "scope": "in_scope",
@@ -3329,8 +3327,9 @@
   "retail.fuel_general_misc": {
     "id": "retail.fuel_general_misc",
     "sector_naics2": "44-45",
-    "name": "Gasoline stations, general merchandise, and miscellaneous retail (shared baseline — gas stations, department stores, warehouse clubs, fuel dealers)",
+    "name": "Gasoline stations, truck stops, general merchandise, and miscellaneous retail (shared baseline — gas stations, truck stops / travel centers, department stores, warehouse clubs, fuel dealers)",
     "naics6_codes": [
+      "447110",
       "455110",
       "455219",
       "457110",
@@ -3441,7 +3440,7 @@
   "transportation.trucking_freight": {
     "id": "transportation.trucking_freight",
     "sector_naics2": "48-49",
-    "name": "Trucking, freight, and household-goods moving (shared baseline)",
+    "name": "Trucking, freight, household-goods moving, and motor-vehicle towing (shared baseline)",
     "naics6_codes": [
       "484110",
       "484121",
@@ -3449,6 +3448,7 @@
       "484210",
       "484220",
       "484230",
+      "488410",
       "488510"
     ],
     "scope": "in_scope",
@@ -3994,7 +3994,6 @@
       "488320",
       "488330",
       "488390",
-      "488410",
       "488490",
       "488991",
       "488999",
@@ -4509,8 +4508,6 @@
     "naics6_codes": [
       "512110",
       "512120",
-      "512131",
-      "512132",
       "512191",
       "512199",
       "512230",
@@ -4720,12 +4717,8 @@
       "522180",
       "522210",
       "522220",
-      "522291",
-      "522292",
-      "522299",
       "522310",
-      "522320",
-      "522390"
+      "522320"
     ],
     "scope": "in_scope",
     "evidence_class": "MODERATE",
@@ -4834,6 +4827,104 @@
       "out_of_scope_data",
       "footer"
     ]
+  },
+  "finance.alt_lending": {
+    "id": "finance.alt_lending",
+    "name": "Alternative Lending & Pawn Services",
+    "naics6_codes": [
+      "522298",
+      "522390",
+      "522291",
+      "522299"
+    ],
+    "description": "Pawn shops, check cashing stores, payday lenders, title loan companies, and money transmitters. Cash-heavy consumer lending with state licensing requirements.",
+    "key_metrics": [
+      "loan_redemption_rate",
+      "average_loan_size",
+      "retail_sales_revenue",
+      "inventory_turnover"
+    ],
+    "common_problems": [
+      "state_licensing_compliance",
+      "cash_management_security",
+      "police_reporting_requirements",
+      "anti_money_laundering",
+      "inventory_management"
+    ],
+    "opportunity_categories": [
+      "retail_sales_optimization",
+      "security_and_compliance",
+      "customer_trust_building",
+      "online_presence",
+      "community_reputation"
+    ],
+    "compliance_notes": [
+      "State pawn broker license required — check renewal date annually or face fines",
+      "Most states require reporting all purchased items to local police within 24-48 hours",
+      "Anti money laundering records required for transactions over $500 — keep for 5 years minimum",
+      "Cash handling procedures and panic buttons recommended — pawn shops face elevated robbery risk"
+    ],
+    "required_inputs": [],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Pawn shops and alt-lenders are local-discovery businesses. 30+ reviews is the floor for visibility in pawn-shop / payday-loan local search.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to negative reviews builds trust in a sector that already faces reputation headwinds.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Borrowers searching for emergency cash do it on mobile — a 3s+ load time loses them.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Repeat customers compound LTV. Word-of-mouth is the primary lender-of-choice channel for unbanked customers.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Repeat-loan customers are the highest-LTV segment — a 5pp retention lift drops directly to profit.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "sector_naics2": "52"
   },
   "finance.insurance_agency": {
     "id": "finance.insurance_agency",
@@ -4959,8 +5050,9 @@
   "finance.ria_wealth_management": {
     "id": "finance.ria_wealth_management",
     "sector_naics2": "52",
-    "name": "Investment advisory, securities, and financial vehicles (shared baseline — RIAs, broker-dealers, portfolio management, trust/fiduciary services)",
+    "name": "Investment advisory, securities, mortgage brokers, and financial vehicles (shared baseline — RIAs, broker-dealers, portfolio management, trust/fiduciary services, residential mortgage brokers)",
     "naics6_codes": [
+      "522292",
       "523150",
       "523160",
       "523210",
@@ -5878,8 +5970,9 @@
   "professional.consulting": {
     "id": "professional.consulting",
     "sector_naics2": "54",
-    "name": "Consulting and creative services (shared baseline — IT consulting, management consulting, advertising agencies, marketing research, photo studios, R&D)",
+    "name": "Consulting and creative services (shared baseline — IT consulting, management consulting, advertising agencies, marketing research, photo studios, R&D, retail print shops, event planners)",
     "naics6_codes": [
+      "323111",
       "541511",
       "541512",
       "541513",
@@ -5907,7 +6000,8 @@
       "541921",
       "541922",
       "541930",
-      "541990"
+      "541990",
+      "812990"
     ],
     "scope": "in_scope",
     "evidence_class": "MODERATE",
@@ -6717,10 +6811,8 @@
   "education.tutoring_test_prep": {
     "id": "education.tutoring_test_prep",
     "sector_naics2": "61",
-    "name": "Tutoring, test prep, music/arts schools, sports instruction, driving schools (shared baseline)",
+    "name": "Tutoring, test prep, language/driving schools (shared baseline)",
     "naics6_codes": [
-      "611610",
-      "611620",
       "611630",
       "611691",
       "611692",
@@ -7664,10 +7756,9 @@
   "healthcare.allied_health": {
     "id": "healthcare.allied_health",
     "sector_naics2": "62",
-    "name": "Allied health (shared baseline — chiropractic, optometry, mental health, PT, podiatry)",
+    "name": "Allied health (shared baseline — chiropractic, mental health, PT, podiatry)",
     "naics6_codes": [
       "621310",
-      "621320",
       "621340",
       "621391",
       "621399"
@@ -8464,11 +8555,495 @@
       "footer"
     ]
   },
+  "healthcare.plastic_surgery": {
+    "id": "healthcare.plastic_surgery",
+    "name": "Plastic & Cosmetic Surgery",
+    "naics6_codes": [
+      "621111",
+      "621112"
+    ],
+    "description": "Cosmetic and reconstructive surgery practices. Cash-pay aesthetic procedures including rhinoplasty, breast augmentation, liposuction, facelifts, Botox and dermal fillers. High ticket elective procedures with strong before/after marketing.",
+    "key_metrics": [
+      "consultation_conversion_rate",
+      "average_procedure_value",
+      "repeat_patient_rate",
+      "new_patient_consultations_per_month",
+      "patient_financing_utilization"
+    ],
+    "common_problems": [
+      "low_consultation_conversion",
+      "weak_before_after_portfolio",
+      "no_patient_financing",
+      "poor_instagram_presence",
+      "low_repeat_procedure_rate"
+    ],
+    "opportunity_categories": [
+      "before_after_photo_strategy",
+      "patient_financing_options",
+      "social_media_aesthetic_marketing",
+      "consultation_conversion_optimization",
+      "repeat_procedure_loyalty"
+    ],
+    "compliance_notes": [
+      "Before/after photos require written patient consent and HIPAA compliant storage",
+      "FTC requires clear disclosure of paid testimonials and sponsored content",
+      "State medical board regulates advertising claims — avoid guaranteed results language",
+      "Patient financing partnerships require state lending compliance review"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Cosmetic-surgery patients read 10+ reviews before booking a consultation. Below 30 reviews, consultation flow collapses.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding professionally to reviews builds the trust required for $5K-$50K elective procedures.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Slow website kills consultation bookings — patients abandon and pick a faster-loading competitor.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Before/after referrals and friend-of-friend word-of-mouth drive most high-ticket procedure bookings.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Repeat Botox/filler patients are extremely high-LTV. A 5pp retention lift on the maintenance segment is the profit lever.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "62"
+  },
+  "healthcare.dermatology": {
+    "id": "healthcare.dermatology",
+    "name": "Dermatology Practice",
+    "naics6_codes": [
+      "621111",
+      "621112"
+    ],
+    "description": "Medical and cosmetic dermatology practices. Dual revenue model: insurance-covered medical treatments (eczema, psoriasis, skin cancer screening) plus cash-pay cosmetic procedures (Botox, fillers, laser, chemical peels). Unique hybrid of clinical and aesthetic medicine.",
+    "key_metrics": [
+      "medical_vs_cosmetic_revenue_ratio",
+      "cosmetic_procedure_revenue",
+      "new_patient_acquisition_rate",
+      "repeat_cosmetic_patient_rate",
+      "insurance_reimbursement_rate"
+    ],
+    "common_problems": [
+      "over_reliance_on_insurance",
+      "underdeveloped_cosmetic_revenue",
+      "weak_before_after_portfolio",
+      "poor_online_booking_conversion",
+      "low_cosmetic_upsell_rate"
+    ],
+    "opportunity_categories": [
+      "cosmetic_revenue_growth",
+      "before_after_photo_strategy",
+      "medical_to_cosmetic_conversion",
+      "online_booking_optimization",
+      "insurance_mix_optimization"
+    ],
+    "compliance_notes": [
+      "HIPAA compliance required for all before/after photos and patient testimonials",
+      "State medical board regulates advertising of cosmetic results",
+      "Laser and light-based devices require FDA clearance verification",
+      "Cosmetic procedure advertising must not guarantee specific results"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Dermatology patients consult reviews before booking — for both medical and cosmetic care. 30+ reviews is the visibility floor.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews builds trust for cash-pay cosmetic procedures alongside the insurance medical book.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Online-booking page speed determines new-patient consultation conversion.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Cosmetic dermatology grows through referrals — happy patients showing visible results bring friends.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Recurring cosmetic patients (Botox every 3-4 months) are the highest-LTV segment.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "62"
+  },
+  "healthcare.orthodontics": {
+    "id": "healthcare.orthodontics",
+    "name": "Orthodontic Practice",
+    "naics6_codes": [
+      "621210"
+    ],
+    "description": "Orthodontic specialty practices offering braces, Invisalign, retainers and other teeth straightening treatments. Long treatment cycles of 18-24 months. Revenue from new patient starts, mix of insurance and cash pay. Referrals from general dentists are primary growth lever.",
+    "key_metrics": [
+      "new_patient_starts_per_month",
+      "treatment_plan_acceptance_rate",
+      "active_patient_count",
+      "dentist_referral_count",
+      "invisalign_case_volume"
+    ],
+    "common_problems": [
+      "low_dentist_referral_network",
+      "poor_treatment_acceptance_rate",
+      "no_invisalign_provider_status",
+      "weak_new_patient_pipeline",
+      "low_family_case_conversion"
+    ],
+    "opportunity_categories": [
+      "dentist_referral_network",
+      "treatment_acceptance_optimization",
+      "invisalign_marketing",
+      "family_plan_packages",
+      "digital_scan_technology"
+    ],
+    "compliance_notes": [
+      "Orthodontists must maintain active state dental license and specialty board certification",
+      "Invisalign provider status requires Align Technology certification and case minimums",
+      "Patient records must be retained for minimum 7 years after treatment completion",
+      "Advertising must not claim results beyond what state dental board permits"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Parents research orthodontists extensively before committing to a 2-year treatment plan. 30+ reviews is required for trust.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews demonstrates the patient-care quality parents look for when choosing a multi-year provider.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Consultation bookings happen on mobile — a fast site is essential for the new-patient pipeline.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Parent referrals (PTA, sports teams, schools) drive most new-patient starts.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "18-24-month treatment plans mean every retained patient = full case revenue; mid-treatment dropouts are catastrophic.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "62"
+  },
+  "healthcare.oral_surgery": {
+    "id": "healthcare.oral_surgery",
+    "name": "Oral & Maxillofacial Surgery",
+    "naics6_codes": [
+      "621210"
+    ],
+    "description": "Oral and maxillofacial surgery practices. Referral-based specialty receiving patients from general dentists and orthodontists. Core procedures: wisdom tooth extraction, dental implants, jaw surgery, bone grafting. Mix of insurance and cash pay. Dentist referral network is primary growth lever.",
+    "key_metrics": [
+      "dentist_referral_count",
+      "implant_case_volume",
+      "wisdom_tooth_extraction_volume",
+      "referral_source_diversity",
+      "hospital_privilege_status"
+    ],
+    "common_problems": [
+      "low_dentist_referral_network",
+      "low_implant_case_volume",
+      "poor_referral_source_tracking",
+      "no_hospital_privileges",
+      "weak_specialist_reputation"
+    ],
+    "opportunity_categories": [
+      "dentist_referral_network_growth",
+      "implant_case_development",
+      "hospital_privilege_acquisition",
+      "specialist_reputation_building",
+      "sedation_dentistry_offering"
+    ],
+    "compliance_notes": [
+      "Oral surgeons must hold active state dental license plus oral surgery specialty certification",
+      "Hospital privileges required for complex jaw surgery cases",
+      "Sedation and anesthesia requires separate state permit and annual renewal",
+      "DEA registration required for controlled substance prescribing post-surgery"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Oral-surgery referrals come from general dentists, but patients still verify reviews before scheduling extractions or implants.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews demonstrates the surgical-care quality both patients and referring dentists evaluate.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Fast booking matters for emergency oral-surgery cases — slow site means the patient calls the next practice.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Dentist referrals are the primary acquisition channel — referring dentists read your reviews too.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Implant patients return for follow-up care for 10+ years. Long-term retention is the practice-economics lever.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "62"
+  },
+  "healthcare.optometry": {
+    "id": "healthcare.optometry",
+    "name": "Optometry Practice",
+    "naics6_codes": [
+      "621320"
+    ],
+    "description": "Optometry practices with dual revenue model: clinical eye exams covered by vision insurance plus retail optical sales of frames, lenses and contact lenses. Unique hybrid of healthcare and retail. Frame selection, display and optical retail execution are key revenue drivers alongside clinical care.",
+    "key_metrics": [
+      "optical_capture_rate",
+      "average_frame_sale_value",
+      "contact_lens_subscription_rate",
+      "exam_to_purchase_conversion",
+      "insurance_mix_ratio"
+    ],
+    "common_problems": [
+      "low_optical_capture_rate",
+      "weak_frame_display",
+      "no_contact_lens_subscription",
+      "poor_exam_to_purchase_conversion",
+      "online_retailer_competition"
+    ],
+    "opportunity_categories": [
+      "optical_retail_optimization",
+      "contact_lens_subscription",
+      "frame_display_improvement",
+      "medical_eye_care_billing",
+      "online_retailer_differentiation"
+    ],
+    "compliance_notes": [
+      "Optometrists must hold active state optometry license renewed annually or biennially",
+      "Prescription release law requires giving patients their prescription after every exam at no charge",
+      "Contact lens prescription must be released to patient within business day of exam completion",
+      "Frame and lens advertising must comply with FTC eyewear rules"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Eye-care patients search reviews before booking annual exams. 30+ reviews is the floor for first-time-patient trust.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews builds the relationship needed for annual recurring exam bookings.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Online appointment booking speed determines new-patient conversion.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Family referrals drive new patients — kids stay with the parents' optometrist; spouses follow.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Contact-lens subscriptions are recurring revenue. Annual-exam retention = lifetime customer.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "62"
+  },
   "recreation.fitness_studio": {
     "id": "recreation.fitness_studio",
     "sector_naics2": "71",
-    "name": "Fitness and recreational sports centers (gyms, boutique studios)",
+    "name": "Fitness, recreational sports centers, dance studios, martial arts schools, swim instruction",
     "naics6_codes": [
+      "611610",
+      "611620",
       "713940"
     ],
     "scope": "in_scope",
@@ -8567,8 +9142,11 @@
   "recreation.amusement_attraction": {
     "id": "recreation.amusement_attraction",
     "sector_naics2": "71",
-    "name": "Amusement and recreation (shared baseline — amusement parks, arcades, golf, bowling, escape rooms, axe throwing, trampoline parks)",
+    "name": "Amusement and recreation (shared baseline — amusement parks, arcades, golf, bowling, escape rooms, axe throwing, trampoline parks, movie theaters, equestrian centers)",
     "naics6_codes": [
+      "512131",
+      "512132",
+      "712219",
       "713110",
       "713120",
       "713910",
@@ -8694,7 +9272,6 @@
       "711211",
       "711212",
       "711219",
-      "711310",
       "711320",
       "711410"
     ],
@@ -8788,12 +9365,13 @@
   "recreation.performing_arts": {
     "id": "recreation.performing_arts",
     "sector_naics2": "71",
-    "name": "Performing arts (theater companies, dance companies, musical groups, independent artists/writers/performers)",
+    "name": "Performing arts (theater companies, dance companies, musical groups, independent artists/writers/performers, concert hall promoters)",
     "naics6_codes": [
       "711110",
       "711120",
       "711130",
       "711190",
+      "711310",
       "711510"
     ],
     "scope": "in_scope",
@@ -8995,9 +9573,8 @@
   "hospitality.cafe_quick_service": {
     "id": "hospitality.cafe_quick_service",
     "sector_naics2": "72",
-    "name": "Cafés, quick-service restaurants, snack bars, and mobile food",
+    "name": "Cafés, quick-service restaurants, snack bars",
     "naics6_codes": [
-      "722330",
       "722513",
       "722514",
       "722515"
@@ -9099,6 +9676,301 @@
       "out_of_scope_data",
       "footer"
     ]
+  },
+  "hospitality.retail_bakery": {
+    "id": "hospitality.retail_bakery",
+    "name": "Retail Bakery & Pastry Shop",
+    "naics6_codes": [
+      "311811",
+      "311812",
+      "311813",
+      "311821"
+    ],
+    "description": "Retail bakeries, pastry shops, donut shops, bagel shops, cookie shops and bread bakeries selling directly to consumers. Walk-in foot traffic driven business with morning rush peak. Different from industrial food manufacturing — these are consumer-facing retail operations.",
+    "key_metrics": [
+      "morning_rush_revenue",
+      "average_transaction_value",
+      "daily_foot_traffic",
+      "repeat_customer_rate",
+      "wholesale_account_count"
+    ],
+    "common_problems": [
+      "low_morning_rush_traffic",
+      "weak_social_media_presence",
+      "no_online_ordering",
+      "low_repeat_customer_rate",
+      "poor_google_visibility"
+    ],
+    "opportunity_categories": [
+      "morning_rush_optimization",
+      "instagram_food_photography",
+      "local_coffee_shop_partnerships",
+      "online_ordering_setup",
+      "corporate_order_accounts",
+      "farmers_market_presence",
+      "wedding_cake_specialty"
+    ],
+    "compliance_notes": [
+      "Retail food establishment license required from state/county health department — renew annually",
+      "Commercial kitchen must pass health inspection before opening and at regular intervals",
+      "Cottage food laws vary by state — check if home baking is permitted for your product types",
+      "Allergen labeling required for packaged products sold retail — FDA Food Allergen Labeling rules"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Bakery search is a local-discovery play. 30+ reviews puts you above competitors in Maps results.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews — especially photos of baked goods — drives repeat visits and Instagram shares.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Fast site needed for morning-rush online ordering and same-day cake-order requests.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Bakeries grow through Instagram and word-of-mouth — the photo IS the marketing.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Morning-rush regulars are the highest-LTV customers — they visit 3-5x per week and bring colleagues.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "31"
+  },
+  "hospitality.food_truck": {
+    "id": "hospitality.food_truck",
+    "name": "Food Truck & Mobile Food",
+    "naics6_codes": [
+      "722330"
+    ],
+    "description": "Mobile food trucks, food carts and mobile food vendors. No fixed location — revenue depends on finding high foot traffic locations, events, festivals and catering gigs. Unique challenges: mobile permits, commissary kitchen requirements, location scouting and social media location announcements.",
+    "key_metrics": [
+      "daily_location_revenue",
+      "event_booking_count",
+      "catering_gig_count",
+      "social_media_follower_growth",
+      "repeat_customer_rate"
+    ],
+    "common_problems": [
+      "inconsistent_locations",
+      "low_event_bookings",
+      "poor_social_media_presence",
+      "no_catering_pipeline",
+      "weak_loyalty_program"
+    ],
+    "opportunity_categories": [
+      "event_festival_booking",
+      "corporate_catering",
+      "location_scouting_strategy",
+      "social_media_location_updates",
+      "food_truck_park_partnerships",
+      "commissary_kitchen_optimization"
+    ],
+    "compliance_notes": [
+      "Mobile food vendor permit required from city/county — separate from brick and mortar food license",
+      "Commissary kitchen agreement required in most states — food trucks cannot prep food on truck",
+      "Health department inspection of truck required before operating and at regular intervals",
+      "Zoning laws restrict where food trucks can park — check city ordinances before choosing spots"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Food-truck discovery is Instagram + reviews. 30+ reviews unlocks Maps visibility for \"food truck near me\".",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Reviews follow the truck from location to location — responding builds a portable reputation.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Fast site needed for location-and-menu lookups happening on phones at lunch hour.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Word-of-mouth + social posts are everything for food trucks — there is no walk-by traffic to fall back on.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Repeat customers at recurring spots (office parks, breweries, festivals) compound revenue.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "72"
+  },
+  "hospitality.ghost_kitchen": {
+    "id": "hospitality.ghost_kitchen",
+    "name": "Ghost Kitchen & Delivery-Only Restaurant",
+    "naics6_codes": [
+      "722599"
+    ],
+    "description": "Ghost kitchens, cloud kitchens and delivery-only restaurant concepts. No physical dining room or walk-in customers. Revenue comes entirely from delivery platforms: DoorDash, Uber Eats, Grubhub. Success depends on delivery platform optimization, ratings, packaging and delivery speed. NAICS 722599 is a synthetic registry-internal code (real federal taxonomy classifies ghost kitchens under 722513 alongside fast food).",
+    "key_metrics": [
+      "delivery_platform_rating",
+      "average_delivery_time",
+      "order_volume_per_platform",
+      "repeat_order_rate",
+      "packaging_damage_rate"
+    ],
+    "common_problems": [
+      "low_delivery_platform_rating",
+      "slow_delivery_time",
+      "poor_packaging",
+      "low_platform_visibility",
+      "high_commission_costs"
+    ],
+    "opportunity_categories": [
+      "delivery_platform_optimization",
+      "packaging_improvement",
+      "multi_platform_expansion",
+      "delivery_rating_improvement",
+      "menu_optimization_for_delivery",
+      "direct_ordering_website"
+    ],
+    "compliance_notes": [
+      "Still requires commercial kitchen license and health department approval even without dining room",
+      "Fire suppression system required for commercial cooking equipment",
+      "Delivery platform agreements have commission rates of 15-30% — factor into pricing strategy",
+      "Food safety certification required for all food handlers regardless of delivery-only model"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Delivery-platform rating + review count drive platform ranking directly. Order volume tracks review velocity.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to platform reviews lifts the delivery rating, which lifts ranking, which lifts order volume.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Fast direct-ordering site saves the 15-30% commission paid to delivery platforms on every order.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Repeat orderers are the LTV base — packaging quality and delivery experience drive them.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "First-order → repeat-orderer conversion is the key delivery-economics lever. Loyalty programs compound.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "72"
   },
   "hospitality.full_service_restaurant": {
     "id": "hospitality.full_service_restaurant",
@@ -9320,7 +10192,6 @@
       "721110",
       "721120",
       "721191",
-      "721199",
       "721211",
       "721214",
       "721310"
@@ -9413,6 +10284,202 @@
       "out_of_scope_data",
       "footer"
     ]
+  },
+  "hospitality.short_term_rental": {
+    "id": "hospitality.short_term_rental",
+    "name": "Short-Term Rental & Vacation Rental",
+    "naics6_codes": [
+      "721199"
+    ],
+    "description": "Short-term vacation rentals listed on Airbnb, VRBO, Booking.com and similar platforms. Single unit or small portfolio of residential properties rented to travelers. No front desk or hotel amenities. Revenue depends on platform listing quality, guest reviews, dynamic pricing and cleaning turnaround speed.",
+    "key_metrics": [
+      "occupancy_rate",
+      "average_daily_rate",
+      "revenue_per_available_night",
+      "guest_review_score",
+      "cleaning_turnaround_time"
+    ],
+    "common_problems": [
+      "low_occupancy_rate",
+      "poor_listing_photos",
+      "no_dynamic_pricing",
+      "slow_guest_response_time",
+      "high_cleaning_costs"
+    ],
+    "opportunity_categories": [
+      "listing_optimization",
+      "dynamic_pricing_strategy",
+      "guest_messaging_automation",
+      "cleaning_efficiency",
+      "local_experience_recommendations",
+      "multi_platform_listing",
+      "direct_booking_website"
+    ],
+    "compliance_notes": [
+      "Most cities require short-term rental permit or license — check local ordinances before listing",
+      "Many HOAs and condos prohibit STR activity — verify lease and HOA rules before listing",
+      "Collect and remit lodging tax in most states — Airbnb may collect automatically but verify for your market",
+      "Insurance: standard homeowners policy does not cover STR activity — get STR specific coverage or use Airbnb AirCover"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Airbnb / VRBO ranking depends heavily on review count. 30+ reviews unlocks Superhost status and platform-rank boost.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to every review — especially negative — is part of the host-quality signal platforms use.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Direct-booking website speed matters for repeat guests bypassing the platform fee.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Repeat-guest word-of-mouth is the highest-LTV channel — direct bookings bypass platform commission.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Repeat guests in peak season are the profit base. Off-season dynamic pricing protects revenue.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "72"
+  },
+  "hospitality.resort": {
+    "id": "hospitality.resort",
+    "name": "Resort & Full-Service Lodge",
+    "naics6_codes": [
+      "721110"
+    ],
+    "description": "Full-service resorts and destination lodges with multiple on-site amenities including restaurants, pools, spas, waterparks, golf courses or conference facilities. Revenue from room nights PLUS food and beverage, spa, activities and event bookings. Much higher revenue per guest than limited service hotels.",
+    "key_metrics": [
+      "revenue_per_available_room",
+      "food_beverage_revenue_per_guest",
+      "spa_revenue_per_guest",
+      "wedding_event_bookings",
+      "package_deal_attachment_rate"
+    ],
+    "common_problems": [
+      "low_package_deal_uptake",
+      "underutilized_amenities",
+      "weak_wedding_venue_marketing",
+      "low_repeat_guest_rate",
+      "poor_fb_revenue_per_guest"
+    ],
+    "opportunity_categories": [
+      "package_deal_bundling",
+      "wedding_venue_marketing",
+      "amenity_upsell_strategy",
+      "loyalty_program",
+      "group_conference_bookings",
+      "fb_revenue_optimization",
+      "seasonal_event_programming"
+    ],
+    "compliance_notes": [
+      "Food service license required for all on-site restaurants and food operations",
+      "Liquor license required for all bars and restaurants on property",
+      "Pool and waterpark operations require state health department permits and inspections",
+      "Wedding venue operations may require special event permits from local municipality"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Resort guests research extensively before $500-$5000 bookings. Below 30 reviews kills consideration.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding to reviews — especially negative — demonstrates the service-quality premium resort guests expect.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Fast mobile site needed for the 70%+ of bookings starting on phones during commute / lunch break.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Family resort guests rebook annually; word-of-mouth among friend groups drives new families.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Package-deal repeat guests are the highest LTV — loyalty programs lift retention significantly.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "72"
   },
   "hospitality.catering_special_food": {
     "id": "hospitality.catering_special_food",
@@ -9535,8 +10602,7 @@
       "812910",
       "812921",
       "812922",
-      "812930",
-      "812990"
+      "812930"
     ],
     "scope": "in_scope",
     "evidence_class": "STRONG",
@@ -9769,10 +10835,9 @@
   "other_services.death_care": {
     "id": "other_services.death_care",
     "sector_naics2": "81",
-    "name": "Death care services (funeral homes, cemeteries, crematories)",
+    "name": "Death care services (funeral homes, crematories)",
     "naics6_codes": [
-      "812210",
-      "812220"
+      "812210"
     ],
     "scope": "in_scope",
     "evidence_class": "MODERATE",
@@ -9871,6 +10936,102 @@
       "out_of_scope_data",
       "footer"
     ]
+  },
+  "other_services.cemetery": {
+    "id": "other_services.cemetery",
+    "name": "Cemetery & Memorial Park",
+    "naics6_codes": [
+      "812220"
+    ],
+    "description": "Cemeteries and memorial parks. Revenue from burial plot sales, mausoleum spaces, cremation niches, and perpetual care endowment funds. State regulated perpetual care trusts required. Very different economics from funeral homes.",
+    "key_metrics": [
+      "plot_inventory_remaining",
+      "plots_sold_per_month",
+      "perpetual_care_fund_balance",
+      "preneed_sales_volume",
+      "average_plot_sale_value"
+    ],
+    "common_problems": [
+      "low_preneed_plot_sales",
+      "poor_online_visibility",
+      "weak_veteran_burial_partnerships",
+      "no_digital_plot_map",
+      "perpetual_care_fund_compliance"
+    ],
+    "opportunity_categories": [
+      "preneed_sales_strategy",
+      "veteran_burial_partnerships",
+      "digital_plot_inventory_map",
+      "perpetual_care_trust_compliance",
+      "community_memorial_events"
+    ],
+    "compliance_notes": [
+      "Most states require perpetual care trust fund holding minimum percentage of each plot sale",
+      "Cemetery operators must register with state cemetery authority and file annual reports",
+      "Preneed sales contracts are regulated by state insurance or banking departments",
+      "Veterans Affairs partnerships require specific VA cemetery program certification"
+    ],
+    "recommendations": [
+      {
+        "id": "rec_review_volume",
+        "study_ids": [
+          "S010"
+        ],
+        "trigger": "google_review_count < 30",
+        "claim": "Cemetery selection is a one-time decision but reviews drive trust during a difficult time.",
+        "magnitude": "Local businesses with 200+ reviews earn 2x more than those with <10",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": true
+      },
+      {
+        "id": "rec_response_rate",
+        "study_ids": [
+          "S047"
+        ],
+        "trigger": "responds_to_reviews == false OR is_unknown(responds_to_reviews)",
+        "claim": "Responding compassionately to reviews builds the trust grieving families need.",
+        "magnitude": "Reviews generate 2x more word-of-mouth than offline conversations",
+        "ease": "low_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_website_speed",
+        "study_ids": [
+          "S040",
+          "S041"
+        ],
+        "trigger": "load_time_seconds > 3 OR is_unknown(load_time_seconds)",
+        "claim": "Mobile-friendly site needed for at-need families researching options on phones from a hospital or funeral home.",
+        "magnitude": "53% of mobile users abandon sites over 3 seconds; 1s load has 3x conversion of 5s load",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_word_of_mouth",
+        "study_ids": [
+          "S020",
+          "S028"
+        ],
+        "trigger": "always",
+        "claim": "Funeral-home referrals are the primary acquisition channel. Family word-of-mouth follows.",
+        "magnitude": "92% trust friend/family above advertising; referred clients +16% profit, +37% retention",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      },
+      {
+        "id": "rec_seasonal_retention",
+        "study_ids": [
+          "S017"
+        ],
+        "trigger": "always",
+        "claim": "Preneed plot sales are the highest-margin recurring revenue stream — protect the funnel into them.",
+        "magnitude": "5pp retention lift -> 25-95% profit lift across industries",
+        "ease": "medium_effort",
+        "tier3_disclosure_required": false
+      }
+    ],
+    "required_inputs": [],
+    "sector_naics2": "81"
   },
   "other_services.repair_machinery_other": {
     "id": "other_services.repair_machinery_other",

@@ -21,6 +21,9 @@
    shape; the SDK call below produces the same wire request. */
 
 const Anthropic = require('@anthropic-ai/sdk');
+// Bounded LRU cache (max 1000 entries, existing TTL preserved) so the
+// per-place Claude enrichment cache can't grow unbounded under load.
+const { LRUCache } = require('lru-cache');
 
 const MODEL = 'claude-sonnet-4-6';
 // Two parallel Claude calls split the enrichment payload to avoid
@@ -31,19 +34,22 @@ const MODEL = 'claude-sonnet-4-6';
 // the other call's work. Billed on ACTUAL output tokens — caps are
 // headroom.
 //
-// MAX_TOKENS_A bumped 10000 → 14000 after the Wingate Oshkosh report
-// hit exactly 10000 tokens mid-string (renovation context bloated
-// priority_actions content past the cap). 14000 gives breathing room
-// for data-rich businesses; callClaudeEnrichA additionally retries
-// once at MAX_TOKENS_A * 1.5 = 21000 if the first attempt still
-// truncates.
+// MAX_TOKENS_A bumped 10000 → 14000 → 18000 after the Wingate Oshkosh
+// report hit exactly 10000 tokens mid-string (renovation context bloated
+// priority_actions content past the cap). 18000 gives breathing room
+// for data-rich businesses; claude-sonnet-4-6 supports up to 64000
+// output tokens so 18000 (and the 1.5× = 27000 retry below) are safely
+// within model limits. callClaudeEnrichA retries once at
+// Math.round(MAX_TOKENS_A * 1.5) = 27000 if the first attempt still
+// truncates — a 30-page report needs this headroom.
 const MAX_TOKENS_A = 18000;
 const MAX_TOKENS_B = 8000;
 
-// 24h in-memory cache keyed by place_id. Same Map pattern as the
-// google-places details cache (Phase 4 fix-batch).
-const CLAUDE_CACHE = new Map();
+// 24h in-memory cache keyed by place_id. Same pattern as the
+// google-places details cache (Phase 4 fix-batch) but bounded at
+// max=1000 entries so we don't OOM.
 const CLAUDE_TTL_MS = 24 * 60 * 60 * 1000;
+const CLAUDE_CACHE = new LRUCache({ max: 1000, ttl: CLAUDE_TTL_MS });
 
 const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -67,6 +73,90 @@ STRICT RULES:
 - Psychology must be real human behavior theory
 - Tag every Layer 3 claim as one of: [VERIFIED] [REASONABLE INFERENCE] [CUSTOMER MUST VALIDATE]
 - Respond in valid JSON only. No markdown. No preamble. No explanation outside JSON.
+
+CRITICAL OUTPUT FORMAT RULE:
+Your response MUST start with the character { immediately.
+No exceptions.
+
+NEVER write any text before the opening {
+
+NEVER write:
+  "Here is the JSON..."
+  "Now I have sufficient data..."
+  "Let me compile..."
+  "Based on my research..."
+  Or ANY text before {
+
+After web search completes go DIRECTLY to the JSON output.
+Start your response with { only.
+
+If you write ANY text before { the entire report will fail and the business owner gets no recommendations.
+
+CORRECT response starts like:
+{
+  "priority_actions": [...]
+
+WRONG response:
+  Now I have data. Here is JSON:
+  {
+    "priority_actions": [...]
+
+AI CLASSIFICATION CORRECTION:
+When the user prompt contains an AI CLASSIFICATION CORRECTION block:
+
+1. Read the corrected business type
+2. Generate ALL recommendations for the CORRECTED type only
+3. NEVER use the original wrong type
+4. Competitors should be in the CORRECTED business category
+5. Templates should match the CORRECTED business type
+
+Example:
+  If corrected to farm/agritourism:
+    Priority actions → farm focused
+    Competitors → other farms
+    Templates → farm visitor scripts
+    Seasonal strategy → crop season
+
+  If corrected to winery:
+    Priority actions → winery focused
+    Competitors → other wineries
+    Templates → tasting room scripts
+    Seasonal strategy → harvest season
+
+WEB SEARCH — MANDATORY FOR LOCAL CONTEXT:
+
+You have access to web search.
+USE IT to find real local information that is not in the data bundle.
+
+ALWAYS search for:
+1. Famous tourist attractions near the business city and state.
+   Search: "famous tourist attractions near {city} {state}"
+
+2. Annual visitor counts for any attraction you plan to mention.
+   Search: "{attraction name} annual visitors {state}"
+
+3. Upcoming local events not in the Ticketmaster data.
+   Search: "events {city} {state} 2026"
+
+4. Local landmarks and points of interest near the business.
+   Search: "things to do near {city} {state}"
+
+RULES for web search results:
+  Only use attractions that are REAL and VERIFIED by search results.
+  Never invent visitor counts.
+  Always cite real numbers from search results.
+  Prioritize attractions within 25 miles of the business.
+  Focus on attractions with 100,000+ annual visitors.
+
+EXAMPLE for AmericInn Dodgeville WI:
+  Search finds:
+    House on the Rock — 500,000 visitors/year, 22km away ✅
+    Cave of the Mounds — 100,000 visitors/year, 14km away ✅
+    Governor Dodge State Park — 234,000 visitors/year, 5km ✅
+
+  Claude writes specific recommendations for each major attraction found.
+
+DO NOT mention attractions that web search cannot verify as real and nearby.
 
 REVIEW RECENCY — BANNED TOPIC:
 Never mention how many days ago the last review was.
@@ -109,6 +199,43 @@ Never make response rate a priority action.
 Reason: Google Places API only returns 5 reviews. Response rate calculated from 5 reviews is unreliable. A business with 1,393 reviews may have replied to 500 of them but we cannot verify this from 5 reviews.
 
 Exception: If a review in the sample has an owner_reply — this is a POSITIVE signal. You may note: "Owner actively responds to reviews" as a strength. But never flag 0 replies in the sample as a problem.
+
+CDC HEALTH DATA:
+If cdc_health is in the bundle:
+  dental_visit_rate < 70%:
+    Large untapped patient pool
+  physical_inactivity > 25%:
+    Large untapped gym member pool
+  obesity_rate > 30%:
+    Weight loss program opportunity
+  Use EXACT percentages from bundle
+
+HRSA DENTAL SHORTAGE:
+If hrsa_dental.is_dental_shortage_area is true:
+  HIGH impact action:
+  "$50,000 loan forgiveness available through NHSC — apply at nhsc.hrsa.gov"
+  Mention HPSA score from bundle.
+
+CENSUS HOUSING DATA:
+If census_housing is in bundle:
+  homeownership_rate > 65%:
+    Target established homeowners. They spend more on local services.
+  vacancy_rate > 10%:
+    Growing market — new residents coming — target them early.
+  median_home_value for pricing:
+    Use to justify premium pricing in affluent neighborhoods.
+
+FOOD DATA (FoodData Central + Open Food Facts):
+If food_data or open_food_facts is in bundle — use for restaurants and grocery stores to suggest menu items, nutritional positioning, and ingredient sourcing opportunities.
+
+RELATED WORDS (Datamuse):
+If related_words is in bundle — use for naming suggestions for menu items, promotions, and marketing campaigns.
+
+NPS NATIONAL PARKS:
+If nearby_nps_parks is in bundle — mention specific park names for hotel and restaurant partnerships. Include entrance fees and designation type.
+
+NOAA CLIMATE DATA:
+If noaa_climate is in bundle — use historical temperature normals to validate seasonal strategy. More accurate than current weather for long-term planning.
 
 LAYER 2 — WHY IT WORKS (mandatory 3-sentence structure):
 The why_it_works field MUST contain exactly three sentences in this order:
@@ -391,6 +518,862 @@ anchors), still produce at least 4 non-review actions using
 universal levers (loyalty programs, referral programs, channel
 expansion, off-peak pricing, repeat-visit incentives).
 
+NO WEBSITE RULE — MANDATORY when google.website_exists is false:
+
+If website_exists is false in the data bundle this means Google
+could not find a website for this business.
+
+WHEN this is true, you MUST make THIS the FIRST priority action
+(impact HIGH, ordered before all other actions including any
+review-related action — this rule overrides the "review action
+goes LAST" ordering for this specific case):
+
+  id: 'no-website-found'
+  impact: 'HIGH'
+  source: 'AI'
+  title: 'You may not have a website or your website cannot be
+          found by customers searching online'
+  what: 'We searched for a website for this business and could
+         not find one. This could mean: (1) You have no website
+         at all, (2) You only have a personal page or Facebook
+         page but no dedicated business website, or (3) Your
+         website exists but Google cannot find or index it. All
+         three mean customers searching online cannot easily
+         find your business.'
+  why: Use the web_search tool to find ONE real verified
+       statistic about local businesses and online presence
+       from a credible source (Google, BrightLocal, Deloitte,
+       Pew Research, BIA Advisory, Clutch, GoDaddy, Square,
+       Verisign, etc.). Quote the statistic, the source name,
+       and the year. Examples of the SHAPE you are looking for
+       (do NOT use these numbers — find your own via web
+       search): "X% of consumers research a local business
+       online before visiting [Source, Year]" or "Businesses
+       without a website lose Y% of potential customers
+       [Source, Year]". NEVER invent, estimate, round, or
+       paraphrase statistics. If web_search returns no usable
+       stat, write a generic sentence about online discovery
+       being important — do NOT make up a number.
+  action: 'Contact BizRadar Support at support@bizradar.com to
+           get help building a professional business website at
+           reasonable prices or to fix your existing website so
+           Google can find it.'
+  money_estimate: '$500-$3,000 one-time build · $20-$80/month
+                   hosting · contact support for an exact quote'
+  cost: 'Contact BizRadar Support for pricing'
+  timeline: 'This week'
+
+This action counts as ONE of the 5-7 priority_actions (not in
+addition to). The review-action cap (max 1 review-related)
+still applies to the OTHER actions. When website_exists is
+true, do NOT generate this action — let the orange banner stay
+suppressed and use the priority-action slots for normal moves.
+
+MEAL PREP / MEAL KIT RULE — MANDATORY when subject is a meal-prep
+or meal-kit subscription business (profile_id =
+hospitality.catering_special_food AND business name contains
+"meal prep" / "meal kit" / "meal plan" / "prepared meals"):
+
+For meal prep and meal kit services: focus recommendations on
+subscription model, delivery logistics, and online ordering.
+Do NOT recommend foot traffic or walk-in customer strategies.
+These businesses operate entirely online and through delivery.
+Examples of WRONG advice for meal-prep: "improve storefront
+signage", "increase walk-in foot traffic", "upgrade in-store
+displays", "add patio seating". Examples of RIGHT advice for
+meal-prep: "reduce subscription churn", "tune the online
+checkout funnel", "expand into corporate/wellness B2B accounts",
+"optimize delivery zone density", "Instagram food photography
+to drive subscription sign-ups".
+
+CSA AND PYO FARM RULE — MANDATORY when the subject is a CSA farm
+(Community Supported Agriculture) OR a pick-your-own farm OR an
+agritourism operation:
+
+These are DIRECT-TO-CONSUMER businesses, not wholesale farms.
+Treat them like hospitality / experience businesses, not B2B
+commodity producers.
+
+FOR CSA FARMS focus on:
+  - Member subscription retention
+  - Weekly box value maximization
+  - Community building strategy
+  - Season-to-season member growth
+  - Newsletter and member communication cadence
+
+FOR CSA FARMS do NOT recommend:
+  - Wholesale distribution
+  - Grocery store partnerships
+  - Commodity price optimization
+
+FOR PICK-YOUR-OWN FARMS focus on:
+  - Family experience marketing
+  - Weekend event programming
+  - Instagram-worthy moments (sunflower fields, hayrides, photo ops)
+  - School field trip partnerships
+  - Gift shop and add-on sales
+  - Hayrides and seasonal events (haunted maze in October etc.)
+
+FOR AGRITOURISM IN GENERAL:
+  - Experience is the product
+  - Treat like hospitality, not farming
+  - Reviews, photos, family-friendly signals matter more than
+    wholesale produce price discussions
+
+SHORT TERM RENTAL RULE — MANDATORY when profile is
+hospitality.short_term_rental (Airbnb host / VRBO / vacation
+rental):
+
+Focus on platform optimization, dynamic pricing and guest
+experience. Do NOT recommend front desk, hotel amenities or
+corporate travel programs.
+
+Key levers for STRs:
+  - Airbnb / VRBO / Booking.com listing photo & headline optimization
+  - Dynamic pricing tools (PriceLabs, Wheelhouse, Beyond)
+  - Instant Book + Superhost qualification
+  - Guest messaging automation (check-in instructions, local guides)
+  - Cleaning turnaround speed (same-day turn capability)
+  - Local experience recommendations to drive 5-star reviews
+
+WRONG advice for STRs: "hire front desk staff", "add corporate
+travel rates", "join hotel loyalty program", "add room service".
+
+HOSTEL RULE — MANDATORY when the subject is a hostel (NAICS
+721310 or name contains 'hostel'):
+
+Focus on budget traveler and backpacker community advice.
+
+Key levers for hostels:
+  - Hostelworld and Booking.com listing optimization
+  - Common area / social event programming (pub crawls, family
+    dinners, walking tours)
+  - Group booking partnerships (study-abroad programs, tour
+    operators)
+  - Tour operator and local-experience relationships
+
+WRONG advice for hostels: "add corporate travel program", "upgrade
+to premium room amenities", "add business center features".
+
+CAMPGROUND RULE — MANDATORY when profile is hospitality.lodging
+AND NAICS = 721211 (campground / RV park):
+
+Focus on outdoor recreation experience advice.
+
+Key levers for campgrounds / RV parks:
+  - Campsite amenity improvements (full hookups, fire rings,
+    shower-house quality)
+  - Recreation activity programming (kayaks, fishing licenses,
+    nature walks)
+  - Seasonal promotion strategy (holiday weekends, hunting season,
+    leaf-peeping season)
+  - Family and group booking packages
+
+WRONG advice for campgrounds: "hotel-style amenities", "corporate
+travel programs", "concierge service".
+
+RESORT RULE — MANDATORY when profile is hospitality.resort
+(NAICS 721110 with "resort" or "lodge" in name):
+
+Focus on TOTAL revenue per guest, not just room revenue. Resorts
+earn more from F&B / spa / activities / events than from room
+nights alone.
+
+Key levers for resorts:
+  - Package deal bundling (stay + spa, stay + golf, stay + dining)
+  - Wedding venue bookings (highest-margin event revenue)
+  - F&B revenue per guest night (in-house dining capture rate)
+  - Spa and activity upsell at check-in
+  - Group / conference business midweek
+  - Loyalty program for families (returning every summer)
+
+WRONG advice for resorts: treating them like limited-service
+hotels with only room-revenue levers, ignoring the amenity
+ecosystem.
+
+MEDICAL SPECIALIST RULE — MANDATORY when the subject is a medical
+specialist (NOT primary care). Examples of specialists:
+  - Cardiologist
+  - Fertility clinic
+  - Urologist
+  - Gynecologist
+  - Neurologist
+  - Gastroenterologist
+  - Oncologist
+  - ENT specialist
+  - Orthopedic surgeon
+  - Endocrinologist
+  - Rheumatologist
+  - Pulmonologist
+
+Specialists operate on a referral-and-insurance-panel economy,
+not walk-in retail. Focus recommendations on:
+  - Physician referral network growth (track referring-doctor
+    counts and reciprocal-referral practices)
+  - Insurance panel participation (which payers / plans the
+    practice accepts, in-network vs out-of-network strategy)
+  - Specialty-specific patient acquisition channels (PCP
+    detailing, hospital-system affiliations, condition-specific
+    advocacy groups)
+  - Specialist reputation building (board certification visibility,
+    peer-reviewed publications, conference presentations on the
+    Google Business profile / website)
+
+WRONG advice for specialists:
+  - "Walk-in patient strategy" — specialists rarely take walk-ins
+  - "General medicine scheduling" — patient flow is referral-driven
+  - "Primary care competition" — specialists don't compete with PCPs;
+    they receive patients FROM PCPs
+
+MARTIAL ARTS RULE — MANDATORY when the subject is a martial arts
+school (dojo, karate, taekwondo, judo, MMA, BJJ, kickboxing,
+boxing gym):
+
+Martial arts schools are FITNESS AND RECREATION businesses, not
+academic tutoring. The federal NAICS may classify them as 611620
+(Sports & Recreation Instruction) but the operating model is
+gym/studio — class enrollment, belt progression, tournament
+participation, community building.
+
+Focus on:
+  - Class enrollment and retention rate
+  - Belt-progression milestone ceremonies
+  - Tournament team and competition participation
+  - Community building (parent watch areas, family dinners,
+    demo nights)
+  - Trial-class conversion funnel
+
+Do NOT recommend:
+  - Academic outcome metrics (test scores, GPAs)
+  - Test prep-style advice
+  - Tutoring-center scheduling models
+
+DANCE STUDIO RULE — MANDATORY when the subject is a dance studio
+(ballet, jazz, hip-hop, contemporary, tap, modern, competitive
+dance):
+
+Dance studios are RECREATION AND PERFORMANCE businesses, not
+academic tutoring. Federal NAICS 611610 (Fine Arts Schools)
+classifies them with art schools but the operating model is
+performance and recital-driven.
+
+Focus on:
+  - Recital and performance events (annual, seasonal)
+  - Class schedule optimization (after-school slot demand)
+  - Competition teams (regional, national)
+  - Summer intensives and camps
+  - Parent communication (recital costumes, fees, ticketing)
+  - Studio aesthetics for Instagram (mirror wall, barre,
+    backdrop)
+
+Do NOT recommend:
+  - Academic outcome metrics
+  - Test prep-style advice
+  - Tutoring-center scheduling models
+
+MOVIE THEATER RULE — MANDATORY when the subject is a movie theater
+/ cinema / multiplex / IMAX / drive-in (NAICS 512131 or 512132):
+
+Movie theaters compete with streaming services and home
+entertainment, not with each other alone. The competitive set is
+"any way to watch a movie" — Netflix, HBO Max, Prime Video,
+in-home projectors.
+
+Focus on:
+  - Premium experience vs streaming (recliner seats, Dolby, IMAX,
+    private screening rooms)
+  - Concession revenue optimization (the high-margin lever — most
+    theaters earn more from popcorn/drinks than tickets)
+  - Private event and screening-room bookings (birthday parties,
+    corporate, marriage proposals)
+  - Loyalty rewards program (AMC A-List style subscription)
+  - Group sales and corporate bookings
+  - Special event screenings (film festivals, classic movie nights,
+    live event simulcasts — opera, sports, concerts)
+
+Do NOT recommend:
+  - Film production advice (theaters do NOT produce films)
+  - Distribution deals (theaters do NOT distribute)
+  - Content creation strategy (theaters EXHIBIT, they don't create)
+
+COMEDY CLUB RULE — MANDATORY when the subject is a comedy club,
+improv theater, or stand-up venue:
+
+Comedy clubs are live entertainment venues, not generic bars.
+Focus on:
+  - Booking comedian talent (headliners, weekend lineups, road
+    comics, local opener nights)
+  - Open-mic night programming (Tuesday/Wednesday traffic builder)
+  - Drink minimum optimization (two-drink minimum is the standard
+    revenue lever)
+  - Corporate event and private bookings
+  - Ticket sales strategy (advance vs walk-up, package deals)
+
+Do NOT default to generic bar advice. The act and the room are
+the product; alcohol is the margin add-on, not the headline.
+
+BOARD GAME CAFE RULE — MANDATORY when the subject is a board game
+cafe or tabletop gaming cafe:
+
+Board game cafes are DESTINATION entertainment businesses.
+Customers stay 2–4 hours per visit. Revenue comes from a game
+library access fee (per-person or per-hour) PLUS food & drinks,
+not from coffee/pastry impulse purchases like a normal cafe.
+
+Focus on:
+  - Game library expansion (new releases, classics, kid-friendly,
+    party games, strategy heavyweights)
+  - Reservation system (table holds during peak nights)
+  - Weekly game night events (Monopoly Monday, D&D Wednesday,
+    trivia night)
+  - Tournament hosting (Magic the Gathering Friday Night Magic,
+    Pokemon league, board game competitions)
+  - Publisher partnerships (preview copies, sponsored events)
+  - Dwell time optimization (food/drink upsell at the 2-hour mark)
+
+Do NOT recommend:
+  - Morning rush optimization (board game cafes don't have morning
+    rush — they peak evenings/weekends)
+  - Drive-through speed
+  - Generic coffee shop metrics (espresso pull time, line speed,
+    grab-and-go signage)
+
+VAPE SHOP RULE — MANDATORY when the subject is a vape shop, smoke
+shop, e-cigarette retailer, or tobacco supplies retailer (NAICS
+459991):
+
+Vape and smoke shops face a unique regulatory environment that
+shapes which marketing channels and strategies are available.
+
+Focus on:
+  - FDA Tobacco 21 age verification compliance — mandatory at point
+    of sale + online; failures result in federal fines and license
+    revocation
+  - State flavor ban awareness — flavored e-cigarette laws change
+    frequently and vary state-by-state (some states ban all flavors,
+    some only menthol, some none)
+  - Product diversity beyond vape (CBD, accessories, glass, hookah,
+    cigars, tobacco) — multi-category retail buffers single-product
+    regulatory risk
+  - Loyalty program for regular customers — high-frequency repeat
+    purchase pattern makes loyalty/rewards a strong lever
+  - Online presence built carefully — vape advertising restrictions
+    apply on Google Ads, Meta (Facebook/Instagram), TikTok; many
+    paid-ad channels prohibit vape promotion entirely
+  - Compliance signage and ID-check protocols visible to customers
+    (builds trust, demonstrates due diligence to regulators)
+
+Do NOT recommend:
+  - Standard Google Ads / Meta paid social campaigns WITHOUT
+    flagging that vape advertising is restricted or banned on
+    those platforms
+  - Influencer partnerships without noting FTC tobacco endorsement
+    rules
+  - Generic "promote on social media" advice — the platform
+    restrictions are substantive and must be acknowledged
+
+TOWING COMPANY RULE — MANDATORY when the subject is a towing
+company, wrecker service, or roadside assistance business
+(NAICS 488410):
+
+Towing companies are emergency roadside service businesses, not
+freight carriers. The customer is in a moment of crisis (broken
+down, accident, lockout) and discovers the business via Google
+Maps emergency search.
+
+Focus on:
+  - Insurance company partnerships (AAA, Geico, State Farm, etc.
+    — these are the highest-LTV B2B accounts)
+  - Auto repair shop referrals (towing-to-shop partnerships)
+  - Google Maps emergency search optimization (24/7 hours
+    listed, response time stated, service area mapped)
+  - 24/7 availability marketing (overnight + weekend hours are
+    when prices peak)
+  - Fleet maintenance efficiency (trucks ON road = revenue;
+    trucks DOWN = lost calls)
+
+Do NOT recommend freight trucking advice (load boards, FMCSA
+operating authority for OTR loads, freight broker contracts).
+
+MOVING COMPANY RULE — MANDATORY when the subject is a moving
+company / movers / residential moving service (NAICS 484210):
+
+Moving companies are consumer service businesses, not freight
+carriers. The customer is a household, not a shipper.
+
+Focus on:
+  - Customer review building (movers live or die by Yelp /
+    Google reviews — bad reviews kill bookings)
+  - Real estate agent referrals (highest-quality lead source)
+  - Packing service upsell (highest-margin add-on)
+  - Summer peak season (May-August accounts for ~50% of annual
+    revenue; staffing and pricing strategy must reflect this)
+  - Online booking convenience (instant quote, calendar booking)
+  - Storage partnership upsell (gap between move-out and move-in)
+
+Do NOT recommend:
+  - Freight routing optimization
+  - Freight broker relationships
+  - Load capacity efficiency (consumer moves are single-truck, single-day)
+
+PRINT SHOP RULE — MANDATORY when the subject is a local print
+shop, copy center, or screen-printing retailer (NAICS 323111):
+
+Local print shops are retail service businesses, NOT factories
+or print-manufacturing plants.
+
+Focus on:
+  - Business client relationships (recurring B2B accounts —
+    real estate signs, restaurant menus, law firm letterhead)
+  - Rush printing premium pricing (same-day, next-day surcharges)
+  - Design service upsell (one-time design fee + reprint margin)
+  - Event and wedding printing (invitations, programs, signage)
+  - Corporate account building (monthly recurring revenue)
+
+Do NOT recommend manufacturing efficiency, raw material sourcing,
+press utilization rates, or industrial print production metrics.
+
+PHOTOGRAPHY STUDIO RULE — MANDATORY when the subject is a
+photography studio or wedding photographer (NAICS 541921):
+
+Photography studios and wedding photographers are creative
+service businesses, NOT consulting firms or retainer-based
+professional services.
+
+Focus on:
+  - Portfolio showcase on Instagram and website (the portfolio
+    IS the sales pitch)
+  - Wedding venue preferred-vendor partnerships (venues book
+    photographers months in advance — being on the preferred
+    list is the highest-ROI growth lever)
+  - Mini-session event marketing (seasonal — fall family photos,
+    holiday cards, spring engagement)
+  - Corporate headshot packages (recurring B2B account)
+  - Bridal show presence (peak booking happens at bridal expos
+    Jan-Feb for May-Oct weddings)
+  - Same-day social media preview to build word-of-mouth
+    (sneak peeks drive social shares from happy clients)
+  - Google review collection after every session
+
+For wedding photographers specifically:
+  - Peak season May-October
+  - Venue relationships are the PRIMARY growth lever
+  - Album upsell after wedding (10-30% of total revenue)
+
+Do NOT recommend consulting / retainer / billing-methodology
+advice — wedding and portrait photography is package-priced
+per-event work.
+
+EVENT PLANNER RULE — MANDATORY when the subject is an event
+planner, wedding planner, or event coordinator (NAICS 812990):
+
+Event planners are professional creative service businesses,
+NOT personal care or salon-style operations.
+
+Focus on:
+  - Portfolio and client testimonials (the portfolio IS the
+    sales pitch — past events showcase capability)
+  - Vendor referral network (florists, photographers, caterers,
+    DJs — reciprocal referrals)
+  - Corporate event market (higher margins, recurring B2B)
+  - Venue preferred-planner status (being on the venue's short
+    list captures inbound leads)
+  - Social media event showcase (Instagram is the new portfolio)
+  - Seasonal peaks: May-October weddings, November-December
+    corporate holiday parties
+
+Do NOT recommend:
+  - Salon or beauty advice
+  - Personal care metrics (chair utilization, etc.)
+  - Walk-in customer strategy (events are pre-booked weeks/months
+    in advance)
+
+MORTGAGE BROKER RULE — MANDATORY when the subject is a mortgage
+broker, mortgage lender, or home-loan originator (NAICS 522292):
+
+Mortgage brokers connect borrowers with lenders. They are NOT
+banks. They do NOT hold deposits. They earn yield-spread premium
+and/or origination fees, not net interest margin on a balance
+sheet.
+
+Focus on:
+  - Real estate agent referral network (the single highest-quality
+    deal source — purchase originations come almost entirely from
+    realtor referrals)
+  - Pre-approval speed advantage (same-day pre-approval beats slow
+    banks; a strong differentiator)
+  - Rate comparison marketing (brokers shop multiple lenders;
+    surface the savings advantage vs going direct to a single bank)
+  - First-time buyer education (Saturday seminars, YouTube
+    explainer content, mortgage calculator on website)
+  - Refinance opportunity outreach (former clients tracked for rate
+    drops — automation drives a strong second-deal pipeline)
+  - Online application convenience (Blend / Floify / SimpleNexus
+    style digital intake to compete with Rocket Mortgage)
+
+Do NOT recommend:
+  - Deposit growth strategy (brokers have no deposits)
+  - FDIC compliance (brokers are not FDIC-insured)
+  - Commercial lending portfolio (brokers don't originate commercial
+    loans typically — they originate residential)
+  - Bank-style metrics (net interest margin, loan-to-deposit ratio,
+    branch utilization)
+
+DAYCARE AND PRESCHOOL RULE — MANDATORY when the subject is a
+daycare, preschool, childcare center, or early childhood program
+(NAICS 624410):
+
+These are childcare businesses, NOT clinical health facilities.
+Parents choose primarily on trust and safety; cost and convenience
+are secondary.
+
+Focus on:
+  - Parent trust and safety reputation (background-checked staff,
+    visible cleaning protocols, on-site cameras for parent peace
+    of mind)
+  - Staff qualifications and certifications (early childhood
+    degrees, CPR/First Aid, state-specific credentials)
+  - State childcare licensing compliance (license renewal cadence,
+    inspection scores, parent-visible)
+  - Waitlist management strategy (demand often exceeds supply for
+    infant rooms — a structured waitlist is a revenue lever)
+  - Parent communication tools (Brightwheel, ProCare, Lillio —
+    daily photo/update apps drive parent retention and word-of-mouth)
+  - Curriculum differentiation (Montessori, Reggio, play-based,
+    STEAM-focused — clear positioning vs generic competitors)
+  - Subsidy and voucher acceptance (state CCDF subsidies / military
+    childcare vouchers expand the addressable market)
+
+Do NOT recommend:
+  - Hospital or clinical advice
+  - Healthcare billing advice
+  - Insurance panel participation
+
+MUSIC SCHOOL RULE — MANDATORY when the subject is a music school,
+music academy, or instrumental-lessons studio (NAICS 611610):
+
+Music schools teach instruments, voice, and music theory to
+students of all ages. They are NOT academic K-12 schools and NOT
+fitness/gym businesses.
+
+Focus on:
+  - Recital and showcase events (twice-yearly recitals are the
+    primary parent-retention lever — and an Instagram opportunity)
+  - Group and private lesson packages (private = high margin;
+    group = recurring revenue base)
+  - Summer music camps (8-12 weeks of summer revenue when traditional
+    lessons dip)
+  - After-school program partnerships (schools refer their music
+    elective overflow)
+  - Parent referral programs (the highest-quality new-student channel)
+  - Online lesson offerings (post-COVID, hybrid is table stakes)
+
+Do NOT recommend:
+  - Academic school advice (curriculum, test scores, accreditation)
+  - Fitness / gym advice
+  - Tutoring center scheduling models
+
+ART SCHOOL RULE — MANDATORY when the subject is an art studio
+that teaches classes (drawing, painting, ceramics, pottery,
+sculpture — NAICS 611610):
+
+Art studios that teach are creative recreation businesses.
+The product is the experience and the learning, not gallery sales.
+
+Focus on:
+  - Student showcase events (year-end shows, gallery nights —
+    drives Instagram traffic and family attendance)
+  - Adult beginner classes (highest-margin segment — adults pay
+    premium for entry-level "I always wanted to try painting")
+  - Summer art camps (kids' camps are a huge summer revenue lever)
+  - School enrichment partnerships (after-school programs at K-12
+    schools)
+  - Portfolio development for high school students (college art
+    program applications)
+  - Gift card sales (art classes are popular gift purchases)
+
+Do NOT recommend:
+  - Fitness / gym advice
+  - Academic curriculum advice (test prep, grade-level standards)
+  - Industrial pottery / manufacturing-scale ceramics advice
+
+COOKING SCHOOL RULE — MANDATORY when the subject is a cooking
+school or culinary class business (NAICS 611519):
+
+Cooking schools offer recreational AND professional culinary
+instruction. The recreational side (date nights, kids' camps)
+drives most revenue for non-vocational schools.
+
+Focus on:
+  - Date night event marketing (Friday/Saturday couples cooking
+    classes — primary revenue stream)
+  - Corporate team building events (high-ticket B2B, weekday
+    daytime utilization)
+  - Kids' cooking camps (summer + school breaks)
+  - Private party bookings (birthdays, bachelorettes — large group
+    bookings)
+  - Gift card and gift-experience sales (cooking classes are
+    popular gifts year-round)
+  - Chef guest events (celebrity-chef nights drive social buzz +
+    premium ticket prices)
+
+Recommend vocational certification advice ONLY if the school is a
+professional culinary training program (Le Cordon Bleu style),
+NOT for recreational cooking schools.
+
+SHOOTING RANGE RULE — MANDATORY when the subject is a shooting
+range, gun range, rifle range, or firearms range (NAICS 713990):
+
+Shooting ranges are recreation businesses, NOT academic education.
+
+Focus on:
+  - Membership and lane rental (recurring + walk-in revenue)
+  - Firearm safety class revenue (CCW classes, NRA basic pistol,
+    youth safety — high margin training programs)
+  - Retail gun and ammo sales (FFL transactions, complementary
+    to range time)
+  - Corporate team building events (private bookings drive
+    weekday traffic)
+  - Compliance: FFL license, state range permits, ventilation
+    and lead-management requirements
+
+Do NOT recommend academic tutoring advice, test prep, or
+education-sector business models.
+
+TOUR COMPANY RULE — MANDATORY when the subject is a tour company,
+ghost tour, walking tour, food tour, or sightseeing operator
+(NAICS 561520):
+
+Tour companies are hospitality and recreation businesses, NOT
+office administration. The product is the experience.
+
+Focus on:
+  - TripAdvisor and Viator listing optimization (the primary
+    discovery channels for inbound tourists)
+  - Group booking optimization (corporate, school field trips,
+    bachelorette parties)
+  - Seasonal tour programming (ghost tours peak Oct, food tours
+    year-round, walking tours season-dependent by climate)
+  - Corporate and private tour packages
+  - Review building strategy (Google + TripAdvisor + Yelp —
+    review velocity is everything for tour bookings)
+
+Do NOT recommend office or admin advice, document preparation,
+or back-office support services.
+
+CAT CAFE RULE — MANDATORY when the subject is a cat cafe, dog
+cafe, or pet cafe (NAICS 722515):
+
+Cat cafes and pet cafes are EXPERIENCE / DESTINATION businesses.
+Revenue comes from cafe sales PLUS reservation/admission fees.
+
+Focus on:
+  - Reservation system optimization (timed entry slots are the
+    operating constraint — animal welfare requires a cap)
+  - Animal welfare compliance (state animal welfare standards,
+    veterinary care documentation visible to guests)
+  - Instagram-worthy experience (the photo IS the marketing)
+  - Adoption partnership with local shelters (free cats from
+    shelters + revenue from adoption fees = positive narrative)
+  - Gift shop merchandise (cat-themed retail upsell)
+
+Do NOT recommend quick-service coffee shop metrics (line speed,
+morning rush, espresso pull time) — the customer is here for the
+animals, not the latte.
+
+HORSE STABLE RULE — MANDATORY when the subject is a horse stable
+or equestrian center (NAICS 712219 synthetic):
+
+Horse stables have dual revenue: boarding fees PLUS lessons.
+
+Focus on:
+  - Boarding capacity optimization (stall count × monthly board
+    rate is the floor revenue)
+  - Lesson program development (private + group + summer camps)
+  - Horse show event hosting (revenue + reputation builder)
+  - Trail ride experiences (one-time visitor revenue)
+  - Summer camp programs (kids' equestrian camps)
+
+Do NOT recommend generic tutoring advice — equestrian instruction
+is recreation/experiential, not academic.
+
+SURF AND OUTDOOR SCHOOL RULE — MANDATORY when the subject is a
+surf school, kayak tour operator, or outdoor recreation school:
+
+These are experience businesses, not academic instruction.
+
+Focus on:
+  - Group booking optimization
+  - Corporate team building
+  - Seasonal peak marketing (surf: regional, kayak: warm months)
+  - Equipment rental upsell
+
+Do NOT recommend academic instruction advice or tutoring
+center scheduling models.
+
+HAUNTED HOUSE RULE — MANDATORY when the subject is a haunted
+house, haunted attraction, scare maze, or fear factory (NAICS
+711190):
+
+Haunted houses are seasonal entertainment businesses with
+extreme revenue concentration in September-October. ALL year-round
+operating decisions must account for peak-season concentration.
+
+Focus on:
+  - Pre-season ticket sales (online presales drive cash flow
+    during the year)
+  - Group and corporate bookings (Halloween parties, college
+    bus trips)
+  - Social media fear marketing (TikTok/Instagram scares =
+    free viral marketing)
+  - Off-season event hosting (Valentine's Day creepy events,
+    summer "hot haunt" experiments to extend revenue)
+  - Year-round building lease ROI calculation (4-6 weeks of
+    operating revenue must cover 12 months of rent)
+
+This is a SEASONAL business. All recommendations must explicitly
+acknowledge the September-October peak — generic year-round
+foot traffic advice is wrong.
+
+HOOKAH AND CIGAR LOUNGE RULE — MANDATORY when the subject is a
+hookah lounge, cigar bar, or cigar lounge (NAICS 722410):
+
+Hookah and cigar lounges face unique state indoor-smoking laws
+that vary widely. The regulatory environment shapes the entire
+operating model.
+
+Focus on:
+  - State indoor-smoking permit compliance (some states require
+    a specific tobacco-bar exemption; others ban indoor smoking
+    entirely and force outdoor-only patios)
+  - Age verification strict enforcement (T21 federal floor +
+    state ID-check protocols visible at entry)
+  - Ventilation system requirements (commercial-grade HVAC with
+    specific air-exchange minimums in most state codes)
+  - Private club membership model in restricted states (a
+    members-only structure preserves indoor smoking where
+    public smoking is banned)
+  - Premium tobacco product selection (high-end shisha brands,
+    aged cigar inventory — destination differentiator)
+
+GOOGLE ALGORITHM + REVIEWS RULE — MANDATORY:
+
+When writing ANY recommendation about reviews (rating,
+review count, review velocity, review responses, photos, or
+any other review-adjacent topic) you MUST explain HOW Google
+uses reviews to decide which businesses to show in search
+and Maps results. Plain "more reviews = better" is forbidden.
+The operator needs to understand the cause-and-effect chain:
+more reviews → higher ranking → more visibility → more
+customers → more revenue.
+
+Pick the explanation template that matches the subject's
+business type (use sector_naics2 / profile_id / naics_title
+to decide). Substitute the REAL city name, REAL review count,
+REAL rating, and REAL named competitor from the bundle.
+
+────────────────────────────────────────────────
+FOR HOTELS (lodging — NAICS 721):
+"When a first-time visitor arrives in {CITY} and searches
+Google for hotels, Google automatically ranks hotels by a
+combination of star rating and review count. A hotel with
+{COMP_RATING} stars and {COMP_REVIEWS} reviews will ALWAYS
+appear above a hotel with {SUBJECT_RATING} stars and
+{SUBJECT_REVIEWS} reviews — even if both are equally good.
+More reviews = more visibility = more bookings. Every review
+your front desk earns this week is compounding interest on
+your Google ranking for years."
+
+FOR RESTAURANTS (food service — NAICS 722):
+"When someone new to {CITY} searches Google for restaurants
+nearby, Google shows the results with the most reviews and
+highest ratings at the top. {COMPETITOR_NAME} ({COMP_RATING}
+stars, {COMP_REVIEWS} reviews) will appear above yours
+({SUBJECT_RATING} stars, {SUBJECT_REVIEWS} reviews) — even
+if your food is better. The customer never sees you. They
+never get a chance to try you. Reviews are your digital
+foot traffic."
+
+FOR DENTAL PRACTICES (NAICS 621210):
+"When someone moves to {CITY} and needs a dentist, they
+search Google. Google shows the dental practices with the
+most reviews and highest ratings first. Most people pick
+from the top 3 results. If you are not in the top 3 for
+{CITY} that patient goes to {COMPETITOR_NAME}
+({COMP_REVIEWS} reviews) — permanently. Unlike retail,
+dental patients stay for life once they find a dentist
+they trust. Every missed patient from low Google ranking
+is 10-20 years of lost recurring revenue."
+
+FOR RETAIL STORES (NAICS 44 / 45):
+"When someone searches Google for {BUSINESS_TYPE} near
+{CITY} Google ranks results by reviews and ratings.
+Shoppers scroll past businesses with fewer reviews even
+if those businesses are closer or cheaper. {COMPETITOR_NAME}
+has {COMP_REVIEWS} reviews vs your {SUBJECT_REVIEWS} — that
+gap is the storefront customers see on Google. Reviews are
+your storefront on Google. If your storefront looks empty
+customers walk past."
+
+FOR ALL OTHER BUSINESSES (default):
+"When a potential customer searches Google for
+{BUSINESS_TYPE} in {CITY} Google uses a combination of your
+star rating and total review count to decide where you
+appear in results. {COMPETITOR_NAME} ({COMP_RATING} stars,
+{COMP_REVIEWS} reviews) consistently appears above you
+({SUBJECT_RATING} stars, {SUBJECT_REVIEWS} reviews). Higher
+position means more clicks. More clicks means more customers.
+Every single review you earn moves you one step higher in
+Google results for everyone in {CITY} who searches for what
+you offer."
+────────────────────────────────────────────────
+
+IMPORTANT RULES FOR THIS BLOCK:
+1. ALWAYS personalize with the REAL city name from
+   business.address / formatted_address (parse it — do NOT
+   use the {CITY} placeholder literally in the final
+   recommendation output).
+2. ALWAYS use the REAL subject review count and rating from
+   google.review_count and google.rating.
+3. ALWAYS reference a SPECIFIC NAMED competitor from
+   competitors.top5 — pick the one with the highest
+   review_count (that's the most damaging Google-ranking
+   comparison for the subject). Use its real .name,
+   .review_count, and .rating.
+4. NEVER use generic placeholders like [city], {CITY},
+   {COMPETITOR_NAME}, or "your competitor" in the final
+   output — every brace template variable above MUST be
+   substituted with real data before it reaches the user.
+5. The explanation goes inside the "why" field of the
+   review-related priority_action (the one allowed review
+   action, per the PRIORITY ACTIONS — MANDATORY RULES cap).
+   It can also appear in competitor_deep_dive[].why_outperform
+   when reviewing a competitor whose review_count gap is the
+   primary issue.
+
+FORBIDDEN GENERIC PHRASES (NEVER use any of these):
+  - "Reviews are important for your Google ranking."
+  - "More reviews will help your visibility."
+  - "Build up your review count."
+  - "Reviews affect your search position."
+  - "Higher ratings lead to more business."
+  - Any sentence about reviews/ranking that does NOT name
+    the city, name the competitor, and quote real numbers.
+
+EXAMPLE — GOOD output (this is what we want):
+"When a tourist arrives in Dodgeville and searches Google
+for hotels, Google automatically shows AmericInn (4.2 stars,
+354 reviews) vs Don Q Inn (4.2 stars, 1,056 reviews). Same
+rating. But Don Q Inn has 3x more reviews so Google ranks
+it higher. The tourist books Don Q Inn. They never see your
+listing. Every review you earn this week closes that gap."
+
+EXAMPLE — BAD output (this is FORBIDDEN):
+"Reviews are important for your Google ranking."
+← Too generic. Forbidden.
+← Always use specific numbers, specific city, specific
+   competitor by name.
+
 COMPETITOR DEEP DIVE — MANDATORY RULES:
 
 You will receive up to 5 competitors in competitors.top5.
@@ -619,6 +1602,17 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
   const top3 = cleanedTop10.slice(0, 3);
 
   return {
+    // AI classification correction signal — populated when
+    // verifyBusinessClassification overrode the Layer 0 NAICS. Read by
+    // buildUserPrompt to render an "AI CLASSIFICATION CORRECTION" block
+    // at the top so Claude generates recommendations for the corrected
+    // type, not the original misclassification.
+    ai_classification: layer0Result && layer0Result.ai_corrected ? {
+      original_naics: layer0Result.original_naics || null,
+      naics6: layer0Result.naics6 || null,
+      naics_title: layer0Result.naics_title || null,
+      reasoning: layer0Result.ai_reasoning || null,
+    } : null,
     business: {
       name: data.name || '',
       address: data.formatted_address || '',
@@ -653,7 +1647,10 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       hours_complete: data.hours_complete === true,
       website_exists: data.website_exists,
       sample_reviews: (data.sample_reviews || []).slice(0, 5).map((r) => ({
-        text: (r.text || '').slice(0, 500),
+        // Full review text — no truncation. Claude needs the complete
+        // verbatim review to cite specific complaints / praise points
+        // in priority_actions and competitor_analysis.
+        text: r.text || '',
         stars: typeof r.rating === 'number' ? r.rating : null,
       })),
     },
@@ -674,8 +1671,11 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
         rating: c.rating,
         review_count: c.review_count,
         distance_miles: typeof c.distance_meters === 'number' ? +(c.distance_meters / 1609.34).toFixed(2) : null,
+        // Full competitor-review text — no truncation. Claude cites
+        // these verbatim in competitor_analysis.what_they_do_better
+        // per the STEAL STRATEGY RULE.
         top_reviews: Array.isArray(c.reviews) ? c.reviews.map((r) =>
-          `[${r.rating != null ? r.rating + '/5' : '—'} ${r.time || 'recent'}]: "${(r.text || '').slice(0, 300)}"`
+          `[${r.rating != null ? r.rating + '/5' : '—'} ${r.time || 'recent'}]: "${r.text || ''}"`
         ) : [],
       })) : [],
       top3: Array.isArray(data.competitors_top3) ? data.competitors_top3.map((c) => ({
@@ -725,6 +1725,26 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       yoy_change_pct: data.building_permits_yoy_change,
     } : null,
     upcoming_events: Array.isArray(data.upcoming_events) ? data.upcoming_events : [],
+    // Phase 5+ — 3 new keyless data sources, populated by server.js when
+    // the NAICS prefix matches the per-source gate. Each is null when
+    // the fetcher didn't fire or returned no data.
+    cdc_health: data.cdc_health || null,
+    hrsa_dental: data.hrsa_dental || null,
+    usda_ers: data.usda_ers || null,
+    // Phase 5+ — 5 more sources (FoodData, OFF, Datamuse, NPS, NOAA).
+    // Same null-when-not-fired pattern. food_data + open_food_facts
+    // fire only on restaurant / grocery sectors; nearby_nps_parks on
+    // hotel / restaurant / retail; related_words + noaa_climate fire
+    // on every sector.
+    food_data: Array.isArray(data.food_data) ? data.food_data : null,
+    open_food_facts: Array.isArray(data.open_food_facts) ? data.open_food_facts : null,
+    related_words: Array.isArray(data.related_words) ? data.related_words : null,
+    nearby_nps_parks: Array.isArray(data.nearby_nps_parks) ? data.nearby_nps_parks : null,
+    noaa_climate: data.noaa_climate || null,
+    // Phase 5+ — Census housing extension (always-on; piggybacks on the
+    // existing _fetchCensusZipLevel call). Always ZIP-scoped because
+    // place-level Census doesn't carry housing variables.
+    census_housing: data.census_housing || null,
     // Phase 5+ — Foursquare nearby venues (food/arts/outdoors). Used by
     // Claude for partnership ideas + walkability framing in opportunities.
     nearby_venues: Array.isArray(data.nearby_venues) ? data.nearby_venues : [],
@@ -787,15 +1807,6 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       state: data.fdic.state,
       city: data.fdic.city,
     } : null,
-    cms: data.cms ? {
-      facility_name: data.cms.facility_name,
-      overall_rating: data.cms_overall_rating,
-      patient_experience_rating: data.cms_patient_experience_rating,
-      mortality_rating: data.cms_mortality_rating,
-      safety_rating: data.cms_safety_rating,
-      readmission_rating: data.cms_readmission_rating,
-      timeliness_rating: data.cms_timeliness_rating,
-    } : null,
     // BATCH-split-call: full set of triggered recommendation IDs from
     // ranker.top10. Passed to Call B (key_risks + execution_templates)
     // as priority_action_ids so templates can reference the same ids
@@ -849,7 +1860,19 @@ function buildUserPrompt(bundle) {
   // fetcher had to widen the search beyond 5 miles to find ≥3 results.
   const top5 = Array.isArray(c.top5) ? c.top5 : [];
   const top5Lines = top5.length
-    ? top5.map((x) => `  • ${x.name} | ${x.rating}★ | ${x.review_count} reviews | ${x.distance_miles} mi`).join('\n')
+    ? top5.map((x) => {
+        const header = `  • ${x.name} | ${x.rating}★ | ${x.review_count} reviews | ${x.distance_miles} mi`;
+        // Per-competitor review block. top_reviews entries are pre-
+        // formatted strings (built in buildDataBundle) like:
+        //   [5/5 recent]: "full review text"
+        // Indented under the competitor header so Claude can attach
+        // each quote to the right competitor when citing in
+        // competitor_analysis.what_they_do_better.
+        const reviews = Array.isArray(x.top_reviews) && x.top_reviews.length
+          ? '\n    Reviews:\n' + x.top_reviews.map((line) => `    ${line}`).join('\n')
+          : '';
+        return header + reviews;
+      }).join('\n')
     : '  (no competitors found)';
   const radiusUsed = typeof c.search_radius_miles === 'number' ? c.search_radius_miles : null;
   const radiusLine = (radiusUsed != null && radiusUsed > 5)
@@ -984,18 +2007,6 @@ Total deposits: $${depM}M · Total assets: $${assetM}M`;
   }
 
   // Phase 5+ — CMS hospital quality ratings.
-  let cmsSection = '';
-  const cms = bundle.cms;
-  if (cms) {
-    cmsSection = `\nCMS Hospital General Information (${cms.facility_name || 'this facility'}):
-Overall rating: ${cms.overall_rating ?? 'unrated'}/5 stars
-Patient experience: ${cms.patient_experience_rating || '—'}
-Mortality: ${cms.mortality_rating || '—'}
-Safety of care: ${cms.safety_rating || '—'}
-Readmission: ${cms.readmission_rating || '—'}
-Timeliness: ${cms.timeliness_rating || '—'}`;
-  }
-
   // Phase 5+ — TripAdvisor intelligence.
   let tripAdvisorSection = '';
   const ta = bundle.tripadvisor;
@@ -1012,11 +2023,17 @@ Timeliness: ${cms.timeliness_rating || '—'}`;
     const tripTypesLine = Array.isArray(ta.trip_types) && ta.trip_types.length
       ? ta.trip_types.map((t) => `${t.name}=${t.value}`).join(', ')
       : '(none)';
+    // Recent TripAdvisor reviews — full text (no truncation; `snippet`
+    // field now carries the unabridged review body after the
+    // fetchTripAdvisor change).
     const reviewLines = Array.isArray(ta.recent_reviews) && ta.recent_reviews.length
-      ? ta.recent_reviews.map((r) =>
-          `    [${r.rating ?? '?'}★${r.trip_type ? ' · ' + r.trip_type : ''}] ${r.title || ''}: ${r.snippet || ''}`
-        ).join('\n')
-      : '    (no recent reviews returned)';
+      ? ta.recent_reviews.map((r) => {
+          const head = `[${r.rating ?? '?'}★${r.trip_type ? ' · ' + r.trip_type : ''}]`;
+          const title = r.title ? ` ${r.title}:` : '';
+          const body = r.snippet || '';
+          return `${head}${title} ${body}`;
+        }).join('\n')
+      : '(no recent reviews returned)';
     const valueGapLine = ta.value_gap_detected
       ? '\nValue-perception gap detected: value sub-rating trails overall rating by ≥0.4 — customers feel they overpaid for the experience.'
       : '';
@@ -1027,8 +2044,106 @@ Sub-ratings:
 ${subLines}
 Awards: ${awardsLine}
 Trip-type mix (counts): ${tripTypesLine}
-Recent reviews:
+Recent TripAdvisor reviews:
 ${reviewLines}${valueGapLine}`;
+  }
+
+  // Phase 5+ — 3 new keyless data sources. Each section is built only
+  // when the corresponding bundle field is populated, so the user
+  // prompt stays lean for sectors that don't trigger these fetchers.
+  let cdcSection = '';
+  const cdc = bundle.cdc_health;
+  if (cdc && Object.keys(cdc).length) {
+    const lines = [];
+    if (typeof cdc.dental_visit_rate === 'number') lines.push(`  Dental visit rate: ${cdc.dental_visit_rate}%`);
+    if (typeof cdc.obesity_rate === 'number') lines.push(`  Obesity rate: ${cdc.obesity_rate}%`);
+    if (typeof cdc.physical_inactivity === 'number') lines.push(`  Physical inactivity: ${cdc.physical_inactivity}%`);
+    if (typeof cdc.smoking_rate === 'number') lines.push(`  Smoking rate: ${cdc.smoking_rate}%`);
+    if (typeof cdc.diabetes_rate === 'number') lines.push(`  Diabetes rate: ${cdc.diabetes_rate}%`);
+    if (typeof cdc.depression_rate === 'number') lines.push(`  Depression rate: ${cdc.depression_rate}%`);
+    if (lines.length) {
+      cdcSection = `\nLocal health metrics (CDC PLACES, city-level):\n${lines.join('\n')}`;
+    }
+  }
+
+  let hrsaSection = '';
+  const hrsa = bundle.hrsa_dental;
+  if (hrsa && hrsa.is_dental_shortage_area) {
+    hrsaSection = `\nDental Health Professional Shortage Area (HRSA):
+  Designation: ${hrsa.hpsa_name || 'this area'}${hrsa.hpsa_type ? ` (${hrsa.hpsa_type})` : ''}
+  HPSA score: ${hrsa.hpsa_score ?? '—'}
+  NHSC loan-forgiveness eligibility — see nhsc.hrsa.gov.`;
+  }
+
+  let ersSection = '';
+  const ers = bundle.usda_ers;
+  if (ers && ers.net_farm_sales != null) {
+    ersSection = `\nFarm economics (USDA ERS ARMS, ${ers.year}):
+  ${ers.state} net farm sales: $${Number(ers.net_farm_sales).toLocaleString('en-US')}`;
+  }
+
+  let housingSection = '';
+  const housing = bundle.census_housing;
+  if (housing) {
+    const bits = [];
+    if (typeof housing.housing_units === 'number') bits.push(`Housing units: ${housing.housing_units.toLocaleString('en-US')}`);
+    if (typeof housing.vacancy_rate === 'number') bits.push(`Vacancy rate: ${housing.vacancy_rate}%`);
+    if (typeof housing.homeownership_rate === 'number') bits.push(`Homeownership rate: ${housing.homeownership_rate}%`);
+    if (typeof housing.median_home_value === 'number') bits.push(`Median home value: $${housing.median_home_value.toLocaleString('en-US')}`);
+    if (typeof housing.median_gross_rent === 'number') bits.push(`Median gross rent: $${housing.median_gross_rent.toLocaleString('en-US')}/mo`);
+    if (bits.length) {
+      housingSection = `\nLocal housing market (Census ACS, ZIP-level):\n  ${bits.join(' · ')}`;
+    }
+  }
+
+  // Phase 5+ — 5 more sub-sections. Each is built only when the
+  // corresponding bundle field is populated, so the user prompt stays
+  // lean for sectors that don't trigger these fetchers.
+  let foodDataSection = '';
+  const foodData = Array.isArray(bundle.food_data) ? bundle.food_data : [];
+  if (foodData.length) {
+    const lines = foodData.map((f) => {
+      const cal = typeof f.calories === 'number' ? ` — ${f.calories} cal` : '';
+      const prot = typeof f.protein === 'number' ? ` · ${f.protein}g protein` : '';
+      return `  • ${f.name}${cal}${prot}${f.category ? ` (${f.category})` : ''}`;
+    }).join('\n');
+    foodDataSection = `\nFood ingredient data (USDA FoodData Central):\n${lines}`;
+  }
+
+  let offSection = '';
+  const off = Array.isArray(bundle.open_food_facts) ? bundle.open_food_facts : [];
+  if (off.length) {
+    const lines = off.map((p) => {
+      const ns = p.nutriscore ? ` (Nutri-Score ${String(p.nutriscore).toUpperCase()})` : '';
+      return `  • ${p.name}${ns}`;
+    }).join('\n');
+    offSection = `\nPopular food products (Open Food Facts):\n${lines}`;
+  }
+
+  let datamuseSection = '';
+  const related = Array.isArray(bundle.related_words) ? bundle.related_words : [];
+  if (related.length) {
+    datamuseSection = `\nRelated words for naming / marketing (Datamuse): ${related.join(', ')}`;
+  }
+
+  let npsSection = '';
+  const npsParks = Array.isArray(bundle.nearby_nps_parks) ? bundle.nearby_nps_parks : [];
+  if (npsParks.length) {
+    const lines = npsParks.slice(0, 10).map((p) => {
+      const fee = p.entrance_fee != null ? ` · entrance fee $${p.entrance_fee}` : '';
+      return `  • ${p.name}${p.designation ? ` (${p.designation})` : ''}${fee}`;
+    }).join('\n');
+    npsSection = `\nNearby NPS national parks / monuments:\n${lines}`;
+  }
+
+  let noaaSection = '';
+  const noaa = bundle.noaa_climate;
+  if (noaa && noaa.station_name) {
+    const normals = Array.isArray(noaa.normals) ? noaa.normals : [];
+    const tempLine = normals.length && typeof normals[0].avg_temp === 'number'
+      ? ` · annual avg temp ${normals[0].avg_temp.toFixed(1)}°F`
+      : '';
+    noaaSection = `\nHistorical climate normals (NOAA CDO, station: ${noaa.station_name})${tempLine}`;
   }
 
   // Profile-specific opportunity categories (when the active profile in
@@ -1040,7 +2155,25 @@ ${reviewLines}${valueGapLine}`;
     ? `Generate 10 opportunities drawing from at least 8 of the opportunity categories defined in this profile: ${oppCats.join(', ')}.`
     : `Generate 10 opportunities drawing from at least 8 of the 18 opportunity categories listed in the system prompt (no profile-specific list defined for this sector).`;
 
-  return `Generate enriched recommendations and 10 opportunity ideas for this business.
+  // AI classification correction block — rendered ONLY when Claude
+  // Haiku overrode the Layer 0 NAICS (e.g. berry patch initially
+  // detected as restaurant, corrected to strawberry farm). Goes at the
+  // very top of the user prompt so Claude reads the correction before
+  // any other context and aligns all output to the corrected type.
+  const aiCls = bundle.ai_classification;
+  const aiClassificationBlock = aiCls
+    ? `AI CLASSIFICATION CORRECTION:
+  Original detected: ${aiCls.original_naics || '—'}
+  Corrected to: ${aiCls.naics6 || '—'}
+  Business type: ${aiCls.naics_title || '—'}
+  Reasoning: ${aiCls.reasoning || '—'}
+
+IMPORTANT: This business was misclassified by automated detection. Use the CORRECTED classification above. Generate recommendations appropriate for ${aiCls.naics_title || 'the corrected type'} NOT for the original wrong type.
+
+`
+    : '';
+
+  return `${aiClassificationBlock}Generate enriched recommendations and 10 opportunity ideas for this business.
 
 ${opportunityCategoriesLine}
 
@@ -1072,7 +2205,7 @@ ${top5Lines}${radiusLine}
 Local demographics (ZIP ${b.zip || '—'}):
 Median household income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '—'}
 Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '—'}
-${weatherSection}${pagespeedSection}${locationSection}${permitsSection}${eventsSection}${venuesSection}${tripAdvisorSection}${blsSection}${usdaSection}${fmcsaSection}${npiSection}${fmrSection}${fdicSection}${cmsSection}
+${weatherSection}${pagespeedSection}${locationSection}${permitsSection}${eventsSection}${venuesSection}${tripAdvisorSection}${blsSection}${usdaSection}${fmcsaSection}${npiSection}${fmrSection}${fdicSection}${cdcSection}${hrsaSection}${ersSection}${housingSection}${foodDataSection}${offSection}${datamuseSection}${npsSection}${noaaSection}
 
 Top 3 recommendations to enrich:
 ${JSON.stringify(bundle.top3_recommendations, null, 2)}
@@ -1099,7 +2232,6 @@ Rules reminder:
   • npi: flag if NPI status is not Active — patients verify NPI before booking; an inactive NPI is a hard stop. Always reference the NPI number.
   • hud_fmr: use the actual rental rates ($studio / $1BR / $2BR) for pricing-strategy opportunities in real-estate / property-management contexts. Compare your pricing to FMR to find positioning gaps.
   • fdic: compare deposit and asset size to the top community banks in the state for community-banking strategy. If deposits are under $100M, target growth-niche ideas; over $1B, target retention.
-  • cms: surface SPECIFIC rating gaps (e.g. "Mortality: Below the National Average") as the highest-priority opportunities for hospital improvement. Cite the exact rating string. Don't generalize to "improve quality" — point to the specific dimension.
 - JSON only in response`;
 }
 
@@ -1111,11 +2243,41 @@ Rules reminder:
 // distinguishable in the server log.
 function safeParseJSON(text, label) {
   if (!text || typeof text !== 'string') return null;
+  // Strip ``` fences first (legacy markdown wrapping).
   const clean = text.replace(/```json|```/g, '').trim();
+
+  // Attempt 1 — strict parse on the whole cleaned response.
   try {
     return JSON.parse(clean);
+  } catch (_) { /* fall through */ }
+
+  // Attempt 2 — Claude sometimes prefixes prose ("Now I have sufficient
+  // local data to build a comprehensive, verified JSON response. Let me
+  // compile everything.") before emitting JSON, especially after web
+  // search round-trips. Locate the first `{` and parse from there.
+  const start = clean.indexOf('{');
+  if (start === -1) {
+    console.warn(`[claude:${label}] JSON parse failed: no '{' in response`);
+    console.warn(`[claude:${label}] raw text (first 400 chars):`, clean.slice(0, 400));
+    return null;
+  }
+  try {
+    return JSON.parse(clean.slice(start));
+  } catch (_) { /* fall through */ }
+
+  // Attempt 3 — Claude may also append prose AFTER the JSON (e.g. a
+  // closing comment). Walk back from the last `}` and slice the
+  // substring between the first `{` and the last `}` (inclusive).
+  const end = clean.lastIndexOf('}');
+  if (end === -1 || end < start) {
+    console.warn(`[claude:${label}] JSON parse failed: no closing '}' after preamble strip`);
+    console.warn(`[claude:${label}] raw text (first 400 chars):`, clean.slice(0, 400));
+    return null;
+  }
+  try {
+    return JSON.parse(clean.slice(start, end + 1));
   } catch (parseErr) {
-    console.warn(`[claude:${label}] JSON parse failed:`, parseErr.message);
+    console.warn(`[claude:${label}] JSON parse failed after all fallbacks:`, parseErr.message);
     console.warn(`[claude:${label}] raw text (first 400 chars):`, clean.slice(0, 400));
     return null;
   }
@@ -1383,6 +2545,18 @@ async function callClaudeEnrichA(bundle) {
   const requestParams = {
     model: MODEL,
     max_tokens: MAX_TOKENS_A,
+    // Anthropic-hosted web search — Claude can search the live web
+    // during generation. Used to surface real local attractions,
+    // visitor counts, and events that aren't in the deterministic
+    // bundle. See SYSTEM_PROMPT_A's WEB SEARCH section for usage rules.
+    // Cost: ~$10 per 1,000 searches; max_uses unset so the model
+    // self-limits to what it actually needs (typically 3–5 per report).
+    tools: [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+      },
+    ],
     system: [
       {
         type: 'text',
@@ -1393,9 +2567,53 @@ async function callClaudeEnrichA(bundle) {
     messages: [{ role: 'user', content: userPrompt }],
   };
 
+  const CALL_A_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+  let thinkingActive = true;
   const t0 = Date.now();
   try {
-    const response = await client.messages.create(requestParams);
+    let response;
+    try {
+      console.log('[claude:A] starting Call A');
+      response = await Promise.race([
+        client.messages.create(requestParams),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error('CALL_A_TIMEOUT')),
+            CALL_A_TIMEOUT_MS
+          )
+        ),
+      ]);
+      console.log('[claude:A] completed');
+    } catch (e) {
+      if (e.message === 'CALL_A_TIMEOUT') {
+        console.warn('[claude:A] timeout after 20min — retrying with 7-min cap');
+        thinkingActive = false;
+        const fallbackParams = { ...requestParams };
+        delete fallbackParams.thinking;
+        const FALLBACK_TIMEOUT_MS = 7 * 60 * 1000;
+        try {
+          response = await Promise.race([
+            client.messages.create(fallbackParams),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error('CALL_A_FALLBACK_TIMEOUT')),
+                FALLBACK_TIMEOUT_MS
+              )
+            ),
+          ]);
+          console.log('[claude:A] fallback completed without thinking');
+        } catch (fallbackErr) {
+          if (fallbackErr.message === 'CALL_A_FALLBACK_TIMEOUT') {
+            console.error('[claude:A] fallback also timed out after 7 minutes — returning null for partial report banner');
+            return null;
+          } else {
+            throw fallbackErr;
+          }
+        }
+      } else {
+        throw e;
+      }
+    }
     const dt = Date.now() - t0;
     const usage = response.usage || {};
     console.log('[claude:A] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
@@ -1409,10 +2627,14 @@ async function callClaudeEnrichA(bundle) {
       const retryMaxTokens = Math.round(MAX_TOKENS_A * 1.5);
       console.warn(`[claude:A] hit max_tokens=${MAX_TOKENS_A} — retrying once with max_tokens=${retryMaxTokens}`);
       const t1 = Date.now();
-      const retry = await client.messages.create({
+      const retryParams = {
         ...requestParams,
         max_tokens: retryMaxTokens,
-      });
+      };
+      if (!thinkingActive) {
+        delete retryParams.thinking;
+      }
+      const retry = await client.messages.create(retryParams);
       const dt1 = Date.now() - t1;
       const retryUsage = retry.usage || {};
       console.log(`[claude:A] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
@@ -1420,15 +2642,21 @@ async function callClaudeEnrichA(bundle) {
       if (retry.stop_reason === 'max_tokens') {
         console.error(`[claude:A] retry ALSO truncated at max_tokens=${retryMaxTokens} — accepting truncated text (will likely fail JSON parse)`);
       }
+      // Extract only the final-answer text blocks. Filters out:
+      //   - thinking blocks (b.type === 'thinking') — added by adaptive
+      //     thinking; their text is reasoning, not the JSON answer
+      //   - server_tool_use / web_search_tool_result blocks — added by
+      //     the web_search tool; informational, not the answer
+      //   - empty text blocks (some streaming variants emit these)
       const retryText = (retry.content || [])
-        .filter((b) => b.type === 'text')
+        .filter((b) => b.type === 'text' && b.text && b.text.trim().length > 0)
         .map((b) => b.text)
         .join('');
       return retryText;
     }
 
     const text = (response.content || [])
-      .filter((b) => b.type === 'text')
+      .filter((b) => b.type === 'text' && b.text && b.text.trim().length > 0)
       .map((b) => b.text)
       .join('');
     return text;
@@ -1653,9 +2881,325 @@ Reply with just the NAICS-6 code and nothing else.`;
   }
 }
 
+// ───────────────────────────────────────────────────────────────────
+// verifyBusinessClassification — AI-driven Layer 0 audit
+// ───────────────────────────────────────────────────────────────────
+// Runs AFTER Layer 0 + Phase-3 places fallback have settled on a NAICS
+// code but BEFORE the heavy data-fetcher Promise.allSettled batch. The
+// model is Claude Haiku 4.5 with web_search enabled — it searches the
+// live web for the business and returns a JSON verdict on whether the
+// detected NAICS is correct, suggesting an override when it isn't.
+//
+// Use cases this catches:
+//   - Berry patches / pick-your-own farms misrouted to 722511 (Limited-
+//     Service Restaurants) because Google tags them `food`.
+//   - Wineries / breweries / distilleries misrouted to bars/restaurants.
+//   - Entertainment-experience businesses (escape rooms, axe throwing,
+//     trampoline parks) misrouted to gyms/retail.
+//   - Wedding/event venues misrouted to restaurants.
+//
+// Returns null on any failure (no key, network error, JSON parse fail).
+// Caller continues with original Layer 0 result.
+async function verifyBusinessClassification(data, layer0Result) {
+  console.log(
+    '[layer0-ai] verifying:', data.name,
+    '| NAICS:', layer0Result.naics6,
+    '| confidence:', layer0Result.confidence,
+    '| method:', layer0Result.mode
+  );
+
+  if (!client) {
+    console.warn('[layer0-ai] no ANTHROPIC_API_KEY — skipping');
+    return null;
+  }
+
+  try {
+    const systemPrompt =
+      'You are a business classification expert for BizRadar.' +
+      ' Your job is to verify whether the detected NAICS code is correct' +
+      ' for this business.\n\n' +
+
+      'MANDATORY: Always use web search FIRST before deciding.' +
+      ' Search for the exact business name plus city and state.' +
+      ' Read what comes back. Only then make your decision.\n\n' +
+
+      'COMMON MISCLASSIFICATIONS:\n' +
+      '  Berry/fruit farm → 111333 NOT restaurant\n' +
+      '  Pick-your-own farm → 111998 NOT restaurant\n' +
+      '  Agritourism farm → 111998 NOT restaurant\n' +
+      '  Corn maze → 111998 NOT recreation\n' +
+      '  Christmas tree farm → 111421 NOT retail\n' +
+      '  Pumpkin patch → 111998 NOT retail\n' +
+      '  Brewery → 312120 NOT restaurant\n' +
+      '  Escape room → 713990 NOT retail\n' +
+      '  Axe throwing → 713990 NOT bar\n' +
+      '  Trampoline park → 713990 NOT gym\n' +
+      '  Paint and sip → 711510 NOT bar\n' +
+      '  Pottery studio → 711510 NOT retail\n' +
+      '  Art studio → 711510 NOT retail\n' +
+      '  Food truck → 722330 NOT restaurant\n' +
+      '  Farmers market → 445230 NOT grocery\n' +
+      '  Goat yoga → 111998 NOT gym\n' +
+      '  Petting zoo → 712130 NOT recreation\n' +
+      '  Golf course → 713910 NOT recreation\n' +
+      '  Wedding venue → 722320 NOT restaurant\n' +
+      '  Event venue → 722320 NOT restaurant\n' +
+      '  Pawn shop → 522298 profile finance.alt_lending NOT finance.community_bank\n' +
+      '  Check cashing → 522390 profile finance.alt_lending NOT finance.community_bank\n' +
+      '  Payday lender → 522291 profile finance.alt_lending NOT finance.community_bank\n' +
+      '  Title loan shop → 522291 profile finance.alt_lending NOT finance.community_bank\n' +
+      '  Brewery taproom → 312120 profile hospitality.bar_nightlife NOT manufacturing\n' +
+      '  Winery tasting room → 312130 profile hospitality.bar_nightlife NOT manufacturing\n' +
+      '  Distillery → 312140 profile hospitality.bar_nightlife NOT manufacturing\n' +
+      '  Plastic surgeon / cosmetic surgery → profile healthcare.plastic_surgery NOT healthcare.medical_practice\n' +
+      '  Dermatologist / dermatology → profile healthcare.dermatology NOT healthcare.medical_practice\n' +
+      '  Orthodontist / orthodontics → profile healthcare.orthodontics NOT healthcare.dental_practice\n' +
+      '  Oral surgeon / oral surgery → profile healthcare.oral_surgery NOT healthcare.dental_practice\n' +
+      '  Optometrist / optometry / eye doctor → 621320 profile healthcare.optometry NOT healthcare.allied_health\n' +
+      '  Retail bakery / pastry shop / donut shop / bagel shop → profile hospitality.retail_bakery NOT manufacturing\n' +
+      '  Food truck / mobile food / food cart → profile hospitality.food_truck NOT hospitality.cafe_quick_service\n' +
+      '  Ghost kitchen / cloud kitchen / delivery only restaurant → profile hospitality.ghost_kitchen NOT hospitality.cafe_quick_service\n' +
+      '  Goat farm / sheep farm / dairy farm / livestock farm → NAICS 112xxx profile agriculture.livestock NOT agriculture.crop_farming\n' +
+      '  Vineyard without winery → 111332 grape farming NOT 312120 brewery\n' +
+      '  Corn maze / pumpkin patch / u-pick / pick-your-own → 111998 agritourism NOT restaurant or retail\n' +
+      '  Dairy farm / milk farm → 112120 NOT 111998 crop farming\n' +
+      '  Airbnb / short term rental / vacation rental → profile hospitality.short_term_rental NOT hospitality.lodging\n' +
+      '  Resort / destination lodge / full service resort → profile hospitality.resort NOT hospitality.lodging\n' +
+      '  Physical therapist / PT clinic / sports rehab → 621340 NOT 621310 (621310 is chiropractors)\n' +
+      '  Urgent care / walk-in clinic / immediate care → 621493 NOT 621111 general medicine\n' +
+      '  Movie theater / cinema / multiplex → 512131 profile recreation.amusement_attraction NOT information sector\n' +
+      '  Mortgage broker / mortgage lender → 522292 profile finance.ria_wealth_management NOT finance.community_bank\n\n' +
+
+      'PROFILE MISMATCH RULE:\n' +
+      'For pawn shops, check cashing, payday lenders and title loan shops:\n' +
+      'Even if NAICS is correct the profile finance.community_bank is ALWAYS wrong for these businesses.\n' +
+      'Set override_layer0: true and return naics6: 522298 for pawn shops\n' +
+      '(or 522390 for check cashing / 522291 for payday and title loans)\n' +
+      'so selectBestProfile fires and picks finance.alt_lending instead.\n\n' +
+
+      'RETURN ONLY valid JSON. Start with { immediately.' +
+      ' No preamble. No markdown.\n\n' +
+
+      'JSON format:\n' +
+      '{\n' +
+      '  "naics6": "111333",\n' +
+      '  "naics_title": "Strawberry Farming",\n' +
+      '  "sector": "11",\n' +
+      '  "confidence": "HIGH",\n' +
+      '  "override_layer0": true,\n' +
+      '  "original_naics": "722511",\n' +
+      '  "reasoning": "Web search confirms this is a pick-your-own strawberry farm",\n' +
+      '  "web_search_used": true\n' +
+      '}\n\n' +
+
+      'If Layer 0 is CORRECT return:\n' +
+      '{\n' +
+      '  "naics6": "same as input",\n' +
+      '  "naics_title": "same as input",\n' +
+      '  "sector": "same as input",\n' +
+      '  "confidence": "HIGH",\n' +
+      '  "override_layer0": false,\n' +
+      '  "original_naics": "same as input",\n' +
+      '  "reasoning": "Layer 0 correct — web search confirms",\n' +
+      '  "web_search_used": true\n' +
+      '}';
+
+    const userPrompt =
+      'Verify the NAICS classification for this business.\n\n' +
+      'Business name: ' + (data.name || '') + '\n' +
+      'Full address: ' + (data.formatted_address || '') + '\n' +
+      'City: ' + (data.city || '') + '\n' +
+      'State: ' + (data.state || '') + '\n' +
+      'ZIP: ' + (data.zip || data.census_zip || '') + '\n' +
+      'Latitude: ' + (data.latitude || '') + '\n' +
+      'Longitude: ' + (data.longitude || '') + '\n' +
+      'Google types: ' + (Array.isArray(data.google_types) ? data.google_types.join(', ') : '') + '\n' +
+      'Business status: ' + (data.business_status || '') + '\n\n' +
+
+      'Layer 0 detected:\n' +
+      '  NAICS: ' + (layer0Result.naics6 || '') + '\n' +
+      '  Title: ' + (layer0Result.naics_title || '') + '\n' +
+      '  Confidence: ' + (layer0Result.confidence || '') + '\n' +
+      '  Method: ' + (layer0Result.mode || layer0Result.mode || '') + '\n\n' +
+
+      'Sample customer reviews:\n' +
+      (data.sample_reviews || [])
+        .slice(0, 3)
+        .map((r) =>
+          '★' + (r.stars || r.rating || '?') + ': ' + (r.text || '').slice(0, 300)
+        )
+        .join('\n') + '\n\n' +
+
+      'STEP 1 — Search the web NOW:\n' +
+      '  Search: "' + (data.name || '') + ' ' + (data.city || '') + ' ' + (data.state || '') + '"\n' +
+      '  Search: "what is ' + (data.name || '') + '"\n' +
+      '  Read the results carefully.\n\n' +
+
+      'STEP 2 — Based on web search:\n' +
+      '  Is NAICS ' + (layer0Result.naics6 || '') + ' correct for this business?\n' +
+      '  If yes: override_layer0: false\n' +
+      '  If no: provide correct NAICS\n\n' +
+
+      'Return JSON only.';
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 500,
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+        },
+      ],
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: userPrompt },
+      ],
+    });
+
+    // Extract text blocks only — skip server_tool_use / web_search_tool_result
+    const textBlocks = (response.content || []).filter((b) => b.type === 'text');
+    const rawText = textBlocks.map((b) => b.text).join('');
+
+    if (!rawText.trim()) {
+      console.log('[layer0-ai] no text response — keeping original');
+      return null;
+    }
+
+    // Robust JSON parse — strips any preamble before `{`.
+    let result = null;
+    try {
+      result = JSON.parse(rawText.trim());
+    } catch (_) {
+      const start = rawText.indexOf('{');
+      const end = rawText.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        // BUG 30 — Surface a warning when this preamble-strip fallback
+        // fires. The system prompt explicitly forbids preamble/markdown
+        // ("No preamble. No markdown."), so repeat hits here mean Claude
+        // is drifting from the contract — surface it in logs so we can
+        // tune the prompt rather than silently slicing forever.
+        const preamble = rawText.slice(0, start).trim();
+        console.warn(
+          '[layer0-ai] AI JSON had preamble (' + preamble.length + ' chars before {) — ' +
+          'first 120 chars: ' + JSON.stringify(preamble.slice(0, 120))
+        );
+        try {
+          result = JSON.parse(rawText.slice(start, end + 1));
+        } catch (e2) {
+          console.error('[layer0-ai] JSON parse failed:', rawText.slice(0, 200));
+          return null;
+        }
+      }
+    }
+
+    if (!result) return null;
+
+    console.log(
+      '[layer0-ai] result:',
+      'override:', result.override_layer0,
+      '| naics:', result.naics6,
+      '| web_search:', result.web_search_used,
+      '| reason:', (result.reasoning || '').slice(0, 100)
+    );
+
+    return result;
+  } catch (e) {
+    console.error('[layer0-ai] error:', e.message, '— keeping original');
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// selectBestProfile — AI-driven profile re-selection
+// ───────────────────────────────────────────────────────────────────
+// Only fires when verifyBusinessClassification corrected the NAICS.
+// Picks the single best matching profile_id from the full registry
+// based on the corrected NAICS + AI reasoning, so the bundle's
+// opportunity_categories + the sector-driven prompts use a profile
+// that actually matches the business (e.g. a strawberry farm
+// originally routed to hospitality.full_service_restaurant gets
+// re-selected to agriculture.crop_farming).
+async function selectBestProfile(naics6, businessName, aiReasoning, allProfiles) {
+  if (!client) {
+    console.warn('[profile-selector] no ANTHROPIC_API_KEY — skipping');
+    return null;
+  }
+  if (!allProfiles || typeof allProfiles !== 'object') {
+    console.warn('[profile-selector] no allProfiles provided');
+    return null;
+  }
+  try {
+    const profileList = Object.entries(allProfiles)
+      .map(([id, profile]) => id + ': ' + ((profile && profile.name) || id))
+      .join('\n');
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 200,
+      system:
+        'You are a business profile selector. Given a business type and NAICS code' +
+        ' pick the single best matching profile ID from the list.\n\n' +
+        'Return ONLY this JSON:\n' +
+        '{\n' +
+        '  "profile_id": "agriculture.crop_farming",\n' +
+        '  "confidence": "HIGH",\n' +
+        '  "reasoning": "Farm business matches crop farming profile"\n' +
+        '}',
+      messages: [
+        {
+          role: 'user',
+          content:
+            'Business: ' + (businessName || '') + '\n' +
+            'NAICS: ' + (naics6 || '') + '\n' +
+            'Business type: ' + (aiReasoning || '') + '\n\n' +
+            'Available profiles:\n' + profileList + '\n\n' +
+            'Which profile fits best? Return JSON only.',
+        },
+      ],
+    });
+
+    const text = (response.content || [])
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+
+    let result = null;
+    try {
+      result = JSON.parse(text.trim());
+    } catch (_) {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        try {
+          result = JSON.parse(text.slice(start, end + 1));
+        } catch (e2) {
+          console.error('[profile-selector] JSON parse failed:', text.slice(0, 200));
+          return null;
+        }
+      }
+    }
+
+    if (result && result.profile_id) {
+      console.log(
+        '[profile-selector] selected:', result.profile_id,
+        '| confidence:', result.confidence,
+        '| reason:', (result.reasoning || '').slice(0, 100)
+      );
+      return result.profile_id;
+    }
+    return null;
+  } catch (e) {
+    console.error('[profile-selector] error:', e.message);
+    return null;
+  }
+}
+
 module.exports = {
   enrichWithClaude,
   classifyWithClaude,
+  verifyBusinessClassification,
+  selectBestProfile,
   buildDataBundle,
   parseAddress,
   // exposed for tests / debugging

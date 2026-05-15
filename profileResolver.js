@@ -45,4 +45,13 @@ function resolveProfile(naics6) {
   return MAP.get(naics6) || null;
 }
 
-module.exports = { load, resolveProfile };
+// Returns the full parsed REGISTRY object (profile_id → profile data).
+// Used by claudeEnricher.selectBestProfile so it can list all profiles
+// to Claude Haiku for the AI re-selection step. Lazy-loads on first
+// call (same as resolveProfile).
+function getAllProfiles() {
+  if (!REGISTRY) load();
+  return REGISTRY;
+}
+
+module.exports = { load, resolveProfile, getAllProfiles };

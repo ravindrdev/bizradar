@@ -7,86 +7,1183 @@
   "hospitality.lodging": {
     "sector_label": "hotels & motels",
     "themes": [
-      { "name": "bugs / pests", "keywords": ["bug", "bugs", "bedbug", "bed bug", "roach", "ants", "cockroach", "spider", "mice", "infestation"], "fix_direction": "Pest control contract verification + room rotation policy" },
-      { "name": "wifi / connectivity", "keywords": ["wifi", "wi-fi", "internet", "connection", "router", "signal", "slow internet"], "fix_direction": "Bandwidth audit + access-point coverage check" },
-      { "name": "cleanliness — bathroom", "keywords": ["dirty", "bathroom", "shower", "moldy", "grime", "soap scum", "hair in"], "fix_direction": "Housekeeping audit + visible-cleaning standards" },
-      { "name": "cleanliness — bedding/room", "keywords": ["sheets", "stained", "smelly", "musty", "mildew", "carpet stain"], "fix_direction": "Linen rotation + room-deep-clean schedule" },
-      { "name": "parking", "keywords": ["parking", "no spaces", "lot full", "valet", "tow"], "fix_direction": "Reservation-linked parking guidance pre-arrival" },
-      { "name": "check-in friction", "keywords": ["check in", "check-in", "front desk", "lobby line", "long wait at desk"], "fix_direction": "Mobile/kiosk check-in or staffing-during-peak audit" },
-      { "name": "noise", "keywords": ["loud", "noisy", "thin walls", "highway noise", "road noise", "couldn't sleep"], "fix_direction": "Sound-isolation upgrade for affected rooms" },
-      { "name": "AC / heat / temperature", "keywords": ["ac broken", "air conditioning", "heater", "freezing", "too hot", "thermostat"], "fix_direction": "HVAC service contract + thermostat ranges" }
+      {
+        "name": "bugs / pests",
+        "keywords": [
+          "bug",
+          "bugs",
+          "bedbug",
+          "bed bug",
+          "roach",
+          "ants",
+          "cockroach",
+          "spider",
+          "mice",
+          "infestation"
+        ],
+        "fix_direction": "Pest control contract verification + room rotation policy"
+      },
+      {
+        "name": "wifi / connectivity",
+        "keywords": [
+          "wifi",
+          "wi-fi",
+          "internet",
+          "connection",
+          "router",
+          "signal",
+          "slow internet"
+        ],
+        "fix_direction": "Bandwidth audit + access-point coverage check"
+      },
+      {
+        "name": "cleanliness — bathroom",
+        "keywords": [
+          "dirty",
+          "bathroom",
+          "shower",
+          "moldy",
+          "grime",
+          "soap scum",
+          "hair in"
+        ],
+        "fix_direction": "Housekeeping audit + visible-cleaning standards"
+      },
+      {
+        "name": "cleanliness — bedding/room",
+        "keywords": [
+          "sheets",
+          "stained",
+          "smelly",
+          "musty",
+          "mildew",
+          "carpet stain"
+        ],
+        "fix_direction": "Linen rotation + room-deep-clean schedule"
+      },
+      {
+        "name": "parking",
+        "keywords": [
+          "parking",
+          "no spaces",
+          "lot full",
+          "valet",
+          "tow"
+        ],
+        "fix_direction": "Reservation-linked parking guidance pre-arrival"
+      },
+      {
+        "name": "check-in friction",
+        "keywords": [
+          "check in",
+          "check-in",
+          "front desk",
+          "lobby line",
+          "long wait at desk"
+        ],
+        "fix_direction": "Mobile/kiosk check-in or staffing-during-peak audit"
+      },
+      {
+        "name": "noise",
+        "keywords": [
+          "loud",
+          "noisy",
+          "thin walls",
+          "highway noise",
+          "road noise",
+          "couldn't sleep"
+        ],
+        "fix_direction": "Sound-isolation upgrade for affected rooms"
+      },
+      {
+        "name": "AC / heat / temperature",
+        "keywords": [
+          "ac broken",
+          "air conditioning",
+          "heater",
+          "freezing",
+          "too hot",
+          "thermostat"
+        ],
+        "fix_direction": "HVAC service contract + thermostat ranges"
+      }
     ]
   },
   "hospitality.full_service_restaurant": {
     "sector_label": "full-service restaurants",
     "themes": [
-      { "name": "wait time — to be seated", "keywords": ["long wait", "waited forever", "hostess", "host stand", "table wait", "seating wait"], "fix_direction": "Reservation-system audit + waitlist communication" },
-      { "name": "wait time — for food", "keywords": ["food took", "took forever", "slow service", "kitchen slow", "cold by the time"], "fix_direction": "Kitchen-pacing review + portion-prep audit" },
-      { "name": "food quality", "keywords": ["overcooked", "undercooked", "bland", "tough", "raw", "tasteless", "burnt"], "fix_direction": "Recipe consistency + station-cook accountability" },
-      { "name": "server attitude", "keywords": ["rude server", "rude waitress", "rude waiter", "attitude", "ignored", "snobby", "unfriendly"], "fix_direction": "Server training + table-rotation review" },
-      { "name": "pricing surprise", "keywords": ["expensive", "overpriced", "pricey", "not worth", "rip off", "menu price"], "fix_direction": "Menu transparency + portion-photo verification" },
-      { "name": "portion size", "keywords": ["small portion", "tiny", "not filling", "hungry after", "skimpy"], "fix_direction": "Portion-size standardization audit" },
-      { "name": "allergens / dietary", "keywords": ["allergic", "allergy", "gluten", "vegan", "vegetarian", "dietary"], "fix_direction": "Allergen-handling protocol + visible menu marks" }
+      {
+        "name": "wait time — to be seated",
+        "keywords": [
+          "long wait",
+          "waited forever",
+          "hostess",
+          "host stand",
+          "table wait",
+          "seating wait"
+        ],
+        "fix_direction": "Reservation-system audit + waitlist communication"
+      },
+      {
+        "name": "wait time — for food",
+        "keywords": [
+          "food took",
+          "took forever",
+          "slow service",
+          "kitchen slow",
+          "cold by the time"
+        ],
+        "fix_direction": "Kitchen-pacing review + portion-prep audit"
+      },
+      {
+        "name": "food quality",
+        "keywords": [
+          "overcooked",
+          "undercooked",
+          "bland",
+          "tough",
+          "raw",
+          "tasteless",
+          "burnt"
+        ],
+        "fix_direction": "Recipe consistency + station-cook accountability"
+      },
+      {
+        "name": "server attitude",
+        "keywords": [
+          "rude server",
+          "rude waitress",
+          "rude waiter",
+          "attitude",
+          "ignored",
+          "snobby",
+          "unfriendly"
+        ],
+        "fix_direction": "Server training + table-rotation review"
+      },
+      {
+        "name": "pricing surprise",
+        "keywords": [
+          "expensive",
+          "overpriced",
+          "pricey",
+          "not worth",
+          "rip off",
+          "menu price"
+        ],
+        "fix_direction": "Menu transparency + portion-photo verification"
+      },
+      {
+        "name": "portion size",
+        "keywords": [
+          "small portion",
+          "tiny",
+          "not filling",
+          "hungry after",
+          "skimpy"
+        ],
+        "fix_direction": "Portion-size standardization audit"
+      },
+      {
+        "name": "allergens / dietary",
+        "keywords": [
+          "allergic",
+          "allergy",
+          "gluten",
+          "vegan",
+          "vegetarian",
+          "dietary"
+        ],
+        "fix_direction": "Allergen-handling protocol + visible menu marks"
+      }
     ]
   },
   "hospitality.cafe_quick_service": {
     "sector_label": "cafes & quick-service",
     "themes": [
-      { "name": "wait time", "keywords": ["long wait", "slow", "took forever", "line was long"], "fix_direction": "Peak-hour staffing + order-flow review" },
-      { "name": "order accuracy", "keywords": ["wrong order", "missing", "got the wrong", "messed up"], "fix_direction": "Order-confirmation step + receipt double-check" },
-      { "name": "food quality", "keywords": ["stale", "cold", "burnt", "soggy", "bland"], "fix_direction": "Recipe + freshness audit" },
-      { "name": "staff friendliness", "keywords": ["rude", "unfriendly", "ignored", "annoyed"], "fix_direction": "Counter-staff training + greeting protocol" },
-      { "name": "cleanliness", "keywords": ["dirty", "not clean", "tables dirty", "bathroom dirty"], "fix_direction": "Cleaning rotation + visible-cleaning standards" }
+      {
+        "name": "wait time",
+        "keywords": [
+          "long wait",
+          "slow",
+          "took forever",
+          "line was long"
+        ],
+        "fix_direction": "Peak-hour staffing + order-flow review"
+      },
+      {
+        "name": "order accuracy",
+        "keywords": [
+          "wrong order",
+          "missing",
+          "got the wrong",
+          "messed up"
+        ],
+        "fix_direction": "Order-confirmation step + receipt double-check"
+      },
+      {
+        "name": "food quality",
+        "keywords": [
+          "stale",
+          "cold",
+          "burnt",
+          "soggy",
+          "bland"
+        ],
+        "fix_direction": "Recipe + freshness audit"
+      },
+      {
+        "name": "staff friendliness",
+        "keywords": [
+          "rude",
+          "unfriendly",
+          "ignored",
+          "annoyed"
+        ],
+        "fix_direction": "Counter-staff training + greeting protocol"
+      },
+      {
+        "name": "cleanliness",
+        "keywords": [
+          "dirty",
+          "not clean",
+          "tables dirty",
+          "bathroom dirty"
+        ],
+        "fix_direction": "Cleaning rotation + visible-cleaning standards"
+      }
     ]
   },
   "other_services.auto_repair": {
     "sector_label": "auto repair",
     "themes": [
-      { "name": "pricing transparency", "keywords": ["overcharge", "rip off", "estimate", "quoted", "different price"], "fix_direction": "Written estimates + posted labor rates" },
-      { "name": "repair quality / comeback", "keywords": ["broke again", "didn't fix", "still broken", "had to come back", "same problem"], "fix_direction": "Diagnostic verification + post-repair test protocol" },
-      { "name": "time estimates", "keywords": ["took longer", "all day", "promised", "took forever"], "fix_direction": "Realistic time estimates + status-update SMS" },
-      { "name": "diagnostic accuracy", "keywords": ["wrong diagnosis", "didn't need", "told me wrong", "second opinion", "actually was"], "fix_direction": "Diagnostic process review + technician training" },
-      { "name": "communication", "keywords": ["never called", "didn't tell me", "no update", "no one answered", "couldn't reach"], "fix_direction": "Service-status SMS automation + phone-coverage audit" }
+      {
+        "name": "pricing transparency",
+        "keywords": [
+          "overcharge",
+          "rip off",
+          "estimate",
+          "quoted",
+          "different price"
+        ],
+        "fix_direction": "Written estimates + posted labor rates"
+      },
+      {
+        "name": "repair quality / comeback",
+        "keywords": [
+          "broke again",
+          "didn't fix",
+          "still broken",
+          "had to come back",
+          "same problem"
+        ],
+        "fix_direction": "Diagnostic verification + post-repair test protocol"
+      },
+      {
+        "name": "time estimates",
+        "keywords": [
+          "took longer",
+          "all day",
+          "promised",
+          "took forever"
+        ],
+        "fix_direction": "Realistic time estimates + status-update SMS"
+      },
+      {
+        "name": "diagnostic accuracy",
+        "keywords": [
+          "wrong diagnosis",
+          "didn't need",
+          "told me wrong",
+          "second opinion",
+          "actually was"
+        ],
+        "fix_direction": "Diagnostic process review + technician training"
+      },
+      {
+        "name": "communication",
+        "keywords": [
+          "never called",
+          "didn't tell me",
+          "no update",
+          "no one answered",
+          "couldn't reach"
+        ],
+        "fix_direction": "Service-status SMS automation + phone-coverage audit"
+      }
     ]
   },
   "healthcare.dental_practice": {
     "sector_label": "dental practices",
     "themes": [
-      { "name": "phone reachability", "keywords": ["never answered", "couldn't reach", "voicemail", "no answer", "ring forever"], "fix_direction": "Phone coverage + voicemail-callback SLA" },
-      { "name": "scheduling friction", "keywords": ["couldn't get appointment", "wait weeks", "rescheduled", "cancelled on me"], "fix_direction": "Online scheduling + cancellation policy" },
-      { "name": "billing / insurance friction", "keywords": ["billing", "insurance", "bill", "charge", "coverage"], "fix_direction": "Pre-treatment cost estimate + insurance verification" },
-      { "name": "wait time in office", "keywords": ["waited", "appointment time", "behind schedule", "30 minutes late"], "fix_direction": "Schedule-buffer review + delay-communication" },
-      { "name": "treatment explanation", "keywords": ["didn't explain", "didn't tell me", "what they did", "rushed through", "no time"], "fix_direction": "Treatment-walkthrough script + visual aids" }
+      {
+        "name": "phone reachability",
+        "keywords": [
+          "never answered",
+          "couldn't reach",
+          "voicemail",
+          "no answer",
+          "ring forever"
+        ],
+        "fix_direction": "Phone coverage + voicemail-callback SLA"
+      },
+      {
+        "name": "scheduling friction",
+        "keywords": [
+          "couldn't get appointment",
+          "wait weeks",
+          "rescheduled",
+          "cancelled on me"
+        ],
+        "fix_direction": "Online scheduling + cancellation policy"
+      },
+      {
+        "name": "billing / insurance friction",
+        "keywords": [
+          "billing",
+          "insurance",
+          "bill",
+          "charge",
+          "coverage"
+        ],
+        "fix_direction": "Pre-treatment cost estimate + insurance verification"
+      },
+      {
+        "name": "wait time in office",
+        "keywords": [
+          "waited",
+          "appointment time",
+          "behind schedule",
+          "30 minutes late"
+        ],
+        "fix_direction": "Schedule-buffer review + delay-communication"
+      },
+      {
+        "name": "treatment explanation",
+        "keywords": [
+          "didn't explain",
+          "didn't tell me",
+          "what they did",
+          "rushed through",
+          "no time"
+        ],
+        "fix_direction": "Treatment-walkthrough script + visual aids"
+      }
     ]
   },
   "recreation.fitness_studio": {
     "sector_label": "gyms & fitness",
     "themes": [
-      { "name": "equipment availability", "keywords": ["equipment broken", "machines down", "out of order", "had to wait", "no equipment"], "fix_direction": "Equipment maintenance schedule + repair SLA" },
-      { "name": "cleanliness — equipment / floor", "keywords": ["dirty", "sweaty", "not cleaned", "smell", "wipes empty"], "fix_direction": "Cleaning rotation + visible cleaning standards" },
-      { "name": "staff helpfulness", "keywords": ["rude staff", "no one helped", "ignored", "front desk rude"], "fix_direction": "Member-greeting protocol + staff training" },
-      { "name": "class scheduling", "keywords": ["class cancelled", "instructor", "schedule changed", "couldn't book"], "fix_direction": "Substitute-instructor list + advance-notice policy" },
-      { "name": "locker room", "keywords": ["locker room", "showers", "broken locker", "no soap"], "fix_direction": "Locker-room cleaning rotation" }
+      {
+        "name": "equipment availability",
+        "keywords": [
+          "equipment broken",
+          "machines down",
+          "out of order",
+          "had to wait",
+          "no equipment"
+        ],
+        "fix_direction": "Equipment maintenance schedule + repair SLA"
+      },
+      {
+        "name": "cleanliness — equipment / floor",
+        "keywords": [
+          "dirty",
+          "sweaty",
+          "not cleaned",
+          "smell",
+          "wipes empty"
+        ],
+        "fix_direction": "Cleaning rotation + visible cleaning standards"
+      },
+      {
+        "name": "staff helpfulness",
+        "keywords": [
+          "rude staff",
+          "no one helped",
+          "ignored",
+          "front desk rude"
+        ],
+        "fix_direction": "Member-greeting protocol + staff training"
+      },
+      {
+        "name": "class scheduling",
+        "keywords": [
+          "class cancelled",
+          "instructor",
+          "schedule changed",
+          "couldn't book"
+        ],
+        "fix_direction": "Substitute-instructor list + advance-notice policy"
+      },
+      {
+        "name": "locker room",
+        "keywords": [
+          "locker room",
+          "showers",
+          "broken locker",
+          "no soap"
+        ],
+        "fix_direction": "Locker-room cleaning rotation"
+      }
     ]
   },
   "other_services.personal_care": {
     "sector_label": "salons & personal care",
     "themes": [
-      { "name": "appointment timing — late start", "keywords": ["waited", "late", "behind", "running behind"], "fix_direction": "Schedule-buffer review + apology-discount policy" },
-      { "name": "service quality / not what I asked", "keywords": ["not what I wanted", "asked for", "wrong cut", "wrong color", "didn't listen"], "fix_direction": "Pre-service consultation script + reference photos" },
-      { "name": "hygiene / cleanliness", "keywords": ["dirty tools", "not sanitized", "stained chair", "sketchy"], "fix_direction": "Sanitation protocol + visible-tools storage" },
-      { "name": "communication / feeling rushed", "keywords": ["rushed", "didn't explain", "felt ignored", "talked over me"], "fix_direction": "Service-pace review + technician training" },
-      { "name": "pricing surprise", "keywords": ["charged extra", "didn't tell me", "added on", "more than quoted"], "fix_direction": "Written estimate before service start" }
+      {
+        "name": "appointment timing — late start",
+        "keywords": [
+          "waited",
+          "late",
+          "behind",
+          "running behind"
+        ],
+        "fix_direction": "Schedule-buffer review + apology-discount policy"
+      },
+      {
+        "name": "service quality / not what I asked",
+        "keywords": [
+          "not what I wanted",
+          "asked for",
+          "wrong cut",
+          "wrong color",
+          "didn't listen"
+        ],
+        "fix_direction": "Pre-service consultation script + reference photos"
+      },
+      {
+        "name": "hygiene / cleanliness",
+        "keywords": [
+          "dirty tools",
+          "not sanitized",
+          "stained chair",
+          "sketchy"
+        ],
+        "fix_direction": "Sanitation protocol + visible-tools storage"
+      },
+      {
+        "name": "communication / feeling rushed",
+        "keywords": [
+          "rushed",
+          "didn't explain",
+          "felt ignored",
+          "talked over me"
+        ],
+        "fix_direction": "Service-pace review + technician training"
+      },
+      {
+        "name": "pricing surprise",
+        "keywords": [
+          "charged extra",
+          "didn't tell me",
+          "added on",
+          "more than quoted"
+        ],
+        "fix_direction": "Written estimate before service start"
+      }
     ]
   },
   "retail.specialty_brick_mortar": {
     "sector_label": "independent specialty retail",
     "themes": [
-      { "name": "stock availability", "keywords": ["out of stock", "didn't have", "not in stock", "sold out"], "fix_direction": "Inventory-system audit + restock cadence" },
-      { "name": "staff helpfulness", "keywords": ["unhelpful", "rude", "ignored me", "didn't help", "couldn't find anyone"], "fix_direction": "Floor-coverage + staff product-knowledge training" },
-      { "name": "pricing / accuracy", "keywords": ["wrong price", "scanned wrong", "not on sale", "different price"], "fix_direction": "Tag/POS reconciliation + signage audit" },
-      { "name": "store cleanliness", "keywords": ["dirty", "messy", "cluttered", "disorganized"], "fix_direction": "Cleaning rotation + merchandising review" },
-      { "name": "checkout speed", "keywords": ["long line", "slow register", "one cashier", "wait to pay"], "fix_direction": "Peak-hour staffing + self-checkout consideration" }
+      {
+        "name": "stock availability",
+        "keywords": [
+          "out of stock",
+          "didn't have",
+          "not in stock",
+          "sold out"
+        ],
+        "fix_direction": "Inventory-system audit + restock cadence"
+      },
+      {
+        "name": "staff helpfulness",
+        "keywords": [
+          "unhelpful",
+          "rude",
+          "ignored me",
+          "didn't help",
+          "couldn't find anyone"
+        ],
+        "fix_direction": "Floor-coverage + staff product-knowledge training"
+      },
+      {
+        "name": "pricing / accuracy",
+        "keywords": [
+          "wrong price",
+          "scanned wrong",
+          "not on sale",
+          "different price"
+        ],
+        "fix_direction": "Tag/POS reconciliation + signage audit"
+      },
+      {
+        "name": "store cleanliness",
+        "keywords": [
+          "dirty",
+          "messy",
+          "cluttered",
+          "disorganized"
+        ],
+        "fix_direction": "Cleaning rotation + merchandising review"
+      },
+      {
+        "name": "checkout speed",
+        "keywords": [
+          "long line",
+          "slow register",
+          "one cashier",
+          "wait to pay"
+        ],
+        "fix_direction": "Peak-hour staffing + self-checkout consideration"
+      }
+    ]
+  },
+  "hospitality.bar_nightlife": {
+    "sector_label": "bars & nightclubs",
+    "themes": [
+      {
+        "name": "slow service",
+        "keywords": [
+          "slow service",
+          "waited forever",
+          "took forever",
+          "bartender slow",
+          "never came back"
+        ],
+        "fix_direction": "Bartender-staffing peak-hour audit + service-flow review"
+      },
+      {
+        "name": "rude staff",
+        "keywords": [
+          "rude bartender",
+          "rude staff",
+          "attitude",
+          "ignored at bar",
+          "door staff rude"
+        ],
+        "fix_direction": "Staff training + tip-share fairness audit"
+      },
+      {
+        "name": "overpriced drinks",
+        "keywords": [
+          "overpriced",
+          "too expensive",
+          "rip off",
+          "sticker shock",
+          "expensive drinks"
+        ],
+        "fix_direction": "Menu price-visibility + happy-hour positioning"
+      },
+      {
+        "name": "noise / loud",
+        "keywords": [
+          "too loud",
+          "couldn't hear",
+          "music loud",
+          "volume",
+          "deafening"
+        ],
+        "fix_direction": "Volume policy + quiet-zone seating"
+      },
+      {
+        "name": "dirty bathrooms",
+        "keywords": [
+          "bathroom dirty",
+          "restroom",
+          "gross bathroom",
+          "toilet"
+        ],
+        "fix_direction": "Bathroom-cleaning rotation"
+      },
+      {
+        "name": "long wait to enter",
+        "keywords": [
+          "long line",
+          "waited to get in",
+          "door line",
+          "capacity"
+        ],
+        "fix_direction": "Capacity-flow + reservation system"
+      },
+      {
+        "name": "weak pours",
+        "keywords": [
+          "weak drink",
+          "watered down",
+          "no alcohol",
+          "tasted like water"
+        ],
+        "fix_direction": "Pour-consistency training + spec audit"
+      }
+    ]
+  },
+  "healthcare.medical_practice": {
+    "sector_label": "medical / physician offices",
+    "themes": [
+      {
+        "name": "long wait times",
+        "keywords": [
+          "waited",
+          "wait time",
+          "long wait",
+          "30 minutes",
+          "hour late"
+        ],
+        "fix_direction": "Schedule-buffer review + delay-communication policy"
+      },
+      {
+        "name": "rude front desk",
+        "keywords": [
+          "rude receptionist",
+          "front desk rude",
+          "unfriendly staff",
+          "attitude"
+        ],
+        "fix_direction": "Front-desk training + greeting protocol"
+      },
+      {
+        "name": "rushed appointments",
+        "keywords": [
+          "rushed",
+          "didn't listen",
+          "too quick",
+          "in and out",
+          "no time"
+        ],
+        "fix_direction": "Appointment-length review + patient-experience audit"
+      },
+      {
+        "name": "billing issues",
+        "keywords": [
+          "billing",
+          "charged",
+          "insurance",
+          "bill",
+          "surprise charge"
+        ],
+        "fix_direction": "Pre-visit cost estimate + insurance verification"
+      },
+      {
+        "name": "hard to reach by phone",
+        "keywords": [
+          "never answered",
+          "voicemail",
+          "couldn't reach",
+          "phone tag"
+        ],
+        "fix_direction": "Phone-coverage audit + callback SLA"
+      },
+      {
+        "name": "parking problems",
+        "keywords": [
+          "parking",
+          "no spaces",
+          "parking lot",
+          "parking garage"
+        ],
+        "fix_direction": "Validate-parking + signage"
+      }
+    ]
+  },
+  "professional.legal": {
+    "sector_label": "law firms",
+    "themes": [
+      {
+        "name": "slow response",
+        "keywords": [
+          "didn't return",
+          "no response",
+          "slow to respond",
+          "never called back"
+        ],
+        "fix_direction": "24-hour response SLA + auto-acknowledge intake"
+      },
+      {
+        "name": "high fees",
+        "keywords": [
+          "expensive",
+          "overpriced",
+          "fees",
+          "too much",
+          "charged a lot"
+        ],
+        "fix_direction": "Fee transparency + flat-fee options"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "no updates",
+          "didn't tell me",
+          "kept in the dark",
+          "never explained"
+        ],
+        "fix_direction": "Case-status communication cadence"
+      },
+      {
+        "name": "billing disputes",
+        "keywords": [
+          "billed wrong",
+          "overbilled",
+          "hidden fees",
+          "invoice"
+        ],
+        "fix_direction": "Itemized billing + pre-bill review"
+      },
+      {
+        "name": "missed deadlines",
+        "keywords": [
+          "missed deadline",
+          "filing late",
+          "statute",
+          "forgot"
+        ],
+        "fix_direction": "Deadline-tracking system + paralegal cross-check"
+      }
+    ]
+  },
+  "professional.accounting": {
+    "sector_label": "accounting / CPA firms",
+    "themes": [
+      {
+        "name": "slow response",
+        "keywords": [
+          "didn't respond",
+          "slow",
+          "no reply",
+          "no callback"
+        ],
+        "fix_direction": "48-hour response SLA + status updates"
+      },
+      {
+        "name": "errors in returns",
+        "keywords": [
+          "mistake",
+          "error",
+          "amended",
+          "wrong",
+          "IRS letter"
+        ],
+        "fix_direction": "Return-review checklist + double-check policy"
+      },
+      {
+        "name": "high fees",
+        "keywords": [
+          "expensive",
+          "too much",
+          "overpriced",
+          "fees"
+        ],
+        "fix_direction": "Fee transparency + bundled-service tiers"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "didn't explain",
+          "confusing",
+          "no updates"
+        ],
+        "fix_direction": "Client communication cadence + plain-language summaries"
+      },
+      {
+        "name": "hard to reach",
+        "keywords": [
+          "couldn't reach",
+          "voicemail",
+          "no answer",
+          "tax season"
+        ],
+        "fix_direction": "Phone coverage during tax season + portal access"
+      }
+    ]
+  },
+  "real_estate.brokerage": {
+    "sector_label": "real estate brokerages",
+    "themes": [
+      {
+        "name": "slow response",
+        "keywords": [
+          "didn't respond",
+          "no callback",
+          "never called",
+          "unresponsive agent"
+        ],
+        "fix_direction": "Lead-response SLA + auto-acknowledge"
+      },
+      {
+        "name": "pushy agents",
+        "keywords": [
+          "pushy",
+          "high pressure",
+          "aggressive",
+          "rushed me"
+        ],
+        "fix_direction": "Agent training + buyer-pace expectations"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "didn't communicate",
+          "no updates",
+          "kept in dark"
+        ],
+        "fix_direction": "Status-update cadence + transaction-management tool"
+      },
+      {
+        "name": "overpriced listings",
+        "keywords": [
+          "overpriced",
+          "too high",
+          "comps",
+          "not worth"
+        ],
+        "fix_direction": "Comparable-market-analysis review + pricing transparency"
+      },
+      {
+        "name": "did not listen",
+        "keywords": [
+          "didn't listen",
+          "ignored my",
+          "wasn't listening"
+        ],
+        "fix_direction": "Buyer-preference intake form + active-listening training"
+      }
+    ]
+  },
+  "hospitality.catering_special_food": {
+    "sector_label": "catering & special-event food",
+    "themes": [
+      {
+        "name": "late delivery",
+        "keywords": [
+          "late",
+          "delayed",
+          "didn't arrive",
+          "arrived after"
+        ],
+        "fix_direction": "Delivery-window SLA + GPS tracking"
+      },
+      {
+        "name": "wrong order",
+        "keywords": [
+          "wrong order",
+          "missing items",
+          "forgot",
+          "incorrect"
+        ],
+        "fix_direction": "Order-confirmation step + packing checklist"
+      },
+      {
+        "name": "food quality",
+        "keywords": [
+          "cold food",
+          "overcooked",
+          "undercooked",
+          "stale",
+          "tasted bad"
+        ],
+        "fix_direction": "Temperature control + recipe consistency"
+      },
+      {
+        "name": "rude staff",
+        "keywords": [
+          "rude staff",
+          "unprofessional",
+          "attitude",
+          "unfriendly"
+        ],
+        "fix_direction": "Catering-team training + uniform standards"
+      },
+      {
+        "name": "billing issues",
+        "keywords": [
+          "overcharged",
+          "surprise charge",
+          "invoice",
+          "gratuity"
+        ],
+        "fix_direction": "Itemized contract + transparent gratuity policy"
+      }
+    ]
+  },
+  "healthcare.allied_health": {
+    "sector_label": "allied health (PT, OT, speech, chiropractic)",
+    "themes": [
+      {
+        "name": "long wait times",
+        "keywords": [
+          "waited",
+          "long wait",
+          "behind schedule"
+        ],
+        "fix_direction": "Schedule-buffer review"
+      },
+      {
+        "name": "billing issues",
+        "keywords": [
+          "billing",
+          "insurance",
+          "charge",
+          "bill"
+        ],
+        "fix_direction": "Pre-visit cost estimate + insurance verification"
+      },
+      {
+        "name": "rushed treatment",
+        "keywords": [
+          "rushed",
+          "didn't listen",
+          "too quick",
+          "no time"
+        ],
+        "fix_direction": "Session-length review + therapist scheduling"
+      },
+      {
+        "name": "hard to schedule",
+        "keywords": [
+          "couldn't get appointment",
+          "wait weeks",
+          "no availability"
+        ],
+        "fix_direction": "Online scheduling + waitlist automation"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "didn't explain",
+          "no follow up",
+          "confused"
+        ],
+        "fix_direction": "Treatment-plan walkthrough + home-exercise sheet"
+      }
+    ]
+  },
+  "education.tutoring_test_prep": {
+    "sector_label": "tutoring & test prep",
+    "themes": [
+      {
+        "name": "no improvement seen",
+        "keywords": [
+          "didn't help",
+          "no improvement",
+          "waste of money",
+          "no progress"
+        ],
+        "fix_direction": "Diagnostic baseline + outcome tracking"
+      },
+      {
+        "name": "overpriced",
+        "keywords": [
+          "expensive",
+          "overpriced",
+          "too much",
+          "not worth it"
+        ],
+        "fix_direction": "Pricing tier transparency + outcome-linked refund"
+      },
+      {
+        "name": "inconsistent tutors",
+        "keywords": [
+          "different tutor",
+          "changed tutors",
+          "new tutor",
+          "kept switching"
+        ],
+        "fix_direction": "Tutor-consistency policy + handoff protocol"
+      },
+      {
+        "name": "hard to schedule",
+        "keywords": [
+          "scheduling",
+          "cancelled",
+          "couldn't book",
+          "reschedule"
+        ],
+        "fix_direction": "Online scheduling + cancellation policy"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "no updates",
+          "didn't communicate",
+          "kept in dark"
+        ],
+        "fix_direction": "Parent-update cadence + progress reports"
+      }
+    ]
+  },
+  "transportation.trucking_freight": {
+    "sector_label": "trucking & freight",
+    "themes": [
+      {
+        "name": "late delivery",
+        "keywords": [
+          "late",
+          "delayed",
+          "missed deadline",
+          "didn't arrive on time"
+        ],
+        "fix_direction": "ETA-tracking system + dispatch SLA"
+      },
+      {
+        "name": "damaged goods",
+        "keywords": [
+          "damaged",
+          "broken",
+          "crushed",
+          "destroyed"
+        ],
+        "fix_direction": "Loading protocol + insurance claims process"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "no updates",
+          "couldn't reach",
+          "no tracking",
+          "didn't call"
+        ],
+        "fix_direction": "Status-update system + driver-dispatch SLA"
+      },
+      {
+        "name": "billing disputes",
+        "keywords": [
+          "overcharged",
+          "surprise fee",
+          "fuel surcharge",
+          "invoice"
+        ],
+        "fix_direction": "Transparent fuel-surcharge formula + pre-quote"
+      },
+      {
+        "name": "unprofessional drivers",
+        "keywords": [
+          "rude driver",
+          "driver attitude",
+          "unprofessional"
+        ],
+        "fix_direction": "Driver training + customer-facing standards"
+      }
+    ]
+  },
+  "construction.residential_trades": {
+    "sector_label": "residential trades (plumbing, electrical, HVAC, roofing)",
+    "themes": [
+      {
+        "name": "late to job",
+        "keywords": [
+          "didn't show up",
+          "late",
+          "no show",
+          "missed appointment"
+        ],
+        "fix_direction": "Appointment-confirmation SMS + dispatch SLA"
+      },
+      {
+        "name": "over budget",
+        "keywords": [
+          "over budget",
+          "more than quoted",
+          "cost more",
+          "price changed"
+        ],
+        "fix_direction": "Written estimate + change-order protocol"
+      },
+      {
+        "name": "poor quality work",
+        "keywords": [
+          "poor work",
+          "had to redo",
+          "didn't work",
+          "broke again"
+        ],
+        "fix_direction": "Post-job inspection + workmanship warranty"
+      },
+      {
+        "name": "didn't clean up",
+        "keywords": [
+          "mess",
+          "didn't clean",
+          "trash left",
+          "debris"
+        ],
+        "fix_direction": "Job-completion checklist + cleanup SOP"
+      },
+      {
+        "name": "unresponsive",
+        "keywords": [
+          "didn't call back",
+          "unresponsive",
+          "no answer",
+          "voicemail"
+        ],
+        "fix_direction": "24-hour callback SLA + answering service"
+      },
+      {
+        "name": "billing disputes",
+        "keywords": [
+          "surprise charge",
+          "overbilled",
+          "didn't expect",
+          "invoice"
+        ],
+        "fix_direction": "Itemized invoice + pre-bill review"
+      }
+    ]
+  },
+  "admin.facility_services": {
+    "sector_label": "cleaning, landscaping, and facility services",
+    "themes": [
+      {
+        "name": "missed areas",
+        "keywords": [
+          "missed",
+          "didn't clean",
+          "skipped",
+          "forgot"
+        ],
+        "fix_direction": "Service checklist + completion sign-off"
+      },
+      {
+        "name": "damaged property",
+        "keywords": [
+          "damaged",
+          "broke",
+          "scratched",
+          "ruined"
+        ],
+        "fix_direction": "Insurance + damage-report protocol"
+      },
+      {
+        "name": "unreliable schedule",
+        "keywords": [
+          "no show",
+          "didn't come",
+          "late",
+          "rescheduled"
+        ],
+        "fix_direction": "Schedule-confirmation SMS + backup-crew policy"
+      },
+      {
+        "name": "poor communication",
+        "keywords": [
+          "no updates",
+          "didn't call",
+          "couldn't reach"
+        ],
+        "fix_direction": "Service-completion SMS + reachability SLA"
+      },
+      {
+        "name": "overpriced",
+        "keywords": [
+          "expensive",
+          "overpriced",
+          "too much",
+          "not worth"
+        ],
+        "fix_direction": "Service-tier transparency + bundled pricing"
+      }
     ]
   }
 }

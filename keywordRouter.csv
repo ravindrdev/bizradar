@@ -6,7 +6,7 @@ CDL / Truck Driving School,Education & Tutoring (modern formats),611692,Automobi
 CPR / First Aid Training,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
 Coding Bootcamp,Education & Tutoring (modern formats),611420,Computer Training,education.bootcamps_online,high,modern_via_naics6
 Coding for Kids School,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
-Concealed Carry / Firearms Class,Education & Tutoring (modern formats),611699,All Other Miscellaneous Schools and Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Concealed Carry / Firearms Class,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_keyword_override
 Cooking School / Culinary Classes,Education & Tutoring (modern formats),611519,Other Technical and Trade Schools,education.trade_technical,high,modern_via_naics6
 Dog Training School,Education & Tutoring (modern formats),812910,Pet Care (except Veterinary) Services,other_services.personal_care,high,modern_via_naics6
 Driving School,Education & Tutoring (modern formats),611692,Automobile Driving Schools,education.tutoring_test_prep,high,modern_via_naics6
@@ -60,7 +60,7 @@ Indoor Playground / Family FEC,"Fitness, Wellness & Recreation",713990,All Other
 Indoor Skydiving,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
 Indoor Soccer Facility,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
 Indoor Trampoline Fitness,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
-Karate / Taekwondo Dojo,"Fitness, Wellness & Recreation",611620,Sports and Recreation Instruction,education.tutoring_test_prep,high,modern_via_naics6
+Karate / Taekwondo Dojo,"Fitness, Wellness & Recreation",611620,Sports and Recreation Instruction,recreation.fitness_studio,high,modern_keyword_override
 Kickboxing Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_via_naics6
 Knife Throwing Venue,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
 Laser Tag Arena,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_via_naics6
@@ -87,7 +87,7 @@ VR Arcade / Virtual Reality Venue,"Fitness, Wellness & Recreation",713120,Amusem
 Yoga Studio,"Fitness, Wellness & Recreation",713940,Fitness and Recreational Sports Centers,recreation.fitness_studio,high,modern_keyword_override
 Acai Bowl Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
 Bagel Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
-Board Game Cafe,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
+Board Game Cafe,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_keyword_override
 Boba Tea / Bubble Tea Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
 Brewery Taproom,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),manufacturing.food_beverage_dtc,high,modern_keyword_override
 Build-Your-Own-Bowl Restaurant,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_via_naics6
@@ -104,7 +104,8 @@ Distillery Tasting Room,Food Service (modern formats not in NAICS),312140,Distil
 Donut Shop,Food Service (modern formats not in NAICS),311811,Retail Bakeries,manufacturing.food_beverage_dtc,high,modern_via_naics6
 Food Truck,Food Service (modern formats not in NAICS),722330,Mobile Food Services,hospitality.cafe_quick_service,high,modern_keyword_override
 Frozen Yogurt Shop,Food Service (modern formats not in NAICS),722515,Snack and Nonalcoholic Beverage Bars,hospitality.cafe_quick_service,high,modern_via_naics6
-Ghost Kitchen / Cloud Kitchen,Food Service (modern formats not in NAICS),722513,Limited-Service Restaurants,hospitality.cafe_quick_service,high,modern_keyword_override
+Ghost Kitchen / Cloud Kitchen,Food Service (modern formats not in NAICS),722599,Ghost Kitchens (synthetic),hospitality.ghost_kitchen,high,modern_keyword_override
+Food Hall,Hospitality,531120,Lessors of Other Real Property,real_estate.property_management,medium,modern_via_naics6
 Hookah Lounge,Food Service (modern formats not in NAICS),722410,Drinking Places (Alcoholic Beverages),hospitality.bar_nightlife,high,modern_via_naics6
 Hot Dog Stand,Food Service (modern formats not in NAICS),722330,Mobile Food Services,hospitality.cafe_quick_service,high,modern_via_naics6
 Hot Pot Restaurant,Food Service (modern formats not in NAICS),722511,Full-Service Restaurants,hospitality.full_service_restaurant,high,modern_via_naics6
@@ -182,6 +183,8 @@ Tiny House / Cabin Rental,Lodging & Hospitality (modern formats),721199,All Othe
 Treehouse Rental,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
 Vacation Rental Management,Lodging & Hospitality (modern formats),721199,All Other Traveler Accommodation,hospitality.lodging,high,modern_via_naics6
 Wellness Retreat,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.lodging,high,modern_via_naics6
+Resort,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.resort,high,modern_keyword_override
+Lodge,Lodging & Hospitality (modern formats),721110,Hotels (except Casino Hotels) and Motels,hospitality.resort,high,modern_keyword_override
 Yurt Rental,Lodging & Hospitality (modern formats),721211,RV (Recreational Vehicle) Parks and Campgrounds,hospitality.lodging,high,modern_via_naics6
 ATM Operator / Route,Niche & Emerging,522390,Other Activities Related to Credit Intermediation,finance.community_bank,high,modern_via_naics6
 Aquaculture / Fish Farm,Niche & Emerging,112519,Other Aquaculture,agriculture.livestock,high,modern_via_naics6
@@ -210,6 +213,7 @@ NFT Artist / Web3 Creator,Niche & Emerging,711510,"Independent Artists, Writers,
 Newsletter Acquirer,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_keyword_override
 Online Community Operator (Discord),Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
 Oyster / Shellfish Farm,Niche & Emerging,112512,Shellfish Farming,agriculture.livestock,high,modern_via_naics6
+Public Library / Government Library,Niche & Emerging,519210,Libraries and Archives,OUT_OF_SCOPE_NICHE,high,modern_keyword_override
 "Reseller (Amazon, eBay, Whatnot)",Niche & Emerging,454110,Electronic Shopping and Mail-Order Houses,retail.ecommerce_dtc,high,modern_via_naics6
 Self-Storage Facility,Niche & Emerging,531130,Lessors of Miniwarehouses and Self-Storage Units,real_estate.self_storage,high,modern_via_naics6
 Sports Bettor / Handicapper,Niche & Emerging,713290,Other Gambling Industries,recreation.amusement_attraction,high,modern_via_naics6
@@ -221,8 +225,6 @@ Vending Machine Route,Niche & Emerging,454210,Vending Machine Operators,retail.f
 Wash-and-Fold Service,Niche & Emerging,812320,Drycleaning and Laundry Services (except Coin-Operated),other_services.dry_cleaning_laundry,high,modern_via_naics6
 Website Flipper,Niche & Emerging,519290,Web Search Portals and All Other Information Services,information.media_publishing,high,modern_via_naics6
 Whatnot / Live Shopping Streamer,Niche & Emerging,454110,Electronic Shopping and Mail-Order Houses,information.media_publishing,high,modern_keyword_override
-rather than having their own. For example: a food truck operator and a hot dog stand both share NAICS,Niche & Emerging,722330,(Mobile,hospitality.cafe_quick_service,high,modern_keyword_override
-single person running a TikTok account is technically classified as,Niche & Emerging,519290,but isn't typically registered as a business,information.media_publishing,high,modern_via_naics6
 Babysitting Service,Personal Services (modern formats),624410,Child Day Care Services,healthcare.social_assistance,high,modern_via_naics6
 Barbershop,Personal Services (modern formats),812111,Barber Shops,other_services.personal_care,high,modern_via_naics6
 Blowout Bar,Personal Services (modern formats),812112,Beauty Salons,other_services.personal_care,high,modern_via_naics6
@@ -309,7 +311,7 @@ Board Game Store,Retail & E-commerce (modern formats),459120,"Hobby, Toy, and Ga
 Bookstore (Independent),Retail & E-commerce (modern formats),459210,Book Retailers and News Dealers,retail.specialty_brick_mortar,high,modern_via_naics6
 Bulk / Whole Foods Store,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
 CBD Store,Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_keyword_override
-Cannabis Dispensary (state-legal),Retail & E-commerce (modern formats),459999,All Other Miscellaneous Store Retailers (except Tobacco Stores),retail.specialty_brick_mortar,high,modern_keyword_override
+Cannabis Dispensary (state-legal),Retail & E-commerce (modern formats),459998,Cannabis Dispensaries (state-legal),OUT_OF_SCOPE_REGULATED,high,modern_keyword_override
 Cheese Shop,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
 Chocolate Shop / Chocolatier,Retail & E-commerce (modern formats),445298,All Other Specialty Food Retailers,retail.grocery_food,high,modern_via_naics6
 Comic Book Shop,Retail & E-commerce (modern formats),459420,"Gift, Novelty, and Souvenir Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
@@ -344,6 +346,20 @@ Trading Card Shop,Retail & E-commerce (modern formats),459420,"Gift, Novelty, an
 Used Book Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
 Vape Shop / Vape Store,Retail & E-commerce (modern formats),459991,"Tobacco, Electronic Cigarette, and Other Smoking Supplies Retailers",retail.specialty_brick_mortar,high,modern_via_naics6
 Vintage Clothing Store,Retail & E-commerce (modern formats),459510,Used Merchandise Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Florist / Flower Shop,Retail & E-commerce (modern formats),459310,Florists,retail.specialty_brick_mortar,high,modern_via_naics6
+Clothing Boutique / Fashion Store,Retail & E-commerce (modern formats),458110,Clothing and Clothing Accessories Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Shoe Store / Footwear Store,Retail & E-commerce (modern formats),458210,Shoe Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Jewelry Store / Jeweler,Retail & E-commerce (modern formats),458310,Jewelry Retailers,retail.specialty_brick_mortar,high,modern_via_naics6
+Furniture Store,Retail & E-commerce (modern formats),449110,Furniture Retailers,retail.building_home,high,modern_via_naics6
+Convenience Store / Mini Mart,Retail & E-commerce (modern formats),445131,Convenience Retailers,retail.grocery_food,high,modern_via_naics6
+Liquor Store / Wine Shop,Retail & E-commerce (modern formats),445320,"Beer, Wine, and Liquor Retailers",retail.grocery_food,high,modern_via_naics6
+Towing Company / Tow Truck / Roadside Assistance,Trades & Home Services,488410,Motor Vehicle Towing,transportation.trucking_freight,high,modern_keyword_override
+Freight Broker / Logistics Broker,Trades & Home Services,488510,Freight Transportation Arrangement,transportation.trucking_freight,high,modern_keyword_override
+Soccer Field / Soccer Complex,"Fitness, Wellness & Recreation",713990,All Other Amusement and Recreation Industries,recreation.amusement_attraction,high,modern_keyword_override
+Hockey Rink / Ice Rink / Ice Arena,"Fitness, Wellness & Recreation",711219,Other Spectator Sports,recreation.spectator_sports,high,modern_keyword_override
+Fishing Charter / Sport Fishing,"Fitness, Wellness & Recreation",487210,"Scenic and Sightseeing Transportation, Water",transportation.passenger,high,modern_keyword_override
+Hunting Guide / Hunting Outfitter,"Fitness, Wellness & Recreation",487210,"Scenic and Sightseeing Transportation, Water",transportation.passenger,high,modern_keyword_override
+Cannabis Lounge / Cannabis Bar,Niche & Emerging,459998,Cannabis Consumption Lounges (state-legal),OUT_OF_SCOPE_REGULATED,high,modern_keyword_override
 3D Printing Service,"Tech, Digital & Creative",323111,Commercial Printing (except Screen and Books),manufacturing.wood_paper_print,high,modern_via_naics6
 AI Consultant / Prompt Engineer,"Tech, Digital & Creative",541512,Computer Systems Design Services,professional.consulting,high,modern_via_naics6
 Animation / Motion Graphics Studio,"Tech, Digital & Creative",512110,Motion Picture and Video Production,information.motion_picture_sound,high,modern_via_naics6
