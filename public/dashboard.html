@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --navy-2: #1E293B;
+  --blue: #2563EB;
+  --blue-hover: #1D4ED8;
+  --blue-tint: #EFF6FF;
+  --emerald: #10B981;
+  --emerald-tint: #ECFDF5;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #1E293B;
+  --muted: #64748B;
+  --muted-2: #94A3B8;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-300: #CBD5E1;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 41, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 41, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 41, 0.10);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+a { color: var(--blue); text-decoration: none; }
+.hidden { display: none !important; }
+
+/* ─── NAVBAR ─── */
+.nav {
+  position: sticky;
+  top: 0;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 50;
+}
+.nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.user-email {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 500;
+}
+.user-email.loading {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+.logout-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── HERO ─── */
+.hero {
+  background: linear-gradient(180deg, #EFF6FF 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 48px 24px 40px;
+}
+.hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.hero-greeting {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ─── MAIN CONTENT ─── */
+.main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ─── STATS ─── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  line-height: 1.1;
+}
+.stat-value.accent { color: var(--blue); }
+.stat-value.small { font-size: 22px; }
+
+/* ─── REPORTS SECTION ─── */
+.reports-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.reports-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue);
+  color: #FFFFFF;
+  border: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+}
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn-outline:hover {
+  background: var(--blue-tint);
+}
+
+/* ─── REPORT CARDS ─── */
+.reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  transition: all 0.15s ease;
+}
+.report-card:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.report-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+.report-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--blue-tint);
+  color: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.report-text { min-width: 0; }
+.report-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.report-addr {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.report-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.report-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.report-date {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.report-naics {
+  display: inline-block;
+  background: var(--gray-100);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 64px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+.empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.empty-text {
+  font-size: 15px;
+  color: var(--muted);
+  margin: 0 auto 24px;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+/* ─── ERROR STATE ─── */
+.error-state {
+  background: var(--surface);
+  border: 1px solid #FCA5A5;
+  border-radius: 12px;
+  padding: 36px 24px;
+  text-align: center;
+}
+.error-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+.error-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #991B1B;
+  margin: 0 0 6px;
+}
+.error-text {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 auto 18px;
+  max-width: 480px;
+}
+.retry-btn {
+  background: #991B1B;
+  color: #FFFFFF;
+  border: 0;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.retry-btn:hover { background: #7F1D1D; }
+
+/* ─── LOADING SKELETON ─── */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 0%, #E5EAF1 50%, var(--gray-100) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+.skeleton-stat {
+  height: 92px;
+}
+.skeleton-card {
+  height: 80px;
+  border-radius: 12px;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 800px) {
+  .stats { grid-template-columns: 1fr; }
+  .hero { padding: 36px 20px 32px; }
+  .hero-greeting { font-size: 26px; }
+  .main { padding: 24px 20px 48px; }
+  .report-card { flex-direction: column; align-items: stretch; gap: 14px; }
+  .report-right { justify-content: space-between; }
+  .report-meta { align-items: flex-start; }
+}
+@media (max-width: 500px) {
+  .nav-inner { padding: 12px 16px; }
+  .user-email { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" style="text-decoration:none;">
+      <div class="logo">
+        <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+          Growth<span style="color:#2563EB">IM</span>
+        </span>
+        <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+        <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+          GROWTH INTELLIGENCE MACHINE
+        </div>
+      </div>
+    </a>
+    <div class="nav-right">
+      <span class="user-email loading" id="user-email">loading…</span>
+      <button class="logout-btn" id="logout-btn" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO GREETING ─── -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-greeting">
+      Welcome back, <span id="hero-name">…</span>! 👋
+    </h1>
+    <p class="hero-sub">Here are your market intelligence reports</p>
+  </div>
+</section>
+
+<!-- ─── MAIN ─── -->
+<main class="main">
+
+  <!-- STATS ROW -->
+  <div class="stats" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Reports</div>
+      <div class="stat-value accent" id="stat-total"><span class="skeleton skeleton-stat" style="display:inline-block;width:60px;height:32px;border-radius:4px"></span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Member Since</div>
+      <div class="stat-value small" id="stat-since"><span class="skeleton skeleton-stat" style="display:inline-block;width:120px;height:22px;border-radius:4px"></span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Report</div>
+      <div class="stat-value small" id="stat-last"><span class="skeleton skeleton-stat" style="display:inline-block;width:120px;height:22px;border-radius:4px"></span></div>
+    </div>
+  </div>
+
+  <!-- REPORTS SECTION HEADER -->
+  <div class="reports-head">
+    <h2 class="reports-title">Your Reports</h2>
+    <a href="/app" class="btn-primary">+ New Report</a>
+  </div>
+
+  <!-- LOADING SKELETON -->
+  <div id="loading" class="loading">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div id="error-state" class="error-state hidden">
+    <div class="error-icon">⚠</div>
+    <h3 class="error-title">Couldn't load your dashboard</h3>
+    <p class="error-text" id="error-text">Something went wrong. Please try again.</p>
+    <button class="retry-btn" id="retry-btn" type="button">Retry</button>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="empty-state" class="empty-state hidden">
+    <div class="empty-icon">📊</div>
+    <h3 class="empty-title">No reports yet</h3>
+    <p class="empty-text">Generate your first market intelligence report to get started.</p>
+    <a href="/app" class="btn-primary">Generate Your First Report</a>
+  </div>
+
+  <!-- REPORTS LIST -->
+  <div id="reports-list" class="reports-list hidden"></div>
+
+</main>
+
+<script>
+(function () {
+  // ── DOM refs ──
+  const $ = (id) => document.getElementById(id);
+  const userEmailEl = $('user-email');
+  const heroNameEl  = $('hero-name');
+  const statTotal   = $('stat-total');
+  const statSince   = $('stat-since');
+  const statLast    = $('stat-last');
+  const loadingEl   = $('loading');
+  const errorEl     = $('error-state');
+  const errorTextEl = $('error-text');
+  const emptyEl     = $('empty-state');
+  const listEl      = $('reports-list');
+  const logoutBtn   = $('logout-btn');
+  const retryBtn    = $('retry-btn');
+
+  // ── Helpers ──
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function fmtFullDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  function fmtMonthYear(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  }
+  function firstName(full) {
+    if (!full || typeof full !== 'string') return 'there';
+    const t = full.trim();
+    if (!t) return 'there';
+    return t.split(/\s+/)[0];
+  }
+  function showView(view) {
+    loadingEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+    emptyEl.classList.add('hidden');
+    listEl.classList.add('hidden');
+    if (view === 'loading') loadingEl.classList.remove('hidden');
+    if (view === 'error')   errorEl.classList.remove('hidden');
+    if (view === 'empty')   emptyEl.classList.remove('hidden');
+    if (view === 'list')    listEl.classList.remove('hidden');
+  }
+
+  // ── Render a single report card ──
+  function renderReportCard(r) {
+    const name = escapeHtml(r.business_name || '(unnamed business)');
+    const addr = escapeHtml(r.address || 'No address on file');
+    const date = fmtFullDate(r.created_at);
+    const naics = r.naics_code
+      ? `<span class="report-naics">NAICS ${escapeHtml(String(r.naics_code))}</span>`
+      : '';
+    return `
+      <div class="report-card">
+        <div class="report-left">
+          <div class="report-icon">📄</div>
+          <div class="report-text">
+            <h3 class="report-name">${name}</h3>
+            <p class="report-addr">${addr}</p>
+          </div>
+        </div>
+        <div class="report-right">
+          <div class="report-meta">
+            <span class="report-date">${date}</span>
+            ${naics}
+          </div>
+          <a class="btn-outline" href="/report/${encodeURIComponent(r.id)}">View Report</a>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Render the populated stats + reports ──
+  function renderDashboard(payload) {
+    const user = (payload && payload.user) || {};
+    const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
+    const total = typeof payload.total_reports === 'number'
+      ? payload.total_reports
+      : reports.length;
+
+    // Greeting
+    heroNameEl.textContent = firstName(user.name);
+    userEmailEl.textContent = user.email || '';
+    userEmailEl.classList.remove('loading');
+
+    // Stats
+    statTotal.textContent = String(total);
+    statSince.textContent = fmtMonthYear(user.created_at);
+    statLast.textContent = reports.length
+      ? fmtFullDate(reports[0].created_at)
+      : 'No reports yet';
+
+    // Reports list / empty state
+    if (reports.length === 0) {
+      showView('empty');
+    } else {
+      listEl.innerHTML = reports.map(renderReportCard).join('');
+      showView('list');
+    }
+  }
+
+  // ── Error rendering ──
+  function showError(message) {
+    errorTextEl.textContent = message || 'Something went wrong. Please try again.';
+    showView('error');
+    // Also clear the stat skeletons so they don't keep shimmering forever.
+    if (statTotal.querySelector('.skeleton')) statTotal.textContent = '—';
+    if (statSince.querySelector('.skeleton')) statSince.textContent = '—';
+    if (statLast.querySelector('.skeleton'))  statLast.textContent  = '—';
+    userEmailEl.textContent = '';
+    userEmailEl.classList.remove('loading');
+    heroNameEl.textContent = 'there';
+  }
+
+  // ── Main loader ──
+  // 1. /auth/me — verify session. 401 → redirect to /login.html.
+  // 2. /api/dashboard — populate UI.
+  // Failures at either step land in showError().
+  async function loadDashboard() {
+    showView('loading');
+    try {
+      const meRes = await fetch('/auth/me', { credentials: 'same-origin' });
+      if (meRes.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
+      if (!meRes.ok) {
+        throw new Error('Could not verify your session.');
+      }
+
+      const dashRes = await fetch('/api/dashboard', { credentials: 'same-origin' });
+      if (dashRes.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
+      if (!dashRes.ok) {
+        let msg = 'Could not load your reports.';
+        try {
+          const j = await dashRes.json();
+          if (j && j.error) msg = j.error;
+        } catch (_) { /* keep default */ }
+        throw new Error(msg);
+      }
+
+      const payload = await dashRes.json();
+      renderDashboard(payload);
+    } catch (err) {
+      showError(err.message || 'Network error.');
+    }
+  }
+
+  // ── Logout ──
+  // POST /auth/logout to clear the JWT cookie, then redirect. Always
+  // redirects even if the network call fails — keeps the UX flow
+  // unbroken when the server is briefly unreachable.
+  logoutBtn.addEventListener('click', async () => {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = 'Logging out…';
+    try {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch (_) { /* fall through */ }
+    window.location.href = '/login.html';
+  });
+
+  retryBtn.addEventListener('click', loadDashboard);
+
+  loadDashboard();
+})();
+</script>
+
+</body>
+</html>

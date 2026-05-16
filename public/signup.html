@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your GrowthIM account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --emerald: #10B981;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #1E293B;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+}
+* { box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 460px; margin: 40px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 36px; box-shadow: 0 4px 16px rgba(15, 23, 41, 0.05); }
+h1 { font-size: 24px; font-weight: 700; color: var(--navy); margin: 0 0 6px; letter-spacing: -0.02em; }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 28px; line-height: 1.5; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.input-wrap { position: relative; }
+input { width: 100%; padding: 11px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.12s, box-shadow 0.12s; background: var(--surface); }
+input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+input.pw { padding-right: 56px; }
+.toggle { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); background: transparent; border: 0; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 6px; letter-spacing: 0.04em; }
+.toggle:hover { color: var(--text); }
+button.primary { width: 100%; margin-top: 8px; padding: 12px 14px; background: var(--navy); color: #FFFFFF; border: 0; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.12s, opacity 0.12s; }
+button.primary:hover { background: #1E293B; }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.link-row { margin-top: 18px; font-size: 13px; color: var(--muted); text-align: center; }
+.link-row a { color: var(--blue); text-decoration: none; font-weight: 500; }
+.link-row a:hover { text-decoration: underline; }
+.error { display: none; margin-top: 14px; padding: 10px 14px; background: var(--danger-bg); border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; font-size: 13px; }
+.error.show { display: block; }
+.hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+/* OTP screen */
+.otp-input { letter-spacing: 12px; font-size: 22px; font-weight: 600; text-align: center; padding: 14px; }
+.resend { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
+.resend button { background: transparent; border: 0; color: var(--blue); font-weight: 500; cursor: pointer; font-family: inherit; font-size: 13px; padding: 0; }
+.resend button:disabled { color: var(--muted); cursor: not-allowed; }
+.subtitle-email { color: var(--text); font-weight: 500; }
+.screen { display: none; }
+.screen.active { display: block; }
+</style>
+</head>
+<body>
+
+<header style="background:#0F1729;padding:20px 0;text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">
+  <a href="/" style="display:inline-block;text-decoration:none;">
+    <div class="logo">
+      <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+        Growth<span style="color:#2563EB">IM</span>
+      </span>
+      <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+      <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+        GROWTH INTELLIGENCE MACHINE
+      </div>
+    </div>
+  </a>
+</header>
+
+<div class="wrap">
+
+  <!-- ─────── SCREEN 1: signup form ─────── -->
+  <section id="screen-form" class="screen active">
+    <h1>Create your GrowthIM account</h1>
+    <p class="meta">Sign up to access your business intelligence reports.</p>
+    <form id="signup-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="name">Full Name</label>
+        <input id="name" name="name" type="text" required autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input id="password" name="password" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <button type="button" class="toggle" data-target="password">SHOW</button>
+        </div>
+        <div class="hint">Minimum 8 characters.</div>
+      </div>
+      <div class="field">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="input-wrap">
+          <input id="confirmPassword" name="confirmPassword" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <button type="button" class="toggle" data-target="confirmPassword">SHOW</button>
+        </div>
+      </div>
+      <button id="submit-btn" class="primary" type="submit">Create Account</button>
+      <div id="form-error" class="error"></div>
+    </form>
+    <p class="link-row">Already have an account? <a href="/login.html">Login</a></p>
+  </section>
+
+  <!-- ─────── SCREEN 2: OTP entry ─────── -->
+  <section id="screen-otp" class="screen">
+    <h1>Check your email</h1>
+    <p class="meta">We sent a 6-digit code to <span class="subtitle-email" id="otp-email">your inbox</span>. Enter it below to verify your account.</p>
+    <form id="otp-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="otp">Verification code</label>
+        <input id="otp" name="otp" type="text" class="otp-input" inputmode="numeric" maxlength="6" pattern="\d{6}" required>
+      </div>
+      <button id="verify-btn" class="primary" type="submit">Verify</button>
+      <div id="otp-error" class="error"></div>
+    </form>
+    <div class="resend">
+      Didn't receive it? <button id="resend-btn" type="button" disabled>Resend code in 60s</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  // ── State ──
+  // Credentials stay in JS memory between the form submit and OTP
+  // verification so the Resend button can re-call /auth/signup with
+  // the same payload. Discarded immediately on successful verification.
+  let pendingEmail = '';
+  let pendingName = '';
+  let pendingPassword = '';
+  let resendInterval = null;
+  let unloadHandler = null;
+
+  // ── Helpers ──
+  const $ = (id) => document.getElementById(id);
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+  function showError(box, msg) {
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+  function hideError(box) {
+    box.textContent = '';
+    box.classList.remove('show');
+  }
+  function validEmail(e) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  // ── Password show/hide toggle ──
+  document.querySelectorAll('.toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = $(btn.dataset.target);
+      const isPw = inp.type === 'password';
+      inp.type = isPw ? 'text' : 'password';
+      btn.textContent = isPw ? 'HIDE' : 'SHOW';
+    });
+  });
+
+  // ── Resend countdown ──
+  function startResendCountdown() {
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    let s = 60;
+    btn.textContent = `Resend code in ${s}s`;
+    clearInterval(resendInterval);
+    resendInterval = setInterval(() => {
+      s -= 1;
+      if (s <= 0) {
+        clearInterval(resendInterval);
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+      } else {
+        btn.textContent = `Resend code in ${s}s`;
+      }
+    }, 1000);
+  }
+
+  // ── Beforeunload cleanup ──
+  function attachUnloadCleanup() {
+    if (unloadHandler) return;
+    unloadHandler = () => {
+      if (!pendingEmail) return;
+      // navigator.sendBeacon — guaranteed to fire during unload.
+      const data = new Blob([JSON.stringify({ email: pendingEmail })], { type: 'application/json' });
+      navigator.sendBeacon('/auth/cancel-signup', data);
+    };
+    window.addEventListener('beforeunload', unloadHandler);
+  }
+  function detachUnloadCleanup() {
+    if (unloadHandler) {
+      window.removeEventListener('beforeunload', unloadHandler);
+      unloadHandler = null;
+    }
+  }
+
+  // ── Signup submit ──
+  $('signup-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const errBox = $('form-error');
+    hideError(errBox);
+
+    const name = $('name').value.trim();
+    const email = $('email').value.trim();
+    const password = $('password').value;
+    const confirmPassword = $('confirmPassword').value;
+
+    if (!name || !email || !password) return showError(errBox, 'All fields are required.');
+    if (!validEmail(email)) return showError(errBox, 'Please enter a valid email address.');
+    if (password.length < 8) return showError(errBox, 'Password must be at least 8 characters.');
+    if (password !== confirmPassword) return showError(errBox, 'Passwords do not match.');
+
+    const submitBtn = $('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+    try {
+      const res = await fetch('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, confirmPassword }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(errBox, json.error || 'Signup failed.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+      pendingEmail = email;
+      pendingName = name;
+      pendingPassword = password;
+      $('otp-email').textContent = email;
+      attachUnloadCleanup();
+      showScreen('screen-otp');
+      startResendCountdown();
+      setTimeout(() => $('otp').focus(), 50);
+    } catch (e) {
+      showError(errBox, 'Network error. Please try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+    }
+  });
+
+  // ── OTP submit ──
+  $('otp-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const errBox = $('otp-error');
+    hideError(errBox);
+    const otp = $('otp').value.trim();
+    if (!/^\d{6}$/.test(otp)) return showError(errBox, 'Enter the 6-digit code.');
+    const verifyBtn = $('verify-btn');
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+    try {
+      const res = await fetch('/auth/verify-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, otp }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(errBox, json.error || 'Incorrect code, try again');
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify';
+        return;
+      }
+      // Verified — JWT cookie is set. Don't fire the unload cleanup
+      // beacon now that the user is fully created. Wipe in-memory
+      // credentials too.
+      detachUnloadCleanup();
+      pendingPassword = '';
+      pendingName = '';
+      pendingEmail = '';
+      window.location.href = '/dashboard';
+    } catch (e) {
+      showError(errBox, 'Network error. Please try again.');
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify';
+    }
+  });
+
+  // ── Resend ──
+  // Per the spec, the button calls POST /auth/signup again with the
+  // same payload. createPendingUser deletes the prior unverified row
+  // first, then re-inserts with a fresh OTP, so resend works cleanly.
+  $('resend-btn').addEventListener('click', async () => {
+    if (!pendingEmail || !pendingPassword) {
+      showError($('otp-error'), 'Session expired — please restart signup.');
+      return;
+    }
+    hideError($('otp-error'));
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await fetch('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: pendingName,
+          email: pendingEmail,
+          password: pendingPassword,
+          confirmPassword: pendingPassword,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError($('otp-error'), json.error || 'Could not resend code.');
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+        return;
+      }
+      // Success — restart the 60-second cooldown.
+      startResendCountdown();
+    } catch (e) {
+      showError($('otp-error'), 'Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Resend code';
+    }
+  });
+})();
+</script>
+</body>
+</html>

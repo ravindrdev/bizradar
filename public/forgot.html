@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset your password — GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #1E293B;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+}
+* { box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 460px; margin: 40px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 36px; box-shadow: 0 4px 16px rgba(15, 23, 41, 0.05); }
+h1 { font-size: 24px; font-weight: 700; color: var(--navy); margin: 0 0 6px; letter-spacing: -0.02em; }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 28px; line-height: 1.5; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.input-wrap { position: relative; }
+input { width: 100%; padding: 11px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.12s, box-shadow 0.12s; background: var(--surface); }
+input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+input.pw { padding-right: 56px; }
+.toggle { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); background: transparent; border: 0; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 6px; letter-spacing: 0.04em; }
+.toggle:hover { color: var(--text); }
+button.primary { width: 100%; margin-top: 8px; padding: 12px 14px; background: var(--navy); color: #FFFFFF; border: 0; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.12s, opacity 0.12s; }
+button.primary:hover { background: #1E293B; }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.link-row { margin-top: 18px; font-size: 13px; color: var(--muted); text-align: center; }
+.link-row a { color: var(--blue); text-decoration: none; font-weight: 500; }
+.link-row a:hover { text-decoration: underline; }
+.error { display: none; margin-top: 14px; padding: 10px 14px; background: var(--danger-bg); border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; font-size: 13px; }
+.error.show { display: block; }
+.hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.otp-input { letter-spacing: 12px; font-size: 22px; font-weight: 600; text-align: center; padding: 14px; }
+.resend { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
+.resend button { background: transparent; border: 0; color: var(--blue); font-weight: 500; cursor: pointer; font-family: inherit; font-size: 13px; padding: 0; }
+.resend button:disabled { color: var(--muted); cursor: not-allowed; }
+.subtitle-email { color: var(--text); font-weight: 500; }
+.screen { display: none; }
+.screen.active { display: block; }
+</style>
+</head>
+<body>
+
+<header style="background:#0F1729;padding:20px 0;text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">
+  <a href="/" style="display:inline-block;text-decoration:none;">
+    <div class="logo">
+      <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+        Growth<span style="color:#2563EB">IM</span>
+      </span>
+      <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+      <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+        GROWTH INTELLIGENCE MACHINE
+      </div>
+    </div>
+  </a>
+</header>
+
+<div class="wrap">
+
+  <!-- ─── SCREEN 1: enter email ─── -->
+  <section id="screen-email" class="screen active">
+    <h1>Reset your password</h1>
+    <p class="meta">Enter the email associated with your account and we'll send you a 6-digit verification code.</p>
+    <form id="email-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" required autocomplete="email" autofocus>
+      </div>
+      <button id="email-btn" class="primary" type="submit">Send reset code</button>
+      <div id="email-error" class="error"></div>
+    </form>
+    <p class="link-row"><a href="/login.html">Back to login</a></p>
+  </section>
+
+  <!-- ─── SCREEN 2: OTP entry ─── -->
+  <section id="screen-otp" class="screen">
+    <h1>Check your email</h1>
+    <p class="meta">We sent a 6-digit code to <span class="subtitle-email" id="otp-email">your inbox</span>.</p>
+    <form id="otp-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="otp">Verification code</label>
+        <input id="otp" name="otp" type="text" class="otp-input" inputmode="numeric" maxlength="6" pattern="\d{6}" required>
+      </div>
+      <button id="otp-btn" class="primary" type="submit">Verify code</button>
+      <div id="otp-error" class="error"></div>
+    </form>
+    <div class="resend">
+      Didn't receive it? <button id="resend-btn" type="button" disabled>Resend code in 60s</button>
+    </div>
+  </section>
+
+  <!-- ─── SCREEN 3: new password ─── -->
+  <section id="screen-password" class="screen">
+    <h1>Create new password</h1>
+    <p class="meta">Choose a strong password you haven't used before.</p>
+    <form id="password-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="newPassword">New Password</label>
+        <div class="input-wrap">
+          <input id="newPassword" name="newPassword" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <button type="button" class="toggle" data-target="newPassword">SHOW</button>
+        </div>
+        <div class="hint">Minimum 8 characters.</div>
+      </div>
+      <div class="field">
+        <label for="confirmNewPassword">Confirm New Password</label>
+        <div class="input-wrap">
+          <input id="confirmNewPassword" name="confirmNewPassword" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <button type="button" class="toggle" data-target="confirmNewPassword">SHOW</button>
+        </div>
+      </div>
+      <button id="reset-btn" class="primary" type="submit">Reset Password</button>
+      <div id="password-error" class="error"></div>
+    </form>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  // ── State ──
+  let pendingEmail = '';
+  let pendingOtp = '';   // held until reset-password completes
+  let resendInterval = null;
+
+  const $ = (id) => document.getElementById(id);
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+  function showError(box, msg) {
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+  function hideError(box) {
+    box.textContent = '';
+    box.classList.remove('show');
+  }
+  function validEmail(e) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  // Password show/hide toggle (screen 3).
+  document.querySelectorAll('.toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = $(btn.dataset.target);
+      const isPw = inp.type === 'password';
+      inp.type = isPw ? 'text' : 'password';
+      btn.textContent = isPw ? 'HIDE' : 'SHOW';
+    });
+  });
+
+  // Resend countdown for screen 2.
+  function startResendCountdown() {
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    let s = 60;
+    btn.textContent = `Resend code in ${s}s`;
+    clearInterval(resendInterval);
+    resendInterval = setInterval(() => {
+      s -= 1;
+      if (s <= 0) {
+        clearInterval(resendInterval);
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+      } else {
+        btn.textContent = `Resend code in ${s}s`;
+      }
+    }, 1000);
+  }
+
+  // ── Screen 1 submit: send OTP ──
+  $('email-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const errBox = $('email-error');
+    hideError(errBox);
+    const email = $('email').value.trim();
+    if (!email) return showError(errBox, 'Email is required.');
+    if (!validEmail(email)) return showError(errBox, 'Please enter a valid email address.');
+
+    const btn = $('email-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending code...';
+    try {
+      const res = await fetch('/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(errBox, json.error || 'Could not send reset code.');
+        btn.disabled = false;
+        btn.textContent = 'Send reset code';
+        return;
+      }
+      pendingEmail = email;
+      $('otp-email').textContent = email;
+      showScreen('screen-otp');
+      startResendCountdown();
+      setTimeout(() => $('otp').focus(), 50);
+    } catch (e) {
+      showError(errBox, 'Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Send reset code';
+    }
+  });
+
+  // ── Screen 2 submit: verify OTP ──
+  $('otp-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const errBox = $('otp-error');
+    hideError(errBox);
+    const otp = $('otp').value.trim();
+    if (!/^\d{6}$/.test(otp)) return showError(errBox, 'Enter the 6-digit code.');
+
+    const btn = $('otp-btn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    try {
+      const res = await fetch('/auth/verify-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, otp }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(errBox, json.error || 'Incorrect code');
+        btn.disabled = false;
+        btn.textContent = 'Verify code';
+        return;
+      }
+      pendingOtp = otp;
+      showScreen('screen-password');
+      setTimeout(() => $('newPassword').focus(), 50);
+    } catch (e) {
+      showError(errBox, 'Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Verify code';
+    }
+  });
+
+  // ── Screen 2 resend ──
+  $('resend-btn').addEventListener('click', async () => {
+    if (!pendingEmail) return;
+    hideError($('otp-error'));
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await fetch('/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError($('otp-error'), json.error || 'Could not resend code.');
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+        return;
+      }
+      startResendCountdown();
+    } catch (e) {
+      showError($('otp-error'), 'Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Resend code';
+    }
+  });
+
+  // ── Screen 3 submit: reset password ──
+  $('password-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const errBox = $('password-error');
+    hideError(errBox);
+    const newPassword = $('newPassword').value;
+    const confirmNewPassword = $('confirmNewPassword').value;
+    if (!newPassword) return showError(errBox, 'Password is required.');
+    if (newPassword.length < 8) return showError(errBox, 'Password must be at least 8 characters.');
+    if (newPassword !== confirmNewPassword) return showError(errBox, 'Passwords do not match.');
+    if (!pendingEmail || !pendingOtp) {
+      return showError(errBox, 'Session expired — please restart the reset flow.');
+    }
+
+    const btn = $('reset-btn');
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+    try {
+      const res = await fetch('/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pendingEmail,
+          otp: pendingOtp,
+          newPassword,
+          confirmNewPassword,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(errBox, json.error || 'Password reset failed.');
+        btn.disabled = false;
+        btn.textContent = 'Reset Password';
+        return;
+      }
+      // Done — redirect to login with a success flash.
+      pendingOtp = '';
+      pendingEmail = '';
+      window.location.href = '/login.html?msg=' + encodeURIComponent('Password reset! Please login.');
+    } catch (e) {
+      showError(errBox, 'Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Reset Password';
+    }
+  });
+})();
+</script>
+</body>
+</html>

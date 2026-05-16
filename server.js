@@ -5,8 +5,11 @@ require('dotenv').config({ override: true });
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const express = require('express');
+const cookieParser = require('cookie-parser');
+const authRoutes = require('./authRoutes');
+const { requireAuth } = require('./authMiddleware');
+const pool = require('./db');
 
 const layer0 = require('./server_layer0');
 const naicsRouter = require('./naicsRouter');
@@ -26,142 +29,155 @@ const sectorProblems = require('./sectorCommonProblems.json');
 
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+// DATABASE_URL is required for Postgres-backed features (users, reports,
+// payments). The rest of the app still boots without it — the warning
+// surfaces the missing config without crashing the process.
+if (!process.env.DATABASE_URL) {
+  console.warn(
+    '[startup] DATABASE_URL is not set — database features (users, reports, payments) will be unavailable'
+  );
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+// User auth router — handles signup, login, OTP verification, forgot
+// password, and /auth/me. JWT cookie 'token' is set on successful
+// signup or login. Routes that need authentication wrap their handler
+// with requireAuth (imported above from authMiddleware.js).
+app.use('/auth', authRoutes);
 
 // ─────────────────────────────────────────────────────────────────────
-// Password gate — blocks every route until the user signs in with the
-// shared access password. The session is held via an HttpOnly cookie
-// carrying a SHA-256-derived token (not the password itself), so the
-// cookie value alone isn't reversible to the password. 24-hour
-// lifetime; SameSite=Strict prevents CSRF.
-//
-// To rotate the password later, change ACCESS_PASSWORD (or move it to
-// process.env.BIZRADAR_PASSWORD and read it here) — ACCESS_TOKEN is
-// derived deterministically from it, so existing cookies will fail
-// the equality check and force re-login.
+// GET /api/dashboard — JSON feed for the user's dashboard page.
+// Auth-protected: requireAuth populates req.user from the JWT cookie,
+// so user identity comes "for free" without a second users-table
+// lookup. Only the reports query actually hits Postgres on this route.
+// Reports are returned newest-first so the dashboard can render them
+// without re-sorting client-side.
 // ─────────────────────────────────────────────────────────────────────
-const ACCESS_PASSWORD = process.env.BIZRADAR_PASSWORD || '9848';
-const ACCESS_COOKIE_NAME = 'bizradar_access';
-const ACCESS_TOKEN = crypto
-  .createHash('sha256')
-  .update('bizradar:' + ACCESS_PASSWORD)
-  .digest('hex')
-  .slice(0, 32);
-const ACCESS_COOKIE_MAX_AGE_SEC = 24 * 60 * 60;
-
-function parseCookieHeader(header) {
-  const out = {};
-  if (!header) return out;
-  for (const piece of header.split(';')) {
-    const trimmed = piece.trim();
-    if (!trimmed) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq < 0) continue;
-    out[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
-  }
-  return out;
-}
-
-function isAuthed(req) {
-  const cookies = parseCookieHeader(req.headers.cookie || '');
-  return cookies[ACCESS_COOKIE_NAME] === ACCESS_TOKEN;
-}
-
-function renderLoginPage(showError) {
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><title>BizRadar &mdash; sign in</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #F8FAFC; color: #1E293B; margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
-.wrap { max-width: 420px; margin: 60px auto; padding: 32px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: 0 4px 16px rgba(15, 23, 41, 0.05); }
-h1 { font-size: 24px; font-weight: 700; color: #0F1729; margin: 0 0 6px; letter-spacing: -0.02em; }
-.meta { color: #64748B; font-size: 13px; margin: 0 0 24px; }
-label { display: block; font-size: 13px; font-weight: 500; color: #1E293B; margin-bottom: 8px; }
-input[type=password] { width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.12s, box-shadow 0.12s; }
-input[type=password]:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
-button { width: 100%; margin-top: 16px; padding: 12px 14px; background: #0F1729; color: #FFFFFF; border: 0; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.12s; }
-button:hover { background: #1E293B; }
-.error { margin-top: 16px; padding: 10px 14px; background: #FEE2E2; border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; font-size: 13px; }
-</style></head><body>
-<div class="wrap">
-<h1>BizRadar</h1>
-<p class="meta">Enter the access password to continue.</p>
-<form method="POST" action="/login" autocomplete="off">
-<label for="password">Password</label>
-<input id="password" name="password" type="password" autocomplete="current-password" autofocus required>
-<button type="submit">Sign in</button>
-${showError ? '<div class="error">Wrong password. Try again.</div>' : ''}
-</form>
-</div>
-</body></html>`;
-}
-
-// Login routes — registered BEFORE the gate so users without a cookie
-// can still reach them. (The gate also short-circuits these paths
-// defensively, but the route order makes it redundant.)
-app.get('/login', (req, res) => {
-  if (isAuthed(req)) return res.redirect('/');
-  res.set('Content-Type', 'text/html; charset=utf-8');
-  res.send(renderLoginPage(req.query.error === '1'));
-});
-
-app.post('/login', (req, res) => {
-  const submitted = ((req.body && req.body.password) || '').toString();
-  // Constant-time comparison on equal-length buffers — a length leak
-  // doesn't help an attacker (passwords stay short) but the timing
-  // safety is free and standard practice.
-  let ok = false;
-  if (submitted.length === ACCESS_PASSWORD.length) {
-    try {
-      ok = crypto.timingSafeEqual(
-        Buffer.from(submitted, 'utf8'),
-        Buffer.from(ACCESS_PASSWORD, 'utf8')
-      );
-    } catch (_) { ok = false; }
-  }
-  if (ok) {
-    res.set('Set-Cookie',
-      `${ACCESS_COOKIE_NAME}=${ACCESS_TOKEN}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${ACCESS_COOKIE_MAX_AGE_SEC}`
+app.get('/api/dashboard', requireAuth, async (req, res) => {
+  try {
+    const { id, name, email, created_at } = req.user;
+    const reportsResult = await pool.query(
+      `SELECT id, business_name, address, naics_code, created_at
+       FROM reports
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [id]
     );
-    return res.redirect('/');
+    res.json({
+      user: { id, name, email, created_at },
+      reports: reportsResult.rows,
+      total_reports: reportsResult.rows.length,
+    });
+  } catch (err) {
+    console.error('[dashboard] query failed:', err.message);
+    res.status(500).json({ error: 'Could not load dashboard data' });
   }
-  res.redirect('/login?error=1');
 });
 
-app.get('/logout', (req, res) => {
-  res.set('Set-Cookie',
-    `${ACCESS_COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`
-  );
-  res.redirect('/login');
-});
+// ─────────────────────────────────────────────────────────────────────
+// GET /report/:id — replay a previously generated report as HTML.
+//
+// Auth-protected. The WHERE clause ALSO scopes by user_id, so a logged-
+// in user attempting to read someone else's report by guessing the ID
+// gets the same "not found" response as a truly nonexistent ID — no
+// information leak about which IDs exist.
+//
+// The saved report_json carries a _type discriminator written by the
+// /classify and /market-analysis save paths above:
+//   _type === 'classify'         → renderReport(ctx) — same shape and
+//                                  same studies attachment used in the
+//                                  live /classify flow.
+//   _type === 'market_analysis'  → renderMarketReport(result) — same
+//                                  call site used in the live
+//                                  /market-analysis flow.
+// Anything else is treated as a legacy 'classify' record (defensive
+// default for any rows written before the discriminator was added).
+// ─────────────────────────────────────────────────────────────────────
+app.get('/report/:id', requireAuth, async (req, res) => {
+  try {
+    const idNum = parseInt(req.params.id, 10);
+    if (!Number.isInteger(idNum) || idNum <= 0) {
+      return res.status(404).send('Report not found');
+    }
+    const r = await pool.query(
+      `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
+       FROM reports
+       WHERE id = $1 AND user_id = $2`,
+      [idNum, req.user.id]
+    );
+    if (!r.rowCount) {
+      return res.status(404).send('Report not found');
+    }
+    const row = r.rows[0];
 
-// Gate every other route. The login/logout paths above are registered
-// first so Express never reaches this middleware for them; the path
-// check inside is belt-and-suspenders in case route order ever changes.
-app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/logout') return next();
-  if (isAuthed(req)) return next();
-  // GET requests get a friendly redirect to the login form. Non-GET
-  // (POST /classify, /market-analysis, /market-chat) get JSON 401 —
-  // browser fetch() won't follow a redirect for those, and an SSE
-  // EventSource would just see HTML in the stream and choke.
-  if (req.method === 'GET') {
-    return res.redirect('/login');
+    let payload;
+    try {
+      payload = typeof row.report_json === 'string'
+        ? JSON.parse(row.report_json)
+        : row.report_json;
+    } catch (e) {
+      console.error('[report/:id] JSON parse failed for report id=' + idNum + ':', e.message);
+      return res.status(500).send('Saved report is corrupted');
+    }
+
+    let html;
+    if (payload && payload._type === 'market_analysis') {
+      // The market-analysis renderer reads the same fields it would
+      // have read live (top10, deep_dive, raw, _quote_verification,
+      // etc.) — they all serialize through JSON.stringify cleanly.
+      html = renderMarketReport(payload);
+    } else {
+      // Default to the classify renderer. `studies` is loaded fresh
+      // from verifiedStudies.json at startup so we don't persist it;
+      // re-attach the current array here. If a study was retired
+      // between save and replay, citationLine() in renderReport
+      // already handles "(not found)" gracefully.
+      html = renderReport({
+        input: payload && payload.input,
+        layer0Result: payload && payload.layer0Result,
+        profile: payload && payload.profile,
+        data: payload && payload.data,
+        redFlags: (payload && payload.redFlags) || [],
+        strengths: (payload && payload.strengths) || [],
+        ranked: (payload && payload.ranked) || { allTriggered: [], top10: [] },
+        enriched: payload && payload.enriched,
+        studies: studies.studies,
+      });
+    }
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('[report/:id] failed:', err.message);
+    res.status(500).send('Could not load report');
   }
-  return res.status(401).json({ error: 'Authentication required. Sign in at /login.' });
 });
 
-// Serve index.html with server-side API key injection so the
-// browser never sees a raw %%GOOGLE_API_KEY%% placeholder. Must
-// be registered BEFORE express.static so the static middleware
-// doesn't shortcut the root request.
+// GET / — public marketing landing page (GrowthIM brand).
+// Plain file send; no API-key injection needed because the landing
+// page never calls Google Maps.
 app.get('/', (req, res) => {
+  try {
+    const html = fs.readFileSync(
+      path.join(__dirname, 'public', 'landing.html'),
+      'utf8'
+    );
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    console.error('[landing] failed to render:', e.message);
+    res.status(500).send('Internal error');
+  }
+});
+
+// GET /app — the actual BizRadar report-generation UI (index.html).
+// Same server-side API-key injection that used to live on / so the
+// browser still gets a working autocomplete without ever seeing the
+// raw %%GOOGLE_API_KEY%% placeholder. Registered BEFORE express.static
+// so the static middleware doesn't shortcut to a key-unredacted file.
+app.get('/app', (req, res) => {
   try {
     const html = fs.readFileSync(
       path.join(__dirname, 'public', 'index.html'),
@@ -174,7 +190,27 @@ app.get('/', (req, res) => {
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(injected);
   } catch (e) {
-    console.error('[index] failed to render:', e.message);
+    console.error('[app] failed to render:', e.message);
+    res.status(500).send('Internal error');
+  }
+});
+
+// GET /dashboard — extensionless alias for /dashboard.html so the
+// post-login redirect (and any "/dashboard" link in copy/emails)
+// resolves cleanly instead of returning "Cannot GET /dashboard".
+// The HTML's own JS fetches /auth/me on load and bounces to
+// /login.html when no JWT cookie is present, so this route stays
+// public — the auth check happens client-side after the file loads.
+app.get('/dashboard', (req, res) => {
+  try {
+    const html = fs.readFileSync(
+      path.join(__dirname, 'public', 'dashboard.html'),
+      'utf8'
+    );
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    console.error('[dashboard] failed to render:', e.message);
     res.status(500).send('Internal error');
   }
 });
@@ -265,7 +301,7 @@ profileResolver.load();
   }
 })();
 
-app.post('/classify', async (req, res) => {
+app.post('/classify', requireAuth, async (req, res) => {
   const input = (req.body.query || '').trim();
   // Optional — set by the landing-page autocomplete when the user picks
   // a suggestion from the dropdown. Lets us skip the 7-step findPlace
@@ -1530,11 +1566,54 @@ app.post('/classify', async (req, res) => {
     console.warn('[lint] linter execution failed:', err.message);
   }
 
+  // ── Persist report to Postgres ──────────────────────────────────
+  // Only saves when the request is authenticated (req.user set by
+  // requireAuth). The save is fire-and-forget from the user's POV —
+  // any DB failure logs to stderr but does NOT block the response,
+  // so the user always receives their report even if Postgres is
+  // momentarily unreachable. The `_type` discriminator lets
+  // GET /report/:id pick the right renderer when replaying the
+  // saved data later.
+  try {
+    if (req.user && req.user.id) {
+      const businessName = data.name || data.business_name || input || null;
+      const address = data.formatted_address || null;
+      const naicsCode = (layer0Result && layer0Result.naics6) || null;
+      const reportData = {
+        _type: 'classify',
+        input,
+        layer0Result,
+        profile,
+        data,
+        redFlags,
+        strengths,
+        ranked,
+        enriched,
+      };
+      await pool.query(
+        `INSERT INTO reports
+          (user_id, business_name, address, naics_code, report_json)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [
+          req.user.id,
+          businessName,
+          address,
+          naicsCode,
+          JSON.stringify(reportData),
+        ]
+      );
+      console.log('[report] saved to DB for user:', req.user.id);
+    }
+  } catch (dbErr) {
+    console.error('[report] DB save failed:', dbErr.message);
+  }
+
   sendProgress(sessionId, { step: 8, total: 8, message: 'Done!', pct: 100 });
   res.send(html);
 });
 
-app.post('/market-analysis', async (req, res) => {
+app.post('/market-analysis', requireAuth, async (req, res) => {
   const { city, state } = req.body;
   const sessionId = (req.body.sessionId || '').toString();
   console.log('[market-analysis] called for', city, state);
@@ -1600,6 +1679,43 @@ app.post('/market-analysis', async (req, res) => {
     cancelTimers();
     sendProgress(sessionId, { step: 10, total: 10, message: 'Building your report...', pct: 98 });
     const html = renderMarketReport(result);
+
+    // ── Persist market analysis to Postgres ────────────────────────
+    // Same fire-and-forget pattern as /classify above. Market analysis
+    // covers ~20 business types so naics_code uses the #1-ranked
+    // sector's NAICS-2 when available, else null. business_name is
+    // tagged with "— market analysis" so the dashboard's list can
+    // distinguish saved cities from saved businesses at a glance.
+    try {
+      if (req.user && req.user.id) {
+        const cityNorm = city.trim();
+        const stateNorm = state.trim().toUpperCase();
+        const businessName = `${cityNorm}, ${stateNorm} — market analysis`;
+        const address = (result && result.location) || `${cityNorm}, ${stateNorm}`;
+        const naicsCode =
+          (result && Array.isArray(result.top10) && result.top10[0] && result.top10[0].naics2)
+            ? String(result.top10[0].naics2)
+            : null;
+        const reportData = { _type: 'market_analysis', ...result };
+        await pool.query(
+          `INSERT INTO reports
+            (user_id, business_name, address, naics_code, report_json)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id`,
+          [
+            req.user.id,
+            businessName,
+            address,
+            naicsCode,
+            JSON.stringify(reportData),
+          ]
+        );
+        console.log('[report] market-analysis saved to DB for user:', req.user.id);
+      }
+    } catch (dbErr) {
+      console.error('[report] market-analysis DB save failed:', dbErr.message);
+    }
+
     sendProgress(sessionId, { step: 10, total: 10, message: 'Done!', pct: 100 });
     res.send(html);
   } catch (err) {
@@ -1614,7 +1730,7 @@ app.post('/market-analysis', async (req, res) => {
 // The front-end (renderMarketReport's embedded chat) submits city +
 // state + question; we look up the cached analysis and pass it as
 // context to a 1000-token Claude call.
-app.post('/market-chat', async (req, res) => {
+app.post('/market-chat', requireAuth, async (req, res) => {
   const { city, state } = req.body || {};
   // Sanitize the user question — cap length, strip HTML tags. The
   // value still gets sent to Claude verbatim, but the cap blocks

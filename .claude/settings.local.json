@@ -241,7 +241,31 @@
       "Bash(node -e \"require\\('./googlePlaces.js'\\); require\\('./claudeEnricher.js'\\); console.log\\('both modules load OK'\\);\")",
       "Bash(node -e \"const crypto = require\\('crypto'\\); const token = crypto.createHash\\('sha256'\\).update\\('bizradar:9848'\\).digest\\('hex'\\).slice\\(0,32\\); console.log\\('Password: 9848'\\); console.log\\('Cookie token:', token\\); console.log\\('Token length:', token.length, 'chars'\\);\")",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(node db_setup.js)",
+      "Bash(node --check db.js)",
+      "Bash(node --check db_setup.js)",
+      "Bash(railway --version)",
+      "Bash(node -e \"require\\('dotenv'\\).config\\(\\); const p = require\\('./db'\\); p.query\\('SELECT NOW\\(\\)'\\).then\\(r => { console.log\\('✅ Connected:', r.rows[0].now\\); process.exit\\(\\); }\\).catch\\(e => { console.error\\('❌', e.message\\); process.exit\\(\\); }\\);\")",
+      "Bash(node --check auth.js)",
+      "Bash(node --check authRoutes.js)",
+      "Bash(node --check authMiddleware.js)",
+      "Bash(curl -s -o /dev/null -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/signup.html)",
+      "Bash(curl -s -o /dev/null -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/dashboard.html)",
+      "Bash(curl -s -w \"\\\\n  HTTP %{http_code}\\\\n\" http://localhost:3000/auth/me)",
+      "Bash(curl -s -X POST -w \"\\\\n  HTTP %{http_code}\\\\n\" -H \"Content-Type: application/json\" -d '{\"query\":\"test\"}' http://localhost:3000/classify)",
+      "Bash(curl -s -o /tmp/landing-check.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/app-check.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/app)",
+      "Bash(curl -s -o /tmp/signup-check.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/signup.html)",
+      "Bash(curl -s -w \"\\\\n  HTTP %{http_code}\\\\n\" http://localhost:3000/api/dashboard)",
+      "Bash(curl -s -o /tmp/dash.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/dashboard.html)",
+      "Bash(curl -s -w \"\\\\n  HTTP %{http_code}\\\\n\" http://localhost:3000/report/1)",
+      "Bash(curl -s -w \"\\\\n  HTTP %{http_code}\\\\n\" http://localhost:3000/report/abc)",
+      "Bash(curl -s -w \"\\\\n  HTTP %{http_code}\\\\n\" http://localhost:3000/report/99999)",
+      "Bash(curl -s -o /tmp/d1.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /tmp/d2.html -w \"  HTTP %{http_code} | bytes %{size_download}\\\\n\" http://localhost:3000/dashboard.html)"
     ]
   }
 }

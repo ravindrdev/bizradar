@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #1E293B;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --success: #065F46;
+  --success-bg: #ECFDF5;
+}
+* { box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 420px; margin: 60px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 36px; box-shadow: 0 4px 16px rgba(15, 23, 41, 0.05); }
+h1 { font-size: 24px; font-weight: 700; color: var(--navy); margin: 0 0 6px; letter-spacing: -0.02em; }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 28px; line-height: 1.5; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.input-wrap { position: relative; }
+input { width: 100%; padding: 11px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.12s, box-shadow 0.12s; background: var(--surface); }
+input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+input.pw { padding-right: 56px; }
+.toggle { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); background: transparent; border: 0; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 6px; letter-spacing: 0.04em; }
+.toggle:hover { color: var(--text); }
+button.primary { width: 100%; margin-top: 8px; padding: 12px 14px; background: var(--navy); color: #FFFFFF; border: 0; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.12s, opacity 0.12s; }
+button.primary:hover { background: #1E293B; }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.link-row { margin-top: 18px; font-size: 13px; color: var(--muted); text-align: center; }
+.link-row a { color: var(--blue); text-decoration: none; font-weight: 500; }
+.link-row a:hover { text-decoration: underline; }
+.link-row + .link-row { margin-top: 6px; }
+.error { display: none; margin-top: 14px; padding: 10px 14px; background: var(--danger-bg); border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; font-size: 13px; }
+.error.show { display: block; }
+.flash { display: none; margin-bottom: 18px; padding: 10px 14px; background: var(--success-bg); border: 1px solid #A7F3D0; color: var(--success); border-radius: 8px; font-size: 13px; }
+.flash.show { display: block; }
+</style>
+</head>
+<body>
+
+<header style="background:#0F1729;padding:20px 0;text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">
+  <a href="/" style="display:inline-block;text-decoration:none;">
+    <div class="logo">
+      <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+        Growth<span style="color:#2563EB">IM</span>
+      </span>
+      <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+      <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+        GROWTH INTELLIGENCE MACHINE
+      </div>
+    </div>
+  </a>
+</header>
+
+<div class="wrap">
+  <div id="flash" class="flash"></div>
+  <h1>Welcome back</h1>
+  <p class="meta">Sign in to access your GrowthIM reports.</p>
+  <form id="login-form" autocomplete="off" novalidate>
+    <div class="field">
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" required autocomplete="email" autofocus>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <input id="password" name="password" type="password" class="pw" required autocomplete="current-password">
+        <button type="button" class="toggle" data-target="password">SHOW</button>
+      </div>
+    </div>
+    <button id="submit-btn" class="primary" type="submit">Login</button>
+    <div id="form-error" class="error"></div>
+  </form>
+  <p class="link-row"><a href="/forgot.html">Forgot password?</a></p>
+  <p class="link-row">No account? <a href="/signup.html">Sign up</a></p>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  function showError(msg) {
+    const box = $('form-error');
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+  function hideError() {
+    $('form-error').classList.remove('show');
+  }
+  function validEmail(e) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  // Password show/hide toggle.
+  document.querySelectorAll('.toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = $(btn.dataset.target);
+      const isPw = inp.type === 'password';
+      inp.type = isPw ? 'text' : 'password';
+      btn.textContent = isPw ? 'HIDE' : 'SHOW';
+    });
+  });
+
+  // Flash message from query string (?msg=...) — used after a
+  // password reset success redirect from forgot.html.
+  (function showFlash() {
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('msg');
+    if (msg) {
+      const box = $('flash');
+      box.textContent = msg;
+      box.classList.add('show');
+    }
+  })();
+
+  $('login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    hideError();
+    const email = $('email').value.trim();
+    const password = $('password').value;
+    if (!email || !password) return showError('Email and password are required.');
+    if (!validEmail(email)) return showError('Please enter a valid email address.');
+
+    const submitBtn = $('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in...';
+    try {
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showError(json.error || 'Login failed.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Login';
+        return;
+      }
+      window.location.href = '/dashboard';
+    } catch (e) {
+      showError('Network error. Please try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Login';
+    }
+  });
+})();
+</script>
+</body>
+</html>
