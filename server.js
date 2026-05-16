@@ -95,7 +95,83 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 //                                  /market-analysis flow.
 // Anything else is treated as a legacy 'classify' record (defensive
 // default for any rows written before the discriminator was added).
+//
+// The response wraps the rendered report HTML with a sticky GrowthIM
+// navbar (REPORT_VIEW_NAVBAR below). That navbar gives the user a
+// deterministic "My Dashboard" link on every report page so they
+// never need to use the browser Back button — Back across a
+// bfcache-disabled page can briefly show a stale state on the
+// dashboard and feel like a logout, even though the JWT cookie is
+// fully intact. Clicking "My Dashboard" does a fresh top-level
+// navigation that re-runs the dashboard's /auth/me check with the
+// still-valid cookie. The Logout button is the ONLY mechanism in
+// the report-view flow that touches the cookie — verified by grep
+// for clearCookie / Set-Cookie across the report-view path.
 // ─────────────────────────────────────────────────────────────────────
+const REPORT_VIEW_NAVBAR = `
+<style>
+  /* Reset PAGE_OPEN's body top-padding so the sticky nav attaches
+     flush to the viewport top; negative horizontal margin compensates
+     for the body's 16px inline padding so the nav spans full width. */
+  body { padding-top: 0 !important; }
+  .gim-report-nav {
+    position: sticky;
+    top: 0;
+    background: #0F1729;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+    margin: 0 -16px 24px;
+  }
+  .gim-report-nav-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .gim-report-nav-actions { display: flex; align-items: center; gap: 10px; }
+  .gim-nav-btn {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+  .gim-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.45);
+  }
+</style>
+<header class="gim-report-nav">
+  <div class="gim-report-nav-inner">
+    <a href="/dashboard" style="text-decoration:none;">
+      <div class="logo">
+        <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+          Growth<span style="color:#2563EB">IM</span>
+        </span>
+        <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+        <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+          GROWTH INTELLIGENCE MACHINE
+        </div>
+      </div>
+    </a>
+    <div class="gim-report-nav-actions">
+      <a href="/dashboard" class="gim-nav-btn">My Dashboard</a>
+      <button type="button" class="gim-nav-btn" onclick="fetch('/auth/logout',{method:'POST',credentials:'same-origin'}).finally(function(){window.location.href='/login.html';});">Logout</button>
+    </div>
+  </div>
+</header>
+`;
+
 app.get('/report/:id', requireAuth, async (req, res) => {
   try {
     const idNum = parseInt(req.params.id, 10);
@@ -147,6 +223,13 @@ app.get('/report/:id', requireAuth, async (req, res) => {
         studies: studies.studies,
       });
     }
+    // Inject the GrowthIM sticky navbar right after <body> so the
+    // user always has logo + My Dashboard + Logout above the
+    // restored report. Single string replace; PAGE_OPEN uses a
+    // bare `<body>` open tag with no attributes, so the match is
+    // unambiguous. Falls back gracefully (no-op) if the body tag
+    // is somehow missing.
+    html = html.replace('<body>', '<body>' + REPORT_VIEW_NAVBAR);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (err) {
@@ -1859,7 +1942,7 @@ function escapeHtml(s) {
 // Google Fonts. Card chrome (white surface + subtle border + blue
 // left-accent on .rec / emerald on .opportunity / navy on .mkt-card).
 const PAGE_OPEN = `<!doctype html>
-<html><head><meta charset="utf-8"><title>BizRadar report</title>
+<html><head><meta charset="utf-8"><title>GrowthIM report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1980,8 +2063,8 @@ a:hover { text-decoration: underline; }
 const PAGE_CLOSE = `</body></html>`;
 
 function renderError(message) {
-  return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-<h1>BizRadar</h1>
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
+<h1>GrowthIM</h1>
 <div class="status blocked">Error</div>
 <p>${escapeHtml(message)}</p>${PAGE_CLOSE}`;
 }
@@ -2017,20 +2100,20 @@ function renderWaitlist(input, layer0Result, profileId) {
   const naics3 = naics6.slice(0, 3);
   if (naics3 === '813') {
     heading = 'Religious / faith-based organizations — out of scope';
-    reason = 'Religious and faith-based organizations have unique nonprofit governance, tax-exempt status, and community dynamics that require specialized guidance. BizRadar currently does not support this sector.';
-    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+    reason = 'Religious and faith-based organizations have unique nonprofit governance, tax-exempt status, and community dynamics that require specialized guidance. GrowthIM currently does not support this sector.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else if (naics6 === '812930') {
     heading = 'Parking operations — out of scope';
-    reason = 'Parking operations involve municipal permits, zoning regulations and real estate dynamics that need specialized advice beyond BizRadar’s current scope.';
-    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+    reason = 'Parking operations involve municipal permits, zoning regulations and real estate dynamics that need specialized advice beyond GrowthIM’s current scope.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else if (naics6 === '812921' || naics6 === '812922') {
     heading = 'Photo finishing — not currently supported';
-    reason = 'This business sector is not currently supported by BizRadar. We are expanding our coverage regularly.';
+    reason = 'This business sector is not currently supported by GrowthIM. We are expanding our coverage regularly.';
     waitlistFooter = 'Sub-profiles for this sector are on the roadmap. Add yourself to the waitlist (signup form coming in a later phase).';
   } else if (naics6 === '459930') {
     heading = 'Manufactured home dealers — out of scope';
-    reason = 'Manufactured home dealers operate under HUD regulations and unique financing structures that require specialized advice beyond BizRadar’s current scope.';
-    waitlistFooter = 'No waitlist for this sector at this time. See the BizRadar roadmap for future coverage updates.';
+    reason = 'Manufactured home dealers operate under HUD regulations and unique financing structures that require specialized advice beyond GrowthIM’s current scope.';
+    waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else switch (profileId) {
     case 'OUT_OF_SCOPE_REGULATED':
       heading = 'Regulated sector — waitlist';
@@ -2044,21 +2127,21 @@ function renderWaitlist(input, layer0Result, profileId) {
       break;
     case 'OUT_OF_SCOPE_55':
       heading = 'Out of scope — corporate / holding';
-      reason = "BizRadar serves consumer-facing local businesses. Holding companies, regional managing offices, and corporate HQs don't fit that pattern.";
-      waitlistFooter = 'No waitlist for this sector — BizRadar is intentionally not designed to serve this category.';
+      reason = "GrowthIM serves consumer-facing local businesses. Holding companies, regional managing offices, and corporate HQs don't fit that pattern.";
+      waitlistFooter = 'No waitlist for this sector — GrowthIM is intentionally not designed to serve this category.';
       break;
     case 'OUT_OF_SCOPE_92':
       heading = 'Out of scope — public administration';
-      reason = 'BizRadar serves private-sector consumer-facing businesses. Government agencies have different operational frameworks.';
-      waitlistFooter = 'No waitlist for this sector — BizRadar is intentionally not designed to serve this category.';
+      reason = 'GrowthIM serves private-sector consumer-facing businesses. Government agencies have different operational frameworks.';
+      waitlistFooter = 'No waitlist for this sector — GrowthIM is intentionally not designed to serve this category.';
       break;
     default:
       heading = 'Out of scope';
-      reason = 'This sector is currently outside BizRadar\'s scope.';
-      waitlistFooter = 'See the BizRadar roadmap for sectors planned in later phases.';
+      reason = 'This sector is currently outside GrowthIM\'s scope.';
+      waitlistFooter = 'See the GrowthIM roadmap for sectors planned in later phases.';
   }
-  return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-<h1>BizRadar — ${escapeHtml(heading)}</h1>
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
+<h1>GrowthIM — ${escapeHtml(heading)}</h1>
 <div class="status blocked">${escapeHtml(profileId)}</div>
 <p>${escapeHtml(reason)}</p>
 <p class="meta">Your input "${escapeHtml(input)}" classified to NAICS ${escapeHtml(layer0Result.naics6)}.</p>
@@ -2066,9 +2149,9 @@ function renderWaitlist(input, layer0Result, profileId) {
 }
 
 function renderUnsupported(input, layer0Result) {
-  return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
-<h1>BizRadar — business type not yet supported</h1>
-<p>This business type is not yet supported by BizRadar. We support 1400+
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
+<h1>GrowthIM — business type not yet supported</h1>
+<p>This business type is not yet supported by GrowthIM. We support 1400+
 business types — if you think your input should have matched one of them,
 please contact us at <a href="mailto:support@bizradar.com">support@bizradar.com</a>
 and we'll add coverage for your category.</p>
@@ -2079,7 +2162,7 @@ mode <code>${escapeHtml(layer0Result.mode)}</code>${
 }
 
 function renderBlocked(profile, layer0Result, data, blockingFlag) {
-  return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
 <h1>${escapeHtml(data.name || 'Business')}</h1>
 <div class="status blocked">REPORT BLOCKED</div>
 <div class="flag critical">${escapeHtml(blockingFlag.message)}</div>
@@ -2173,7 +2256,7 @@ function renderMarketReport(result) {
     : ['Google Places', 'US Census', 'BLS BED2013', 'HUD FMR', 'Open-Meteo', 'Wikipedia', 'Ticketmaster', 'Claude AI'];
   const sourcesHtml = `<p class="meta">Powered by: ${sources.map((s) => escapeHtml(s)).join(' · ')}</p>`;
 
-  const headerHtml = `<a class="back" href="/">&larr; Start over</a>
+  const headerHtml = `<a class="back" href="/app">&larr; Start over</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
 <h1>Market Intelligence — ${safeCity}, ${safeState}${healthBadge}${gradeBadge}</h1>
 ${sourcesHtml}
 ${execSummary}`;
@@ -2617,7 +2700,7 @@ ${verifSummary}`;
       (who === 'user' ? 'var(--blue-tint)' : 'var(--surface)') + ';';
     var label = document.createElement('div');
     label.style.cssText = 'font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px';
-    label.textContent = who === 'user' ? 'You' : 'BizRadar';
+    label.textContent = who === 'user' ? 'You' : 'GrowthIM';
     var p = document.createElement('div');
     p.style.cssText = 'white-space:pre-wrap;line-height:1.5';
     p.textContent = text;
@@ -2759,7 +2842,7 @@ function renderReport(ctx) {
     Please try again for the complete report. If the problem persists please contact support.
   </div>
   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
-    <a href="/" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Try Again</a>
+    <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Try Again</a>
     <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`
@@ -2780,7 +2863,7 @@ function renderReport(ctx) {
     Please retry in 10 minutes for full AI insights. You will not be charged again.
   </div>
   <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
-    <a href="/" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
+    <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
     <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`
@@ -2807,7 +2890,7 @@ function renderReport(ctx) {
     </ul>
     All three situations mean customers searching online cannot easily find your business.
     <br><br>
-    <strong>BizRadar Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
+    <strong>GrowthIM Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
   </div>
   <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
     <a href="mailto:support@bizradar.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support — Get Website Help</a>
@@ -3818,7 +3901,7 @@ ${cards}`;
   }
   footerHtml += `<p class="meta"><small>Generated ${new Date().toISOString()}</small></p>`;
 
-  return `${PAGE_OPEN}<a class="back" href="/">&larr; new search</a>
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
 ${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
 ${localContextHtml}

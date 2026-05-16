@@ -90,6 +90,21 @@ a { color: var(--blue); text-decoration: none; }
   border-color: rgba(255, 255, 255, 0.45);
 }
 .logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
 
 /* ─── HERO ─── */
 .hero {
@@ -430,6 +445,7 @@ a { color: var(--blue); text-decoration: none; }
     </a>
     <div class="nav-right">
       <span class="user-email loading" id="user-email">loading…</span>
+      <a href="/contact.html" class="nav-link">Contact</a>
       <button class="logout-btn" id="logout-btn" type="button">Logout</button>
     </div>
   </div>
