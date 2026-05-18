@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="GrowthIM privacy policy — what data we collect, why we collect it, how we use it, and your rights.">
+<title>Privacy Policy — GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── GrowthIM policy page shared styles ─────────────────────────── */
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --blue-hover: #1D4ED8;
+  --white: #FFFFFF;
+  --light: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --text: #1E293B;
+  --muted: #64748B;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--light);
+  color: var(--text);
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Navbar ─── */
+.nav {
+  position: sticky;
+  top: 0;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 50;
+}
+.nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-btn {
+  display: inline-block;
+  background: transparent;
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.24);
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.nav-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.45);
+  text-decoration: none;
+}
+.nav-btn.primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #FFFFFF;
+}
+.nav-btn.primary:hover {
+  background: var(--blue-hover);
+  border-color: var(--blue-hover);
+}
+
+/* ─── Hero ─── */
+.hero {
+  background: var(--light);
+  padding: 60px 24px 40px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.hero-inner { max-width: 800px; margin: 0 auto; }
+.hero h1 {
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.hero-meta { font-size: 14px; color: var(--muted); margin: 0; font-weight: 500; }
+
+/* ─── Content ─── */
+main { background: var(--white); }
+.content { max-width: 800px; margin: 0 auto; padding: 56px 24px 72px; }
+.content section {
+  padding-bottom: 28px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.content section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.content h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+.content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 18px 0 8px;
+  letter-spacing: -0.005em;
+}
+.content p { margin: 0 0 14px; }
+.content ul { margin: 0 0 14px; padding-left: 22px; }
+.content ul li { margin: 6px 0; }
+.content ul ul { margin: 4px 0 4px; }
+.content .lead-in { font-weight: 500; color: var(--text); margin-bottom: 8px; }
+
+/* ─── Footer ─── */
+.footer {
+  background: var(--navy);
+  color: rgba(255,255,255,0.7);
+  padding: 36px 24px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+.footer-left { color: rgba(255,255,255,0.85); font-weight: 600; }
+.footer-center { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.footer-center a { color: rgba(255,255,255,0.7); }
+.footer-center a:hover { color: var(--white); text-decoration: none; }
+.footer-right { text-align: right; }
+.footer-right a { color: rgba(255,255,255,0.7); }
+.footer-right a:hover { color: var(--white); text-decoration: none; }
+
+@media (max-width: 640px) {
+  .nav-inner { padding: 12px 16px; }
+  .nav-btn { padding: 8px 14px; font-size: 12px; }
+  .hero { padding: 40px 18px 30px; }
+  .hero h1 { font-size: 30px; }
+  .content { padding: 40px 18px 56px; }
+  .content h2 { font-size: 19px; }
+  body { font-size: 15px; line-height: 1.75; }
+  .footer-inner { grid-template-columns: 1fr; text-align: center; }
+  .footer-center { justify-content: center; flex-wrap: wrap; gap: 14px; }
+  .footer-right { text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" style="text-decoration:none;">
+      <div class="logo">
+        <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+          Growth<span style="color:#2563EB">IM</span>
+        </span>
+        <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+        <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+          GROWTH INTELLIGENCE MACHINE
+        </div>
+      </div>
+    </a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-btn">Dashboard</a>
+      <a href="/login.html" class="nav-btn primary">Login</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Privacy Policy</h1>
+    <p class="hero-meta">Last updated: May 2026</p>
+  </div>
+</section>
+
+<!-- ─── CONTENT ─── -->
+<main>
+  <div class="content">
+
+    <section>
+      <h2>Introduction</h2>
+      <p>GrowthIM (Growth Intelligence Machine) is operated as a sole proprietorship registered in India.</p>
+      <p>Contact: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+    </section>
+
+    <section>
+      <h2>What data we collect</h2>
+      <p class="lead-in">From users we collect:</p>
+      <ul>
+        <li>Full name</li>
+        <li>Email address</li>
+        <li>Encrypted password</li>
+        <li>Business name they search</li>
+        <li>Business address they search</li>
+        <li>Payment information (processed by Dodo Payments, we never store card numbers)</li>
+        <li>Date and time of activity</li>
+        <li>IP address (for security)</li>
+        <li>Browser and device type</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Why we collect it</h2>
+      <ul>
+        <li>To create and manage your account</li>
+        <li>To generate your market report</li>
+        <li>To send OTP verification emails</li>
+        <li>To send payment receipts</li>
+        <li>To show your report history</li>
+        <li>To provide customer support</li>
+        <li>To prevent fraud and abuse</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>How we use your data</h2>
+      <ul>
+        <li>Generate your 30 page report</li>
+        <li>Send transactional emails (OTP, receipts, support replies)</li>
+        <li>Improve our service</li>
+        <li>Comply with legal requirements</li>
+      </ul>
+      <p>We NEVER sell your data.</p>
+      <p>We NEVER share it for advertising.</p>
+    </section>
+
+    <section>
+      <h2>Who we share data with</h2>
+      <p class="lead-in">Third party services we use:</p>
+      <ul>
+        <li>Dodo Payments (payment processing)</li>
+        <li>Google Places API (to find your business on Google)</li>
+        <li>Anthropic Claude API (AI report generation)</li>
+        <li>US Government APIs (Census Bureau, Bureau of Labor Statistics, HUD &mdash; only your business address is sent)</li>
+        <li>Railway.app (cloud hosting)</li>
+        <li>Namecheap (email service)</li>
+      </ul>
+      <p>We only share the minimum data required to provide our service.</p>
+    </section>
+
+    <section>
+      <h2>How long we keep your data</h2>
+      <ul>
+        <li>Account data: until you delete your account</li>
+        <li>Reports: 1 year after generation</li>
+        <li>Payment records: 7 years (legal requirement)</li>
+        <li>Server logs: 90 days</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Your rights</h2>
+      <p class="lead-in">You have the right to:</p>
+      <ul>
+        <li>Request a copy of your data</li>
+        <li>Delete your account</li>
+        <li>Delete your reports</li>
+        <li>Update your information</li>
+        <li>Opt out of marketing emails</li>
+      </ul>
+      <p>To exercise these rights email: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+      <p>We respond within 7 business days.</p>
+    </section>
+
+    <section>
+      <h2>Cookies</h2>
+      <p class="lead-in">We use only essential cookies:</p>
+      <ul>
+        <li>Login session cookie (JWT token) &mdash; expires in 7 days</li>
+        <li>No tracking cookies</li>
+        <li>No advertising cookies</li>
+        <li>No third party cookies</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Data security</h2>
+      <ul>
+        <li>Passwords are bcrypt hashed</li>
+        <li>All data transmitted via HTTPS</li>
+        <li>Database hosted on Railway.app with SSL encryption</li>
+        <li>Regular security monitoring</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Children</h2>
+      <p>GrowthIM is not intended for anyone under 18 years of age. We do not knowingly collect data from minors.</p>
+    </section>
+
+    <section>
+      <h2>Changes to this policy</h2>
+      <p>We may update this Privacy Policy. We will notify you by email if changes are significant.</p>
+      <p>Continued use of GrowthIM after changes means you accept the updated policy.</p>
+    </section>
+
+    <section>
+      <h2>Contact us</h2>
+      <p>For privacy related questions: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+    </section>
+
+  </div>
+</main>
+
+<!-- ─── FOOTER ─── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">GrowthIM © 2026</div>
+    <div class="footer-center">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/refund">Refund Policy</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-right">
+      <a href="mailto:support@growthim.com">support@growthim.com</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

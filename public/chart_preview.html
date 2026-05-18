@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrowthIM Charts Preview — Bonanza Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy: #0F1729;
+    --blue: #2563EB;
+    --emerald: #10B981;
+    --gray: #94A3B8;
+    --orange: #F59E0B;
+    --red: #EF4444;
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --text: #1E293B;
+    --muted: #64748B;
+    --border: #E2E8F0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 36px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 28px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 3px rgba(15, 23, 41, 0.04), 0 4px 12px rgba(15, 23, 41, 0.04);
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0 0 4px;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .grid .card { margin-bottom: 0; }
+  .chart-wrap { position: relative; }
+  .chart-wrap.h400 { height: 400px; }
+  .chart-wrap.h220 { height: 220px; }
+  .chart-wrap.h200 { height: 200px; }
+  .pagespeed-center,
+  .income-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .pagespeed-score { font-size: 36px; font-weight: 800; line-height: 1; }
+  .pagespeed-suffix { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .income-amount { font-size: 22px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .income-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .income-legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 12px; color: var(--text);
+    margin-bottom: 12px;
+  }
+  .income-legend .swatch {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 6px; vertical-align: middle;
+  }
+  .preview-tag {
+    display: inline-block;
+    background: #EFF6FF;
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <span class="preview-tag">Preview · fake data</span>
+  <h1>GrowthIM Charts Preview — Bonanza Market</h1>
+  <p class="subtitle">Nevada City, CA</p>
+
+  <!-- Chart 1 — Competitive position matrix (full width, 400px) -->
+  <div class="card">
+    <h2 class="card-title">Competitive position</h2>
+    <p class="card-sub">Where you stand on rating vs. review volume</p>
+    <div class="chart-wrap h400"><canvas id="chart-matrix"></canvas></div>
+  </div>
+
+  <!-- Charts 2 + 3 — side by side -->
+  <div class="grid">
+    <div class="card">
+      <h2 class="card-title">Rating comparison</h2>
+      <p class="card-sub">Star rating across nearby competitors</p>
+      <div class="chart-wrap h220"><canvas id="chart-ratings"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 class="card-title">Review volume</h2>
+      <p class="card-sub">Google review counts (sorted)</p>
+      <div class="chart-wrap h220"><canvas id="chart-reviews"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts 4 + 5 — side by side -->
+  <div class="grid">
+    <div class="card">
+      <h2 class="card-title">Seasonal demand pattern</h2>
+      <p class="card-sub">Estimated monthly demand intensity</p>
+      <div class="chart-wrap h220"><canvas id="chart-seasonal"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 class="card-title">Website performance</h2>
+      <p class="card-sub">Google PageSpeed mobile score</p>
+      <div class="chart-wrap h200"><canvas id="chart-pagespeed"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts 6 + 7 — side by side -->
+  <div class="grid">
+    <div class="card">
+      <h2 class="card-title">Local income distribution</h2>
+      <p class="card-sub">Estimated household income brackets</p>
+      <div id="income-legend" class="income-legend"></div>
+      <div class="chart-wrap h200"><canvas id="chart-income"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 class="card-title">Building permits trend</h2>
+      <p class="card-sub">County construction activity (YoY)</p>
+      <div class="chart-wrap h220"><canvas id="chart-permits"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  // ── Fake data (exactly as specified for the preview) ─────────────
+  var D = {
+    you: { name: 'Bonanza Market', rating: 4.1, reviews: 127 },
+    competitors: [
+      { name: 'SPD Markets',           rating: 4.6, reviews: 858 },
+      { name: 'Winnie Superette',      rating: 4.9, reviews:  43 },
+      { name: 'Garnish Nevada City',   rating: 5.0, reviews:   8 },
+      { name: "Dedrick's",             rating: 4.5, reviews: 156 },
+      { name: 'Nevada Farmers Market', rating: 4.7, reviews:  88 }
+    ],
+    benchmarkRating: 4.2,
+    seasonal: {
+      peakMonth: 'August',
+      hasColdWinter: false,
+      hasHotSummer: true,
+      peakTouristSeason: 'Summer'
+    },
+    // NOTE: spec said websiteExists: false but also gave a score of 67.
+    // The Chart 5 logic skips when websiteExists !== true, so the gauge
+    // would render as "Data not available" with false. Setting true
+    // here so the preview actually shows the gauge (score 67 → orange).
+    pagespeed: { score: 67, websiteExists: true },
+    income: { median: 75792 },
+    permits: { total: 367, priorYearTotal: 443, yoy: -17.2, year: 2022, priorYear: 2021 }
+  };
+
+  var BLUE = '#2563EB';
+  var NAVY = '#0F1729';
+  var EMERALD = '#10B981';
+  var GRAY = '#94A3B8';
+  var ORANGE = '#F59E0B';
+  var RED = '#EF4444';
+
+  function shortLabel(name) {
+    var first = String(name || '').split(/\s+/)[0];
+    return first.length > 8 ? first.slice(0, 7) + '…' : first;
+  }
+  function truncName(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
+
+  // ── CHART 1 — Competitive position matrix ────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-matrix');
+    if (!canvas) return;
+
+    var points = [];
+    points.push({ x: D.you.reviews, y: D.you.rating, label: 'YOU ★', color: BLUE, isYou: true });
+    D.competitors.forEach(function (c) {
+      points.push({ x: c.reviews, y: c.rating, label: shortLabel(c.name), color: GRAY, isYou: false });
+    });
+
+    // Proportional radii: r = 8 + ((reviews - minR) / (maxR - minR)) * 17
+    // YOU gets +4. Hard clamp to [8, 29].
+    var allReviews = points.map(function (p) { return p.x; });
+    var maxRv = Math.max.apply(null, allReviews);
+    var minRv = Math.min.apply(null, allReviews);
+    points.forEach(function (p) {
+      var r;
+      if (maxRv === minRv) r = 12;
+      else r = 8 + ((p.x - minRv) / (maxRv - minRv)) * 17;
+      if (p.isYou) r += 4;
+      p.r = Math.max(8, Math.min(29, r));
+    });
+
+    var xs = allReviews.slice().sort(function (a, b) { return a - b; });
+    var medianReviews = xs.length % 2
+      ? xs[(xs.length - 1) / 2]
+      : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2;
+    var benchmark = D.benchmarkRating;
+
+    var quadrantBg = {
+      id: 'quadrantBg',
+      beforeDraw: function (chart) {
+        var ctx = chart.ctx, sx = chart.scales.x, sy = chart.scales.y;
+        if (!sx || !sy) return;
+        var xMid = sx.getPixelForValue(medianReviews);
+        var yMid = sy.getPixelForValue(benchmark);
+        var L = sx.left, R = sx.right, T = sy.top, B = sy.bottom;
+        ctx.save();
+        ctx.fillStyle = 'rgba(16,185,129,0.05)'; ctx.fillRect(xMid, T, R - xMid, yMid - T);
+        ctx.fillStyle = 'rgba(37,99,235,0.05)';  ctx.fillRect(L, T, xMid - L, yMid - T);
+        ctx.fillStyle = 'rgba(245,158,11,0.05)'; ctx.fillRect(xMid, yMid, R - xMid, B - yMid);
+        ctx.fillStyle = 'rgba(239,68,68,0.05)';  ctx.fillRect(L, yMid, xMid - L, B - yMid);
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = '#CBD5E1';
+        ctx.beginPath();
+        ctx.moveTo(xMid, T); ctx.lineTo(xMid, B);
+        ctx.moveTo(L, yMid); ctx.lineTo(R, yMid);
+        ctx.stroke(); ctx.setLineDash([]);
+
+        ctx.font = '700 11px Inter, sans-serif';
+        // Top-left — Hidden gems (blue)
+        ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#2563EB';
+        ctx.fillText('Hidden gems', L + 12, T + 18);
+        // Top-right — Market leaders (emerald)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#10B981';
+        ctx.fillText('Market leaders', R - 12, T + 18);
+        // Bottom-left — Needs work (red)
+        ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#EF4444';
+        ctx.fillText('Needs work', L + 12, B - 10);
+        // Bottom-right — High volume (orange)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillText('High volume', R - 12, B - 10);
+        ctx.restore();
+      }
+    };
+
+    function roundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // Bubble labels — clean cluster mode.
+    // YOU always shows its label (white text inside the blue bubble).
+    // Competitor labels render ONLY if no other bubble center sits
+    // within 40 px of theirs; clustered competitors stay anonymous on
+    // the chart and surface their identity via the hover tooltip.
+    var bubbleLabels = {
+      id: 'bubbleLabels',
+      afterDraw: function (chart) {
+        var ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        ctx.save();
+        ctx.font = '600 11px Inter, sans-serif';
+
+        // YOU's label — always rendered, never suppressed.
+        meta.data.forEach(function (el, i) {
+          var p = points[i]; if (!p || !p.isYou) return;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.label, el.x, el.y);
+        });
+
+        // Cluster detection: a competitor is clustered if any OTHER
+        // bubble (you or another competitor) is within 40 px of its
+        // center. Clustered bubbles get no on-chart label.
+        var clustered = new Array(meta.data.length);
+        for (var i = 0; i < meta.data.length; i++) {
+          var pi = points[i]; if (!pi || pi.isYou) { clustered[i] = false; continue; }
+          var near = false;
+          for (var j = 0; j < meta.data.length; j++) {
+            if (i === j) continue;
+            var pj = points[j]; if (!pj) continue;
+            var dx = meta.data[i].x - meta.data[j].x;
+            var dy = meta.data[i].y - meta.data[j].y;
+            if (Math.sqrt(dx * dx + dy * dy) < 40) { near = true; break; }
+          }
+          clustered[i] = near;
+        }
+
+        // Render non-clustered competitor labels with the white pill
+        // bg just above the bubble.
+        meta.data.forEach(function (el, i) {
+          var p = points[i]; if (!p || p.isYou || clustered[i]) return;
+          var labelY = el.y - p.r - 10;
+          var textW = ctx.measureText(p.label).width;
+          var bgW = textW + 10;     // 5 px L + 5 px R padding
+          var bgH = 11 + 6;         // 11 px text + 3 px T + 3 px B padding
+          var bgX = el.x - bgW / 2;
+          var bgY = labelY - bgH / 2;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+          roundedRect(ctx, bgX, bgY, bgW, bgH, 4);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(15, 23, 41, 0.10)';
+          ctx.lineWidth = 1;
+          roundedRect(ctx, bgX, bgY, bgW, bgH, 4);
+          ctx.stroke();
+          ctx.fillStyle = '#1E293B';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.label, el.x, labelY);
+        });
+
+        ctx.restore();
+      }
+    };
+
+    new Chart(canvas, {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          data: points,
+          backgroundColor: points.map(function (p) { return p.color; }),
+          borderColor: points.map(function (p) { return p.isYou ? NAVY : '#64748B'; }),
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            // Force tooltip above the data point so a neighboring
+            // bubble can never sit on top of it.
+            position: 'nearest',
+            yAlign: 'bottom',
+            xAlign: 'center',
+            backgroundColor: 'rgba(15, 23, 41, 0.95)',
+            titleColor: '#FFFFFF',
+            bodyColor: '#94A3B8',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { size: 13, weight: '600', family: 'Inter, sans-serif' },
+            bodyFont:  { size: 12, family: 'Inter, sans-serif' },
+            callbacks: {
+              title: function (items) {
+                if (!items || !items[0]) return '';
+                var p = items[0].raw;
+                if (!p) return '';
+                // For clustered bubbles we hid the label and stored a
+                // truncated short form; show the FULL competitor name
+                // here (look it up by index from the source array).
+                var fullName = p.isYou ? D.you.name
+                  : (D.competitors[items[0].dataIndex - 1] && D.competitors[items[0].dataIndex - 1].name)
+                  || p.label;
+                return fullName;
+              },
+              label: function (ctx) {
+                var p = ctx.raw;
+                if (!p) return '';
+                return [
+                  'Rating: ' + p.y.toFixed(1) + ' ★',
+                  'Reviews: ' + (p.x != null ? p.x.toLocaleString() : '—'),
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Number of reviews' }, beginAtZero: true, grace: '15%' },
+          y: { title: { display: true, text: 'Rating' }, min: 1, max: 5, ticks: { stepSize: 0.5 } }
+        }
+      },
+      plugins: [quadrantBg, bubbleLabels]
+    });
+  })();
+
+  // ── CHART 2 — Rating comparison ─────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-ratings');
+    if (!canvas) return;
+    var entries = [{ name: D.you.name, rating: D.you.rating, you: true }];
+    D.competitors.forEach(function (c) { entries.push({ name: c.name, rating: c.rating, you: false }); });
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: entries.map(function (e) { return truncName(e.name); }),
+        datasets: [{
+          data: entries.map(function (e) { return e.rating; }),
+          backgroundColor: entries.map(function (e) { return e.you ? BLUE : GRAY; }),
+          borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 32 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return c.parsed.x.toFixed(1) + ' ★'; } } }
+        },
+        scales: {
+          x: { min: 0, max: 5, ticks: { stepSize: 1 } },
+          y: { ticks: { font: { size: 11 } } }
+        },
+        animation: { onComplete: function () {
+          var c = this, ctx = c.ctx;
+          ctx.font = '600 11px Inter, sans-serif'; ctx.fillStyle = '#0F1729';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          c.getDatasetMeta(0).data.forEach(function (b, i) {
+            ctx.fillText(entries[i].rating.toFixed(1), b.x + 6, b.y);
+          });
+        } }
+      }
+    });
+  })();
+
+  // ── CHART 3 — Review volume ─────────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-reviews');
+    if (!canvas) return;
+    var entries = [{ name: D.you.name, reviews: D.you.reviews, you: true }];
+    D.competitors.forEach(function (c) { entries.push({ name: c.name, reviews: c.reviews, you: false }); });
+    entries.sort(function (a, b) { return b.reviews - a.reviews; });
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: entries.map(function (e) { return truncName(e.name); }),
+        datasets: [{
+          data: entries.map(function (e) { return e.reviews; }),
+          backgroundColor: entries.map(function (e) { return e.you ? BLUE : GRAY; }),
+          borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 48 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return c.parsed.x.toLocaleString() + ' reviews'; } } }
+        },
+        scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 11 } } } },
+        animation: { onComplete: function () {
+          var c = this, ctx = c.ctx;
+          ctx.font = '600 11px Inter, sans-serif'; ctx.fillStyle = '#0F1729';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          c.getDatasetMeta(0).data.forEach(function (b, i) {
+            ctx.fillText(entries[i].reviews.toLocaleString(), b.x + 6, b.y);
+          });
+        } }
+      }
+    });
+  })();
+
+  // ── CHART 4 — Seasonal demand pattern ───────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-seasonal');
+    if (!canvas) return;
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var s = D.seasonal;
+    var vals = [2,2,2,2,2,2,2,2,2,2,2,2];
+    if (s.hasColdWinter) { vals[0] = 1; vals[1] = 1; vals[11] = 1; }
+    var monthIdx = -1;
+    if (s.peakMonth) {
+      var pk = s.peakMonth.slice(0, 3).toLowerCase();
+      monthIdx = months.findIndex(function (m) { return m.toLowerCase() === pk; });
+    }
+    if (monthIdx >= 0) {
+      vals[monthIdx] = 4;
+      vals[(monthIdx + 11) % 12] = Math.max(vals[(monthIdx + 11) % 12], 3);
+      vals[(monthIdx + 1) % 12]  = Math.max(vals[(monthIdx + 1) % 12], 3);
+    }
+    if (s.hasHotSummer) {
+      vals[5] = Math.max(vals[5], 3);
+      vals[6] = Math.max(vals[6], 3);
+      vals[7] = Math.max(vals[7], 3);
+    }
+    var pointColors = vals.map(function (v) { return v >= 3 ? EMERALD : GRAY; });
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          data: vals,
+          borderColor: BLUE,
+          backgroundColor: 'rgba(37,99,235,0.08)',
+          fill: true, tension: 0.4,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: pointColors,
+          pointRadius: 5, pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return ['Low','Medium','High','Peak'][c.parsed.y - 1] || ''; } } }
+        },
+        scales: {
+          y: { min: 0.5, max: 4.5, ticks: { stepSize: 1, callback: function (v) { return ['','Low','Medium','High','Peak'][v] || ''; } } },
+          x: { ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  })();
+
+  // ── CHART 5 — PageSpeed gauge ───────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-pagespeed');
+    if (!canvas) return;
+    var s = Math.max(0, Math.min(100, D.pagespeed.score));
+    var col = s >= 90 ? EMERALD : s >= 50 ? ORANGE : RED;
+    var wrap = canvas.parentElement;
+    var center = document.createElement('div');
+    center.className = 'pagespeed-center';
+    center.innerHTML = '<div class="pagespeed-score" style="color:' + col + '">' + s + '</div><div class="pagespeed-suffix">out of 100</div>';
+    wrap.appendChild(center);
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: { datasets: [{ data: [s, 100 - s], backgroundColor: [col, 'rgba(100,116,139,0.1)'], borderWidth: 0 }] },
+      options: {
+        cutout: '75%', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+      }
+    });
+  })();
+
+  // ── CHART 6 — Income distribution ───────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-income');
+    if (!canvas) return;
+    var med = D.income.median;
+    var brackets;
+    if (med < 40000)       brackets = [40, 35, 18, 7];
+    else if (med < 60000)  brackets = [25, 40, 25, 10];
+    else if (med < 90000)  brackets = [15, 35, 35, 15];
+    else                   brackets = [8, 25, 42, 25];
+    var labels = ['Under $35K', '$35K–$75K', '$75K–$150K', 'Over $150K'];
+    var colors = ['#185FA5', '#378ADD', '#85B7EB', '#B5D4F4'];
+    var legend = document.getElementById('income-legend');
+    legend.innerHTML = labels.map(function (lab, i) {
+      return '<span><span class="swatch" style="background:' + colors[i] + '"></span>' + lab + ' (' + brackets[i] + '%)</span>';
+    }).join('');
+    var wrap = canvas.parentElement;
+    var center = document.createElement('div');
+    center.className = 'income-center';
+    var amount = med >= 1000 ? '$' + Math.round(med / 1000) + 'K' : '$' + med;
+    center.innerHTML = '<div class="income-amount">' + amount + '</div><div class="income-label">Median</div>';
+    wrap.appendChild(center);
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: brackets, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        cutout: '65%', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.label + ': ' + c.parsed + '%'; } } } }
+      }
+    });
+  })();
+
+  // ── CHART 7 — Building permits trend ────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-permits');
+    if (!canvas) return;
+    var perm = D.permits;
+    var labels = [String(perm.priorYear), String(perm.year)];
+    var values = [perm.priorYearTotal, perm.total];
+    var colors = [GRAY, EMERALD];
+    var yoy = perm.yoy;
+    new Chart(canvas, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) {
+            var n = c.parsed.y.toLocaleString();
+            if (c.dataIndex === values.length - 1) {
+              var sign = yoy >= 0 ? '+' : '';
+              return n + ' permits (' + sign + yoy.toFixed(1) + '% YoY)';
+            }
+            return n + ' permits';
+          } } }
+        },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>

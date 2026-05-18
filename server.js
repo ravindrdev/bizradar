@@ -298,6 +298,30 @@ app.get('/dashboard', (req, res) => {
   }
 });
 
+// Extensionless aliases for the policy / contact pages so the footer
+// links (Privacy Policy → /privacy, Terms of Service → /terms,
+// Refund Policy → /refund, Contact → /contact) resolve cleanly
+// without the .html suffix. Each is a thin file-serve mirroring the
+// /dashboard pattern above. Registered before express.static so the
+// extensionless URL is what gets cached / shared.
+function serveStaticPage(filename, logTag) {
+  return (req, res) => {
+    try {
+      const html = fs.readFileSync(path.join(__dirname, 'public', filename), 'utf8');
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (e) {
+      console.error(`[${logTag}] failed to render:`, e.message);
+      res.status(500).send('Internal error');
+    }
+  };
+}
+app.get('/privacy',        serveStaticPage('privacy.html',        'privacy'));
+app.get('/terms',          serveStaticPage('terms.html',          'terms'));
+app.get('/refund',         serveStaticPage('refund.html',         'refund'));
+app.get('/contact',        serveStaticPage('contact.html',        'contact'));
+app.get('/chart-preview',  serveStaticPage('chart_preview.html',  'chart-preview'));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Server-Sent Events progress stream ─────────────────────────────
@@ -384,6 +408,91 @@ profileResolver.load();
   }
 })();
 
+// ─────────────────────────────────────────────────────────────────────
+// Async report job pattern — keeps Railway's 5-minute HTTP proxy
+// timeout from killing /classify and /market-analysis mid-request.
+//
+// Browser POSTs to /classify (or /market-analysis). The route
+// synchronously initialises a job entry, replies { ok, jobId } in
+// <1 s, and runs the actual generation work inside setImmediate().
+// The browser polls GET /report-status/:jobId every few seconds,
+// and redirects to /report/:id once status === 'ready'.
+//
+// jobStore is in-memory only — survives within the process, evicted
+// after 30 minutes by the cleanup interval below. If the process
+// restarts mid-flight, the browser's poll surfaces 'not_found' and
+// the UI shows a "session expired" message. The Postgres row (if
+// the save ran) still appears in /dashboard either way.
+// ─────────────────────────────────────────────────────────────────────
+const jobStore = new Map();
+
+function setJob(sessionId, patch) {
+  if (!sessionId) return;
+  jobStore.set(sessionId, {
+    status: 'processing',
+    reportId: null,
+    error: null,
+    createdAt: Date.now(),
+    ...(jobStore.get(sessionId) || {}),
+    ...patch,
+  });
+}
+
+function failJob(sessionId, message) {
+  if (!sessionId) return;
+  setJob(sessionId, {
+    status: 'error',
+    reportId: null,
+    error: String(message || 'Report generation failed').slice(0, 1000),
+  });
+  // Surface on the live progress channel too so the page's terminal
+  // log shows the failure immediately rather than waiting up to 3 s
+  // for the next /report-status poll.
+  try {
+    sendProgress(sessionId, {
+      error: true,
+      message: String(message || '').slice(0, 240),
+    });
+  } catch (_) { /* progress stream may already be closed */ }
+}
+
+function completeJob(sessionId, reportId) {
+  if (!sessionId) return;
+  setJob(sessionId, {
+    status: 'ready',
+    reportId: reportId == null ? null : reportId,
+    error: null,
+  });
+}
+
+// Cleanup loop — every 30 minutes evict job entries older than 30
+// minutes. `unref()` so the timer never blocks a clean process exit.
+setInterval(() => {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [id, job] of jobStore) {
+    if (job && job.createdAt < cutoff) jobStore.delete(id);
+  }
+}, 30 * 60 * 1000).unref();
+
+// GET /report-status/:jobId — polled by the browser every 3 s after
+// it submits /classify or /market-analysis. Defensive cross-user
+// check: the job entry stores the user that started it, and we
+// return 'not_found' if a different user polls — sessionIds are
+// random client tokens but if one leaks we don't want a second
+// logged-in user to be able to read the first one's status.
+app.get('/report-status/:jobId', requireAuth, (req, res) => {
+  const job = jobStore.get(String(req.params.jobId || ''));
+  if (!job) return res.json({ status: 'not_found' });
+  if (job.userId != null && job.userId !== req.user.id) {
+    return res.json({ status: 'not_found' });
+  }
+  return res.json({
+    status: job.status,
+    reportId: job.reportId,
+    error: job.error,
+  });
+});
+
 app.post('/classify', requireAuth, async (req, res) => {
   const input = (req.body.query || '').trim();
   // Optional — set by the landing-page autocomplete when the user picks
@@ -393,17 +502,34 @@ app.post('/classify', requireAuth, async (req, res) => {
   // falls back to findPlace in that case (backwards compatible).
   const clientPlaceId = (req.body.place_id || '').trim();
   const sessionId = (req.body.sessionId || '').toString();
-  if (!input) {
-    res.status(400).send(renderError('Please enter a business name and city.'));
-    return;
-  }
-  sendProgress(sessionId, { step: 1, total: 8, message: 'Finding your business on Google...', pct: 10 });
+  const userId = req.user.id;
+
+  // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
+  // Mark the job 'processing' first, then close the response. The
+  // browser starts polling /report-status/:jobId at 3 s cadence; the
+  // actual report runs inside setImmediate() below, free of any
+  // upstream HTTP timeout.
+  setJob(sessionId, { userId });
+  res.json({ ok: true, jobId: sessionId });
+
+  // From here on we run detached. Every error path inside the try
+  // block routes through failJob(sessionId, msg) instead of res.send.
+  // res.setHeader is silenced because the response is already closed
+  // (the existing X-* diagnostic headers below would otherwise warn).
+  setImmediate(async () => {
+   res.setHeader = function () {};
+   try {
+    if (!input) {
+      failJob(sessionId, 'Please enter a business name and city.');
+      return;
+    }
+    sendProgress(sessionId, { step: 1, total: 8, message: 'Finding your business on Google...', pct: 10 });
 
   let layer0Result;
   try {
     layer0Result = layer0.classifyInput(input);
   } catch (err) {
-    res.status(500).send(renderError(`Classifier error: ${err.message}`));
+    failJob(sessionId, `Classifier error: ${err.message}`);
     return;
   }
 
@@ -467,9 +593,7 @@ app.post('/classify', requireAuth, async (req, res) => {
   let nameFallback = null;
   if (!layer0Result.naics6) {
     if (!API_KEY) {
-      res.status(500).send(renderError(
-        'GOOGLE_PLACES_API_KEY is not set. Copy .env.example to .env and add a key.'
-      ));
+      failJob(sessionId, 'GOOGLE_PLACES_API_KEY is not set on the server. Please contact support.');
       return;
     }
     try {
@@ -483,11 +607,11 @@ app.post('/classify', requireAuth, async (req, res) => {
         placeStub = await places.findPlace(input, API_KEY);
       }
     } catch (err) {
-      res.status(502).send(renderError(`Google Places search failed: ${err.message}`));
+      failJob(sessionId, `Google Places search failed: ${err.message}`);
       return;
     }
     if (!placeStub) {
-      res.send(renderError(`No Google Places match for "${escapeHtml(input)}".`));
+      failJob(sessionId, `No Google Places match for "${input}". Try a more specific business name or address.`);
       return;
     }
     // Tier 1: name fallback — runs FIRST so brand/keyword signals override
@@ -592,7 +716,7 @@ app.post('/classify', requireAuth, async (req, res) => {
     logOosHit(input, layer0Result, routedProfileId);
     res.setHeader('X-Profile-Id', routedProfileId);
     res.setHeader('X-Status', 'oos_waitlist');
-    res.send(renderWaitlist(input, layer0Result, routedProfileId));
+    failJob(sessionId, 'This business sector is not currently supported by GrowthIM. Email support@growthim.com to join the waitlist for your category.');
     return;
   }
 
@@ -640,7 +764,7 @@ app.post('/classify', requireAuth, async (req, res) => {
         res.setHeader('X-Naics6', claudeNaics);
         res.setHeader('X-Profile-Id', claudeRoutedId);
         res.setHeader('X-Status', 'oos_waitlist');
-        res.send(renderWaitlist(input, layer0Result, claudeRoutedId));
+        failJob(sessionId, 'This business sector is not currently supported by GrowthIM. Email support@growthim.com to join the waitlist for your category.');
         return;
       }
       // Try the profile registry with the Claude NAICS.
@@ -658,15 +782,13 @@ app.post('/classify', requireAuth, async (req, res) => {
   if (!profile) {
     res.setHeader('X-Profile-Id', '');
     res.setHeader('X-Status', 'unsupported');
-    res.send(renderUnsupported(input, layer0Result));
+    failJob(sessionId, `This business type is not yet supported by GrowthIM. We support 1400+ business types — if you think your input should have matched one of them, please contact us at support@growthim.com and we'll add coverage for your category.`);
     return;
   }
   res.setHeader('X-Profile-Id', profile.id);
 
   if (!API_KEY) {
-    res.status(500).send(renderError(
-      'GOOGLE_PLACES_API_KEY is not set. Copy .env.example to .env and add a key.'
-    ));
+    failJob(sessionId, 'GOOGLE_PLACES_API_KEY is not set on the server. Please contact support.');
     return;
   }
 
@@ -684,11 +806,11 @@ app.post('/classify', requireAuth, async (req, res) => {
         placeStub = await places.findPlace(input, API_KEY);
       }
     } catch (err) {
-      res.status(502).send(renderError(`Google Places search failed: ${err.message}`));
+      failJob(sessionId, `Google Places search failed: ${err.message}`);
       return;
     }
     if (!placeStub) {
-      res.send(renderError(`No Google Places match for "${escapeHtml(input)}".`));
+      failJob(sessionId, `No Google Places match for "${input}". Try a more specific business name or address.`);
       return;
     }
   }
@@ -698,7 +820,7 @@ app.post('/classify', requireAuth, async (req, res) => {
   try {
     detail = await places.getDetails(placeStub.place_id, API_KEY);
   } catch (err) {
-    res.status(502).send(renderError(`Google Places details failed: ${err.message}`));
+    failJob(sessionId, `Google Places details failed: ${err.message}`);
     return;
   }
   sendProgress(sessionId, {
@@ -1229,6 +1351,8 @@ app.post('/classify', requireAuth, async (req, res) => {
     data.building_permits_total = p.building_permits_total;
     data.building_permits_single_family = p.building_permits_single_family;
     data.building_permits_year = p.building_permits_year;
+    data.building_permits_prior_year = p.building_permits_prior_year;
+    data.building_permits_prior_year_total = p.building_permits_prior_year_total;
     data.building_permits_yoy_change = p.building_permits_yoy_change;
     data.county_fips = p.county_fips;
     data.county_name = p.county_name;
@@ -1237,6 +1361,8 @@ app.post('/classify', requireAuth, async (req, res) => {
     data.building_permits_total = null;
     data.building_permits_single_family = null;
     data.building_permits_year = null;
+    data.building_permits_prior_year = null;
+    data.building_permits_prior_year_total = null;
     data.building_permits_yoy_change = null;
     data.county_fips = null;
     data.county_name = null;
@@ -1556,9 +1682,7 @@ app.post('/classify', requireAuth, async (req, res) => {
   });
   if (requiredMissing.length) {
     res.setHeader('X-Status', 'missing_fields');
-    res.status(422).send(renderError(
-      `Missing required fields from Google Places: ${requiredMissing.join(', ')}`
-    ));
+    failJob(sessionId, `Missing required fields from Google Places: ${requiredMissing.join(', ')}`);
     return;
   }
 
@@ -1566,7 +1690,7 @@ app.post('/classify', requireAuth, async (req, res) => {
   const blocking = redFlags.find((r) => r.severity === 'critical' && r.blocks_report);
   if (blocking) {
     res.setHeader('X-Status', 'blocked');
-    res.send(renderBlocked(profile, layer0Result, data, blocking));
+    failJob(sessionId, `Report blocked: ${(blocking && blocking.message) || 'critical issue detected for this business.'}`);
     return;
   }
   res.setHeader('X-Status', 'report');
@@ -1657,8 +1781,13 @@ app.post('/classify', requireAuth, async (req, res) => {
   // momentarily unreachable. The `_type` discriminator lets
   // GET /report/:id pick the right renderer when replaying the
   // saved data later.
+  // Persist the report and capture the new id. The polling browser
+  // is going to redirect to /report/:id, so DB save success is now
+  // load-bearing — if it fails we surface the error rather than
+  // silently completing into a dead link.
+  let savedReportId = null;
   try {
-    if (req.user && req.user.id) {
+    if (userId) {
       const businessName = data.name || data.business_name || input || null;
       const address = data.formatted_address || null;
       const naicsCode = (layer0Result && layer0Result.naics6) || null;
@@ -1673,40 +1802,62 @@ app.post('/classify', requireAuth, async (req, res) => {
         ranked,
         enriched,
       };
-      await pool.query(
+      const ins = await pool.query(
         `INSERT INTO reports
           (user_id, business_name, address, naics_code, report_json)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id`,
         [
-          req.user.id,
+          userId,
           businessName,
           address,
           naicsCode,
           JSON.stringify(reportData),
         ]
       );
-      console.log('[report] saved to DB for user:', req.user.id);
+      savedReportId = (ins && ins.rows && ins.rows[0] && ins.rows[0].id) || null;
+      console.log('[report] saved to DB for user:', userId, 'reportId:', savedReportId);
     }
   } catch (dbErr) {
     console.error('[report] DB save failed:', dbErr.message);
   }
 
+  if (savedReportId == null) {
+    failJob(sessionId, 'Report was generated but could not be saved. Please try again.');
+    return;
+  }
+
   sendProgress(sessionId, { step: 8, total: 8, message: 'Done!', pct: 100 });
-  res.send(html);
+  completeJob(sessionId, savedReportId);
+   } catch (jobErr) {
+    console.error('[classify] background job failed:', jobErr && jobErr.message, jobErr && jobErr.stack);
+    failJob(sessionId, (jobErr && jobErr.message) || 'Report generation failed.');
+   }
+  });
 });
 
 app.post('/market-analysis', requireAuth, async (req, res) => {
   const { city, state } = req.body;
   const sessionId = (req.body.sessionId || '').toString();
+  const userId = req.user.id;
   console.log('[market-analysis] called for', city, state);
+
+  // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
+  setJob(sessionId, { userId });
+  res.json({ ok: true, jobId: sessionId });
+
+  setImmediate(async () => {
+   res.setHeader = function () {};
+   try {
 
   // ── TIER 1 — Validation ─────────────────────────────────────────
   if (!city || !city.trim() || !state || !state.trim()) {
-    return res.status(400).send(renderError('City and state are required.'));
+    failJob(sessionId, 'City and state are required.');
+    return;
   }
   if (!/^[A-Za-z]{2}$/.test(state.trim())) {
-    return res.status(400).send(renderError('State must be a 2-letter code (e.g. WI).'));
+    failJob(sessionId, 'State must be a 2-letter code (e.g. WI).');
+    return;
   }
 
   // ── Progress events for /market-analysis ──────────────────────────
@@ -1769,8 +1920,11 @@ app.post('/market-analysis', requireAuth, async (req, res) => {
     // sector's NAICS-2 when available, else null. business_name is
     // tagged with "— market analysis" so the dashboard's list can
     // distinguish saved cities from saved businesses at a glance.
+    // DB save is load-bearing now — the polling browser redirects to
+    // /report/:id and needs a real row to land on.
+    let savedReportId = null;
     try {
-      if (req.user && req.user.id) {
+      if (userId) {
         const cityNorm = city.trim();
         const stateNorm = state.trim().toUpperCase();
         const businessName = `${cityNorm}, ${stateNorm} — market analysis`;
@@ -1780,32 +1934,44 @@ app.post('/market-analysis', requireAuth, async (req, res) => {
             ? String(result.top10[0].naics2)
             : null;
         const reportData = { _type: 'market_analysis', ...result };
-        await pool.query(
+        const ins = await pool.query(
           `INSERT INTO reports
             (user_id, business_name, address, naics_code, report_json)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id`,
           [
-            req.user.id,
+            userId,
             businessName,
             address,
             naicsCode,
             JSON.stringify(reportData),
           ]
         );
-        console.log('[report] market-analysis saved to DB for user:', req.user.id);
+        savedReportId = (ins && ins.rows && ins.rows[0] && ins.rows[0].id) || null;
+        console.log('[report] market-analysis saved to DB for user:', userId, 'reportId:', savedReportId);
       }
     } catch (dbErr) {
       console.error('[report] market-analysis DB save failed:', dbErr.message);
     }
 
+    if (savedReportId == null) {
+      failJob(sessionId, 'Market analysis was generated but could not be saved. Please try again.');
+      return;
+    }
+
     sendProgress(sessionId, { step: 10, total: 10, message: 'Done!', pct: 100 });
-    res.send(html);
+    completeJob(sessionId, savedReportId);
   } catch (err) {
     cancelTimers();
     console.error('[market-analysis] error:', err);
-    res.status(500).send(renderError(err.message || 'Something went wrong.'));
+    failJob(sessionId, err.message || 'Something went wrong.');
   }
+
+   } catch (jobErr) {
+    console.error('[market-analysis] background job failed:', jobErr && jobErr.message, jobErr && jobErr.stack);
+    failJob(sessionId, (jobErr && jobErr.message) || 'Market analysis failed.');
+   }
+  });
 });
 
 // ── POST /market-chat — Tier 5c follow-up Q&A ──────────────────────
@@ -2059,7 +2225,9 @@ a:hover { text-decoration: underline; }
    direct-HTTP fetches still see this link. */
 .back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; color: var(--muted); font-size: 13px; font-weight: 500; }
 .back:hover { color: var(--blue); }
-</style></head><body>`;
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head><body>`;
 const PAGE_CLOSE = `</body></html>`;
 
 function renderError(message) {
@@ -2748,6 +2916,698 @@ ${top10Section}
 ${deepDiveHtml}
 ${chatHtml}
 <p class="meta" style="margin-top:24px"><small>Generated ${new Date().toISOString()}</small></p>${PAGE_CLOSE}`;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// renderMarketCharts — Chart.js v4 visual layer for the report.
+//
+// Returns a self-contained HTML block: scoped styles, six card
+// wrappers in a responsive grid, and one inline <script> that boots
+// all seven charts. The data bundle is JSON-injected at render time
+// (with </ and U+2028/U+2029 escaped) so no XSS path through field
+// values. Each chart guards on the fields it actually needs; missing
+// data swaps the canvas for a small gray "Data not available" box
+// rather than rendering an empty axis. Chart.js itself is loaded by
+// the CDN <script> in PAGE_OPEN.
+// ───────────────────────────────────────────────────────────────────
+function renderMarketCharts(data, profile, displayName) {
+  data = data || {};
+
+  // Subject business
+  const yourName = displayName || data.name || data.business_name || 'Your business';
+  const yourRating = (typeof data.google_rating === 'number') ? data.google_rating : null;
+  const yourReviews = (typeof data.google_review_count === 'number') ? data.google_review_count : null;
+
+  // Competitor list — prefer the longer top5 when present, fall back to top3.
+  const rawComps = Array.isArray(data.competitors_top5) && data.competitors_top5.length
+    ? data.competitors_top5
+    : (Array.isArray(data.competitors_top3) ? data.competitors_top3 : []);
+  const competitors = rawComps
+    .filter((c) => c && typeof c.rating === 'number' && typeof c.review_count === 'number')
+    .map((c) => ({
+      name: String(c.name || 'Competitor'),
+      rating: c.rating,
+      reviews: c.review_count,
+    }));
+
+  // Benchmark rating from profile, default 4.0.
+  const benchmarkRating = (profile && profile.benchmarks && typeof profile.benchmarks.good_rating === 'number')
+    ? profile.benchmarks.good_rating
+    : 4.0;
+
+  // Seasonality signals
+  const seasonal = {
+    peakMonth: (typeof data.peak_month === 'string') ? data.peak_month : null,
+    hasColdWinter: !!data.has_cold_winter,
+    hasHotSummer: !!data.has_hot_summer,
+    peakTouristSeason: (typeof data.peak_tourist_season === 'string') ? data.peak_tourist_season : null,
+  };
+
+  // PageSpeed — accept either canonical field name.
+  const pagespeedScore = (typeof data.pagespeed === 'number') ? data.pagespeed
+    : (typeof data.website_mobile_score === 'number') ? data.website_mobile_score : null;
+  const pagespeed = {
+    score: pagespeedScore,
+    websiteExists: data.website_exists === true,
+  };
+
+  // Income + permits
+  const income = {
+    median: (typeof data.median_household_income === 'number') ? data.median_household_income : null,
+  };
+  const permits = {
+    total: (typeof data.building_permits_total === 'number') ? data.building_permits_total : null,
+    priorYearTotal: (typeof data.building_permits_prior_year_total === 'number') ? data.building_permits_prior_year_total : null,
+    yoy: (typeof data.building_permits_yoy_change === 'number') ? data.building_permits_yoy_change : null,
+    year: data.building_permits_year || null,
+    priorYear: data.building_permits_prior_year || null,
+  };
+
+  const bundle = { you: { name: yourName, rating: yourRating, reviews: yourReviews }, competitors, benchmarkRating, seasonal, pagespeed, income, permits };
+
+  // Safe JSON injection: escape </script>, HTML comments, U+2028/29
+  // line separators that break inline JSON inside <script>.
+  const dataJson = JSON.stringify(bundle)
+    .replace(/</g, '\\u003c')
+    .replace(/-->/g, '--\\u003e')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
+  return `
+<h2>Market Intelligence Charts</h2>
+
+<style>
+  .gim-charts { margin: 16px 0 32px; }
+  .gim-charts .gim-chart-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .gim-charts .gim-chart-title {
+    font-size: 14px; font-weight: 500; color: #1E293B; margin: 0 0 4px;
+  }
+  .gim-charts .gim-chart-sub {
+    font-size: 12px; color: #64748B; margin: 0 0 14px;
+  }
+  .gim-charts .gim-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .gim-charts .gim-chart-grid .gim-chart-card { margin-bottom: 0; }
+  .gim-charts .gim-chart-wrap { position: relative; }
+  .gim-charts .gim-chart-na {
+    background: #F1F5F9; border-radius: 8px; padding: 30px 16px;
+    color: #94A3B8; text-align: center; font-size: 13px;
+  }
+  .gim-charts .gim-pagespeed-center,
+  .gim-charts .gim-income-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .gim-charts .gim-pagespeed-score { font-size: 36px; font-weight: 800; line-height: 1; }
+  .gim-charts .gim-pagespeed-suffix { font-size: 11px; color: #64748B; margin-top: 4px; }
+  .gim-charts .gim-income-amount { font-size: 22px; font-weight: 700; color: #0F1729; line-height: 1; }
+  .gim-charts .gim-income-label { font-size: 11px; color: #64748B; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .gim-charts .gim-income-legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 12px; color: #1E293B; margin-bottom: 12px;
+  }
+  .gim-charts .gim-income-legend .swatch {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 6px; vertical-align: middle;
+  }
+  @media print {
+    .gim-charts .gim-chart-card { break-inside: avoid; }
+  }
+</style>
+
+<div class="gim-charts">
+  <div class="gim-chart-card">
+    <div class="gim-chart-title">Competitive position</div>
+    <div class="gim-chart-sub">Where you stand on rating vs. review volume</div>
+    <div class="gim-chart-wrap" style="height:360px;"><canvas id="chart-matrix"></canvas></div>
+  </div>
+
+  <div class="gim-chart-grid">
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Rating comparison</div>
+      <div class="gim-chart-sub">Star rating across nearby competitors</div>
+      <div class="gim-chart-wrap" style="height:220px;"><canvas id="chart-ratings"></canvas></div>
+    </div>
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Review volume</div>
+      <div class="gim-chart-sub">Google review counts (sorted)</div>
+      <div class="gim-chart-wrap" style="height:220px;"><canvas id="chart-reviews"></canvas></div>
+    </div>
+  </div>
+
+  <div class="gim-chart-grid">
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Seasonal demand pattern</div>
+      <div class="gim-chart-sub">Estimated monthly demand intensity</div>
+      <div class="gim-chart-wrap" style="height:220px;"><canvas id="chart-seasonal"></canvas></div>
+    </div>
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Website performance</div>
+      <div class="gim-chart-sub">Google PageSpeed mobile score</div>
+      <div class="gim-chart-wrap" style="height:200px;"><canvas id="chart-pagespeed"></canvas></div>
+    </div>
+  </div>
+
+  <div class="gim-chart-grid">
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Local income distribution</div>
+      <div class="gim-chart-sub">Estimated household income brackets</div>
+      <div id="chart-income-legend" class="gim-income-legend"></div>
+      <div class="gim-chart-wrap" style="height:200px;"><canvas id="chart-income"></canvas></div>
+    </div>
+    <div class="gim-chart-card">
+      <div class="gim-chart-title">Building permits trend</div>
+      <div class="gim-chart-sub">County construction activity (YoY)</div>
+      <div class="gim-chart-wrap" style="height:220px;"><canvas id="chart-permits"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (typeof Chart === 'undefined') return;
+
+  var D = ${dataJson};
+  var BLUE = '#2563EB';
+  var NAVY = '#0F1729';
+  var EMERALD = '#10B981';
+  var GRAY = '#94A3B8';
+  var ORANGE = '#F59E0B';
+  var RED = '#EF4444';
+
+  function naBox(canvasId) {
+    var c = document.getElementById(canvasId);
+    if (!c) return;
+    var w = c.parentElement;
+    if (!w) return;
+    w.innerHTML = '<div class="gim-chart-na">Data not available for this business type</div>';
+  }
+
+  function truncName(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
+
+  // ── CHART 1 — Competitive position matrix ─────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-matrix');
+    if (!canvas) return;
+    var youOk = D.you.rating != null && D.you.reviews != null;
+    var compOk = Array.isArray(D.competitors) && D.competitors.length > 0;
+    if (!youOk && !compOk) { naBox('chart-matrix'); return; }
+
+    // Truncate name to 8 chars (first word, ellipsis if cut).
+    function shortLabel(name) {
+      var first = String(name || '').split(/\\s+/)[0];
+      return first.length > 8 ? first.slice(0, 7) + '…' : first;
+    }
+
+    // Build the points first; sizes are computed below once we know
+    // the full review-count range.
+    var points = [];
+    if (youOk) points.push({ x: D.you.reviews, y: D.you.rating, label: 'YOU ★', color: BLUE, isYou: true });
+    if (compOk) D.competitors.forEach(function (c) {
+      points.push({ x: c.reviews, y: c.rating, label: shortLabel(c.name), color: GRAY, isYou: false });
+    });
+
+    // Bubble radius proportional to review count (per spec):
+    //   r = 8 + ((reviews - minR) / (maxR - minR)) * 17    → range [8, 25]
+    //   YOU's bubble gets +4 on top so it always stands out
+    // When every point has identical review count we fall back to 12,
+    // which is the size the previous fixed-radius version used.
+    var allReviews = points.map(function (p) { return p.x; });
+    var maxRv = Math.max.apply(null, allReviews);
+    var minRv = Math.min.apply(null, allReviews);
+    points.forEach(function (p) {
+      var r;
+      if (maxRv === minRv) {
+        r = 12;
+      } else {
+        r = 8 + ((p.x - minRv) / (maxRv - minRv)) * 17;
+      }
+      if (p.isYou) r += 4;
+      p.r = Math.max(8, Math.min(29, r));
+    });
+
+    var xs = allReviews.slice().sort(function (a, b) { return a - b; });
+    var medianReviews = xs.length
+      ? (xs.length % 2 ? xs[(xs.length - 1) / 2] : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2)
+      : 50;
+    var benchmark = (typeof D.benchmarkRating === 'number') ? D.benchmarkRating : 4.0;
+
+    // Quadrant tints + dashed dividers + corner-anchored labels in
+    // each quadrant's sentiment color. Top quadrants use textBaseline
+    // 'top' so the labels sit just below the plot's top edge; bottom
+    // quadrants use 'bottom' so they sit just above the bottom edge.
+    var quadrantBg = {
+      id: 'quadrantBg',
+      beforeDraw: function (chart) {
+        var ctx = chart.ctx, sx = chart.scales.x, sy = chart.scales.y;
+        if (!sx || !sy) return;
+        var xMid = sx.getPixelForValue(medianReviews);
+        var yMid = sy.getPixelForValue(benchmark);
+        var L = sx.left, R = sx.right, T = sy.top, B = sy.bottom;
+        ctx.save();
+        ctx.fillStyle = 'rgba(16,185,129,0.05)'; ctx.fillRect(xMid, T, R - xMid, yMid - T);
+        ctx.fillStyle = 'rgba(37,99,235,0.05)';  ctx.fillRect(L, T, xMid - L, yMid - T);
+        ctx.fillStyle = 'rgba(245,158,11,0.05)'; ctx.fillRect(xMid, yMid, R - xMid, B - yMid);
+        ctx.fillStyle = 'rgba(239,68,68,0.05)';  ctx.fillRect(L, yMid, xMid - L, B - yMid);
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = '#CBD5E1';
+        ctx.beginPath();
+        ctx.moveTo(xMid, T); ctx.lineTo(xMid, B);
+        ctx.moveTo(L, yMid); ctx.lineTo(R, yMid);
+        ctx.stroke(); ctx.setLineDash([]);
+
+        ctx.font = '700 11px Inter, sans-serif';
+        // Top-left — Hidden gems (blue)
+        ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#2563EB';
+        ctx.fillText('Hidden gems', L + 12, T + 18);
+        // Top-right — Market leaders (emerald)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#10B981';
+        ctx.fillText('Market leaders', R - 12, T + 18);
+        // Bottom-left — Needs work (red)
+        ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#EF4444';
+        ctx.fillText('Needs work', L + 12, B - 10);
+        // Bottom-right — High volume (orange)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillText('High volume', R - 12, B - 10);
+        ctx.restore();
+      }
+    };
+
+    // Bubble labels — clean cluster mode. YOU always shows its label
+    // (white text inside the blue bubble). Competitor labels render
+    // ONLY if no other bubble center sits within 40 px of theirs;
+    // clustered competitors stay anonymous on the chart and surface
+    // their identity via the hover tooltip below. Keeps the matrix
+    // legible when many competitors stack in the same quadrant.
+    var bubbleLabels = {
+      id: 'bubbleLabels',
+      afterDraw: function (chart) {
+        var ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        ctx.save();
+        ctx.font = '600 11px Inter, sans-serif';
+
+        // YOU's label — always rendered, never suppressed.
+        meta.data.forEach(function (el, i) {
+          var p = points[i]; if (!p || !p.isYou) return;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.label, el.x, el.y);
+        });
+
+        // Cluster detection — a competitor is "clustered" if any
+        // other bubble center is within 40 px of its own.
+        var clustered = new Array(meta.data.length);
+        for (var i = 0; i < meta.data.length; i++) {
+          var pi = points[i]; if (!pi || pi.isYou) { clustered[i] = false; continue; }
+          var near = false;
+          for (var j = 0; j < meta.data.length; j++) {
+            if (i === j) continue;
+            var pj = points[j]; if (!pj) continue;
+            var dx = meta.data[i].x - meta.data[j].x;
+            var dy = meta.data[i].y - meta.data[j].y;
+            if (Math.sqrt(dx * dx + dy * dy) < 40) { near = true; break; }
+          }
+          clustered[i] = near;
+        }
+
+        // Rounded-rect helper.
+        function roundedRect(ctx, x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          ctx.lineTo(x + r, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+          ctx.lineTo(x, y + r);
+          ctx.quadraticCurveTo(x, y, x + r, y);
+          ctx.closePath();
+        }
+
+        // Render non-clustered competitor labels with the white pill
+        // bg just above each bubble.
+        meta.data.forEach(function (el, i) {
+          var p = points[i]; if (!p || p.isYou || clustered[i]) return;
+          var labelY = el.y - p.r - 10;
+          var textW = ctx.measureText(p.label).width;
+          var bgW = textW + 10;     // 5 px L + 5 px R padding
+          var bgH = 11 + 6;         // 11 px text + 3 px T + 3 px B padding
+          var bgX = el.x - bgW / 2;
+          var bgY = labelY - bgH / 2;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+          roundedRect(ctx, bgX, bgY, bgW, bgH, 4);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(15, 23, 41, 0.10)';
+          ctx.lineWidth = 1;
+          roundedRect(ctx, bgX, bgY, bgW, bgH, 4);
+          ctx.stroke();
+          ctx.fillStyle = '#1E293B';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.label, el.x, labelY);
+        });
+
+        ctx.restore();
+      }
+    };
+
+    new Chart(canvas, {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          data: points,
+          backgroundColor: points.map(function (p) { return p.color; }),
+          borderColor: points.map(function (p) { return p.color === BLUE ? NAVY : '#64748B'; }),
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            // Force the tooltip above the data point so neighboring
+            // bubbles can't cover it. Clustered competitors (whose
+            // labels are hidden by the cluster-mode bubbleLabels
+            // plugin above) reveal their name + rating + reviews via
+            // this hover popup.
+            position: 'nearest',
+            yAlign: 'bottom',
+            xAlign: 'center',
+            backgroundColor: 'rgba(15, 23, 41, 0.95)',
+            titleColor: '#FFFFFF',
+            bodyColor: '#94A3B8',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { size: 13, weight: '600', family: 'Inter, sans-serif' },
+            bodyFont:  { size: 12, family: 'Inter, sans-serif' },
+            callbacks: {
+              title: function (items) {
+                if (!items || !items[0]) return '';
+                var idx = items[0].dataIndex;
+                var p = points[idx];
+                if (!p) return '';
+                // Look up the full (untruncated) name. Index 0 is YOU;
+                // competitors follow in the same order as data.competitors_top5
+                // (or top3 when top5 is empty). p.label is the
+                // short-form fallback when the source array isn't
+                // available for some reason.
+                if (p.isYou) return data.name || data.business_name || p.label;
+                var rawComps = Array.isArray(data.competitors_top5) && data.competitors_top5.length
+                  ? data.competitors_top5
+                  : (Array.isArray(data.competitors_top3) ? data.competitors_top3 : []);
+                // Competitor offset in points[] is idx - 1 when YOU
+                // was pushed first (which it was, when yourRating /
+                // yourReviews were present). Defensive fall-through.
+                var compIdx = points[0] && points[0].isYou ? idx - 1 : idx;
+                var full = rawComps[compIdx] && rawComps[compIdx].name;
+                return full || p.label;
+              },
+              label: function (ctx) {
+                var p = ctx.raw;
+                if (!p) return '';
+                return [
+                  'Rating: ' + p.y.toFixed(1) + ' ★',
+                  'Reviews: ' + (p.x != null ? p.x.toLocaleString() : '—'),
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Number of reviews' }, beginAtZero: true, grace: '15%' },
+          y: { title: { display: true, text: 'Rating' }, min: 1, max: 5, ticks: { stepSize: 0.5 } }
+        }
+      },
+      plugins: [quadrantBg, bubbleLabels]
+    });
+  })();
+
+  // ── CHART 2 — Rating comparison ──────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-ratings');
+    if (!canvas) return;
+    var entries = [];
+    if (D.you.rating != null) entries.push({ name: D.you.name, rating: D.you.rating, you: true });
+    if (Array.isArray(D.competitors)) D.competitors.forEach(function (c) {
+      entries.push({ name: c.name, rating: c.rating, you: false });
+    });
+    if (entries.length === 0) { naBox('chart-ratings'); return; }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: entries.map(function (e) { return truncName(e.name); }),
+        datasets: [{
+          data: entries.map(function (e) { return e.rating; }),
+          backgroundColor: entries.map(function (e) { return e.you ? BLUE : GRAY; }),
+          borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 32 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return c.parsed.x.toFixed(1) + ' ★'; } } }
+        },
+        scales: {
+          x: { min: 0, max: 5, ticks: { stepSize: 1 } },
+          y: { ticks: { font: { size: 11 } } }
+        },
+        animation: {
+          onComplete: function () {
+            var c = this, ctx = c.ctx;
+            ctx.font = '600 11px Inter, sans-serif'; ctx.fillStyle = '#0F1729';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            c.getDatasetMeta(0).data.forEach(function (b, i) {
+              ctx.fillText(entries[i].rating.toFixed(1), b.x + 6, b.y);
+            });
+          }
+        }
+      }
+    });
+  })();
+
+  // ── CHART 3 — Review volume ──────────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-reviews');
+    if (!canvas) return;
+    var entries = [];
+    if (D.you.reviews != null) entries.push({ name: D.you.name, reviews: D.you.reviews, you: true });
+    if (Array.isArray(D.competitors)) D.competitors.forEach(function (c) {
+      entries.push({ name: c.name, reviews: c.reviews, you: false });
+    });
+    if (entries.length === 0) { naBox('chart-reviews'); return; }
+    entries.sort(function (a, b) { return b.reviews - a.reviews; });
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: entries.map(function (e) { return truncName(e.name); }),
+        datasets: [{
+          data: entries.map(function (e) { return e.reviews; }),
+          backgroundColor: entries.map(function (e) { return e.you ? BLUE : GRAY; }),
+          borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 48 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return c.parsed.x.toLocaleString() + ' reviews'; } } }
+        },
+        scales: {
+          x: { beginAtZero: true },
+          y: { ticks: { font: { size: 11 } } }
+        },
+        animation: {
+          onComplete: function () {
+            var c = this, ctx = c.ctx;
+            ctx.font = '600 11px Inter, sans-serif'; ctx.fillStyle = '#0F1729';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            c.getDatasetMeta(0).data.forEach(function (b, i) {
+              ctx.fillText(entries[i].reviews.toLocaleString(), b.x + 6, b.y);
+            });
+          }
+        }
+      }
+    });
+  })();
+
+  // ── CHART 4 — Seasonal demand pattern ────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-seasonal');
+    if (!canvas) return;
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var s = D.seasonal || {};
+    var hasSignal = !!(s.peakMonth || s.hasColdWinter || s.hasHotSummer || s.peakTouristSeason);
+    if (!hasSignal) { naBox('chart-seasonal'); return; }
+
+    var vals = [2,2,2,2,2,2,2,2,2,2,2,2];
+    if (s.hasColdWinter) { vals[0] = 1; vals[1] = 1; vals[11] = 1; }
+    var monthIdx = -1;
+    if (s.peakMonth) {
+      var pk = String(s.peakMonth).slice(0, 3).toLowerCase();
+      monthIdx = months.findIndex(function (m) { return m.toLowerCase() === pk; });
+    }
+    if (monthIdx >= 0) {
+      vals[monthIdx] = 4;
+      vals[(monthIdx + 11) % 12] = Math.max(vals[(monthIdx + 11) % 12], 3);
+      vals[(monthIdx + 1)  % 12] = Math.max(vals[(monthIdx + 1)  % 12], 3);
+    }
+    if (s.hasHotSummer) {
+      vals[5] = Math.max(vals[5], 3);
+      vals[6] = Math.max(vals[6], 3);
+      vals[7] = Math.max(vals[7], 3);
+    }
+    var pointColors = vals.map(function (v) { return v >= 3 ? EMERALD : GRAY; });
+
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          data: vals,
+          borderColor: BLUE,
+          backgroundColor: 'rgba(37,99,235,0.08)',
+          fill: true, tension: 0.4,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: pointColors,
+          pointRadius: 5, pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return ['Low','Medium','High','Peak'][c.parsed.y - 1] || ''; } } }
+        },
+        scales: {
+          y: { min: 0.5, max: 4.5, ticks: { stepSize: 1, callback: function (v) { return ['','Low','Medium','High','Peak'][v] || ''; } } },
+          x: { ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  })();
+
+  // ── CHART 5 — PageSpeed gauge ────────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-pagespeed');
+    if (!canvas) return;
+    var p = D.pagespeed || {};
+    if (!p.websiteExists || typeof p.score !== 'number') { naBox('chart-pagespeed'); return; }
+    var s = Math.max(0, Math.min(100, p.score));
+    var col = s >= 90 ? EMERALD : s >= 50 ? ORANGE : RED;
+    var wrap = canvas.parentElement;
+    var center = document.createElement('div');
+    center.className = 'gim-pagespeed-center';
+    center.innerHTML = '<div class="gim-pagespeed-score" style="color:' + col + '">' + s + '</div><div class="gim-pagespeed-suffix">out of 100</div>';
+    wrap.appendChild(center);
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: { datasets: [{ data: [s, 100 - s], backgroundColor: [col, 'rgba(100,116,139,0.1)'], borderWidth: 0 }] },
+      options: {
+        cutout: '75%', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+      }
+    });
+  })();
+
+  // ── CHART 6 — Income distribution ────────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-income');
+    if (!canvas) return;
+    var med = (D.income && typeof D.income.median === 'number') ? D.income.median : null;
+    if (med == null) { naBox('chart-income'); return; }
+    var brackets;
+    if (med < 40000)       brackets = [40, 35, 18, 7];
+    else if (med < 60000)  brackets = [25, 40, 25, 10];
+    else if (med < 90000)  brackets = [15, 35, 35, 15];
+    else                   brackets = [8, 25, 42, 25];
+    var labels = ['Under $35K', '$35K–$75K', '$75K–$150K', 'Over $150K'];
+    var colors = ['#185FA5', '#378ADD', '#85B7EB', '#B5D4F4'];
+    var legend = document.getElementById('chart-income-legend');
+    if (legend) {
+      legend.innerHTML = labels.map(function (lab, i) {
+        return '<span><span class="swatch" style="background:' + colors[i] + '"></span>' + lab + ' (' + brackets[i] + '%)</span>';
+      }).join('');
+    }
+    var wrap = canvas.parentElement;
+    var center = document.createElement('div');
+    center.className = 'gim-income-center';
+    var amount = med >= 1000 ? '$' + Math.round(med / 1000) + 'K' : '$' + med;
+    center.innerHTML = '<div class="gim-income-amount">' + amount + '</div><div class="gim-income-label">Median</div>';
+    wrap.appendChild(center);
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: brackets, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        cutout: '65%', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.label + ': ' + c.parsed + '%'; } } } }
+      }
+    });
+  })();
+
+  // ── CHART 7 — Building permits trend ─────────────────────────────
+  (function () {
+    var canvas = document.getElementById('chart-permits');
+    if (!canvas) return;
+    var perm = D.permits || {};
+    if (typeof perm.total !== 'number') { naBox('chart-permits'); return; }
+    var labels = [], values = [], colors = [];
+    var year = perm.year || new Date().getFullYear();
+    if (typeof perm.priorYearTotal === 'number') {
+      labels.push(String(perm.priorYear || (year - 1)));
+      values.push(perm.priorYearTotal);
+      colors.push(GRAY);
+    }
+    labels.push(String(year));
+    values.push(perm.total);
+    colors.push(EMERALD);
+    var yoy = (typeof perm.yoy === 'number') ? perm.yoy : null;
+    new Chart(canvas, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) {
+            var n = c.parsed.y.toLocaleString();
+            if (yoy != null && c.dataIndex === values.length - 1) {
+              var sign = yoy >= 0 ? '+' : '';
+              return n + ' permits (' + sign + yoy.toFixed(0) + '% YoY)';
+            }
+            return n + ' permits';
+          } } }
+        },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  })();
+})();
+</script>
+`;
 }
 
 function renderReport(ctx) {
@@ -3901,6 +4761,17 @@ ${cards}`;
   }
   footerHtml += `<p class="meta"><small>Generated ${new Date().toISOString()}</small></p>`;
 
+  // Chart.js visual layer — seven charts (matrix, ratings, reviews,
+  // seasonal, pagespeed, income, permits). Rendered right after the
+  // priority-actions section. Each chart self-guards on data
+  // availability and falls back to a small "Data not available" box,
+  // so the section is safe to include for every profile.
+  const chartsHtml = renderMarketCharts(
+    data,
+    profile,
+    data && (data.name || data.business_name) || input
+  );
+
   return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
 ${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
@@ -3917,6 +4788,7 @@ ${marketHtml}
 ${demandHtml}
 ${opsHtml}
 ${priorityHtml}
+${chartsHtml}
 ${competitorDeepDiveHtml}
 ${keyRisksHtml}
 ${executionTemplatesHtml}

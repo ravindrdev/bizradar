@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="GrowthIM refund policy — when you get a full refund, when you don't, and how to request one.">
+<title>Refund Policy — GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --blue-hover: #1D4ED8;
+  --blue-tint: #EFF6FF;
+  --emerald: #10B981;
+  --emerald-tint: #ECFDF5;
+  --amber: #F59E0B;
+  --amber-tint: #FEF3C7;
+  --white: #FFFFFF;
+  --light: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --text: #1E293B;
+  --muted: #64748B;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--light);
+  color: var(--text);
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.nav { position: sticky; top: 0; background: var(--navy); border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 50; }
+.nav-inner { max-width: 1180px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-btn { display: inline-block; background: transparent; color: rgba(255,255,255,0.88); border: 1px solid rgba(255,255,255,0.24); padding: 9px 18px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.15s ease, border-color 0.15s ease; white-space: nowrap; }
+.nav-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.45); text-decoration: none; }
+.nav-btn.primary { background: var(--blue); border-color: var(--blue); color: #FFFFFF; }
+.nav-btn.primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+
+.hero { background: var(--light); padding: 60px 24px 40px; border-bottom: 1px solid var(--gray-200); }
+.hero-inner { max-width: 800px; margin: 0 auto; }
+.hero h1 { font-size: 44px; font-weight: 800; color: var(--navy); margin: 0 0 8px; letter-spacing: -0.03em; line-height: 1.1; }
+.hero-meta { font-size: 14px; color: var(--muted); margin: 0; font-weight: 500; }
+
+main { background: var(--white); }
+.content { max-width: 800px; margin: 0 auto; padding: 56px 24px 72px; }
+.content section { padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--gray-200); }
+.content section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.content h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin: 0 0 14px; letter-spacing: -0.01em; }
+.content h3 { font-size: 16px; font-weight: 600; color: var(--navy); margin: 18px 0 8px; letter-spacing: -0.005em; }
+.content p { margin: 0 0 14px; }
+.content ul { margin: 0 0 14px; padding-left: 22px; }
+.content ul li { margin: 6px 0; }
+.content .lead-in { font-weight: 500; color: var(--text); margin-bottom: 8px; }
+
+/* Highlighted reason rows — both eligible and not-eligible */
+.reason {
+  background: var(--light);
+  border-left: 3px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 12px 0;
+}
+.reason h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--navy);
+}
+.reason p { margin: 0; }
+.reason.eligible { border-left-color: var(--emerald); background: var(--emerald-tint); }
+.reason.eligible h3 { color: #065F46; }
+.reason.not-eligible { border-left-color: var(--amber); background: var(--amber-tint); }
+.reason.not-eligible h3 { color: #92400E; }
+
+/* Step cards for how-to-request */
+.step {
+  background: var(--blue-tint);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 12px 0;
+}
+.step h3 { color: #1E3A8A; font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.step p { margin: 4px 0; }
+.step ul { margin: 6px 0; padding-left: 22px; }
+.step .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--white); border: 1px solid var(--gray-200); padding: 2px 8px; border-radius: 4px; font-size: 14px; }
+
+.footer { background: var(--navy); color: rgba(255,255,255,0.7); padding: 36px 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+.footer-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 16px; font-size: 14px; }
+.footer-left { color: rgba(255,255,255,0.85); font-weight: 600; }
+.footer-center { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.footer-center a { color: rgba(255,255,255,0.7); }
+.footer-center a:hover { color: var(--white); text-decoration: none; }
+.footer-right { text-align: right; }
+.footer-right a { color: rgba(255,255,255,0.7); }
+.footer-right a:hover { color: var(--white); text-decoration: none; }
+
+@media (max-width: 640px) {
+  .nav-inner { padding: 12px 16px; }
+  .nav-btn { padding: 8px 14px; font-size: 12px; }
+  .hero { padding: 40px 18px 30px; }
+  .hero h1 { font-size: 30px; }
+  .content { padding: 40px 18px 56px; }
+  .content h2 { font-size: 19px; }
+  body { font-size: 15px; line-height: 1.75; }
+  .footer-inner { grid-template-columns: 1fr; text-align: center; }
+  .footer-center { justify-content: center; flex-wrap: wrap; gap: 14px; }
+  .footer-right { text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" style="text-decoration:none;">
+      <div class="logo">
+        <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+          Growth<span style="color:#2563EB">IM</span>
+        </span>
+        <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+        <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+          GROWTH INTELLIGENCE MACHINE
+        </div>
+      </div>
+    </a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-btn">Dashboard</a>
+      <a href="/login.html" class="nav-btn primary">Login</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Refund Policy</h1>
+    <p class="hero-meta">Last updated: May 2026</p>
+  </div>
+</section>
+
+<main>
+  <div class="content">
+
+    <section>
+      <h2>Our commitment</h2>
+      <p>At GrowthIM we want you to be completely satisfied with your market intelligence report.</p>
+      <p>If something goes wrong on our end we will make it right quickly and without hassle.</p>
+    </section>
+
+    <section>
+      <h2>When you get a full refund</h2>
+      <p>You are entitled to a full refund in the following situations:</p>
+
+      <div class="reason eligible">
+        <h3>Report failed to generate</h3>
+        <p>If our system fails to generate your report due to a technical error on our side and no report appears in your dashboard.</p>
+      </div>
+
+      <div class="reason eligible">
+        <h3>Charged but no report received</h3>
+        <p>If your payment was processed successfully but you never received your report in your dashboard within 30 minutes.</p>
+      </div>
+
+      <div class="reason eligible">
+        <h3>Duplicate charge</h3>
+        <p>If you were charged twice for the same report due to a payment processing error.</p>
+      </div>
+
+      <div class="reason eligible">
+        <h3>Completely wrong report</h3>
+        <p>If our system generated a report for a completely different business despite you entering the correct business name and address.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>When you do not get a refund</h2>
+      <p>Refunds are NOT provided in the following situations:</p>
+
+      <div class="reason not-eligible">
+        <h3>Report successfully delivered</h3>
+        <p>If your report was generated and is visible in your dashboard we cannot offer a refund.</p>
+      </div>
+
+      <div class="reason not-eligible">
+        <h3>Wrong information entered</h3>
+        <p>If you entered an incorrect business name or wrong address and the report was generated for the wrong business as a result.</p>
+      </div>
+
+      <div class="reason not-eligible">
+        <h3>Change of mind</h3>
+        <p>If you simply changed your mind after the report was generated.</p>
+      </div>
+
+      <div class="reason not-eligible">
+        <h3>Dissatisfied with content</h3>
+        <p>If you do not agree with the recommendations or analysis in the report.</p>
+      </div>
+
+      <div class="reason not-eligible">
+        <h3>Different expectations</h3>
+        <p>If the report did not match what you expected but was successfully generated.</p>
+      </div>
+
+      <div class="reason not-eligible">
+        <h3>After 7 days</h3>
+        <p>Refund requests submitted more than 7 days after purchase date will not be considered.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>How to request a refund</h2>
+      <p>Follow these steps to request a refund:</p>
+
+      <div class="step">
+        <h3>Step 1 &mdash; Email us</h3>
+        <p>Send an email to: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+        <p>Subject line: <span class="mono">Refund Request - [Your Order ID]</span></p>
+        <p class="lead-in" style="margin-top:8px;">Include in your email:</p>
+        <ul>
+          <li>Your account email address</li>
+          <li>Your Order ID (found in your payment receipt)</li>
+          <li>Reason for refund request</li>
+          <li>Screenshot if applicable</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h3>Step 2 &mdash; We review your request</h3>
+        <p>We will review your request within 2 business days and reply to your email with our decision.</p>
+      </div>
+
+      <div class="step">
+        <h3>Step 3 &mdash; Refund is processed</h3>
+        <p>If your refund is approved it will be processed within 5 to 7 business days back to your original payment method.</p>
+        <p>Processing time depends on your bank or card provider.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Partial refunds</h2>
+      <p>We do not offer partial refunds. Refunds are either full ($12.99) or not approved.</p>
+    </section>
+
+    <section>
+      <h2>Report access after refund</h2>
+      <p>If your refund is approved your account access to the report will be removed.</p>
+    </section>
+
+    <section>
+      <h2>Report expiry</h2>
+      <p>Reports are saved in your dashboard for 1 year from the date of generation.</p>
+      <p>We do not offer refunds for reports that have expired after the 1 year period.</p>
+    </section>
+
+    <section>
+      <h2>Disputes</h2>
+      <p>If you are not satisfied with our refund decision you may email us again at: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+      <p>Write <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--gray-100);padding:2px 6px;border-radius:4px;font-size:14px;">ESCALATION REQUEST</span> in the subject line and your case will be reviewed by a senior team member within 3 business days.</p>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p>For all refund related queries: <a href="mailto:support@growthim.com">support@growthim.com</a></p>
+      <p>We aim to respond within 24 hours.</p>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">GrowthIM © 2026</div>
+    <div class="footer-center">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/refund">Refund Policy</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-right">
+      <a href="mailto:support@growthim.com">support@growthim.com</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

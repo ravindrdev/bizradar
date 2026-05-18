@@ -792,17 +792,14 @@
     };
     evt.onerror = () => { /* keep streaming if possible; final close is in finally */ };
 
-    // Fire the actual POST.
-    let html = null;
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body + '&sessionId=' + encodeURIComponent(sessionId),
-      });
-      html = await res.text();
-    } catch (err) {
-      // Clean up state on network error so the user can retry.
+    // POST + poll-for-completion flow (Railway 5-min HTTP timeout
+    // workaround). The server now returns an immediate { ok, jobId }
+    // ack and runs the report in the background. We poll
+    // /report-status/:jobId every 3 s; on 'ready' we navigate to
+    // /report/:reportId, on 'error' we surface the message inline.
+    // The SSE progress channel (`evt`) keeps streaming the terminal
+    // log throughout, so the user sees live progress during the wait.
+    function cleanupRunningUi() {
       isComplete = true;
       if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
       window.onbeforeunload = null;
@@ -810,25 +807,79 @@
       terminal.hidden = true;
       document.getElementById('form-' + mode).hidden = false;
       btn.hidden = false;
-      showError(errEl, 'Request failed: ' + err.message);
+    }
+
+    let jobId = null;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body + '&sessionId=' + encodeURIComponent(sessionId),
+        credentials: 'same-origin',
+      });
+      if (res.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
+      const json = await res.json();
+      if (!json || !json.ok || !json.jobId) {
+        throw new Error((json && json.error) || 'Could not start report.');
+      }
+      jobId = json.jobId;
+    } catch (err) {
+      cleanupRunningUi();
+      showError(errEl, 'Request failed: ' + (err && err.message ? err.message : err));
       return;
     }
 
-    // Response arrived — finalise everything regardless of SSE state.
-    isComplete = true;
-    if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
-    window.onbeforeunload = null;
-    try { evt.close(); } catch (_) {}
-    completeProgressBar();
-    document.getElementById('term-overtime-warning').hidden = true;
-    document.getElementById('term-quiet-warning').hidden = true;
-    await new Promise((r) => setTimeout(r, 220));
+    // Start polling. notFoundStreak guards against a process restart
+    // wiping the in-memory jobStore mid-flight — after ~30s of
+    // 'not_found' we give up and tell the user to retry.
+    let notFoundStreak = 0;
+    const pollHandle = setInterval(async () => {
+      try {
+        const sres = await fetch('/report-status/' + encodeURIComponent(jobId), {
+          credentials: 'same-origin',
+        });
+        if (sres.status === 401) {
+          clearInterval(pollHandle);
+          window.location.href = '/login.html';
+          return;
+        }
+        const sjson = await sres.json();
 
-    resultDiv.innerHTML = html;
-    main.style.display   = 'none';
-    resultSection.hidden = false;
-    terminal.hidden      = true;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (sjson.status === 'ready' && sjson.reportId != null) {
+          clearInterval(pollHandle);
+          cleanupRunningUi();
+          completeProgressBar();
+          document.getElementById('term-overtime-warning').hidden = true;
+          document.getElementById('term-quiet-warning').hidden = true;
+          window.location.href = '/report/' + encodeURIComponent(sjson.reportId);
+          return;
+        }
+        if (sjson.status === 'error') {
+          clearInterval(pollHandle);
+          cleanupRunningUi();
+          showError(errEl, sjson.error || 'Report generation failed.');
+          return;
+        }
+        if (sjson.status === 'not_found') {
+          notFoundStreak++;
+          if (notFoundStreak > 10) {
+            clearInterval(pollHandle);
+            cleanupRunningUi();
+            showError(errEl, 'Session expired. Please try again.');
+          }
+          return;
+        }
+        // 'processing' — keep polling. Reset the not_found streak in
+        // case we hit a transient inconsistency earlier.
+        notFoundStreak = 0;
+      } catch (e) {
+        // Transient network blip — keep polling on the next tick.
+        console.warn('[poll] error:', e && e.message);
+      }
+    }, 3000);
   }
 
   // ── Mode 1 submit → POST /classify ──────────────────────────────
