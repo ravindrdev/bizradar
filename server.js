@@ -3050,7 +3050,33 @@ function renderMarketCharts(data, profile, displayName) {
   <div class="gim-chart-card">
     <div class="gim-chart-title">Competitive position</div>
     <div class="gim-chart-sub">Where you stand on rating vs. review volume</div>
-    <div class="gim-chart-wrap" style="height:360px;"><canvas id="chart-matrix"></canvas></div>
+    <div class="gim-chart-wrap" style="height:360px;overflow:visible">
+      <canvas id="chart-matrix"></canvas>
+      <div id="matrix-info-panel" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(15,23,41,0.95);
+        color: white;
+        border-radius: 10px;
+        padding: 12px 16px;
+        min-width: 180px;
+        max-width: 220px;
+        font-family: Inter, sans-serif;
+        font-size: 13px;
+        line-height: 1.6;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      ">
+        <div id="matrix-info-name" style="font-weight:600;font-size:14px;margin-bottom:6px;color:#fff"></div>
+        <div id="matrix-info-rating" style="color:#94A3B8"></div>
+        <div id="matrix-info-reviews" style="color:#94A3B8"></div>
+        <div id="matrix-info-quadrant" style="margin-top:6px;font-size:11px;font-weight:500"></div>
+      </div>
+    </div>
   </div>
 
   <div class="gim-chart-grid">
@@ -3133,9 +3159,9 @@ function renderMarketCharts(data, profile, displayName) {
     // Build the points first; sizes are computed below once we know
     // the full review-count range.
     var points = [];
-    if (youOk) points.push({ x: D.you.reviews, y: D.you.rating, label: 'YOU ★', color: BLUE, isYou: true });
+    if (youOk) points.push({ x: D.you.reviews, y: D.you.rating, label: 'YOU ★', fullName: D.you.name, color: BLUE, isYou: true });
     if (compOk) D.competitors.forEach(function (c) {
-      points.push({ x: c.reviews, y: c.rating, label: shortLabel(c.name), color: GRAY, isYou: false });
+      points.push({ x: c.reviews, y: c.rating, label: shortLabel(c.name), fullName: c.name, color: GRAY, isYou: false });
     });
 
     // Bubble radius proportional to review count (per spec):
@@ -3300,57 +3326,42 @@ function renderMarketCharts(data, profile, displayName) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        // Custom fixed info panel in the top-right of the chart card
+        // replaces the default floating tooltip — it never gets
+        // covered by neighboring bubbles. onHover fires on every
+        // mousemove inside the chart; we update the panel from the
+        // hovered point's data. Clustered competitors (whose on-
+        // chart label is hidden by the cluster-mode bubbleLabels
+        // plugin) reveal their full identity here on hover.
+        onHover: function (event, elements, chart) {
+          var panel = document.getElementById('matrix-info-panel');
+          if (!panel) return;
+          if (!elements || elements.length === 0) {
+            panel.style.opacity = '0';
+            return;
+          }
+          var idx = elements[0].index;
+          var p = points[idx];
+          if (!p) { panel.style.opacity = '0'; return; }
+          var name = p.fullName || p.label || '';
+          var rating = p.y;
+          var reviews = p.x;
+          var quadrant, qcolor;
+          if (rating >= benchmark && reviews >= medianReviews) { quadrant = 'Market leader'; qcolor = '#10B981'; }
+          else if (rating >= benchmark)                       { quadrant = 'Hidden gem';    qcolor = '#2563EB'; }
+          else if (reviews >= medianReviews)                  { quadrant = 'High volume';   qcolor = '#F59E0B'; }
+          else                                                { quadrant = 'Needs work';    qcolor = '#EF4444'; }
+          document.getElementById('matrix-info-name').textContent    = name;
+          document.getElementById('matrix-info-rating').textContent  = 'Rating: ' + rating.toFixed(1) + ' ★';
+          document.getElementById('matrix-info-reviews').textContent = 'Reviews: ' + reviews.toLocaleString();
+          var qel = document.getElementById('matrix-info-quadrant');
+          qel.textContent = '● ' + quadrant;
+          qel.style.color = qcolor;
+          panel.style.opacity = '1';
+        },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            // Force the tooltip above the data point so neighboring
-            // bubbles can't cover it. Clustered competitors (whose
-            // labels are hidden by the cluster-mode bubbleLabels
-            // plugin above) reveal their name + rating + reviews via
-            // this hover popup.
-            position: 'nearest',
-            yAlign: 'bottom',
-            xAlign: 'center',
-            backgroundColor: 'rgba(15, 23, 41, 0.95)',
-            titleColor: '#FFFFFF',
-            bodyColor: '#94A3B8',
-            padding: 10,
-            cornerRadius: 8,
-            displayColors: false,
-            titleFont: { size: 13, weight: '600', family: 'Inter, sans-serif' },
-            bodyFont:  { size: 12, family: 'Inter, sans-serif' },
-            callbacks: {
-              title: function (items) {
-                if (!items || !items[0]) return '';
-                var idx = items[0].dataIndex;
-                var p = points[idx];
-                if (!p) return '';
-                // Look up the full (untruncated) name. Index 0 is YOU;
-                // competitors follow in the same order as data.competitors_top5
-                // (or top3 when top5 is empty). p.label is the
-                // short-form fallback when the source array isn't
-                // available for some reason.
-                if (p.isYou) return data.name || data.business_name || p.label;
-                var rawComps = Array.isArray(data.competitors_top5) && data.competitors_top5.length
-                  ? data.competitors_top5
-                  : (Array.isArray(data.competitors_top3) ? data.competitors_top3 : []);
-                // Competitor offset in points[] is idx - 1 when YOU
-                // was pushed first (which it was, when yourRating /
-                // yourReviews were present). Defensive fall-through.
-                var compIdx = points[0] && points[0].isYou ? idx - 1 : idx;
-                var full = rawComps[compIdx] && rawComps[compIdx].name;
-                return full || p.label;
-              },
-              label: function (ctx) {
-                var p = ctx.raw;
-                if (!p) return '';
-                return [
-                  'Rating: ' + p.y.toFixed(1) + ' ★',
-                  'Reviews: ' + (p.x != null ? p.x.toLocaleString() : '—'),
-                ];
-              }
-            }
-          }
+          tooltip: { enabled: false }
         },
         scales: {
           x: { title: { display: true, text: 'Number of reviews' }, beginAtZero: true, grace: '15%' },
@@ -3358,6 +3369,13 @@ function renderMarketCharts(data, profile, displayName) {
         }
       },
       plugins: [quadrantBg, bubbleLabels]
+    });
+
+    // Hide the info panel when the cursor leaves the canvas entirely
+    // (onHover doesn't fire on mouseleave).
+    canvas.addEventListener('mouseleave', function () {
+      var panel = document.getElementById('matrix-info-panel');
+      if (panel) panel.style.opacity = '0';
     });
   })();
 
