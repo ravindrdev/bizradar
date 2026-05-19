@@ -20,8 +20,22 @@ let STUDIES = null;
 function loadRegistries() {
   const regPath = path.join(__dirname, 'classifierRegistry.json');
   const stuPath = path.join(__dirname, 'verifiedStudies.json');
-  REGISTRY = JSON.parse(fs.readFileSync(regPath, 'utf8'));
-  STUDIES = JSON.parse(fs.readFileSync(stuPath, 'utf8'));
+  // Audit fix SL1 — fail fast and loud on corrupt / missing registry
+  // files. Previously a bad JSON file would surface as an opaque
+  // TypeError at first-classify time; now it stops the process at
+  // boot with the exact file that failed and the parse error.
+  try {
+    REGISTRY = JSON.parse(fs.readFileSync(regPath, 'utf8'));
+  } catch (err) {
+    console.error('[startup] FATAL: could not load classifierRegistry.json:', err.message);
+    process.exit(1);
+  }
+  try {
+    STUDIES = JSON.parse(fs.readFileSync(stuPath, 'utf8'));
+  } catch (err) {
+    console.error('[startup] FATAL: could not load verifiedStudies.json:', err.message);
+    process.exit(1);
+  }
   if (REGISTRY.version.split('.')[0] !== '12') {
     throw new Error(`Registry version too old: ${REGISTRY.version}; need 12.x`);
   }

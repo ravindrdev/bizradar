@@ -1071,42 +1071,81 @@ function fsqCategoryLabel(catId, fallbackName) {
 
 // isVenueOpen — Google cross-check for a Foursquare venue.
 // Runs a single Text Search and inspects business_status on the top
-// hit. Returns false (drop the venue) when:
-//   - no Google hit (likely de-indexed because closed)
-//   - business_status is PERMANENTLY_CLOSED / CLOSED_PERMANENTLY
-//   - business_status is CLOSED_TEMPORARILY
-// Otherwise returns true (keep). Google's API uses 'CLOSED_PERMANENTLY'
-// in current responses; older docs and some SDKs use 'PERMANENTLY_CLOSED'
-// — we check both to be safe.
-// Cost note: ~$0.032 per Text Search call. Caller throttles to 200ms
+// hit. Returns:
+//   true   — Google confirms operational (or status field absent)
+//   false  — Google confirms closed permanently / temporarily, OR
+//            the venue has no Google hit at all (likely de-indexed)
+//   null   — UNKNOWN: both attempts failed (timeout / 5xx / network).
+//            Caller treats null as "keep the venue" so a transient
+//            Google outage doesn't silently drop the whole venue list.
+//
+// Audit fix DF1 + DF2:
+//   1. 1-hour in-memory LRU cache keyed by name+address — repeat
+//      lookups for the same venue inside the same hour skip Google.
+//   2. 2-attempt retry: 8 s timeout per attempt, 2 s backoff between.
+//   3. AbortController on every fetch (the previous bare `await fetch`
+//      had no timeout and a hung Google socket pinned the worker).
+//   4. res.ok / res.json() failures are caught — no raw JSON.parse
+//      crashes on a 5xx HTML response.
+//   5. Unknown state returned distinctly so the caller can keep the
+//      venue rather than fail-open by accident.
+// Cost note: ~$0.032 per Text Search call. Caller throttles to 200 ms
 // between calls to avoid rate limits.
+const VENUE_OPEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const VENUE_OPEN_CACHE = new LRUCache({ max: 1000, ttl: VENUE_OPEN_TTL_MS });
+
 async function isVenueOpen(venueName, venueAddress, apiKey) {
+  const cacheKey = (String(venueName || '') + '|' + String(venueAddress || '')).toLowerCase();
+  const cached = VENUE_OPEN_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   const query = venueName + ' ' + venueAddress;
   const url = 'https://maps.googleapis.com/maps/api/place/textsearch/json'
     + '?query=' + encodeURIComponent(query)
     + '&key=' + apiKey;
-  const res = await fetch(url);
-  const data = await res.json();
-  const place = data.results && data.results[0];
-  if (!place) return false;
-  // Not found on Google = likely closed
-  const status = place.business_status;
-  if (status === 'PERMANENTLY_CLOSED' || status === 'CLOSED_PERMANENTLY') {
-    console.log(
-      '[venues] Google confirms CLOSED:',
-      venueName
-    );
-    return false;
+
+  async function tryOnce() {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: ac.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json().catch(() => null);
+      if (!data) throw new Error('non-JSON response');
+      const place = data.results && data.results[0];
+      if (!place) return false; // de-indexed = treat as closed
+      const status = place.business_status;
+      if (status === 'PERMANENTLY_CLOSED' || status === 'CLOSED_PERMANENTLY') {
+        console.log('[venues] Google confirms CLOSED:', venueName);
+        return false;
+      }
+      if (status === 'CLOSED_TEMPORARILY') {
+        console.log('[venues] Google confirms TEMP CLOSED:', venueName);
+        return false;
+      }
+      return true; // OPERATIONAL or status field absent
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  if (status === 'CLOSED_TEMPORARILY') {
-    console.log(
-      '[venues] Google confirms TEMP CLOSED:',
-      venueName
-    );
-    return false;
+
+  let result;
+  try {
+    result = await tryOnce();
+  } catch (e1) {
+    console.warn('[venues] attempt 1 failed for', venueName, '— retrying in 2 s:', e1.message);
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      result = await tryOnce();
+    } catch (e2) {
+      console.warn('[venues] attempt 2 also failed for', venueName, '— returning UNKNOWN:', e2.message);
+      // Do not cache the unknown state — next call should retry.
+      return null;
+    }
   }
-  return true;
-  // OPERATIONAL or no status = open
+
+  VENUE_OPEN_CACHE.set(cacheKey, result);
+  return result;
 }
 
 async function fetchNearbyVenues(lat, lon) {
@@ -1196,9 +1235,13 @@ async function fetchNearbyVenues(lat, lon) {
           open = await isVenueOpen(r.name, addr, googleKey);
         } catch (err) {
           console.warn('[venues] verify error for', r.name, ':', err.message);
-          open = true; // fail-open on transient error
+          open = null; // unknown — treat as keep
         }
-        if (open) verifiedVenues.push(r);
+        // Audit fix DF1/DF2 — isVenueOpen now returns true/false/null.
+        // Only an EXPLICIT false drops the venue; both true (open) and
+        // null (UNKNOWN — both Google attempts failed) keep it, so a
+        // transient Google outage can't silently empty the venue list.
+        if (open !== false) verifiedVenues.push(r);
         // 200ms inter-call delay (skip on the last iteration).
         if (i < fsqOpen.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 200));

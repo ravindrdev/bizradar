@@ -83,6 +83,35 @@ const DETAILS_CACHE = new LRUCache({ max: 1000, ttl: DETAILS_TTL_MS });
 const GEOCODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GEOCODE_CACHE = new LRUCache({ max: 1000, ttl: GEOCODE_TTL_MS });
 
+// ── HTTP timeout helper (audit fix GP1) ──────────────────────────────
+// Node's global fetch has NO default timeout, so a stuck Google socket
+// would hold a worker indefinitely — leaking sockets, memory, and
+// jobStore entries on the server side. Every Google Places call in
+// this file is wrapped via fetchWithTimeout so a slow / hung upstream
+// fails fast instead of pinning resources.
+//
+// 8 s default matches Google's documented p99 for Places (~3–4 s) with
+// a 2× safety margin. Callers that need a different budget (e.g.
+// geocode → 5 s) can override via the timeoutMs option.
+//
+// AbortError is translated to a descriptive Error so downstream
+// .catch blocks see a human-readable message rather than a generic
+// abort signature.
+async function fetchWithTimeout(url, { timeoutMs = 8000, ...init } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error(`request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Module-level helpers used by findPlace. Lifted from prior inner
 // closures so the geocoding-fallback path can share them.
@@ -93,7 +122,7 @@ const GEOCODE_CACHE = new LRUCache({ max: 1000, ttl: GEOCODE_TTL_MS });
 // fetchNearbyCompetitors and fetchBusinessTypeCompetitors).
 async function doTextSearch(q, apiKey) {
   const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(q)}&key=${apiKey}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url, { timeoutMs: 8000 });
   if (!res.ok) throw new Error(`Places Text Search HTTP ${res.status}`);
   const json = await res.json();
   if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
@@ -288,23 +317,45 @@ async function geocodeAddress(addressStr, state, apiKey) {
     console.log(`[geocode] cache hit: ${fullAddress}`);
     return cached.value;
   }
-  try {
-    const url = `${GEOCODE_URL}?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+  const url = `${GEOCODE_URL}?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
+
+  // Audit fix GP2 — 15 s timeout per attempt, with one 3-s-back-off
+  // retry on failure. Previously a bare `await fetch(url)` with no
+  // timeout could pin the worker on a hung Google socket.
+  async function tryOnce() {
+    const resp = await fetchWithTimeout(url, { timeoutMs: 15000 });
+    if (!resp.ok) throw new Error('Geocode HTTP ' + resp.status);
+    const data = await resp.json().catch(() => null);
+    if (!data) throw new Error('non-JSON response');
     if (data.status !== 'OK' || !(data.results && data.results[0])) {
+      // Successful API call but no usable result — cache the null so
+      // we don't re-fire on every retry.
       console.warn(`[geocode] no result for: ${fullAddress} status: ${data.status}`);
       GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: null });
       return null;
     }
-    const loc = data.results[0].geometry.location;
+    const loc = data.results[0].geometry && data.results[0].geometry.location;
+    if (!loc) {
+      GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: null });
+      return null;
+    }
     const result = { lat: loc.lat, lon: loc.lng };
     console.log(`[geocode] resolved: ${fullAddress} → ${result.lat}, ${result.lon}`);
     GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: result });
     return result;
-  } catch (e) {
-    console.error(`[geocode] error: ${e.message}`);
-    return null;
+  }
+
+  try {
+    return await tryOnce();
+  } catch (e1) {
+    console.warn(`[geocode] attempt 1 failed for ${fullAddress} — retrying in 3 s: ${e1.message}`);
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      return await tryOnce();
+    } catch (e2) {
+      console.error(`[geocode] attempt 2 also failed for ${fullAddress}: ${e2.message}`);
+      return null;
+    }
   }
 }
 
@@ -312,11 +363,17 @@ async function geocodeAddress(addressStr, state, apiKey) {
 // optional keyword filter. Returns a filtered list of real businesses
 // (non-business POIs / geocoded entries are stripped via isRealBusiness).
 async function doNearbySearch(lat, lon, radiusMeters, keyword, apiKey) {
-  try {
-    let url = `${NEARBY_URL}?location=${lat},${lon}&radius=${radiusMeters}&key=${apiKey}`;
-    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+  let url = `${NEARBY_URL}?location=${lat},${lon}&radius=${radiusMeters}&key=${apiKey}`;
+  if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+
+  // Audit fix GP4 — 15 s timeout per attempt with one 3-s-back-off
+  // retry, same pattern as geocodeAddress above. Previously a bare
+  // `await fetch(url)` with no timeout.
+  async function tryOnce() {
+    const resp = await fetchWithTimeout(url, { timeoutMs: 15000 });
+    if (!resp.ok) throw new Error('Nearby HTTP ' + resp.status);
+    const data = await resp.json().catch(() => null);
+    if (!data) throw new Error('non-JSON response');
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
       console.warn(`[nearby] status: ${data.status}`);
       return [];
@@ -324,9 +381,19 @@ async function doNearbySearch(lat, lon, radiusMeters, keyword, apiKey) {
     const results = (data.results || []).filter(isRealBusiness);
     console.log(`[nearby] ${radiusMeters}m keyword: ${keyword || 'none'} → ${results.length} businesses`);
     return results;
-  } catch (e) {
-    console.error(`[nearby] error: ${e.message}`);
-    return [];
+  }
+
+  try {
+    return await tryOnce();
+  } catch (e1) {
+    console.warn(`[nearby] attempt 1 failed — retrying in 3 s: ${e1.message}`);
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      return await tryOnce();
+    } catch (e2) {
+      console.error(`[nearby] attempt 2 also failed: ${e2.message}`);
+      return [];
+    }
   }
 }
 
@@ -587,7 +654,7 @@ async function getDetails(placeId, apiKey) {
   }
 
   const url = `${DETAILS_URL}?place_id=${encodeURIComponent(placeId)}&fields=${DETAIL_FIELDS}&key=${apiKey}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url, { timeoutMs: 8000 });
   if (!res.ok) throw new Error(`Places Details HTTP ${res.status}`);
   const json = await res.json();
   if (json.status !== 'OK') {

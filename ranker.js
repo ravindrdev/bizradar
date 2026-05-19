@@ -15,7 +15,14 @@ function studyTier(studyId, studies) {
 }
 
 function evidenceFactor(rec, studies) {
-  const tiers = rec.study_ids.map((id) => studyTier(id, studies));
+  // Audit fix R1 — Array.isArray guard. Previously `rec.study_ids.map`
+  // crashed with TypeError when a rec had no study_ids field. We now
+  // treat missing/empty study lists as the worst-evidence tier (0.55)
+  // rather than throwing — same end behavior as before but without
+  // taking the whole report down on a single malformed rec.
+  const ids = Array.isArray(rec && rec.study_ids) ? rec.study_ids : [];
+  if (ids.length === 0) return 0.55;
+  const tiers = ids.map((id) => studyTier(id, studies));
   const best = Math.min(...tiers);
   return EVIDENCE_FACTORS[best] || 0.55;
 }

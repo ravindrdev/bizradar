@@ -29,6 +29,11 @@ const STATEMENTS = [
       name VARCHAR(255),
       google_id VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255),
+      email_verified BOOLEAN DEFAULT false,
+      otp_code VARCHAR(255),
+      otp_expires TIMESTAMP,
+      otp_type VARCHAR(20),
+      otp_attempts INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
     )`,
   },
@@ -55,6 +60,15 @@ const STATEMENTS = [
       stripe_payment_id VARCHAR(255),
       created_at TIMESTAMP DEFAULT NOW()
     )`,
+  },
+  // Idempotent ALTERs — Postgres' "ADD COLUMN IF NOT EXISTS" makes
+  // these safe to run on every deploy. They cover the audit-fix A3
+  // otp_attempts column for existing prod databases whose users
+  // table was created before the column was added to the CREATE
+  // statement above.
+  {
+    name: 'users.otp_attempts (migration)',
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_attempts INTEGER DEFAULT 0`,
   },
 ];
 

@@ -53,6 +53,13 @@ function getTransporter() {
     port: 465,
     secure: true, // SMTPS — TLS from the first byte, required by Namecheap on 465
     auth: { user, pass },
+    // Audit fix A1 — bounded SMTP timeouts. Without these a hung
+    // Namecheap socket holds /auth/signup for Node's default socket
+    // timeout (~5 min) before failing, leaving the user staring at a
+    // spinner with no feedback.
+    connectionTimeout: 10000, // 10 s — TCP/TLS handshake
+    greetingTimeout:   10000, // 10 s — wait for SMTP server greeting
+    socketTimeout:     15000, // 15 s — between any two read/write events
   });
   return cachedTransporter;
 }
@@ -136,34 +143,60 @@ async function createPendingUser(name, email, password) {
   const otpHash = await hashOTP(otp);
   const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
 
-  await pool.query(
-    `INSERT INTO users (name, email, password_hash, email_verified, otp_code, otp_expires, otp_type, created_at)
-     VALUES ($1, $2, $3, false, $4, $5, 'signup', NOW())`,
+  // otp_attempts is reset to 0 by the column default on every fresh
+  // INSERT (audit fix A3 — bounded OTP brute force).
+  const ins = await pool.query(
+    `INSERT INTO users (name, email, password_hash, email_verified, otp_code, otp_expires, otp_type, otp_attempts, created_at)
+     VALUES ($1, $2, $3, false, $4, $5, 'signup', 0, NOW())
+     RETURNING id`,
     [name || null, e, passwordHash, otpHash, expires]
   );
+  const newUserId = ins.rows[0].id;
 
-  await sendOTPEmail(e, otp, 'signup');
+  // Audit fix A2 — if SMTP fails, roll back the pending row so the
+  // user can immediately re-attempt the signup. Without this rollback
+  // the row sits in the DB with a valid OTP they never received,
+  // blocking the email for 10 minutes.
+  try {
+    await sendOTPEmail(e, otp, 'signup');
+  } catch (err) {
+    console.error('[auth] SMTP send failed during signup:', err.message);
+    await pool.query(`DELETE FROM users WHERE id = $1`, [newUserId]).catch(() => {});
+    throw new Error('Could not send verification email. Please try again.');
+  }
   return { success: true };
 }
 
 async function verifySignupOTP(email, otp) {
   const e = normalizeEmail(email);
   const r = await pool.query(
-    `SELECT id, name, email, otp_code, otp_expires, otp_type, email_verified
+    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts, email_verified
      FROM users WHERE email = $1 AND email_verified = false AND otp_type = 'signup'`,
     [e]
   );
   const user = r.rows[0];
   if (!user) throw new Error('No pending signup');
+  // Audit fix A3 — bounded OTP brute force. After 5 incorrect attempts
+  // we lock the row out and force the user to request a fresh code
+  // (via Resend, which calls createPendingUser and resets the counter).
+  if ((user.otp_attempts || 0) >= 5) {
+    throw new Error('Too many incorrect attempts. Request a new code.');
+  }
   if (!user.otp_expires || new Date(user.otp_expires) < new Date()) {
     throw new Error('OTP expired');
   }
   const ok = await verifyOTPHash(String(otp || ''), user.otp_code);
-  if (!ok) throw new Error('Incorrect code');
+  if (!ok) {
+    await pool.query(
+      `UPDATE users SET otp_attempts = otp_attempts + 1 WHERE id = $1`,
+      [user.id]
+    ).catch(() => {});
+    throw new Error('Incorrect code');
+  }
 
   await pool.query(
     `UPDATE users
-     SET email_verified = true, otp_code = NULL, otp_expires = NULL, otp_type = NULL
+     SET email_verified = true, otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0
      WHERE id = $1`,
     [user.id]
   );
@@ -212,28 +245,51 @@ async function sendPasswordResetOTP(email) {
   const otpHash = await hashOTP(otp);
   const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
 
+  // Audit fix A3 — reset otp_attempts on every new reset code so the
+  // lockout counter is per-code, not per-account-lifetime.
   await pool.query(
-    `UPDATE users SET otp_code = $1, otp_expires = $2, otp_type = 'reset' WHERE id = $3`,
+    `UPDATE users SET otp_code = $1, otp_expires = $2, otp_type = 'reset', otp_attempts = 0 WHERE id = $3`,
     [otpHash, expires, user.id]
   );
-  await sendOTPEmail(e, otp, 'reset');
+  // Audit fix A2 — surface a user-safe error and clear the reset
+  // state if the email never makes it out (SMTP outage, etc.).
+  try {
+    await sendOTPEmail(e, otp, 'reset');
+  } catch (err) {
+    console.error('[auth] SMTP send failed during password reset:', err.message);
+    await pool.query(
+      `UPDATE users SET otp_code = NULL, otp_expires = NULL, otp_type = NULL WHERE id = $1`,
+      [user.id]
+    ).catch(() => {});
+    throw new Error('Could not send reset email. Please try again.');
+  }
   return { success: true };
 }
 
 async function verifyResetOTP(email, otp) {
   const e = normalizeEmail(email);
   const r = await pool.query(
-    `SELECT id, otp_code, otp_expires, otp_type
+    `SELECT id, otp_code, otp_expires, otp_type, otp_attempts
      FROM users WHERE email = $1 AND email_verified = true AND otp_type = 'reset'`,
     [e]
   );
   const user = r.rows[0];
   if (!user) throw new Error('No active reset request');
+  // Audit fix A3 — bounded brute force on the reset code.
+  if ((user.otp_attempts || 0) >= 5) {
+    throw new Error('Too many incorrect attempts. Request a new code.');
+  }
   if (!user.otp_expires || new Date(user.otp_expires) < new Date()) {
     throw new Error('OTP expired');
   }
   const ok = await verifyOTPHash(String(otp || ''), user.otp_code);
-  if (!ok) throw new Error('Incorrect code');
+  if (!ok) {
+    await pool.query(
+      `UPDATE users SET otp_attempts = otp_attempts + 1 WHERE id = $1`,
+      [user.id]
+    ).catch(() => {});
+    throw new Error('Incorrect code');
+  }
   // NOTE: do NOT clear OTP here — resetPassword() will re-verify and clear.
   return true;
 }
@@ -250,7 +306,7 @@ async function resetPassword(email, otp, newPassword) {
   const passwordHash = await bcrypt.hash(newPassword, PASSWORD_ROUNDS);
   await pool.query(
     `UPDATE users
-     SET password_hash = $1, otp_code = NULL, otp_expires = NULL, otp_type = NULL
+     SET password_hash = $1, otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0
      WHERE email = $2`,
     [passwordHash, e]
   );

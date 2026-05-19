@@ -24,10 +24,16 @@
 
 const dataFetchers = require('./dataFetchers');
 const places = require('./googlePlaces');
+// Audit fix DA1 — bounded caches. The previous raw `new Map()` instances
+// grew unbounded under sustained traffic (one entry per unique
+// city|state for WIKI_CACHE and one per type|city|state triple for
+// COMP_CACHE below). LRUCache caps the entry count + enforces TTL on
+// read so memory stays predictable.
+const { LRUCache } = require('lru-cache');
 
 // ── Wikipedia — 7-day cache ────────────────────────────────────────
-const WIKI_CACHE = new Map();
 const WIKI_TTL = 7 * 24 * 60 * 60 * 1000;
+const WIKI_CACHE = new LRUCache({ max: 1000, ttl: WIKI_TTL });
 
 // State abbreviation → full name (Wikipedia article titles use full
 // state names: "Madison, Wisconsin" not "Madison, WI"). Comprehensive
@@ -288,8 +294,9 @@ async function runDemographicsAgent(city, state, geo, zip, countyFIPS, prefetche
 // + 5 broad searches for review intel (15 candidate businesses, Place
 // Details with reviews). Persona keyword counting mirrors the v3
 // approach so renderMarketReport's persona_gap_matrix has real data.
-const COMP_CACHE = new Map();
+// Audit fix DA1 — bounded LRU. Same pattern as WIKI_CACHE above.
 const COMP_TTL = 24 * 60 * 60 * 1000;
+const COMP_CACHE = new LRUCache({ max: 1000, ttl: COMP_TTL });
 
 const PERSONA_KEYWORDS = [
   'business traveler', 'work', 'meeting', 'conference',

@@ -38,15 +38,52 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Audit fix X1 — fail-fast on missing JWT_SECRET. Without this guard,
+// every signup / login throws "secretOrPrivateKey must have a value"
+// at jwt.sign() time with a cryptic error and the process keeps
+// running healthy. Better to crash loudly at boot.
+if (!process.env.JWT_SECRET) {
+  console.error(
+    '[startup] FATAL: JWT_SECRET is not set. ' +
+    'Set it in .env / Railway env vars before starting the server.'
+  );
+  process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// ── Audit fix S4 / X2 — rate limiting ────────────────────────────────
+// authLimiter:    /auth/* — 20 attempts per IP per 15 min. Throttles
+//                 login brute-force, OTP brute-force, signup spam,
+//                 forgot-password email bombs, and /auth/cancel-signup
+//                 abuse (AR1).
+// reportLimiter:  /classify + /market-analysis — 10 reports per IP per
+//                 hour. Bounds Claude + Google Places cost burn even
+//                 from a leaked cookie.
+const rateLimit = require('express-rate-limit');
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many auth attempts. Try again in 15 minutes.' },
+});
+const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many report generations. Try again in an hour.' },
+});
+
 // User auth router — handles signup, login, OTP verification, forgot
 // password, and /auth/me. JWT cookie 'token' is set on successful
 // signup or login. Routes that need authentication wrap their handler
 // with requireAuth (imported above from authMiddleware.js).
-app.use('/auth', authRoutes);
+app.use('/auth', authLimiter, authRoutes);
 
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/dashboard — JSON feed for the user's dashboard page.
@@ -256,11 +293,16 @@ app.get('/', (req, res) => {
 });
 
 // GET /app — the actual BizRadar report-generation UI (index.html).
-// Same server-side API-key injection that used to live on / so the
-// browser still gets a working autocomplete without ever seeing the
-// raw %%GOOGLE_API_KEY%% placeholder. Registered BEFORE express.static
-// so the static middleware doesn't shortcut to a key-unredacted file.
+// Audit fix S8 — soft auth check: if there's no JWT cookie, bounce to
+// /login.html so users don't fill out the form only to hit a 401 on
+// /classify submit. requireAuth would 401 (no UX redirect) so we
+// inspect the cookie directly here.
 app.get('/app', (req, res) => {
+  if (!req.cookies || !req.cookies.token) {
+    return res.redirect(
+      '/login.html?msg=' + encodeURIComponent('Please login to generate a report.')
+    );
+  }
   try {
     const html = fs.readFileSync(
       path.join(__dirname, 'public', 'index.html'),
@@ -328,6 +370,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes that take >1s emit progress events via sendProgress(sessionId).
 // The frontend opens GET /progress/:sessionId BEFORE submitting the
 // form so the live stream is connected by the time the POST starts.
+// Audit fix S2 / S3 — cap progressClients and gate behind requireAuth
+// so an unauthenticated attacker can't probe other users' session IDs
+// and can't pile up SSE connections to exhaust memory.
+const MAX_PROGRESS_CLIENTS = 500;
 const progressClients = new Map();
 function sendProgress(sessionId, data) {
   if (!sessionId) return;
@@ -337,7 +383,11 @@ function sendProgress(sessionId, data) {
     client.write(`data: ${JSON.stringify(data)}\n\n`);
   } catch (_) { /* connection closed mid-write */ }
 }
-app.get('/progress/:sessionId', (req, res) => {
+app.get('/progress/:sessionId', requireAuth, (req, res) => {
+  if (progressClients.size >= MAX_PROGRESS_CLIENTS) {
+    res.status(503).end();
+    return;
+  }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -493,7 +543,7 @@ app.get('/report-status/:jobId', requireAuth, (req, res) => {
   });
 });
 
-app.post('/classify', requireAuth, async (req, res) => {
+app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   const input = (req.body.query || '').trim();
   // Optional — set by the landing-page autocomplete when the user picks
   // a suggestion from the dropdown. Lets us skip the 7-step findPlace
@@ -1836,7 +1886,7 @@ app.post('/classify', requireAuth, async (req, res) => {
   });
 });
 
-app.post('/market-analysis', requireAuth, async (req, res) => {
+app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   const { city, state } = req.body;
   const sessionId = (req.body.sessionId || '').toString();
   const userId = req.user.id;
@@ -2321,7 +2371,7 @@ function renderUnsupported(input, layer0Result) {
 <h1>GrowthIM — business type not yet supported</h1>
 <p>This business type is not yet supported by GrowthIM. We support 1400+
 business types — if you think your input should have matched one of them,
-please contact us at <a href="mailto:support@bizradar.com">support@bizradar.com</a>
+please contact us at <a href="mailto:support@growthim.com">support@growthim.com</a>
 and we'll add coverage for your category.</p>
 <p class="meta">Your input "${escapeHtml(input)}" was classified as
 mode <code>${escapeHtml(layer0Result.mode)}</code>${
@@ -2846,12 +2896,18 @@ ${verifSummary}`;
   // Embedded form + inline JS that POSTs to /market-chat. Uses
   // data-* attributes to know which city|state to look up.
   // ─────────────────────────────────────────────────────────────────
-  const cityAttr = city.replace(/"/g, '&quot;');
-  const stateAttr = state.replace(/"/g, '&quot;');
+  // Audit fix S1 — use the file-wide escapeHtml() helper instead of a
+  // bespoke replace that only handles `"`. escapeHtml escapes &, <, >,
+  // ", and ' so a city containing any HTML-special char (Madison's,
+  // O'Brien, "St. John's", an injected `<` etc.) renders into the
+  // data-* attributes without closing them. The downstream inline
+  // chat script reads via form.dataset.city / form.dataset.state —
+  // the browser auto-decodes the HTML entities on read, so the JS
+  // sees the same string the user typed.
   const chatHtml = `<h2>Ask a follow-up</h2>
 <p class="meta">Ask anything about this analysis — Claude has the full data above in memory for the next 24 hours.</p>
 <div id="market-chat-log" style="margin:8px 0"></div>
-<form id="market-chat-form" data-city="${cityAttr}" data-state="${stateAttr}" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+<form id="market-chat-form" data-city="${escapeHtml(city)}" data-state="${escapeHtml(state)}" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
 <input id="market-chat-input" type="text" placeholder="e.g. Why is the gap score lower for #5?" style="flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px" required>
 <button type="submit" id="market-chat-btn" style="padding:10px 18px;background:var(--blue);color:#fff;border:0;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">Ask &rarr;</button>
 </form>
@@ -3652,7 +3708,13 @@ function renderReport(ctx) {
     : 'needs';
 
   const allCitedIds = new Set();
-  ranked.allTriggered.forEach((t) => t.rec.study_ids.forEach((id) => allCitedIds.add(id)));
+  // Audit fix S6 — defensive Array.isArray guard. A profile rec with
+  // a missing/null study_ids array used to crash the whole report
+  // render with a TypeError; now it just contributes no citations.
+  ranked.allTriggered.forEach((t) => {
+    const ids = Array.isArray(t.rec && t.rec.study_ids) ? t.rec.study_ids : [];
+    ids.forEach((id) => allCitedIds.add(id));
+  });
 
   // ── Competitor radius-tier note (matches the 8-step 1/3/8/15/30/50/75/150
   // ladder in googlePlaces.js fetchNearbyCompetitors). Tier mapping:
@@ -3721,7 +3783,7 @@ function renderReport(ctx) {
   </div>
   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
     <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Try Again</a>
-    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
+    <a href="mailto:support@growthim.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`
     : '';
@@ -3742,7 +3804,7 @@ function renderReport(ctx) {
   </div>
   <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
     <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
-    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
+    <a href="mailto:support@growthim.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`
     : '';
@@ -3771,8 +3833,8 @@ function renderReport(ctx) {
     <strong>GrowthIM Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
   </div>
   <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-    <a href="mailto:support@bizradar.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support — Get Website Help</a>
-    <span style="font-size:13px;color:#9A3412;">support@bizradar.com</span>
+    <a href="mailto:support@growthim.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support — Get Website Help</a>
+    <span style="font-size:13px;color:#9A3412;">support@growthim.com</span>
   </div>
 </div>`
     : '';

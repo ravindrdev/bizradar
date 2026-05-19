@@ -11,11 +11,23 @@ let REGISTRY = null;
 let MAP = null;
 
 function load() {
-  const raw = fs.readFileSync(path.join(__dirname, 'profileRegistry.json'), 'utf8');
+  // Audit fix PR1 — fail fast and loud on corrupt / missing
+  // profileRegistry.json. Previously a bad/missing file surfaced as
+  // an opaque ENOENT or parser error on first request; now it stops
+  // the process at boot with the exact file that failed.
+  let raw;
+  try {
+    raw = fs.readFileSync(path.join(__dirname, 'profileRegistry.json'), 'utf8');
+  } catch (err) {
+    console.error('[startup] FATAL: could not read profileRegistry.json:', err.message);
+    process.exit(1);
+  }
   const errors = [];
   REGISTRY = parseJsonc(raw, errors, { allowTrailingComma: false });
   if (errors.length) {
-    throw new Error(`profileRegistry.json parse errors: ${errors.length}`);
+    console.error('[startup] FATAL: profileRegistry.json has', errors.length, 'JSONC parse error(s).');
+    console.error('  first error:', JSON.stringify(errors[0]));
+    process.exit(1);
   }
   MAP = new Map();
   let filledCount = 0;

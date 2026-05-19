@@ -40,6 +40,41 @@ function clearAuthCookie(res) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Audit fix AR2 — whitelist of user-safe error messages thrown by
+// auth.js. Anything outside this set (e.g. a raw pg error like
+// "duplicate key value violates unique constraint", or a nodemailer
+// "EAUTH 535-5.7.8 …") gets swallowed and replaced with a generic
+// fallback so we don't leak internal config or schema details.
+// Server-side console.error still has the full detail for debugging.
+const SAFE_AUTH_ERRORS = new Set([
+  'Name is required',
+  'Email is required',
+  'Invalid email format',
+  'Password is required',
+  'Password must be at least 8 characters',
+  'Passwords do not match',
+  'Email and password required',
+  'Email and OTP required',
+  'Email required',
+  'Missing required fields',
+  'Email already registered',
+  'Invalid credentials',
+  'Please verify your email first',
+  'No pending signup',
+  'No active reset request',
+  'OTP expired',
+  'Incorrect code',
+  'Too many incorrect attempts. Request a new code.',
+  'Email not found',
+  'Could not send verification email. Please try again.',
+  'Could not send reset email. Please try again.',
+]);
+function safeAuthError(err, fallback) {
+  if (err && err.message && SAFE_AUTH_ERRORS.has(err.message)) return err.message;
+  console.error('[auth-route] raw error swallowed:', err && err.message);
+  return fallback;
+}
+
 function validateSignupBody(body) {
   const errs = [];
   const name = (body.name || '').toString().trim();
@@ -64,7 +99,7 @@ router.post('/signup', async (req, res) => {
     await auth.createPendingUser(name, email, password);
     return res.json({ success: true, message: 'OTP sent to your email' });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Signup failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Signup failed') });
   }
 });
 
@@ -80,7 +115,7 @@ router.post('/verify-signup', async (req, res) => {
     setAuthCookie(res, token);
     return res.json({ success: true, user });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Verification failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Verification failed') });
   }
 });
 
@@ -112,7 +147,7 @@ router.post('/login', async (req, res) => {
     setAuthCookie(res, token);
     return res.json({ success: true, user });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Login failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Login failed') });
   }
 });
 
@@ -132,7 +167,7 @@ router.post('/forgot-password', async (req, res) => {
     await auth.sendPasswordResetOTP(email);
     return res.json({ success: true, message: 'OTP sent to your email' });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Reset request failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Reset request failed') });
   }
 });
 
@@ -147,7 +182,7 @@ router.post('/verify-reset-otp', async (req, res) => {
     await auth.verifyResetOTP(email, otp);
     return res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Verification failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Verification failed') });
   }
 });
 
@@ -170,7 +205,7 @@ router.post('/reset-password', async (req, res) => {
     await auth.resetPassword(email, otp, newPassword);
     return res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ success: false, error: err.message || 'Password reset failed' });
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Password reset failed') });
   }
 });
 
