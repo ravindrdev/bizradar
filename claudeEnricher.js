@@ -42,8 +42,8 @@ const MODEL = 'claude-sonnet-4-6';
 // within model limits. callClaudeEnrichA retries once at
 // Math.round(MAX_TOKENS_A * 1.5) = 27000 if the first attempt still
 // truncates — a 30-page report needs this headroom.
-const MAX_TOKENS_A = 18000;
-const MAX_TOKENS_B = 8000;
+const MAX_TOKENS_A = 20000;
+const MAX_TOKENS_B = 10000;
 
 // 24h in-memory cache keyed by place_id. Same pattern as the
 // google-places details cache (Phase 4 fix-batch) but bounded at
@@ -85,7 +85,139 @@ const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-const SYSTEM_PROMPT_A = `CRITICAL WRITING RULES - FOLLOW EXACTLY:
+const SYSTEM_PROMPT_A = `ABSOLUTE FORBIDDEN RULE — READ FIRST:
+You are STRICTLY FORBIDDEN from using:
+  Em dashes (—) U+2014
+  En dashes (–) U+2013
+  Horizontal bars (―) U+2015
+
+This rule has ZERO exceptions.
+Violating this rule is not acceptable.
+Use commas or periods instead.
+
+WRONG: "The store — located downtown — serves tourists"
+RIGHT: "The store, located downtown, serves tourists"
+
+WRONG: "Open daily — including weekends"
+RIGHT: "Open daily, including weekends"
+
+If you find yourself typing — stop.
+Use a comma or period instead.
+
+WRITING CLARITY RULES - FOLLOW EXACTLY:
+
+A small business owner who is NOT a marketing expert should be able
+to read every sentence in this report and immediately understand:
+  1. What this means for MY business
+  2. What I should DO about it
+
+1. NEVER write from the business's perspective. Always write from
+   the CUSTOMER's perspective.
+
+   BAD:  "No walkable location"
+   GOOD: "Tourists walking downtown pass your door first.
+          Your competitor requires a 15 minute drive."
+
+2. ALWAYS explain WHY something matters in plain English BEFORE
+   saying what to do about it.
+
+   BAD:  "SPD Markets has 858 reviews vs your 127"
+   GOOD: "When a new customer searches Google for grocery stores,
+          Google shows SPD Markets first because they have 858
+          reviews and you have 127. That means customers who have
+          never heard of you never find you."
+
+3. NEVER use these jargon terms without explaining them first:
+   - "local pack"
+   - "conversion rate"
+   - "basket size"
+   - "foot traffic"
+   - "SEO"
+   - "OTA"
+   - "ADR"
+   - "RevPAR"
+   - "churn"
+   - "LTV"
+   - "ROAS"
+   - "CTR"
+   - "SERP"
+   If you must use one, explain it inline. Example:
+   "Google search results (called local pack by marketers)"
+
+4. Every recommendation must follow this exact three-part structure:
+
+   SITUATION (1 sentence):
+   What is happening right now.
+
+   WHY IT MATTERS (1-2 sentences):
+   What this costs you in real money or real customers.
+
+   ACTION (1-3 sentences):
+   Exactly what to do. Be specific. Name the exact tool, person,
+   or place. No vague advice.
+
+   EXAMPLE OF BAD:
+   "Improve your Google ranking by getting more reviews."
+
+   EXAMPLE OF GOOD:
+   "SITUATION: SPD Markets appears above you in every Google
+    search for grocery stores in Nevada City.
+
+    WHY IT MATTERS: When a tourist searches 'grocery store
+    near me' they see SPD first and often never scroll down to
+    find you. This costs you an estimated 10-20 walk-in
+    customers per week.
+
+    ACTION: This week, place a small sign at your register
+    that says 'Enjoying our store? Scan here to leave us a
+    Google review.' Print a QR code from google.com/business
+    and tape it next to the register. Ask one customer per
+    hour verbally."
+
+5. Distance must always be explained in human terms, not just
+   numbers.
+
+   BAD:  "SPD Markets is 0.73 miles away"
+   GOOD: "SPD Markets is 0.73 miles away, about a 15 minute
+          walk or 5 minute drive for customers."
+
+6. Percentages must always be explained in plain language.
+
+   BAD:  "80.5% homeownership rate"
+   GOOD: "8 out of 10 people in your neighborhood OWN their
+          home. This means they are stable long-term customers,
+          not renters who move frequently."
+
+7. All money estimates must say what they assume.
+
+   BAD:  "$8,000-$18,000/year"
+   GOOD: "$8,000-$18,000/year (assuming 15 kits per week at
+          $28 average over 20 peak summer weeks)."
+
+8. Competitor comparisons must always end with ONE specific
+   action.
+
+   BAD:  "SPD Markets outranks you on Google"
+   GOOD: "SPD Markets outranks you on Google. To fix this:
+          ask 3 customers per day for a Google review starting
+          tomorrow morning."
+
+9. Every section must start with a one sentence plain-English
+   summary of what the section is about.
+
+   Example:
+   "This section shows you exactly which competitor is your
+    biggest threat and how to take their customers."
+
+10. Write as if you are a trusted friend who runs a successful
+    business explaining things to the owner over coffee.
+    NOT as a consultant writing a formal report.
+    NOT as an AI generating content.
+    As a FRIEND who wants them to WIN.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CRITICAL WRITING RULES - FOLLOW EXACTLY:
 
 1. NEVER use em dashes (—) anywhere.
    Use commas, periods, or colons instead.
@@ -410,6 +542,29 @@ OUTPUT FORMAT:
   "outperformed_competitors": [
     "Name1", "Name2"
   ],
+  "conquest_page": {
+    "competitor_name": "exact name of the #1 highest threat_score competitor from competitors.top5",
+    "competitor_rating": 4.2,
+    "competitor_reviews": 215,
+    "distance_miles": 1.4,
+    "distance_human": "human reading of distance — e.g. '5 minute walk', '10 minute walk', 'requires a car'",
+    "weakness_1": {
+      "title": "plain English title — NO jargon (e.g. 'Slow service at lunch', 'Rude staff at checkout'). Customer-facing words only.",
+      "evidence": "MUST start with one of: '[REVIEW QUOTE]: \"<verbatim 1-2 star quote from their top_reviews>\"' OR '[DATA]: <factual comparison — e.g. 1.4 miles away vs your downtown location; 215 reviews vs your 1,392>'. NEVER plain text. NEVER invent.",
+      "your_move": "ONE specific action the owner can do TODAY. Name exact tools (Google Business Profile post, Yelp Ads, Canva), exact places (the specific street/landmark), or exact scripts. NO 'improve service' / 'use social media' / 'engage customers'."
+    },
+    "weakness_2": {
+      "title": "same structure as weakness_1",
+      "evidence": "same evidence-label format as weakness_1",
+      "your_move": "same — specific action with named tool/place/script"
+    },
+    "weakness_3": {
+      "title": "same structure",
+      "evidence": "same evidence-label format",
+      "your_move": "same specific action"
+    },
+    "how_to_steal_customers": "ONE paragraph, max 80 words. Plain English. Specific actions starting THIS WEEK. MUST mention at least ONE real local landmark, event, street, or business name from the bundle (upcoming_events, anchor_tenants, nearby_venues, or competitors)."
+  },
   "enriched_recommendations": [
     {
       "id": "rec_id matching input",
@@ -466,14 +621,20 @@ OUTPUT FORMAT:
       "goal": "string — what success looks like by end of month 1 (e.g. 'response rate above 50% on Google reviews')"
     },
     "month_2": {
-      "theme": "string — what month 2 is focused on",
-      "focus": "string — main actions this month, less granular than month 1",
-      "goal": "string — what success looks like by end of month 2"
+      "theme": "string — what month 2 is focused on (activating opportunities surfaced by month 1)",
+      "week_1": "string — specific action this week. Name a tool, place, or person. Build on week-4 of month 1.",
+      "week_2": "string — specific action this week. Name a tool, place, or person. Build on month 2 week 1.",
+      "week_3": "string — specific action this week. Name a tool, place, or person. Build on month 2 week 2.",
+      "week_4": "string — specific action this week. Name a tool, place, or person. Build on month 2 week 3.",
+      "goal": "string — measurable outcome by end of month 2 (e.g. 'first 5 paid bookings from the new lunch menu')"
     },
     "month_3": {
-      "theme": "string — what month 3 is focused on",
-      "focus": "string — main actions this month + measurement of months 1-2 results",
-      "goal": "string — what success looks like by end of month 3"
+      "theme": "string — what month 3 is focused on (measuring results from months 1-2 and doubling down on what worked)",
+      "week_1": "string — specific action this week. Measure month-1 and month-2 results against their goals.",
+      "week_2": "string — specific action this week. Double down on whichever month 1-2 action produced the most signal.",
+      "week_3": "string — specific action this week. Name a tool, place, or person.",
+      "week_4": "string — specific action this week. Lock in the 90-day result with a permanent process change.",
+      "goal": "string — measurable 90-day outcome in business terms, not vanity metrics"
     }
   },
   "seasonal_strategy": {
@@ -1529,6 +1690,65 @@ and weaknesses:
   Retail      → selection, staff knowledge, return policy
   Salon       → stylist skill, wait times, product quality
 
+CONQUEST PAGE RULES:
+Populate the conquest_page object — a single-competitor focused
+"how to beat them this week" deep-dive. Distinct from competitor_deep_dive[]
+(which lists ALL threatening competitors) — conquest_page is laser-focused
+on just ONE.
+
+1. Pick ONLY the #1 highest threat competitor by threat_score formula:
+       threat_score = rating × log10(review_count + 1)
+                      × (1 / (distance_miles + 0.5))
+   This is the same formula as competitor_deep_dive ordering, so
+   conquest_page.competitor_name should equal competitor_deep_dive[0].competitor_name
+   when competitor_deep_dive is non-empty.
+   If competitor_deep_dive is [] (subject outperforms all 5), return
+   conquest_page as null. Do NOT invent a competitor.
+
+2. ALL 3 weaknesses MUST be backed by real evidence:
+   - Preferred: actual 1-2 star review quotes from competitors.top5[].reviews[]
+     where review.rating <= 2. Format: '[REVIEW QUOTE]: "<verbatim quote>"'
+   - Acceptable: factual data comparisons. Format: '[DATA]: <comparison>'
+     Examples:
+       '[DATA]: 1.4 miles away vs your downtown location — customers must drive past you to reach them'
+       '[DATA]: 215 reviews vs your 1,392 — much less established presence'
+       '[DATA]: rating 4.2★ vs your 4.6★ — they have a perceived-quality gap'
+   - NEVER invent weaknesses. NEVER use vague phrasing.
+   - If fewer than 3 negative review quotes exist in their reviews[],
+     use [DATA] evidence for the remaining slots. Always emit 3 weaknesses
+     when conquest_page is populated.
+
+3. distance_human MUST convert distance_miles into walking/driving time:
+       distance_miles < 0.25  → "5 minute walk"
+       0.25 ≤ d < 0.5         → "10 minute walk"
+       0.5 ≤ d < 1.0          → "requires a car"
+       distance_miles ≥ 1.0   → "requires a car"
+   Use these exact strings.
+
+4. your_move MUST be ONE specific action the owner can do TODAY.
+   - Name exact tools: "Google Business Profile post", "Yelp Ads dashboard",
+     "Canva", "Square Marketing", "Mailchimp", "Nextdoor neighborhood post"
+   - Name exact places/people: "the corner of [actual street] near [actual landmark]"
+   - Name exact scripts: "Subject line: 'Tired of waiting 45 minutes for service?'"
+   - NEVER vague advice like 'improve service', 'leverage social media',
+     'engage with customers', 'build community'.
+   GOOD: "Post 3 Google Business Profile updates this week featuring your
+          15-minute lunch guarantee. Caption: 'Out the door in 15 — promise.'
+          Tag #DodgevilleLunch."
+   BAD:  "Improve your social media presence."
+
+5. how_to_steal_customers MUST mention at least ONE real local landmark,
+   event, street, or business name from the data bundle. Pull from:
+   - data.upcoming_events (real event names)
+   - data.anchor_tenants (real anchor store names)
+   - data.nearby_venues (real Foursquare venue names)
+   - competitors.top5 (real competitor names — to target via Google Ads)
+   - data.address (real street names)
+   GOOD: "Run Google Ads targeting '[Competitor Name] hours' searches in
+         the 53533 ZIP. Headline: 'Faster service than [Competitor], 0.3mi
+         closer to the Dodgeville High football game traffic.'"
+   BAD:  "Use online ads to attract their customers."
+
 COMPETITOR ANALYSIS RULES:
 - Use ONLY the Top competitors list provided in the user prompt — never invent competitor names, ratings, or attributes.
 - Base what_they_do_better ONLY on data we actually have: rating, review count, distance. Do NOT invent features, amenities, hours, prices, or service quality we did not measure.
@@ -1553,28 +1773,48 @@ NEVER invent a competitor strength without a real review quote to support it.
 NEVER claim a competitor is good at something without citing their actual customer reviews.
 The previous behavior — inferring "competitor X excels at customer service" from rating delta alone — is now forbidden when top_reviews are present.
 
-90-DAY ACTION PLAN RULES:
-Generate ninety_day_plan with three months of progressive depth.
+NINETY DAY PLAN RULES:
+ALL 3 months must have week_1, week_2, week_3, week_4 fields.
+Not just month 1.
 
-Month 1 (highest specificity):
-  - Theme: focus on the SINGLE highest-impact action from enriched_recommendations[0]
-  - Break it into 4 weekly steps — specific enough that the owner knows exactly what to do each Monday morning
-  - Reference real local businesses, real events, and real numbers from the bundle
-  - Bad: "improve customer service"
-  - Good: "Respond to the 3 most recent negative Google reviews by Tuesday. Use the template: 'Hi [name], we hear you on [specific complaint]. Reach me directly at [phone] — I'd like to make this right.'"
+Each week action must:
+- Name a specific tool, place, or person (not vague advice)
+- Be achievable in one week
+- Build on the previous week
+- Reference real local entities from the data bundle where possible
+
+Month 1 (foundation):
+  - Theme: the SINGLE highest-impact action from enriched_recommendations[0]
+  - 4 weekly steps that progressively execute the action
+  - Reference real local businesses, real events, real numbers from the bundle
   - Goal must be measurable (e.g., "Hit 50% owner-response rate by end of month")
 
-Month 2 (medium specificity):
-  - Build on Month 1 progress
-  - Focus on enriched_recommendations[1] (the 2nd highest-impact action)
-  - Less granular than Month 1 (no weekly breakdown — month-level focus + goal)
+Month 2 (activation):
+  - Theme: activating the best opportunities surfaced by month 1
+  - 4 weekly steps that build on the foundation laid in month 1
+  - Tie back to enriched_recommendations[1] (the 2nd highest-impact action)
+  - Goal must be measurable (e.g., "First 5 paid bookings from the new lunch menu")
 
-Month 3 (consolidation):
-  - Measure results from Months 1 and 2 against their goals
-  - Start enriched_recommendations[2] (the 3rd highest-impact action)
+Month 3 (measure + double down):
+  - Theme: measuring results from months 1-2 and doubling down on what worked
+  - Week 1: measure month-1 and month-2 results against their goals
+  - Week 2: double down on whichever action produced the most signal
+  - Weeks 3-4: lock in the 90-day result with a permanent process change
   - Goal frames the 90-day result in business terms, not vanity metrics
 
-Every action must reference THIS business in THIS location. Forbidden phrases include "improve customer service," "engage with customers," "leverage social media," "build community" — replace with named, dated, specific actions.
+NEVER write just a 'focus' paragraph for months 2 or 3.
+Always write week by week.
+
+Examples:
+  Bad: "improve customer service"
+  Good: "Respond to the 3 most recent negative Google reviews by Tuesday.
+         Use the template: 'Hi [name], we hear you on [specific complaint].
+         Reach me directly at [phone], I'd like to make this right.'"
+
+Every action must reference THIS business in THIS location. Forbidden
+phrases include "improve customer service," "engage with customers,"
+"leverage social media," "build community". Replace with named, dated,
+specific actions.
 
 SEASONAL STRATEGY RULES:
 Generate seasonal_strategy with all four seasons.
@@ -2774,30 +3014,81 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
   const CALL_B_TIMEOUT_MS = 10 * 60 * 1000;
   const acB = new AbortController();
   const timerB = setTimeout(() => acB.abort(), CALL_B_TIMEOUT_MS);
+  // Build params once so the truncation-retry can clone them with a
+  // bumped max_tokens. cache_control is preserved so the retry reads
+  // the now-warm system-prompt cache (cheap input).
+  const requestParams = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS_B,
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM_PROMPT_B,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [{ role: 'user', content: userPrompt }],
+  };
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS_B,
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_PROMPT_B,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: userPrompt }],
-    }, { signal: acB.signal });
+    const response = await client.messages.create(requestParams, { signal: acB.signal });
     const dt = Date.now() - t0;
     console.log('[claude:B] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
+    const usage = response.usage || {};
+    console.log(`[claude:B] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+
+    // ── Truncation-retry: Claude returns HTTP 200 with truncated
+    // output when it hits max_tokens (it's not an exception). Mirrors
+    // Call A's retry pattern — detect stop_reason and retry ONCE with
+    // 1.5× the cap. The retry reads the warm cache so the cost-delta
+    // is mostly extra output tokens. If the retry also truncates we
+    // accept whatever came back rather than discarding the whole call.
     if (response.stop_reason === 'max_tokens') {
-      console.error(`[claude:B] truncated — hit MAX_TOKENS_B=${MAX_TOKENS_B}`);
+      const retryMaxTokens = Math.round(MAX_TOKENS_B * 1.5);
+      console.warn(`[claude:B] hit max_tokens=${MAX_TOKENS_B} — retrying once with max_tokens=${retryMaxTokens}`);
+      const t1 = Date.now();
+      const retryParams = {
+        ...requestParams,
+        max_tokens: retryMaxTokens,
+      };
+      // Bound the retry with its own 10 min timeout so a hung retry
+      // socket can't pin the worker. Same pattern as Call A's retry.
+      const RETRY_TIMEOUT_MS = 10 * 60 * 1000;
+      const acRetryB = new AbortController();
+      const timerRetryB = setTimeout(() => acRetryB.abort(), RETRY_TIMEOUT_MS);
+      let retry;
+      try {
+        retry = await client.messages.create(retryParams, { signal: acRetryB.signal });
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          console.warn('[claude:B] truncation retry timed out after 10 min');
+          // Fall back to the original truncated response.
+          return (response.content || [])
+            .filter((b) => b.type === 'text')
+            .map((b) => b.text)
+            .join('');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timerRetryB);
+      }
+      const dt1 = Date.now() - t1;
+      const retryUsage = retry.usage || {};
+      console.log(`[claude:B] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
+      console.log(`[claude:B] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
+      if (retry.stop_reason === 'max_tokens') {
+        console.error(`[claude:B] retry ALSO truncated at max_tokens=${retryMaxTokens} — accepting truncated text`);
+      }
+      const retryText = (retry.content || [])
+        .filter((b) => b.type === 'text' && b.text && b.text.trim().length > 0)
+        .map((b) => b.text)
+        .join('');
+      return retryText;
     }
+
     const text = (response.content || [])
       .filter((b) => b.type === 'text')
       .map((b) => b.text)
       .join('');
-    const usage = response.usage || {};
-    console.log(`[claude:B] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
     return text;
   } catch (err) {
     if (err && err.name === 'AbortError') {

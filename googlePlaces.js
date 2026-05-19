@@ -1729,6 +1729,11 @@ const FAST_FOOD_CHAINS = [
 // Process-lifetime cache (no TTL — cuisine type doesn't change). Bounded
 // at max=1000 so memory stays flat under sustained traffic.
 const CUISINE_CACHE = new LRUCache({ max: 1000 });
+// Same shape, used by detectCompetitorQueryWithClaude (the safety-net
+// fallback fired mid-ladder when the deterministic search has produced
+// <5 competitors after the 50-mile rung). Process-lifetime, keyed by
+// `name|city|state` so repeat analyses of the same business are free.
+const COMPETITOR_CLAUDE_CACHE = new LRUCache({ max: 500 });
 const VALID_CUISINES = new Set([
   'indian', 'chinese', 'japanese', 'korean', 'thai', 'vietnamese',
   'mexican', 'italian', 'french', 'greek', 'middleeastern', 'seafood',
@@ -1826,6 +1831,226 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
     return null;
   } catch (e) {
     console.log(`[competitor-query] claude+web failed: ${e.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// detectCompetitorQueryWithClaude — Claude+websearch safety-net fallback
+// ─────────────────────────────────────────────────────────────────────
+// Fires from fetchNearbyCompetitors MID-LADDER, right after the 50-mile
+// rung (RADIUS_LADDER index 5) when the pool still has <5 competitors.
+// Asks claude-haiku-4-5 (with web_search_20250305 enabled, max_uses: 5)
+// to identify the business type and return 5 Google-Places-compatible
+// SHORT CATEGORY search terms for finding real competitors. The caller
+// then runs each term as a fresh Text Search at 50 miles and merges
+// hits into the existing pool via tryAdd.
+//
+// Firing earlier (after rung 5 instead of after rung 7) means a
+// pathological-query business — like Cricket Wireless whose name-based
+// fallback returned 0 across 8 rungs in the prior architecture — gets
+// proper category queries before paying for the 75-mile and 150-mile
+// rungs. If Claude doesn't fill the pool, the ladder continues to
+// rungs 6 and 7 as a last resort.
+//
+// Same architecture as detectCuisineWithClaude (line 1739):
+//   - raw fetch() to api.anthropic.com (no SDK)
+//   - process-lifetime LRU cache keyed by name|city|state
+//   - returns null on any error or invalid response so the caller
+//     gracefully falls back to the remaining ladder rungs
+//
+// Returns: { business_type, competitor_types, search_queries: [...] }
+//   on success, or null on any error / validation failure.
+async function detectCompetitorQueryWithClaude(businessName, city, state, naics6, apiKey) {
+  void apiKey; // reserved for future use; Anthropic call uses ANTHROPIC_API_KEY env
+  try {
+    const cacheKey = 'competitor_claude_'
+      + String(businessName || '').toLowerCase()
+      + '|' + (city || '')
+      + '|' + (state || '');
+
+    if (COMPETITOR_CLAUDE_CACHE.has(cacheKey)) {
+      const cached = COMPETITOR_CLAUDE_CACHE.get(cacheKey);
+      if (cached) {
+        console.log(`[competitor-claude] cache hit for ${businessName}`);
+      }
+      return cached;
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.log('[competitor-claude] skipped: ANTHROPIC_API_KEY not set');
+      return null;
+    }
+
+    const systemPrompt =
+      'You are a business research assistant.\n'
+      + 'Use web search to identify what type\n'
+      + 'of business this is and who its direct\n'
+      + 'local competitors are.\n\n'
+      + 'Return ONLY valid JSON with Google\n'
+      + 'Places compatible search terms.\n'
+      + 'Search terms must be SHORT BUSINESS\n'
+      + 'CATEGORY NAMES like \'cell phone store\'\n'
+      + 'or \'dental office\'.\n'
+      + 'Never use consumer shopping phrases.';
+
+    const subjectLabel = businessName || 'this business';
+    const userPrompt =
+      'Business name: ' + (businessName || '(unknown)') + '\n'
+      + 'Location: ' + (city || '(unknown)') + ', ' + (state || '(unknown)') + '\n'
+      + 'NAICS code: ' + (naics6 || '(unknown)') + '\n\n'
+      + 'Use web search to find out\n'
+      + 'exactly what this business sells\n'
+      + 'and who its DIRECT competitors are.\n\n'
+      + 'A direct competitor is a business\n'
+      + 'where a customer would choose\n'
+      + 'BETWEEN this business AND that\n'
+      + 'competitor for the SAME product\n'
+      + 'or service.\n\n'
+      + 'Example:\n'
+      + '  Cricket Wireless sells phone plans\n'
+      + '  Direct competitors = T-Mobile,\n'
+      + '  AT&T, Boost Mobile, MetroPCS\n\n'
+      + '  NOT competitors = UPS Store,\n'
+      + '  FedEx, shipping stores, banks,\n'
+      + '  grocery stores, restaurants\n\n'
+      + 'Return ONLY this JSON:\n'
+      + '{\n'
+      + '  "business_type": "exactly what this business sells in one line",\n'
+      + '  "competitor_types": "exactly what type of store a customer would visit INSTEAD of this business",\n'
+      + '  "search_queries": [\n'
+      + '    "term 1",\n'
+      + '    "term 2",\n'
+      + '    "term 3",\n'
+      + '    "term 4",\n'
+      + '    "term 5"\n'
+      + '  ]\n'
+      + '}\n\n'
+      + 'RULES for search_queries:\n'
+      + 'Each term must find a store that\n'
+      + 'sells the SAME thing as ' + subjectLabel + '.\n\n'
+      + 'Good examples for Cricket Wireless:\n'
+      + '  \'T-Mobile store\' ✅\n'
+      + '  \'AT&T wireless store\' ✅\n'
+      + '  \'Boost Mobile store\' ✅\n'
+      + '  \'prepaid wireless store\' ✅\n'
+      + '  \'Metro by T-Mobile\' ✅\n\n'
+      + 'Bad examples for Cricket Wireless:\n'
+      + '  \'store\' ❌ too generic\n'
+      + '  \'phone store\' ❌ too broad\n'
+      + '  \'electronics store\' ❌ too broad\n'
+      + '  \'UPS Store\' ❌ wrong business\n'
+      + '  \'shipping store\' ❌ wrong business\n'
+      + '  \'cheap plans\' ❌ not a store type\n'
+      + '  \'near me\' ❌ not a store type\n\n'
+      + 'Each term must be:\n'
+      + '  SPECIFIC to the exact business type\n'
+      + '  2-5 words only\n'
+      + '  A real Google Places category\n'
+      + '    OR a real business chain name\n'
+      + '  Something that would ONLY find\n'
+      + '    businesses that sell the same\n'
+      + '    thing as ' + subjectLabel + '\n\n'
+      + 'Use web search to verify your\n'
+      + 'answer is correct before returning.\n'
+      + 'Return exactly 5 search queries.';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 500,
+        system: systemPrompt,
+        tools: [
+          {
+            type: 'web_search_20250305',
+            name: 'web_search',
+            max_uses: 5,
+          },
+        ],
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    });
+
+    const data = await response.json();
+
+    // With web_search enabled, content[] interleaves tool_use /
+    // web_search_tool_result blocks with intermediate text. Take the
+    // LAST text block — that's Claude's synthesized JSON answer.
+    const textBlock = data && Array.isArray(data.content)
+      ? data.content.filter((b) => b && b.type === 'text').pop()
+      : null;
+    const rawText = (textBlock && typeof textBlock.text === 'string')
+      ? textBlock.text
+      : '';
+
+    // Extract the first { ... } JSON object from the response text.
+    // Tolerates markdown code fences or prose wrapping.
+    const firstBrace = rawText.indexOf('{');
+    const lastBrace = rawText.lastIndexOf('}');
+    if (firstBrace < 0 || lastBrace < 0 || lastBrace <= firstBrace) {
+      console.log(`[competitor-claude] failed to parse response for ${businessName} (no JSON object found)`);
+      COMPETITOR_CLAUDE_CACHE.set(cacheKey, null);
+      return null;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1));
+    } catch (parseErr) {
+      console.log(`[competitor-claude] failed to parse response for ${businessName} (${parseErr.message})`);
+      COMPETITOR_CLAUDE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    // Validate shape.
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.search_queries)) {
+      console.log(`[competitor-claude] failed to parse response for ${businessName} (missing search_queries array)`);
+      COMPETITOR_CLAUDE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    // Validate at least 3 items, all strings.
+    const cleaned = parsed.search_queries
+      .filter((q) => typeof q === 'string' && q.trim().length > 0)
+      .map((q) => q.trim());
+    if (cleaned.length < 3) {
+      console.log(`[competitor-claude] failed to parse response for ${businessName} (only ${cleaned.length} valid queries, need >=3)`);
+      COMPETITOR_CLAUDE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    // Validate none contain businessName — Claude was told not to leak
+    // the subject's name into search terms. If it did, reject the whole
+    // response rather than risk a self-match polluting the pool.
+    const nameLower = String(businessName || '').toLowerCase().trim();
+    if (nameLower.length > 0) {
+      const leak = cleaned.find((q) => q.toLowerCase().includes(nameLower));
+      if (leak) {
+        console.log(`[competitor-claude] failed to parse response for ${businessName} (query "${leak}" contains business name)`);
+        COMPETITOR_CLAUDE_CACHE.set(cacheKey, null);
+        return null;
+      }
+    }
+
+    const result = {
+      business_type: typeof parsed.business_type === 'string' ? parsed.business_type : null,
+      competitor_types: typeof parsed.competitor_types === 'string' ? parsed.competitor_types : null,
+      search_queries: cleaned,
+    };
+
+    console.log(
+      `[competitor-claude] identified for ${businessName}: `
+      + `type=${result.business_type} queries=${JSON.stringify(result.search_queries)}`
+    );
+    COMPETITOR_CLAUDE_CACHE.set(cacheKey, result);
+    return result;
+  } catch (e) {
+    console.log(`[competitor-claude] claude+web failed: ${e.message}`);
     return null;
   }
 }
@@ -2409,6 +2634,16 @@ async function fetchNearbyCompetitors({
   // rural markets.
   // `radiusUsedMeters` = the LARGEST radius that fired — renderReport
   // keys the "limited competition" callout off this value.
+  //
+  // Claude+websearch fallback now fires INSIDE the loop, right after
+  // rung index 5 (50 miles) when pool is still < 5. This catches
+  // pathological-query businesses (like Cricket Wireless whose name-
+  // based fallback returned 0 across all 8 rungs in the prior
+  // architecture) by trading the next two slow rungs (75 mi, 150 mi)
+  // for a single Claude call that produces real category queries.
+  // If Claude doesn't fill the pool, the loop continues to rungs 6
+  // and 7 (75 mi, 150 mi) as a last resort.
+  let claudeResult = null;
   let radiusUsedMeters = RADIUS_LADDER[0];
   for (let stepIdx = 0; stepIdx < RADIUS_LADDER.length; stepIdx++) {
     const stepRadius = RADIUS_LADDER[stepIdx];
@@ -2446,6 +2681,60 @@ async function fetchNearbyCompetitors({
       + (stoppingHere ? ' — done' : ' — expanding...')
     );
     if (pool.length >= POOL_TARGET) break;
+
+    // ── Mid-ladder Claude fallback — fires ONCE after rung 5 (50 mi)
+    // when the deterministic ladder is on track to fail. stepIdx === 5
+    // is the natural single-fire gate; the loop only visits each index
+    // once so we don't need an extra "already fired" flag.
+    if (stepIdx === 5 && pool.length < POOL_TARGET) {
+      console.log(
+        `[competitor-claude] only ${pool.length} found after 50 miles — trying Claude+websearch fallback `
+        + `for ${subjectLabel} in ${city || '(unknown)'} ${state || ''}`
+      );
+      claudeResult = await detectCompetitorQueryWithClaude(
+        businessName || subjectName || '',
+        city,
+        state,
+        naics6,
+        apiKey
+      );
+      if (claudeResult && Array.isArray(claudeResult.search_queries)) {
+        const FALLBACK_RADIUS_METERS = 80467; // 50 miles
+        for (const baseQuery of claudeResult.search_queries) {
+          if (pool.length >= POOL_TARGET) break;
+          const locality = [city, state].filter(Boolean).join(' ');
+          const fullQuery = locality
+            ? `${baseQuery} near ${locality}`
+            : baseQuery;
+          const poolBefore = pool.length;
+          try {
+            const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(fullQuery)}`
+              + `&location=${lat},${lng}`
+              + `&radius=${FALLBACK_RADIUS_METERS}`
+              + `&key=${apiKey}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Places Text HTTP ${res.status}`);
+            const json = await res.json();
+            if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
+              throw new Error(`Places Text status=${json.status} ${json.error_message || ''}`);
+            }
+            const results = json.results || [];
+            for (const r of results) tryAdd(r, 'google_text_claude', FALLBACK_RADIUS_METERS);
+          } catch (err) {
+            console.warn(`[competitor-claude] query "${fullQuery}" failed:`, err.message);
+          }
+          const newCount = pool.length - poolBefore;
+          console.log(
+            `[competitor-claude] query "${fullQuery}" added ${newCount} competitors `
+            + `(pool now ${pool.length})`
+          );
+        }
+        console.log(`[competitor-claude] total after fallback: ${pool.length} competitors`);
+      }
+      // If Claude filled the pool, break out before climbing 75/150mi.
+      if (pool.length >= POOL_TARGET) break;
+      // Else fall through to rungs 6 and 7 (75 mi, 150 mi) as last resort.
+    }
   }
   // Final 150-mile fall-through diagnostic — distinguishes "found just
   // enough at 150mi" from "exhausted ladder".
@@ -2499,6 +2788,14 @@ async function fetchNearbyCompetitors({
 
   console.log(`[competitors] query: "${queryWithLocality}" | radius_used: ${Math.round(radiusUsedMeters / 1609.34)}mi | found: ${poolBeforeDedup} | dedup: ${fuzzed.length} | top5 detail-enriched`);
 
+  // Track whether the Claude+websearch fallback actually contributed
+  // any of the surfaced competitors (any pool entry with source ===
+  // 'google_text_claude'). When it did, surface its business-type
+  // description on the returned value so the report can show
+  // "what type of competitors we looked for" later.
+  const claudeFallbackUsed = pool.some((c) => c.source === 'google_text_claude');
+  const sourcesUsed = claudeFallbackUsed ? ['google_text', 'google_text_claude'] : ['google_text'];
+
   const value = {
     competitor_count: fuzzed.length,
     competitor_median_rating: median(ratings),
@@ -2506,9 +2803,16 @@ async function fetchNearbyCompetitors({
     competitors_top7: enrichedTop7,
     competitors_top5: enrichedTop5,
     competitors_top3: enrichedTop3,
-    sources_used: ['google_text'],
+    sources_used: sourcesUsed,
     search_radius_miles: Math.round(radiusUsedMeters / 1609.34),
     competitor_query: queryWithLocality,
+    // Claude fallback metadata — null when the fallback didn't fire or
+    // returned no usable result. Lets the report later surface phrasing
+    // like "We looked for: cell phone stores, wireless carrier stores,
+    // phone repair shops near Madison WI" when the deterministic query
+    // path didn't find competitors.
+    competitor_query_claude: (claudeResult && claudeResult.business_type) || null,
+    competitor_types_claude: (claudeResult && claudeResult.competitor_types) || null,
   };
   COMPETITOR_CACHE.set(cacheKey, { ts: Date.now(), value });
   return value;

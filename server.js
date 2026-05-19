@@ -248,6 +248,13 @@ app.get('/report/:id', requireAuth, async (req, res) => {
       // re-attach the current array here. If a study was retired
       // between save and replay, citationLine() in renderReport
       // already handles "(not found)" gracefully.
+      // Review-gap velocity, look back from THIS report's created_at
+      // (not "now") so replays of older reports show the velocity that
+      // was true at the time, not a snapshot warped by newer reports.
+      const velocityBusinessName = row.business_name
+        || (payload && payload.data && (payload.data.name || payload.data.business_name))
+        || '';
+      const velocity = await fetchReviewVelocity(row.user_id, velocityBusinessName, row.created_at);
       html = renderReport({
         input: payload && payload.input,
         layer0Result: payload && payload.layer0Result,
@@ -258,8 +265,16 @@ app.get('/report/:id', requireAuth, async (req, res) => {
         ranked: (payload && payload.ranked) || { allTriggered: [], top10: [] },
         enriched: payload && payload.enriched,
         studies: studies.studies,
+        velocity,
+        reportId: idNum,
       });
     }
+    // FIX 3 — Em-dash post-processing for the replay route. The saved
+    // JSON is already dash-cleaned (we run deepCleanDashes in the
+    // /classify pipeline before INSERT), but legacy reports persisted
+    // before that fix still contain em dashes in their enriched fields.
+    // Running cleanDashes on the rendered HTML catches those too.
+    html = cleanDashes(html);
     // Inject the GrowthIM sticky navbar right after <body> so the
     // user always has logo + My Dashboard + Logout above the
     // restored report. Single string replace; PAGE_OPEN uses a
@@ -272,6 +287,124 @@ app.get('/report/:id', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[report/:id] failed:', err.message);
     res.status(500).send('Could not load report');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// GET /report/:id/pdf — generate a printable PDF of a saved report
+// ─────────────────────────────────────────────────────────────────────
+// Uses @sparticuz/chromium + puppeteer-core to launch headless Chromium,
+// load the same HTML the /report/:id replay route renders, and print it
+// to PDF with A4 paper + 15-20mm margins.
+//
+// Auth: same WHERE user_id = req.user.id guard as /report/:id — users
+// can only PDF reports they own. 404 is returned for both nonexistent
+// and not-yours so the IDs don't leak.
+//
+// PDF generation is intentionally NOT passed reportId, so the
+// "Download PDF" button does not appear in the printed PDF itself.
+//
+// Error path: any failure returns a JSON 500 with a user-friendly
+// message. Browser stays open until the finally block closes it.
+app.get('/report/:id/pdf', requireAuth, async (req, res) => {
+  let browser = null;
+  try {
+    const idNum = parseInt(req.params.id, 10);
+    if (!Number.isInteger(idNum) || idNum <= 0) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    const r = await pool.query(
+      `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
+       FROM reports
+       WHERE id = $1 AND user_id = $2`,
+      [idNum, req.user.id]
+    );
+    if (!r.rowCount) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    const row = r.rows[0];
+
+    let payload;
+    try {
+      payload = typeof row.report_json === 'string'
+        ? JSON.parse(row.report_json)
+        : row.report_json;
+    } catch (e) {
+      console.error('[report/:id/pdf] JSON parse failed for report id=' + idNum + ':', e.message);
+      return res.status(500).json({ error: 'Saved report is corrupted' });
+    }
+
+    let html;
+    if (payload && payload._type === 'market_analysis') {
+      html = renderMarketReport(payload);
+    } else {
+      const velocityBusinessName = row.business_name
+        || (payload && payload.data && (payload.data.name || payload.data.business_name))
+        || '';
+      const velocity = await fetchReviewVelocity(row.user_id, velocityBusinessName, row.created_at);
+      html = renderReport({
+        input: payload && payload.input,
+        layer0Result: payload && payload.layer0Result,
+        profile: payload && payload.profile,
+        data: payload && payload.data,
+        redFlags: (payload && payload.redFlags) || [],
+        strengths: (payload && payload.strengths) || [],
+        ranked: (payload && payload.ranked) || { allTriggered: [], top10: [] },
+        enriched: payload && payload.enriched,
+        studies: studies.studies,
+        velocity,
+        // No reportId passed, "Download PDF" button is omitted from
+        // the PDF itself (would be useless in a printed document).
+      });
+    }
+    html = cleanDashes(html);
+
+    // Lazy-load puppeteer + chromium so a missing/broken binary doesn't
+    // crash server startup — only this route fails, with a clean JSON
+    // error to the caller.
+    const chromium = require('@sparticuz/chromium');
+    const puppeteer = require('puppeteer-core');
+
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        bottom: '20mm',
+        left: '15mm',
+        right: '15mm',
+      },
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="GrowthIM-Report.pdf"'
+    );
+    return res.send(pdf);
+  } catch (err) {
+    console.error('[report/:id/pdf] failed:', err && err.message, err && err.stack);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'PDF generation failed. Please try again.' });
+    }
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        console.warn('[report/:id/pdf] browser close failed:', closeErr.message);
+      }
+    }
   }
 });
 
@@ -1783,7 +1916,33 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   }
   sendProgress(sessionId, { step: 7, total: 8, message: 'Building your report...', pct: 90 });
 
-  const html = renderReport({
+  // FIX 3 — Em-dash post-processing. Walk every Claude-generated field
+  // listed by the user and strip em/en/horizontal-bar dashes IN PLACE
+  // before we render or persist. This is the belt-and-braces second
+  // pass behind the ABSOLUTE FORBIDDEN RULE in SYSTEM_PROMPT_A — when
+  // (not if) the model slips a dash through, we catch it here so the
+  // user never sees one. Cleans the enriched object so:
+  //   1. The rendered HTML below is dash-free by construction.
+  //   2. The JSON written to DB at INSERT INTO reports is dash-free,
+  //      so /report/:id replays render dash-free too.
+  if (enriched && typeof enriched === 'object') {
+    if (enriched.priority_actions) deepCleanDashes(enriched.priority_actions);
+    if (enriched.ninety_day_plan) deepCleanDashes(enriched.ninety_day_plan);
+    if (enriched.opportunities) deepCleanDashes(enriched.opportunities);
+    if (enriched.seasonal_strategy) deepCleanDashes(enriched.seasonal_strategy);
+    if (enriched.competitor_deep_dive) deepCleanDashes(enriched.competitor_deep_dive);
+    if (enriched.conquest_page) deepCleanDashes(enriched.conquest_page);
+  }
+
+  // Review-gap velocity, look up the user's most recent prior report for
+  // this same business and pull their previous google_review_count. The
+  // renderReviewGap section uses this to show "your reviews grew from X
+  // to Y in Z days". Wrapped in try/catch inside fetchReviewVelocity so
+  // a DB failure just renders the 30-day fallback instead of crashing.
+  const velocityBusinessName = data.name || data.business_name || input || '';
+  const velocity = await fetchReviewVelocity(userId, velocityBusinessName, new Date());
+
+  let html = renderReport({
     input,
     layer0Result,
     profile,
@@ -1793,7 +1952,11 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     ranked,
     enriched,
     studies: studies.studies,
+    velocity,
   });
+  // Defense in depth — also pass the final HTML string through cleanDashes
+  // in case any dashes came through template chrome or non-cleaned fields.
+  html = cleanDashes(html);
 
   // Citation linter (post-render, warn-only). Walk every cited study_id
   // referenced in the rendered report's top-10 recommendations and verify
@@ -2105,25 +2268,107 @@ function naics2FromNaics6(naics6) {
   return p;
 }
 
+// computeStrengths — returns array of plain-English 2-sentence strengths.
+// Each strength is sentence-1 (what the fact is) + sentence-2 (why it
+// matters). Raw data strings like "127 reviews > 43" are FORBIDDEN —
+// the report must read as English prose for small business owners.
+// Always returns at least one entry; if no measurable strength fires,
+// emits the default "you exist on Google" fallback.
 function computeStrengths(profile, data) {
   const b = profile.benchmarks || {};
   const out = [];
-  if (typeof data.google_rating === 'number' && b.good_rating != null
+
+  // Rating above benchmark — two tiers depending on the delta.
+  if (typeof data.google_rating === 'number' && typeof b.good_rating === 'number'
       && data.google_rating > b.good_rating) {
-    out.push(`rating ${data.google_rating} > ${b.good_rating}`);
+    const rating = data.google_rating.toFixed(1);
+    const benchmark = b.good_rating.toFixed(1);
+    const delta = data.google_rating - b.good_rating;
+    if (delta >= 0.3) {
+      // Well above benchmark (0.3+ stars ahead)
+      out.push(
+        `Your ${rating} star rating is above the industry benchmark of ${benchmark} stars. ` +
+        `This puts you ahead of most competitors in Google search results.`
+      );
+    } else {
+      // Above benchmark but within 0.3
+      out.push(
+        `Your ${rating} star rating meets the industry benchmark of ${benchmark} stars. ` +
+        `Customers searching Google will see you as a trusted business in your area.`
+      );
+    }
   }
-  if (typeof data.google_review_count === 'number' && b.good_review_count != null
+
+  // Reviews above local median (preferred) or above industry benchmark (fallback).
+  // "Nx the local median of M reviews" wording — local median wins when
+  // googlePlaces fed us competitor_median_review_count.
+  if (typeof data.google_review_count === 'number'
+      && typeof data.competitor_median_review_count === 'number'
+      && data.competitor_median_review_count > 0
+      && data.google_review_count > data.competitor_median_review_count) {
+    const reviews = data.google_review_count.toLocaleString('en-US');
+    const median = data.competitor_median_review_count;
+    const ratio = (data.google_review_count / median).toFixed(1);
+    out.push(
+      `Your ${reviews} Google reviews are ${ratio}x the local median of ${median.toLocaleString('en-US')} reviews. ` +
+      `Google is more likely to show your business first in local search results.`
+    );
+  } else if (typeof data.google_review_count === 'number'
+      && typeof b.good_review_count === 'number'
+      && b.good_review_count > 0
       && data.google_review_count > b.good_review_count) {
-    out.push(`${data.google_review_count} reviews > ${b.good_review_count}`);
+    const reviews = data.google_review_count.toLocaleString('en-US');
+    const benchmark = b.good_review_count;
+    const ratio = (data.google_review_count / benchmark).toFixed(1);
+    out.push(
+      `Your ${reviews} Google reviews are ${ratio}x the industry benchmark of ${benchmark.toLocaleString('en-US')} reviews. ` +
+      `Google is more likely to show your business first in local search results.`
+    );
   }
-  if (typeof data.review_recency_days === 'number' && b.review_recency_target_days != null
-      && data.review_recency_days < b.review_recency_target_days) {
-    out.push(`recency ${data.review_recency_days}d < ${b.review_recency_target_days}d`);
+
+  // Hours complete — all 7 days listed on Google.
+  if (data.hours_complete === true) {
+    out.push(
+      `Your business hours are fully listed on Google for all 7 days. ` +
+      `Customers always know when you are open without having to call.`
+    );
   }
-  if (typeof data.photo_count === 'number' && b.photo_count_good != null
+
+  // Website exists — verified (website_exists === true means the URL
+  // actually loaded in our HTTP check, not just that a URL was listed).
+  if (data.website_exists === true) {
+    out.push(
+      `You have a website listed on your Google Business Profile. ` +
+      `Customers can learn about your business before deciding to visit.`
+    );
+  }
+
+  // Open now — Google reports the business as open at fetch time.
+  if (data.is_open_now === true) {
+    out.push(
+      `Your business is currently open and marked as operational on Google. ` +
+      `Customers searching right now can find and visit you today.`
+    );
+  }
+
+  // Photo count above benchmark.
+  if (typeof data.photo_count === 'number' && typeof b.photo_count_good === 'number'
       && data.photo_count > b.photo_count_good) {
-    out.push(`${data.photo_count} photos > ${b.photo_count_good}`);
+    out.push(
+      `You have ${data.photo_count} photos on your Google Business Profile. ` +
+      `Businesses with more photos get significantly more clicks from Google Maps.`
+    );
   }
+
+  // Default fallback — if NOTHING measurable fired, show at least one
+  // strength so the section reads as positive rather than empty.
+  if (out.length === 0) {
+    out.push(
+      `Your business is listed and active on Google Business Profile. ` +
+      `This means customers in your area can find you when searching online.`
+    );
+  }
+
   return out;
 }
 
@@ -2142,6 +2387,72 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// cleanDashes — post-processing safety net for Claude output
+// ─────────────────────────────────────────────────────────────────────
+// SYSTEM_PROMPT_A forbids em/en/horizontal-bar dashes (ABSOLUTE FORBIDDEN
+// RULE at the top of the prompt), but models occasionally slip them in
+// anyway. This is the belt-and-braces second pass that strips them out.
+//
+// Replaces:
+//   " — " → ", "   (em dash with spaces)
+//   "—"   → ", "   (em dash anywhere)
+//   " – " → ", "   (en dash with spaces)
+//   "–"   → ", "   (en dash anywhere)
+//   "―"   → ", "   (horizontal bar)
+// Then collapses any "" / ", ," double commas.
+//
+// NOTE: This regex matches literal Unicode dash characters only. HTML
+// entities like &mdash; used as design separators in template chrome
+// (e.g. "Month 1 &mdash; Foundation") are not touched — those are
+// deliberate UI choices, not AI hallucination.
+function cleanDashes(text) {
+  if (!text || typeof text !== 'string') return text;
+
+  // Em dash with spaces, comma
+  text = text.replace(/ — /g, ', ');
+
+  // Em dash without spaces, comma space
+  text = text.replace(/—/g, ', ');
+
+  // En dash with spaces, comma
+  text = text.replace(/ – /g, ', ');
+
+  // En dash without spaces, comma space
+  text = text.replace(/–/g, ', ');
+
+  // Horizontal bar, comma space
+  text = text.replace(/―/g, ', ');
+
+  // Clean up double commas if any
+  text = text.replace(/, ,/g, ',');
+  text = text.replace(/,,/g, ',');
+
+  return text;
+}
+
+// deepCleanDashes — recursive walker for arrays/objects with nested
+// string values. Mutates in place and returns the same reference so it
+// can be applied to enriched fields before they're persisted to DB.
+// Skips numbers, booleans, null, and undefined.
+function deepCleanDashes(value) {
+  if (value == null) return value;
+  if (typeof value === 'string') return cleanDashes(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      value[i] = deepCleanDashes(value[i]);
+    }
+    return value;
+  }
+  if (typeof value === 'object') {
+    for (const k of Object.keys(value)) {
+      value[k] = deepCleanDashes(value[k]);
+    }
+    return value;
+  }
+  return value;
 }
 
 // PAGE_OPEN / PAGE_CLOSE — chrome shared by every render function
@@ -3050,7 +3361,7 @@ function renderMarketCharts(data, profile, displayName) {
     .replace(/\u2029/g, '\\u2029');
 
   return `
-<h2>Market Intelligence Charts</h2>
+<h2 id="market-charts">Market Intelligence Charts</h2>
 
 <style>
   .gim-charts { margin: 16px 0 32px; }
@@ -3685,7 +3996,7 @@ function renderMarketCharts(data, profile, displayName) {
 }
 
 function renderReport(ctx) {
-  const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies } = ctx;
+  const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies, velocity, reportId } = ctx;
 
   // BUG 21 — Null-safe competitor data. Upstream code can set
   // data.competitors_top5 / competitors_top3 to null when the Nearby
@@ -3816,7 +4127,14 @@ function renderReport(ctx) {
   // the recommendation appears both as a banner AND inline in the
   // priority actions list. Empty string when the business has a
   // working website Google can see.
-  const noWebsiteBanner = !data.website_exists
+  // FIX 1 — only fire when we VERIFIED the URL doesn't load (===false).
+  // Previously this used loose-falsy `!data.website_exists`, which also
+  // matched `null` (the value when the HEAD check itself timed out or
+  // crashed). That misfired for businesses like AmericInn Wyndham where
+  // a long redirect chain made the HEAD check inconclusive even though
+  // the website clearly exists. Tri-state: true=verified, false=verified
+  // missing, null=check inconclusive (no banner in the null case).
+  const noWebsiteBanner = data.website_exists === false
     ? `<div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:8px;padding:24px;margin:0 0 24px 0;font-family:sans-serif;">
   <div style="font-size:20px;font-weight:bold;color:#C2410C;margin-bottom:12px;">&#127760; No Website Found</div>
   <div style="color:#7C2D12;font-size:14px;line-height:1.8;">
@@ -3849,10 +4167,13 @@ function renderReport(ctx) {
 </div>`
     : '';
 
-  // AI Layer 0 verification badge — AMBER when Claude corrected the
-  // NAICS, GREEN when Claude confirmed the original. Sits inline with
-  // the Layer 0 line so the audit trail is visible in every report.
-  let aiVerifyHtml = '';
+  // CHANGE 1 — AI-corrected warning only (the "✓ AI verified" green
+  // confirmation badge has been removed because it's internal noise
+  // for the business owner; they only need to know when Claude
+  // actually OVERRODE the original Layer 0 classification). Rendered
+  // as a standalone block below the header since the previous inline
+  // host (the "Layer 0:" line) has been removed entirely.
+  let aiCorrectedWarning = '';
   if (layer0Result.ai_corrected) {
     const orig = escapeHtml(layer0Result.original_naics || '');
     const fixed = escapeHtml(layer0Result.naics6 || '');
@@ -3867,29 +4188,31 @@ function renderReport(ctx) {
     // Render a distinct "NAICS confirmed, profile re-selected" message
     // in that case so the user sees the audit trail without the
     // misleading "X → X" arrow.
+    let badge;
     if (layer0Result.original_naics && layer0Result.naics6
         && String(layer0Result.original_naics) === String(layer0Result.naics6)) {
-      aiVerifyHtml =
-        `<br><span style="color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
-        `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' — ' + title : ''})</span>` +
-        (reason ? `<br><span style="color:#92400E;font-size:12px;">Reason: ${reason}</span>` : '');
+      badge = `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' — ' + title : ''})`;
     } else {
-      aiVerifyHtml =
-        `<br><span style="color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
-        `⚠ AI corrected: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}</span>` +
-        (reason ? `<br><span style="color:#92400E;font-size:12px;">Reason: ${reason}</span>` : '');
+      badge = `⚠ AI corrected: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}`;
     }
-  } else if (layer0Result.ai_verified) {
-    const fixed = escapeHtml(layer0Result.naics6 || '');
-    aiVerifyHtml =
-      `<br><span style="color:#166534;background:#DCFCE7;padding:2px 8px;border-radius:4px;font-size:13px;">` +
-      `✓ AI verified: ${fixed} confirmed via web search</span>`;
+    aiCorrectedWarning = `<div style="margin: 8px 0 0;">
+  <span style="color:#B45309;background:#FEF3C7;padding:4px 10px;border-radius:4px;font-size:13px;display:inline-block;">${badge}</span>
+  ${reason ? `<div style="color:#92400E;font-size:12px;margin-top:6px;">Reason: ${reason}</div>` : ''}
+</div>`;
   }
 
+  // CHANGE 1 — header simplified. Removed the entire "Layer 0:
+  // <mode> · confidence <X> (places types fallback: ...) (chain: ...)
+  // ✓ AI verified" line which exposed internal classification audit
+  // detail no business owner cares about. The AI-corrected amber
+  // warning above is preserved (renders below the header when Claude
+  // actually overrode the original NAICS). fallbackTag and chainTag
+  // are still computed earlier for any other consumer; just no
+  // longer surfaced in the header copy.
   const headerHtml = `<h1>${escapeHtml(data.name || input)}</h1>
 <p class="meta">${escapeHtml(data.formatted_address || '')}<br>
-${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}<br>
-Layer 0: <code>${escapeHtml(layer0Result.mode)}</code> · confidence ${escapeHtml(layer0Result.confidence)}${fallbackTag}${chainTag}${aiVerifyHtml}</p>`;
+${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}</p>
+${aiCorrectedWarning}`;
 
   const overallHtml = `<div class="status ${statusClass}">${escapeHtml(status.label)}</div>
 ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
@@ -3898,7 +4221,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
   // and the "AI insights unavailable" note (when it didn't).
   let localContextHtml = '';
   if (enriched && enriched.local_context) {
-    localContextHtml = `<div class="callout local-context">
+    localContextHtml = `<div class="callout local-context" id="market-overview">
 <div class="callout-label">LOCAL MARKET CONTEXT</div>
 <p>${escapeHtml(enriched.local_context)}</p>
 </div>`;
@@ -3916,7 +4239,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
 
   let strengthsHtml = '';
   if (strengths.length) {
-    strengthsHtml = `<h2>Strengths</h2><ul>${
+    strengthsHtml = `<h2 id="strengths">Strengths</h2><ul>${
       strengths.map((s) => `<li>${escapeHtml(s)}</li>`).join('')
     }</ul>`;
   }
@@ -4187,67 +4510,33 @@ Total assets: <strong>${assetM}</strong><br>
       : '';
 
     const reportedRadiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : 15;
-    competitiveHtml = `<h2>Competitive context</h2>
-${radiusTierNote()}
-${tierSummary}
+    // CHANGE 2 — competitive context simplified. Stripped the
+    // radius-tier note ("Nearest competitors within 8 miles"), the
+    // tier summary ("1 real competitor to watch · 1 you're beating"),
+    // the threats list ("Real competitors to watch: Silver Star B&B..."),
+    // and the winners list ("✓ You're outperforming Super 8..."). All
+    // of that detail already appears, more usefully, in the dedicated
+    // Competitor Comparison and Competitor Deep Dive sections later
+    // in the report. Three lines remain: same-type count, your rating
+    // vs local median, and your reviews vs local median.
+    competitiveHtml = `<h2 id="competitor-analysis">Competitive context</h2>
 <p>${data.competitor_count} same-type competitors within ${reportedRadiusMi} miles.<br>
 Your rating: <strong>${yourRating}</strong> vs local median: <strong>${medRating}</strong>${ratingFlag}<br>
 Your reviews: <strong>${yourReviews}</strong> vs local median: <strong>${medReviews}</strong>${reviewFlag}</p>
-${threatsHtml}
-${winnersHtml}
 ${fdicBlock}`;
   } else if (fdicBlock) {
     // Bank/finance with no Google competitors but FDIC data — still
     // render the section so the FDIC block has a home.
-    competitiveHtml = `<h2>Competitive context</h2>${fdicBlock}`;
+    competitiveHtml = `<h2 id="competitor-analysis">Competitive context</h2>${fdicBlock}`;
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  // Phase 5+ — Competitor comparison (Claude-enriched, top 5 + analysis)
-  // ──────────────────────────────────────────────────────────────────
-  // Renders only when (a) the Nearby Search returned at least one
-  // competitor AND (b) Claude returned a competitor_analysis object.
-  // Includes a thin-market warning when the search had to expand
-  // beyond the default 5-mile radius.
-  let competitorComparisonHtml = '';
-  const ca = enriched && enriched.competitor_analysis;
-  const top5 = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
-  if (ca && top5.length) {
-    // Reuse the centralized radius-tier note (matches the 15/30/75/150
-    // ladder in googlePlaces.js fetchNearbyCompetitors). Returns '' for
-    // the 15-mile default case so we don't duplicate the callout.
-    const expansionNote = radiusTierNote();
-
-    const better = Array.isArray(ca.what_they_do_better) ? ca.what_they_do_better : [];
-    const win = Array.isArray(ca.what_you_can_win) ? ca.what_you_can_win : [];
-    const summary = ca.summary || '';
-
-    const betterHtml = better.length
-      ? `<h3>What competitors are doing better than you</h3><ul>` + better.map((b) =>
-          `<li><strong>${escapeHtml(b.competitor_name || '—')}:</strong> ${escapeHtml(b.advantage || '')}<br>
-<span class="meta">Evidence: ${escapeHtml(b.evidence || '—')}</span><br>
-<span class="meta">→ <strong>Your move:</strong> ${escapeHtml(b.your_action || '—')}</span></li>`
-        ).join('') + `</ul>`
-      : '';
-
-    const winHtml = win.length
-      ? `<h3>What you can do to win customers from them</h3><ul>` + win.map((w) =>
-          `<li><strong>${escapeHtml(w.opportunity || '—')}</strong><br>
-<span class="meta">Why you can win: ${escapeHtml(w.evidence || '—')}</span><br>
-<span class="meta">→ <strong>Action:</strong> ${escapeHtml(w.action || '—')}</span></li>`
-        ).join('') + `</ul>`
-      : '';
-
-    const summaryHtml = summary
-      ? `<h3>Overall</h3><p>${escapeHtml(summary)}</p>`
-      : '';
-
-    competitorComparisonHtml = `<h2>Competitor comparison <span class="ai-badge" title="Enriched by Claude">AI</span></h2>
-${expansionNote}
-${betterHtml}
-${winHtml}
-${summaryHtml}`;
-  }
+  // Competitor comparison block (formerly Phase 5+) removed entirely
+  // from the report per request. The Claude-enriched analysis it
+  // produced (what they do better / what you can win / summary)
+  // duplicated content already surfaced — better and more
+  // narratively — in the Competitor Deep Dive section below. The
+  // upstream enriched.competitor_analysis field is still generated
+  // by claudeEnricher; it's just no longer rendered here.
 
   let marketHtml = '';
   // Phase 5+ — section also renders if USDA agriculture profile or HUD
@@ -4324,7 +4613,7 @@ Studio: <strong>${studio}/mo</strong><br>
 <small>Source: HUD User FMR API.</small></p>`;
     }
 
-    marketHtml = `<h2>Location &amp; market</h2>
+    marketHtml = `<h2 id="location-market">Location &amp; market</h2>
 <p>Area median household income: <strong>${escapeHtml(income)}</strong><br>
 Local population (ZIP ${escapeHtml(data.census_zip || '')}): <strong>${escapeHtml(pop)}</strong>${hhLine}</p>
 <p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) — study S037.</p>
@@ -4383,7 +4672,7 @@ ${fmrBlock}`;
     opsBits.push(`${status}${num}${ptype}`);
   }
   const opsHtml = opsBits.length
-    ? `<h2>Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
+    ? `<h2 id="operations-brand">Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
     : '';
 
   // Phase 5+ — Demand & seasonality (Open-Meteo + Ticketmaster + BLS)
@@ -4446,16 +4735,16 @@ ${fmrBlock}`;
       ? `Of these ${total} actions, ${highCount} ${highCount === 1 ? 'is' : 'are'} HIGH IMPACT. AI-tagged actions are generated from your real business data.`
       : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT — focus on the highest-ranked items first.`;
     priorityHtml = `<div style="margin-bottom: 16px;">
-  <h2>Priority actions</h2>
+  <h2 id="priority-actions">Priority actions</h2>
   <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
 </div>`;
     priorityHtml += claudePriorityActions.map((a) => renderActionCard(a)).join('');
   } else if (!top10.length) {
     // Path (b) — empty fallback.
-    priorityHtml = `<h2>Priority actions</h2>`;
+    priorityHtml = `<h2 id="priority-actions">Priority actions</h2>`;
     priorityHtml += `<p>No recommendations triggered for this business.</p>`;
   } else {
-    priorityHtml = `<h2>Priority actions</h2>`;
+    priorityHtml = `<h2 id="priority-actions">Priority actions</h2>`;
     const total = top10.length;
     const high = ranked.highImpactCount || 0;
     const summary = high > 0
@@ -4506,6 +4795,38 @@ ${fmrBlock}`;
   const competitorDeepDiveHtml = enriched
     ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors)
     : '';
+  // Conquest page — single-competitor focused "how to win this week"
+  // playbook. Sits between priority actions and competitor deep dive.
+  // Returns '' when enriched.conquest_page is missing/empty so the
+  // section is silently omitted.
+  const conquestPageHtml = enriched
+    ? renderConquestPage(enriched.conquest_page)
+    : '';
+  // Anchor Score — Walk-Up Traffic Potential panel based on existing
+  // location_signals + nearby_venues data. Always renders (shows a
+  // "data not available" notice when location_signals is missing).
+  const anchorScoreHtml = renderAnchorScore(data);
+  // Review Gap Analysis — 4-part section showing the bar comparison vs.
+  // the highest-reviewed competitor, the catch-up calculator table, a
+  // realistic target, and (when ctx.velocity is supplied by the route
+  // handler) the real velocity vs. the user's previous report. Uses
+  // only existing data fields; zero new API calls. Returns '' when
+  // google_review_count is missing so the section is silently omitted.
+  const reviewGapHtml = renderReviewGap(data, velocity);
+  // Google Ranking Estimate — sorts you + competitors by
+  // rating * log10(reviews + 1) and shows where you land in the list.
+  // Pure render function over data.competitors_top5; no new API calls.
+  const rankingEstimateHtml = renderRankingEstimate(data, profile);
+  // Hours Comparison — your weekday_text vs. each competitor's
+  // weekday_text (when present). Shows a compact day-by-day table plus
+  // gap-analysis insights. Falls back to "competitor hours not
+  // available" when competitor weekday_text is absent.
+  const hoursComparisonHtml = renderHoursComparison(data);
+  // Seasonal Calendar — 12-month demand bars built from existing
+  // climate + season signals (peak_month, has_cold_winter,
+  // has_hot_summer, peak_tourist_season, upcoming_events). Pure render
+  // over data; no new API calls.
+  const seasonalCalendarHtml = renderSeasonalCalendar(data);
   const keyRisksHtml = enriched
     ? renderKeyRisks(enriched.key_risks)
     : '';
@@ -4534,26 +4855,32 @@ ${fmrBlock}`;
     const m1 = plan.month_1 || {};
     const m2 = plan.month_2 || {};
     const m3 = plan.month_3 || {};
-    const m1Html = `<div class="rec rec-medium">
-<h3>Month 1${m1.theme ? ` &mdash; ${escapeHtml(m1.theme)}` : ''}</h3>
-${m1.week_1 ? `<p><strong>Week 1:</strong> ${escapeHtml(m1.week_1)}</p>` : ''}
-${m1.week_2 ? `<p><strong>Week 2:</strong> ${escapeHtml(m1.week_2)}</p>` : ''}
-${m1.week_3 ? `<p><strong>Week 3:</strong> ${escapeHtml(m1.week_3)}</p>` : ''}
-${m1.week_4 ? `<p><strong>Week 4:</strong> ${escapeHtml(m1.week_4)}</p>` : ''}
-${m1.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m1.goal)}</p>` : ''}
+    // Helper — render any month card identically (theme + 4 weeks + goal).
+    // Falls back to the legacy `focus` paragraph only when no week_N
+    // fields are present, so old reports persisted before this fix
+    // still render gracefully instead of looking empty.
+    function renderMonthCard(monthNum, m, cls) {
+      if (!m || typeof m !== 'object') return '';
+      const hasWeeks = !!(m.week_1 || m.week_2 || m.week_3 || m.week_4);
+      const weeksHtml = hasWeeks
+        ? [
+            m.week_1 ? `<p><strong>Week 1:</strong> ${escapeHtml(m.week_1)}</p>` : '',
+            m.week_2 ? `<p><strong>Week 2:</strong> ${escapeHtml(m.week_2)}</p>` : '',
+            m.week_3 ? `<p><strong>Week 3:</strong> ${escapeHtml(m.week_3)}</p>` : '',
+            m.week_4 ? `<p><strong>Week 4:</strong> ${escapeHtml(m.week_4)}</p>` : '',
+          ].join('')
+        : (m.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m.focus)}</p>` : '');
+      return `<div class="rec ${cls}">
+<h3>Month ${monthNum}${m.theme ? ` &mdash; ${escapeHtml(m.theme)}` : ''}</h3>
+${weeksHtml}
+${m.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m.goal)}</p>` : ''}
 </div>`;
-    const m2Html = `<div class="rec rec-low">
-<h3>Month 2${m2.theme ? ` &mdash; ${escapeHtml(m2.theme)}` : ''}</h3>
-${m2.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m2.focus)}</p>` : ''}
-${m2.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m2.goal)}</p>` : ''}
-</div>`;
-    const m3Html = `<div class="rec rec-high">
-<h3>Month 3${m3.theme ? ` &mdash; ${escapeHtml(m3.theme)}` : ''}</h3>
-${m3.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m3.focus)}</p>` : ''}
-${m3.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m3.goal)}</p>` : ''}
-</div>`;
-    ninetyDayPlanHtml = `<h2>90-day action plan <span class="ai-badge">AI</span></h2>
-<p class="meta">Three months of progressive depth. Month 1 has weekly steps; months 2 and 3 have month-level focus and goals.</p>
+    }
+    const m1Html = renderMonthCard(1, m1, 'rec-medium');
+    const m2Html = renderMonthCard(2, m2, 'rec-low');
+    const m3Html = renderMonthCard(3, m3, 'rec-high');
+    ninetyDayPlanHtml = `<h2 id="ninety-day-plan">90-day action plan <span class="ai-badge">AI</span></h2>
+<p class="meta">Three months of progressive depth, broken down week by week so you know exactly what to do each Monday.</p>
 ${m1Html}
 ${m2Html}
 ${m3Html}`;
@@ -4599,7 +4926,7 @@ ${cards}`;
   // (only renders when Claude enrichment succeeded and produced opportunities)
   let opportunitiesHtml = '';
   if (enriched && Array.isArray(enriched.opportunities) && enriched.opportunities.length) {
-    opportunitiesHtml = `<h2>Opportunities nobody in your market is doing</h2>
+    opportunitiesHtml = `<h2 id="opportunities">Opportunities nobody in your market is doing</h2>
 <p class="meta">${enriched.opportunities.length} location-specific ideas drawn from 18 opportunity categories. Each names real local entities — events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p>` +
     enriched.opportunities.map((o) => {
       const novelty = o.novelty || '';
@@ -4852,9 +5179,123 @@ ${cards}`;
     data && (data.name || data.business_name) || input
   );
 
-  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
+  // PDF download button — only rendered when reportId is supplied by
+  // the route handler (i.e., in /report/:id replay flow, not in the
+  // live /classify generation flow where the report ID doesn't exist
+  // yet). Also intentionally omitted from the PDF route's own render
+  // so the button doesn't appear in the printed PDF itself.
+  const pdfBtnHtml = reportId
+    ? `<a href="/report/${encodeURIComponent(reportId)}/pdf" class="pdf-btn" style="display: inline-block; background: #2563EB; color: #FFFFFF; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; margin-left: 8px;">&#11015; Download PDF</a>`
+    : '';
+
+  // ── Table of Contents ──────────────────────────────────────────────
+  // Smart TOC: only show links for sections whose HTML actually has
+  // content. The presence/absence is keyed on the same string variables
+  // that get interpolated into the template below — so a section that
+  // skipped rendering (returned '') is also absent from the TOC.
+  //
+  // 3 sections are visually highlighted in blue as "most important":
+  //   - Priority Actions
+  //   - How to Beat Competitors (conquest_page)
+  //   - 90 Day Action Plan
+  //
+  // CSS uses a two-column grid on >=720px viewports and collapses to
+  // single column on mobile via the existing 720px breakpoint already
+  // baked into the rest of the report. Inline-styled to stay
+  // self-contained.
+  function hasContent(html) {
+    return typeof html === 'string' && html.trim().length > 0;
+  }
+  // CHANGE 2 — TOC reordered to match the new section flow.
+  // "Competitor Analysis" entry removed (competitiveHtml still renders
+  // but is brief enough not to warrant a TOC link). "Competitor Deep
+  // Dive" added as a new entry pointing at the merged comparison +
+  // deep-dive block. Priority Actions, Conquest Page, Market Charts,
+  // and Competitor Deep Dive reordered to flow context → tactics.
+  const tocCandidates = [
+    { label: 'Market Overview',         anchor: 'market-overview',    html: localContextHtml,             highlight: false },
+    { label: 'Your Strengths',          anchor: 'strengths',          html: strengthsHtml,                highlight: false },
+    { label: 'Google Ranking Position', anchor: 'ranking-position',   html: rankingEstimateHtml,          highlight: false },
+    { label: 'Review Gap Analysis',     anchor: 'review-gap',         html: reviewGapHtml,                highlight: false },
+    { label: 'Hours Comparison',        anchor: 'hours-comparison',   html: hoursComparisonHtml,          highlight: false },
+    { label: 'Location and Market',     anchor: 'location-market',    html: marketHtml,                   highlight: false },
+    { label: 'Anchor Score',            anchor: 'anchor-score',       html: anchorScoreHtml,              highlight: false },
+    { label: 'Seasonal Calendar',       anchor: 'seasonal-calendar',  html: seasonalCalendarHtml,         highlight: false },
+    { label: 'Operations and Brand',    anchor: 'operations-brand',   html: opsHtml,                      highlight: false },
+    { label: 'How to Beat Competitors', anchor: 'conquest-page',      html: conquestPageHtml,             highlight: true  },
+    { label: 'Market Charts',           anchor: 'market-charts',      html: chartsHtml,                   highlight: false },
+    { label: 'Competitor Deep Dive',    anchor: 'competitor-deep-dive', html: competitorDeepDiveHtml,       highlight: false },
+    { label: 'Priority Actions',        anchor: 'priority-actions',   html: priorityHtml,                 highlight: true  },
+    { label: 'Key Risks',               anchor: 'key-risks',          html: keyRisksHtml,                 highlight: false },
+    { label: '90 Day Action Plan',      anchor: 'ninety-day-plan',    html: ninetyDayPlanHtml,            highlight: true  },
+    { label: 'Opportunities',           anchor: 'opportunities',      html: opportunitiesHtml,            highlight: false },
+  ];
+  const tocVisible = tocCandidates.filter((c) => hasContent(c.html));
+  let tocHtml = '';
+  if (tocVisible.length > 0) {
+    const tocItems = tocVisible.map((c, idx) => {
+      const num = idx + 1;
+      const linkStyle = c.highlight
+        ? 'display: block; padding: 7px 4px; color: #2563EB; font-weight: 700; text-decoration: none; font-size: 14px; border-bottom: 1px solid #F1F5F9;'
+        : 'display: block; padding: 7px 4px; color: #1E293B; font-weight: 500; text-decoration: none; font-size: 14px; border-bottom: 1px solid #F1F5F9;';
+      const numStyle = c.highlight
+        ? 'color: #2563EB; font-weight: 700; margin-right: 8px;'
+        : 'color: #6B7280; font-weight: 600; margin-right: 8px;';
+      return `<a href="#${c.anchor}" style="${linkStyle}"><span style="${numStyle}">${num}.</span>${escapeHtml(c.label)}</a>`;
+    }).join('');
+    tocHtml = `<div class="report-toc" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px; padding: 18px 22px; margin: 20px 0 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+  <div style="font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">Report Contents</div>
+  <div class="report-toc-grid" style="display: grid; grid-template-columns: 1fr; gap: 0 24px;">
+    ${tocItems}
+  </div>
+</div>
+<style>
+  @media (min-width: 720px) {
+    .report-toc-grid { grid-template-columns: 1fr 1fr !important; }
+  }
+  .report-toc a:hover { background: #F8FAFC; }
+  html { scroll-behavior: smooth; }
+</style>`;
+  }
+
+  // ── Back to top button ─────────────────────────────────────────────
+  // Floating navy pill, fixed bottom-right. Hidden by default; the
+  // scroll listener flips display to 'block' once the user scrolls
+  // past 200px. Clicking smooth-scrolls to the top. Pure inline JS
+  // so it works in the static rendered HTML without any external
+  // script tag.
+  const backToTopHtml = `<button id="back-to-top" aria-label="Back to top" style="display: none; position: fixed; bottom: 24px; right: 24px; background: #0F1729; color: #FFFFFF; border: 0; border-radius: 50px; padding: 10px 16px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: 0 4px 12px rgba(15, 23, 41, 0.25); z-index: 1000;">&uarr; Top</button>
+<script>
+(function () {
+  var btn = document.getElementById('back-to-top');
+  if (!btn) return;
+  function onScroll() {
+    if (window.scrollY > 200) {
+      btn.style.display = 'block';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  btn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  onScroll();
+})();
+</script>`;
+
+  // Section flow. Notable choices:
+  //   - competitorComparisonHtml fully REMOVED — its content
+  //     duplicated material already in Competitor Deep Dive.
+  //   - conquestPageHtml, chartsHtml, competitorDeepDiveHtml moved
+  //     UP (slots 18-20) — competitor-tactical sections belong near
+  //     priority actions, not buried at the bottom.
+  //   - priorityHtml moved DOWN (slot 21) — sits AFTER the
+  //     competitor context that motivates each action.
+  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a> ${pdfBtnHtml}
 ${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
+${tocHtml}
 ${localContextHtml}
 ${redFlagsHtml}
 ${strengthsHtml}
@@ -4863,13 +5304,18 @@ ${tripAdvisorHtml}
 ${qualityRatingsHtml}
 ${complianceHtml}
 ${competitiveHtml}
-${competitorComparisonHtml}
+${rankingEstimateHtml}
+${reviewGapHtml}
+${hoursComparisonHtml}
 ${marketHtml}
+${anchorScoreHtml}
 ${demandHtml}
+${seasonalCalendarHtml}
 ${opsHtml}
-${priorityHtml}
+${conquestPageHtml}
 ${chartsHtml}
 ${competitorDeepDiveHtml}
+${priorityHtml}
 ${keyRisksHtml}
 ${executionTemplatesHtml}
 ${ninetyDayPlanHtml}
@@ -4877,7 +5323,8 @@ ${seasonalStrategyHtml}
 ${opportunitiesHtml}
 ${commonProblemsHtml}
 ${categoryCoverageHtml}
-${footerHtml}${PAGE_CLOSE}`;
+${footerHtml}
+${backToTopHtml}${PAGE_CLOSE}`;
 }
 
 function citationLine(id, studies) {
@@ -5303,6 +5750,1159 @@ function renderActionCard(action) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// renderConquestPage — Claude conquest_page renderer
+// ─────────────────────────────────────────────────────────────────────
+// Renders the "how to win against your #1 threat" focused page.
+// Distinct from renderCompetitorDeepDive (which lists ALL threats) —
+// this is a single-competitor focused playbook. Dark navy header with
+// the competitor name, 3 weakness cards with red left border, then
+// a green "steal their customers this week" footer.
+//
+// Schema (enriched.conquest_page):
+//   { competitor_name, competitor_rating, competitor_reviews,
+//     distance_miles, distance_human,
+//     weakness_1: { title, evidence, your_move },
+//     weakness_2: { same },
+//     weakness_3: { same },
+//     how_to_steal_customers }
+//
+// Graceful fallback: returns '' when conquest_page is null/missing/empty
+// so the section is silently omitted (no error, no empty box).
+function renderConquestPage(conquestPage) {
+  if (!conquestPage || typeof conquestPage !== 'object') return '';
+  const compName = String(conquestPage.competitor_name || '').trim();
+  if (!compName) return '';
+
+  // Collect weaknesses 1/2/3 — silently skip any that are missing or
+  // structurally invalid so a partial conquest_page still renders the
+  // valid slots rather than the whole section dropping.
+  const weaknesses = ['weakness_1', 'weakness_2', 'weakness_3']
+    .map((key) => conquestPage[key])
+    .filter((w) => w && typeof w === 'object' && (w.title || w.evidence || w.your_move));
+  if (weaknesses.length === 0) return '';
+
+  const rating = typeof conquestPage.competitor_rating === 'number'
+    ? conquestPage.competitor_rating.toFixed(1)
+    : null;
+  const reviews = typeof conquestPage.competitor_reviews === 'number'
+    ? conquestPage.competitor_reviews.toLocaleString('en-US')
+    : null;
+  const distMiles = typeof conquestPage.distance_miles === 'number'
+    ? conquestPage.distance_miles
+    : null;
+  const distHuman = String(conquestPage.distance_human || '').trim();
+  const steal = String(conquestPage.how_to_steal_customers || '').trim();
+
+  // Header — dark navy block ("HOW TO WIN AGAINST")
+  const ratingReviewLine = (rating != null || reviews != null)
+    ? `<div style="font-size: 14px; color: #94A3B8; margin-top: 12px;">${
+        rating != null ? `<span style="color: #FCD34D;">&starf;</span> <strong style="color: #F1F5F9;">${escapeHtml(rating)}</strong>` : ''
+      }${
+        rating != null && reviews != null ? '<span style="color: #475569;"> &middot; </span>' : ''
+      }${
+        reviews != null ? `<strong style="color: #F1F5F9;">${escapeHtml(reviews)}</strong> reviews` : ''
+      }</div>`
+    : '';
+  const distanceLine = (distMiles != null || distHuman)
+    ? `<div style="font-size: 14px; color: #94A3B8; margin-top: 4px;">${
+        distMiles != null ? `<strong style="color: #F1F5F9;">${escapeHtml(distMiles.toFixed(1))} miles</strong> away` : ''
+      }${
+        distMiles != null && distHuman ? ' &mdash; ' : ''
+      }${
+        distHuman ? `<em style="color: #CBD5E1;">${escapeHtml(distHuman)}</em>` : ''
+      }</div>`
+    : '';
+
+  const headerHtml = `<div style="background: #0F1729; color: white; padding: 28px 24px; border-radius: 10px 10px 0 0; border-bottom: 3px solid #1E293B;">
+  <div style="font-size: 12px; color: #10B981; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;">&#127919; How to win against</div>
+  <div style="font-size: 28px; font-weight: 700; color: #F8FAFC; line-height: 1.2;">${escapeHtml(compName)}</div>
+  ${ratingReviewLine}
+  ${distanceLine}
+</div>`;
+
+  // 3 weakness cards — red left border, blue "YOUR MOVE" label
+  const weaknessHtml = weaknesses.map((w, idx) => {
+    const title = String(w.title || '').trim();
+    const evidence = String(w.evidence || '').trim();
+    const yourMove = String(w.your_move || '').trim();
+    return `<div style="border-left: 4px solid #DC2626; padding: 18px 22px; margin: 0; background: #FFFFFF; border-bottom: 1px solid #F1F5F9;">
+  <div style="font-weight: 700; font-size: 16px; color: #0F1729; margin-bottom: 8px;">
+    <span style="display: inline-block; background: #FEE2E2; color: #991B1B; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle;">WEAKNESS ${idx + 1}</span>
+    ${escapeHtml(title)}
+  </div>
+  ${evidence ? `<div style="font-size: 13px; color: #6B7280; font-style: italic; margin: 10px 0; padding: 10px 14px; background: #F9FAFB; border-radius: 6px; line-height: 1.6;">${escapeHtml(evidence)}</div>` : ''}
+  ${yourMove ? `<div style="margin-top: 10px;">
+    <div style="font-size: 11px; font-weight: 700; color: #1D4ED8; letter-spacing: 1px; margin-bottom: 4px;">YOUR MOVE:</div>
+    <div style="font-size: 14px; color: #1E293B; line-height: 1.6;">${escapeHtml(yourMove)}</div>
+  </div>` : ''}
+</div>`;
+  }).join('');
+
+  // Footer — green "STEAL THEIR CUSTOMERS THIS WEEK" callout
+  const stealHtml = steal
+    ? `<div style="background: linear-gradient(135deg, #064E3B 0%, #065F46 100%); color: white; padding: 22px 24px; border-radius: 0 0 10px 10px;">
+  <div style="font-size: 12px; font-weight: 700; color: #6EE7B7; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;">&#128640; Steal their customers this week</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #ECFDF5;">${escapeHtml(steal)}</div>
+</div>`
+    : `<div style="background: #F8FAFC; padding: 16px 24px; border-radius: 0 0 10px 10px; border-top: 1px solid #E5E7EB;"></div>`;
+
+  return `<div class="section">
+  <h2 id="conquest-page">Conquest page</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 16px;">Your #1 threat &mdash; and exactly how to take their customers this week.</p>
+  <div style="box-shadow: 0 4px 12px rgba(15, 23, 41, 0.08); border-radius: 10px; overflow: hidden;">
+    ${headerHtml}
+    ${weaknessHtml}
+    ${stealHtml}
+  </div>
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// calculateAnchorScore — Walk-Up Traffic Potential score (0-100)
+// ─────────────────────────────────────────────────────────────────────
+// Uses ONLY existing data fields already in data.location_signals.*
+// and data.nearby_venues[]. No new API calls.
+//
+// Formula (research-doc Q8):
+//   score = (anchor_tenant_count × 8)               // 0-80
+//         + (has_transit_nearby ? 15 : 0)           // 0 or 15
+//         + (nearest_transit_meters != null
+//              ? max(0, 15 - (nearest_transit_meters / 50))
+//              : 0)                                 // 0-15 (linear decay)
+//         + min(10, nearby_venues.length)           // 0-10
+//   capped at 100, rounded to 1 decimal
+//
+// Returns:
+//   {
+//     score: number (0-100, 1 decimal),
+//     band: 'Anchor Magnet' | 'Walkable Strip' | 'Adjacent to Traffic' | 'Destination Only',
+//     bandColor: hex string for pill badge,
+//     contributors: { anchors, transit, transitMeters, venues },
+//     missing: true if location_signals data is absent
+//   }
+//
+// Returns { missing: true } when location_signals is not available so
+// the renderer can show a graceful "data not available" message
+// instead of crashing.
+function calculateAnchorScore(data) {
+  if (!data) return { missing: true };
+  const sig = data.location_signals;
+  const venues = Array.isArray(data.nearby_venues) ? data.nearby_venues : [];
+
+  // If we have NO location signals AND NO Foursquare venues, treat as missing.
+  // (Either one alone is enough to compute a meaningful score.)
+  if ((!sig || typeof sig !== 'object') && venues.length === 0) {
+    return { missing: true };
+  }
+
+  const anchorCount = (sig && typeof sig.anchor_tenant_count === 'number')
+    ? sig.anchor_tenant_count
+    : 0;
+  const anchorTenants = (sig && Array.isArray(sig.anchor_tenants))
+    ? sig.anchor_tenants.filter((n) => typeof n === 'string' && n.trim().length > 0)
+    : [];
+  const hasTransit = !!(sig && sig.has_transit_nearby === true);
+  const transitMeters = (sig && typeof sig.nearest_transit_meters === 'number')
+    ? sig.nearest_transit_meters
+    : null;
+  const venueCount = venues.length;
+
+  const anchorPoints = anchorCount * 8;
+  const transitBoolPoints = hasTransit ? 15 : 0;
+  const transitDecayPoints = transitMeters != null
+    ? Math.max(0, 15 - (transitMeters / 50))
+    : 0;
+  const venuePoints = Math.min(10, venueCount);
+
+  let score = anchorPoints + transitBoolPoints + transitDecayPoints + venuePoints;
+  if (score > 100) score = 100;
+  if (score < 0) score = 0;
+  score = Math.round(score * 10) / 10;
+
+  let band, bandColor;
+  if (score >= 80) {
+    band = 'Anchor Magnet';
+    bandColor = '#10B981'; // green
+  } else if (score >= 50) {
+    band = 'Walkable Strip';
+    bandColor = '#3B82F6'; // blue
+  } else if (score >= 25) {
+    band = 'Adjacent to Traffic';
+    bandColor = '#F59E0B'; // orange
+  } else {
+    band = 'Destination Only';
+    bandColor = '#DC2626'; // red
+  }
+
+  return {
+    score,
+    band,
+    bandColor,
+    contributors: {
+      anchors: anchorTenants,
+      anchorCount,
+      transit: hasTransit,
+      transitMeters,
+      venueCount,
+    },
+    missing: false,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderAnchorScore — Walk-Up Traffic Potential panel
+// ─────────────────────────────────────────────────────────────────────
+// White card with score display, contributing factors, plain-English
+// "what this means for you" guidance keyed to the score band, and a
+// disclaimer that this is a location-quality estimate (not real-time
+// foot traffic).
+//
+// Graceful fallback: when location_signals is missing, shows a small
+// "Location data not available for this business type" notice instead
+// of crashing.
+function renderAnchorScore(data) {
+  const result = calculateAnchorScore(data);
+
+  if (result.missing) {
+    return `<div class="section">
+  <h2 id="anchor-score">Walk-up traffic potential</h2>
+  <p style="color: #6B7280; font-size: 13px;">Location data not available for this business type.</p>
+</div>`;
+  }
+
+  const { score, band, bandColor, contributors } = result;
+  const { anchors, transit, transitMeters, venueCount } = contributors;
+
+  // "What drives your score" — only show factors that actually contribute
+  const driverLines = [];
+  if (anchors.length > 0) {
+    const top3 = anchors.slice(0, 3);
+    driverLines.push(`<div style="font-size: 14px; color: #374151; margin-bottom: 8px;">
+      <span style="font-size: 16px;">&#128205;</span>
+      <strong>${escapeHtml(top3.join(', '))}</strong>${anchors.length > 3 ? ` and ${anchors.length - 3} more` : ''} nearby
+      <span style="color: #6B7280;"> &rarr; draws steady foot traffic</span>
+    </div>`);
+  }
+  if (transit) {
+    const transitDetail = transitMeters != null ? ` (${transitMeters}m away)` : '';
+    driverLines.push(`<div style="font-size: 14px; color: #374151; margin-bottom: 8px;">
+      <span style="font-size: 16px;">&#128652;</span>
+      <strong>Transit stop within 400m</strong>${escapeHtml(transitDetail)}
+      <span style="color: #6B7280;"> &rarr; constant pedestrian stream</span>
+    </div>`);
+  }
+  if (venueCount > 0) {
+    driverLines.push(`<div style="font-size: 14px; color: #374151; margin-bottom: 8px;">
+      <span style="font-size: 16px;">&#127978;</span>
+      <strong>${venueCount} popular venue${venueCount === 1 ? '' : 's'} nearby</strong>
+      <span style="color: #6B7280;"> &rarr; active commercial area</span>
+    </div>`);
+  }
+
+  const driversHtml = driverLines.length
+    ? `<div style="margin-top: 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">What drives your score</div>
+        ${driverLines.join('')}
+      </div>`
+    : '';
+
+  // "What this means for you" — band-specific guidance
+  const meaningMap = {
+    'Anchor Magnet': "Hundreds of potential customers pass within 500 meters of your door every day. Your marketing goal is CAPTURE not DISCOVERY. Use sidewalk signage, window displays, and Google Maps to intercept passing traffic.",
+    'Walkable Strip': "Your location gets moderate foot traffic from nearby anchors. Focus on making your storefront visible and inviting to people passing by.",
+    'Adjacent to Traffic': "Some foot traffic passes nearby but customers must make a small detour to reach you. Focus on clear signage and Google Maps optimization so people can easily find you.",
+    'Destination Only': "Customers must specifically decide to visit you. Focus on online presence, Google reviews, and word of mouth marketing rather than walk-in traffic.",
+  };
+  const meaningText = meaningMap[band] || '';
+  const meaningHtml = meaningText
+    ? `<div style="background: #F8FAFC; border-left: 3px solid ${bandColor}; padding: 14px 18px; border-radius: 0 6px 6px 0; margin-top: 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">What this means for you</div>
+        <div style="font-size: 14px; line-height: 1.7; color: #1E293B;">${escapeHtml(meaningText)}</div>
+      </div>`
+    : '';
+
+  return `<div class="section">
+  <h2 id="anchor-score">Walk-up traffic potential</h2>
+  <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;">
+      <div style="font-size: 48px; font-weight: 700; color: #0F1729; line-height: 1;">${escapeHtml(score.toString())}</div>
+      <div style="font-size: 16px; color: #6B7280;">out of 100</div>
+      <div style="display: inline-block; background: ${bandColor}; color: white; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 999px; letter-spacing: 0.5px;">${escapeHtml(band)}</div>
+    </div>
+    ${driversHtml}
+    ${meaningHtml}
+    <div style="font-size: 11px; color: #9CA3AF; margin-top: 18px; padding-top: 14px; border-top: 1px solid #F1F5F9; line-height: 1.5;">
+      Score based on anchor stores, transit access, and venue density within 500m. This is a location quality estimate, not a real-time visitor count.
+    </div>
+  </div>
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// fetchReviewVelocity — DB lookup for the user's prior review snapshot
+// ─────────────────────────────────────────────────────────────────────
+// Reads the user's most recent prior report for the same business and
+// extracts data.google_review_count from the saved report_json. Returns
+// { previousCount, daysAgo, createdAt } when a usable prior report is
+// found, or null otherwise (no prior report, DB error, or same-day
+// regeneration with no actual time gap).
+//
+// `beforeDate` lets the /report/:id replay route look back relative to
+// the report being viewed, so velocity stays accurate when replaying an
+// older saved report. /classify passes new Date() to look back from now.
+//
+// All DB errors are caught and logged; the renderer treats null as
+// "no velocity data available" and shows the 30-day fallback.
+async function fetchReviewVelocity(userId, businessName, beforeDate) {
+  if (!userId || !businessName) return null;
+  if (!pool) return null;
+  try {
+    const upperBound = beforeDate || new Date();
+    const result = await pool.query(
+      `SELECT report_json, created_at
+       FROM reports
+       WHERE user_id = $1
+         AND business_name ILIKE $2
+         AND created_at < $3
+       ORDER BY created_at DESC
+       LIMIT 5`,
+      [userId, '%' + businessName + '%', upperBound]
+    );
+    for (const row of result.rows) {
+      let obj;
+      try {
+        obj = (typeof row.report_json === 'string')
+          ? JSON.parse(row.report_json)
+          : row.report_json;
+      } catch (e) {
+        continue;
+      }
+      const prevCount = obj && obj.data && obj.data.google_review_count;
+      if (typeof prevCount === 'number' && prevCount > 0) {
+        const daysAgo = Math.round(
+          (new Date(upperBound).getTime() - new Date(row.created_at).getTime())
+          / (1000 * 60 * 60 * 24)
+        );
+        if (daysAgo >= 1) {
+          return { previousCount: prevCount, daysAgo, createdAt: row.created_at };
+        }
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('[review-velocity] DB query failed:', err.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderReviewGap — "Review Gap & Catch-Up Calculator" section
+// ─────────────────────────────────────────────────────────────────────
+// Four parts:
+//   1. Bar comparison (you vs. the highest-reviewed competitor)
+//   2. Catch-up calculator table (months at 5/10/25/50 reviews per month)
+//   3. Realistic target — beat the local median, not the leader
+//   4. Real velocity — diff from the user's previous report (when available)
+//
+// Uses ONLY existing data fields. Zero new API calls.
+//
+// Graceful fallbacks:
+//   - google_review_count null/missing, return '' (section omitted)
+//   - No competitor with more reviews, skip Parts 1-2, show only the
+//     realistic-target and velocity parts
+//   - realistic_target already met, "you already meet the benchmark"
+//   - No prior report, "generate next report in 30 days" message
+function renderReviewGap(data, velocity) {
+  if (!data) return '';
+  const yourReviews = data.google_review_count;
+  if (typeof yourReviews !== 'number' || yourReviews < 0) return '';
+
+  const median = typeof data.competitor_median_review_count === 'number'
+    ? data.competitor_median_review_count
+    : null;
+
+  // Highest-threat competitor for the review-count comparison is the
+  // one with the MOST reviews. googlePlaces.js sorts competitors_top5
+  // by review_count desc upstream, so index 0 is the leader. Fall back
+  // to competitors_top3[0] if top5 isn't populated.
+  let topCompetitor = null;
+  if (Array.isArray(data.competitors_top5) && data.competitors_top5.length > 0) {
+    topCompetitor = data.competitors_top5[0];
+  } else if (Array.isArray(data.competitors_top3) && data.competitors_top3.length > 0) {
+    topCompetitor = data.competitors_top3[0];
+  }
+  const hasCompetitor = !!(topCompetitor
+    && typeof topCompetitor.review_count === 'number'
+    && topCompetitor.review_count > yourReviews);
+
+  // Realistic target, beat the local median by 50%, or your_reviews+50,
+  // whichever is higher. When no median is available, fall back to +50.
+  const realisticTarget = (median != null && median > 0)
+    ? Math.max(Math.round(median * 1.5), yourReviews + 50)
+    : yourReviews + 50;
+
+  // ── PART 1 + PART 2 — bar comparison + catch-up table ──────────────
+  let gapHtml = '';
+  let catchUpHtml = '';
+  if (hasCompetitor) {
+    const compReviews = topCompetitor.review_count;
+    const compName = topCompetitor.name || 'Top competitor';
+    const gap = compReviews - yourReviews;
+    const maxBar = compReviews;
+    const yourPct = Math.max(2, Math.round((yourReviews / maxBar) * 100));
+
+    gapHtml = `<div style="margin: 16px 0;">
+  <div style="display: grid; grid-template-columns: 140px 1fr 90px; gap: 12px; align-items: center; font-size: 13px; margin-bottom: 10px;">
+    <div style="font-weight: 600; color: #1E293B;">You</div>
+    <div style="background: #F1F5F9; border-radius: 6px; overflow: hidden; height: 22px;">
+      <div style="background: #2563EB; height: 100%; width: ${yourPct}%; border-radius: 6px;"></div>
+    </div>
+    <div style="font-weight: 700; color: #2563EB; text-align: right;">${yourReviews.toLocaleString('en-US')}</div>
+  </div>
+  <div style="display: grid; grid-template-columns: 140px 1fr 90px; gap: 12px; align-items: center; font-size: 13px; margin-bottom: 10px;">
+    <div style="font-weight: 600; color: #1E293B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(compName)}">${escapeHtml(compName)}</div>
+    <div style="background: #F1F5F9; border-radius: 6px; overflow: hidden; height: 22px;">
+      <div style="background: #94A3B8; height: 100%; width: 100%; border-radius: 6px;"></div>
+    </div>
+    <div style="font-weight: 700; color: #475569; text-align: right;">${compReviews.toLocaleString('en-US')}</div>
+  </div>
+  <div style="display: grid; grid-template-columns: 140px 1fr 90px; gap: 12px; align-items: center; font-size: 13px; padding-top: 6px; border-top: 1px dashed #E5E7EB;">
+    <div style="font-weight: 700; color: #DC2626;">Gap</div>
+    <div style="font-size: 13px; color: #6B7280;">${gap.toLocaleString('en-US')} reviews behind</div>
+    <div></div>
+  </div>
+</div>
+<p style="font-size: 14px; line-height: 1.6; color: #1E293B; margin: 14px 0 0;">You are ${gap.toLocaleString('en-US')} reviews behind ${escapeHtml(compName)}. This gap means ${escapeHtml(compName)} appears above you in Google search results for most customers searching in your area.</p>`;
+
+    const rates = [
+      { rate: 5, label: '5 reviews per month' },
+      { rate: 10, label: '10 reviews per month' },
+      { rate: 25, label: '25 reviews per month' },
+      { rate: 50, label: '50 reviews per month' },
+    ];
+    const rows = rates.map((r) => {
+      const months = Math.ceil(gap / r.rate);
+      let statusIcon, statusLabel, color, bg;
+      if (months > 36) {
+        statusIcon = '\u{1F534}'; statusLabel = 'Too slow';
+        color = '#991B1B'; bg = '#FEE2E2';
+      } else if (months >= 13) {
+        statusIcon = '\u{1F7E1}'; statusLabel = 'Slow';
+        color = '#92400E'; bg = '#FEF3C7';
+      } else if (months >= 7) {
+        statusIcon = '\u{1F7E2}'; statusLabel = 'Realistic';
+        color = '#065F46'; bg = '#D1FAE5';
+      } else {
+        statusIcon = '\u{2705}'; statusLabel = 'Fast';
+        color = '#1E40AF'; bg = '#DBEAFE';
+      }
+      return `<tr>
+  <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; font-size: 14px; color: #1E293B;">${escapeHtml(r.label)}</td>
+  <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; font-size: 14px; color: #1E293B; text-align: right;">${months} ${months === 1 ? 'month' : 'months'}</td>
+  <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; text-align: right;"><span style="display: inline-block; background: ${bg}; color: ${color}; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;">${statusIcon} ${escapeHtml(statusLabel)}</span></td>
+</tr>`;
+    }).join('');
+
+    catchUpHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">How long to close the gap?</h3>
+<div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
+  <table style="width: 100%; border-collapse: collapse; font-family: inherit;">
+    <thead>
+      <tr style="background: #F8FAFC;">
+        <th style="padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #E5E7EB;">Reviews per month</th>
+        <th style="padding: 10px 14px; text-align: right; font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #E5E7EB;">Months to goal</th>
+        <th style="padding: 10px 14px; text-align: right; font-size: 12px; font-weight: 700; color: #6B7280; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #E5E7EB;">Status</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
+  } else {
+    // No competitor with more reviews than us, skip Parts 1 and 2.
+    gapHtml = `<p style="font-size: 14px; line-height: 1.6; color: #1E293B;">You currently have <strong>${yourReviews.toLocaleString('en-US')}</strong> Google reviews. We did not find any nearby competitors with more reviews than you, so there is no review gap to close right now.</p>`;
+  }
+
+  // ── PART 3 — realistic target ──────────────────────────────────────
+  let targetHtml = '';
+  if (realisticTarget <= yourReviews) {
+    targetHtml = `<div style="background: #ECFDF5; border-left: 3px solid #10B981; padding: 14px 18px; border-radius: 0 6px 6px 0; margin-top: 20px;">
+  <div style="font-size: 14px; font-weight: 600; color: #065F46; margin-bottom: 6px;">You already meet the local review benchmark.</div>
+  <div style="font-size: 13px; color: #1E293B; line-height: 1.6;">Focus on maintaining your review velocity by continuing to ask customers regularly.</div>
+</div>`;
+  } else {
+    const needed = realisticTarget - yourReviews;
+    const weeks = Math.ceil(needed / 14); // 2 reviews/day * 7 days
+    let openingLine;
+    if (hasCompetitor) {
+      const compReviews = topCompetitor.review_count;
+      const compName = topCompetitor.name || 'Top competitor';
+      openingLine = `You do not need to match ${escapeHtml(compName)}'s ${compReviews.toLocaleString('en-US')} reviews to compete. Reaching <strong>${realisticTarget.toLocaleString('en-US')} reviews</strong> puts you above the local median and makes you appear equally credible to first-time Google searchers.`;
+    } else {
+      openingLine = `Reaching <strong>${realisticTarget.toLocaleString('en-US')} reviews</strong> puts you above the local benchmark and makes you appear credible to first-time Google searchers.`;
+    }
+    targetHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">A realistic target</h3>
+<div style="background: #EFF6FF; border-left: 3px solid #2563EB; padding: 14px 18px; border-radius: 0 6px 6px 0;">
+  <p style="margin: 0 0 8px; font-size: 14px; line-height: 1.6; color: #1E293B;">${openingLine}</p>
+  <p style="margin: 0 0 8px; font-size: 14px; line-height: 1.6; color: #1E293B;">That is only <strong>${needed.toLocaleString('en-US')} more ${needed === 1 ? 'review' : 'reviews'}</strong> away.</p>
+  <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #1E293B;">At 2 review requests per day that takes <strong>${weeks} ${weeks === 1 ? 'week' : 'weeks'}</strong> from today.</p>
+</div>`;
+  }
+
+  // ── PART 4 — real velocity from prior report ───────────────────────
+  let velocityHtml = '';
+  if (velocity && typeof velocity.previousCount === 'number' && typeof velocity.daysAgo === 'number' && velocity.daysAgo >= 1) {
+    const oldCount = velocity.previousCount;
+    const days = velocity.daysAgo;
+    const newCount = yourReviews;
+    const diff = newCount - oldCount;
+    const reviewsPerDay = days > 0 ? diff / days : 0;
+    const reviewsPerMonth = reviewsPerDay * 30;
+    const dayWord = days === 1 ? 'day' : 'days';
+
+    let lineHtml, calloutBg, calloutBorder;
+    if (diff > 0) {
+      // Growth. Compare monthly rate against a healthy threshold (5/month
+      // matches the lowest tier in the catch-up table, anything below is
+      // "Too slow", so we treat that as the green/orange split).
+      const baseLine = `Since your last report ${days} ${dayWord} ago, your reviews grew from ${oldCount.toLocaleString('en-US')} to ${newCount.toLocaleString('en-US')}. That is <strong>${diff.toLocaleString('en-US')} new ${diff === 1 ? 'review' : 'reviews'} in ${days} ${dayWord}</strong>.`;
+      if (reviewsPerMonth >= 5) {
+        calloutBg = '#D1FAE5'; calloutBorder = '#10B981';
+        lineHtml = `${baseLine} <span style="color: #065F46; font-weight: 600;">You are growing faster than your competitors.</span>`;
+      } else {
+        calloutBg = '#FEF3C7'; calloutBorder = '#F59E0B';
+        lineHtml = `${baseLine} <span style="color: #92400E; font-weight: 600;">Your competitors may be growing faster. Keep asking for reviews daily.</span>`;
+      }
+    } else if (diff === 0) {
+      calloutBg = '#FEF3C7'; calloutBorder = '#F59E0B';
+      lineHtml = `Your review count is unchanged since your last report ${days} ${dayWord} ago (${newCount.toLocaleString('en-US')} reviews). <span style="color: #92400E; font-weight: 600;">Keep asking customers for reviews daily.</span>`;
+    } else {
+      calloutBg = '#FEF3C7'; calloutBorder = '#F59E0B';
+      lineHtml = `Your review count is down ${Math.abs(diff).toLocaleString('en-US')} since your last report ${days} ${dayWord} ago (${oldCount.toLocaleString('en-US')} to ${newCount.toLocaleString('en-US')}). <span style="color: #92400E; font-weight: 600;">This is unusual. Some older reviews may have been removed by Google.</span>`;
+    }
+
+    velocityHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">Your real review velocity</h3>
+<div style="background: ${calloutBg}; border-left: 3px solid ${calloutBorder}; padding: 14px 18px; border-radius: 0 6px 6px 0;">
+  <div style="font-size: 14px; line-height: 1.7; color: #1E293B;">${lineHtml}</div>
+</div>`;
+  } else {
+    velocityHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">Your real review velocity</h3>
+<div style="background: #F8FAFC; border-left: 3px solid #94A3B8; padding: 14px 18px; border-radius: 0 6px 6px 0;">
+  <div style="font-size: 14px; line-height: 1.6; color: #475569;">Generate your next report in 30 days to see your real review velocity compared to today.</div>
+</div>`;
+  }
+
+  return `<div class="section">
+  <h2 id="review-gap">Review gap analysis</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 14px;">How far behind are you and how to catch up.</p>
+  ${gapHtml}
+  ${catchUpHtml}
+  ${targetHtml}
+  ${velocityHtml}
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderRankingEstimate — estimated Google search position
+// ─────────────────────────────────────────────────────────────────────
+// Sorts you + competitors by score = rating * log10(reviews + 1) and
+// shows where you land. Uses ONLY data fields already in the bundle.
+//
+// Layout: dark navy headline card, ranked list of all businesses with
+// YOU highlighted in blue, position-specific guidance text, "how many
+// more reviews to move up one position" calculator, mandatory legal
+// disclaimer at the bottom.
+//
+// Graceful fallback: returns the "not enough data" notice when
+// google_rating is missing or competitors_top5 is empty.
+function renderRankingEstimate(data, profile) {
+  if (!data) return '';
+  const yourRating = typeof data.google_rating === 'number' ? data.google_rating : null;
+  const yourReviews = typeof data.google_review_count === 'number' ? data.google_review_count : 0;
+  const competitors = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
+
+  if (yourRating == null || competitors.length === 0) {
+    return `<div class="section">
+  <h2 id="ranking-position">Your Google search position</h2>
+  <p style="color: #6B7280; font-size: 14px;">Not enough competitor data to estimate your Google ranking.</p>
+</div>`;
+  }
+
+  // CHANGE 3 — business-type label sourced from the profile registry
+  // (profile.name is the same human label already shown in the report
+  // header). Lowercased and trimmed for the inline search-example.
+  // City sourced from data.city (set during address parsing); falls
+  // back to "your area" when unparseable.
+  const bizTypeRaw = (profile && typeof profile.name === 'string' && profile.name.trim())
+    ? profile.name.trim()
+    : 'your business type';
+  const bizType = bizTypeRaw.toLowerCase();
+  const cityLabel = (typeof data.city === 'string' && data.city.trim())
+    ? data.city.trim()
+    : 'your area';
+
+  // Score function — rating × log10(reviews + 1). Reviews dominate at
+  // scale, but a higher rating still tips a tie when review counts are
+  // close.
+  function score(rating, reviews) {
+    return rating * Math.log10(reviews + 1);
+  }
+
+  // Build the combined list (you + competitors). Filter out competitor
+  // entries missing rating or review_count so the sort is well-defined.
+  const allEntries = competitors
+    .filter((c) => c && typeof c.rating === 'number' && typeof c.review_count === 'number')
+    .map((c) => ({
+      name: c.name || 'Unknown',
+      rating: c.rating,
+      reviews: c.review_count,
+      isYou: false,
+      score: score(c.rating, c.review_count),
+    }));
+  allEntries.push({
+    name: 'YOU',
+    rating: yourRating,
+    reviews: yourReviews,
+    isYou: true,
+    score: score(yourRating, yourReviews),
+  });
+
+  // Sort by score descending — position 1 is the best score.
+  allEntries.sort((a, b) => b.score - a.score);
+
+  // 1-indexed position of the user.
+  const yourPosition = allEntries.findIndex((e) => e.isYou) + 1;
+
+  // Ranked list HTML. YOU row is highlighted blue with a 4px left
+  // accent; competitor rows are plain white with a thin separator.
+  const listHtml = allEntries.map((e, idx) => {
+    const pos = idx + 1;
+    const rating = e.rating.toFixed(1);
+    const reviews = e.reviews.toLocaleString('en-US');
+    if (e.isYou) {
+      return `<div style="display: grid; grid-template-columns: 50px 1fr 80px 110px; gap: 12px; align-items: center; padding: 14px 16px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 6px; margin-bottom: 6px;">
+  <div style="font-weight: 700; color: #2563EB; font-size: 16px;">#${pos}</div>
+  <div style="font-weight: 700; color: #2563EB;">YOU</div>
+  <div style="font-size: 13px; color: #1E293B;"><span style="color: #FCD34D;">&starf;</span> ${escapeHtml(rating)}</div>
+  <div style="font-size: 13px; color: #1E293B; text-align: right;">${escapeHtml(reviews)} reviews</div>
+</div>`;
+    }
+    return `<div style="display: grid; grid-template-columns: 50px 1fr 80px 110px; gap: 12px; align-items: center; padding: 12px 16px; background: #FFFFFF; border-bottom: 1px solid #F1F5F9;">
+  <div style="font-weight: 700; color: #6B7280; font-size: 14px;">#${pos}</div>
+  <div style="color: #1E293B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</div>
+  <div style="font-size: 13px; color: #6B7280;"><span style="color: #FCD34D;">&starf;</span> ${escapeHtml(rating)}</div>
+  <div style="font-size: 13px; color: #6B7280; text-align: right;">${escapeHtml(reviews)} reviews</div>
+</div>`;
+  }).join('');
+
+  // Position-specific guidance copy.
+  let guidance;
+  if (yourPosition === 1) {
+    guidance = "You rank first in Google search for your area. Maintain your reviews and rating to stay here.";
+  } else if (yourPosition <= 3) {
+    const ahead = yourPosition - 1;
+    guidance = `Customers searching Google see ${ahead} business${ahead === 1 ? '' : 'es'} before yours. Every new review you earn moves you one position higher.`;
+  } else {
+    guidance = "Most customers never scroll past position 3 in Google search. Getting more reviews is your single most important action right now.";
+  }
+
+  // "How many reviews to move up one position" — uses the user's exact
+  // simple formula: next.review_count - your.review_count + 1. We only
+  // show the line when that delta is positive (i.e., the competitor
+  // above us has more reviews than us). When they're ahead by rating
+  // alone with same/fewer reviews, the simple formula breaks down and
+  // we skip the line rather than show a misleading 0 or negative.
+  let movingUpHtml = '';
+  if (yourPosition > 1) {
+    const aboveIdx = yourPosition - 2;  // 1-indexed pos -> array index of slot above
+    const above = allEntries[aboveIdx];
+    if (above && typeof above.reviews === 'number') {
+      const reviewsNeeded = above.reviews - yourReviews + 1;
+      if (reviewsNeeded > 0) {
+        movingUpHtml = `<p style="font-size: 14px; line-height: 1.6; color: #1E293B; margin: 14px 0 0;">You need <strong>${reviewsNeeded.toLocaleString('en-US')} more review${reviewsNeeded === 1 ? '' : 's'}</strong> to overtake ${escapeHtml(above.name)} and move to position #${yourPosition - 1}.</p>`;
+      }
+    }
+  }
+
+  // CHANGE 3 — explanation paragraph sits between the navy headline
+  // card and the ranked list, inside the white card. Uses the real
+  // business-type label and city from the report data so the example
+  // search query reflects what a customer would actually type.
+  const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(bizType)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
+
+  return `<div class="section">
+  <h2 id="ranking-position">Your Google search position</h2>
+  <div style="background: linear-gradient(135deg, #0F1729 0%, #1E3A8A 100%); color: white; padding: 22px 24px; border-radius: 10px 10px 0 0;">
+    <div style="font-size: 12px; color: #93C5FD; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">Estimated position</div>
+    <div style="font-size: 18px; font-weight: 600; color: #F8FAFC; line-height: 1.5;">You likely appear as result <span style="font-size: 28px; font-weight: 700; color: #FCD34D; margin: 0 4px;">#${yourPosition}</span> when customers search for your business type in your area.</div>
+  </div>
+  <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-top: 0; border-radius: 0 0 10px 10px; padding: 18px 20px;">
+    ${explanationHtml}
+    <div style="margin-bottom: 8px;">
+      ${listHtml}
+    </div>
+    <p style="font-size: 14px; line-height: 1.6; color: #1E293B; margin: 18px 0 0;">${escapeHtml(guidance)}</p>
+    ${movingUpHtml}
+    <div style="font-size: 11px; color: #9CA3AF; margin-top: 18px; padding-top: 14px; border-top: 1px solid #F1F5F9; line-height: 1.5;">
+      This is an estimate based on rating and review count data. Actual Google rankings vary by user location, search history, and other factors Google does not disclose publicly.
+    </div>
+  </div>
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderHoursComparison — your hours vs. competitor hours
+// ─────────────────────────────────────────────────────────────────────
+// Parses Google's weekday_text strings (e.g. "Monday: 9:00 AM, 9:00 PM")
+// and renders a compact day-by-day table. Highlights YOUR row in blue.
+//
+// Competitor weekday_text is not currently fetched by googlePlaces.js;
+// when missing the table shows only YOUR row plus a "competitor hours
+// data not available" notice. Future-proof for when competitor hours
+// become available.
+//
+// Gap analysis section below the table generates plain-English insights
+// (opens earlier, closes later, open when they're closed). Capped at
+// 6-hour gaps to filter out 24h-business edge cases.
+function renderHoursComparison(data) {
+  if (!data) return '';
+  const yourHours = Array.isArray(data.weekday_text) ? data.weekday_text : [];
+
+  if (yourHours.length === 0) {
+    return `<div class="section">
+  <h2 id="hours-comparison">Hours comparison</h2>
+  <p style="color: #6B7280; font-size: 14px;">Add your business hours to Google Business Profile to enable this comparison.</p>
+</div>`;
+  }
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // Parse a weekday_text array into { Monday: "9-21", Tuesday: "Cls", ... }
+  // 24-hour format for compact column display.
+  function parseHours(weekdayText) {
+    if (!Array.isArray(weekdayText)) return {};
+    const result = {};
+    for (const line of weekdayText) {
+      if (typeof line !== 'string') continue;
+      const colonIdx = line.indexOf(':');
+      if (colonIdx < 0) continue;
+      const day = line.slice(0, colonIdx).trim();
+      const rest = line.slice(colonIdx + 1).trim();
+      if (/closed/i.test(rest)) {
+        result[day] = 'Cls';
+        continue;
+      }
+      // FIX 2 — recognise 24-hour businesses BEFORE the AM/PM regex,
+      // which can't match strings like "Open 24 hours" (no colon-
+      // separated times). AmericInn Wyndham's weekday_text was
+      // ["Monday: Open 24 hours", ...] and every day fell through to
+      // the em-dash placeholder; cleanDashes then converted those
+      // em-dashes to commas in the rendered HTML, so the table row
+      // came out as "YOU: , , , , , , ,".
+      if (/24\s*hour|24-hour|always open|open 24/i.test(rest)) {
+        result[day] = '24h';
+        continue;
+      }
+      // Match "9:00 AM, 9:00 PM" or "9:00 AM - 9:00 PM" or "9:00 AM to 9:00 PM"
+      // Em/en/hyphen dashes between times. Google sometimes uses U+2013.
+      const m = rest.match(/(\d+):(\d+)\s*(AM|PM)?\s*[–—\-]\s*(\d+):(\d+)\s*(AM|PM)?/i);
+      if (!m) {
+        result[day] = '—';
+        continue;
+      }
+      const openH = parseInt(m[1], 10);
+      const closeH = parseInt(m[4], 10);
+      const openAmPm = (m[3] || '').toUpperCase();
+      const closeAmPm = (m[6] || '').toUpperCase();
+      let open24 = openH;
+      if (openAmPm === 'PM' && openH < 12) open24 += 12;
+      if (openAmPm === 'AM' && openH === 12) open24 = 0;
+      let close24 = closeH;
+      if (closeAmPm === 'PM' && closeH < 12) close24 += 12;
+      if (closeAmPm === 'AM' && closeH === 12) close24 = 0;
+      result[day] = `${open24}-${close24}`;
+    }
+    return result;
+  }
+
+  // Numeric version for comparison logic.
+  function parseHoursNumeric(weekdayText) {
+    const parsed = parseHours(weekdayText);
+    const result = {};
+    for (const day of DAYS) {
+      const val = parsed[day];
+      if (!val || val === 'Cls' || val === '—') {
+        result[day] = null;
+        continue;
+      }
+      const m = val.match(/^(\d+)-(\d+)$/);
+      if (!m) { result[day] = null; continue; }
+      result[day] = { open: parseInt(m[1], 10), close: parseInt(m[2], 10) };
+    }
+    return result;
+  }
+
+  const yourParsed = parseHours(yourHours);
+  const yourNumeric = parseHoursNumeric(yourHours);
+
+  // Only include competitors that have weekday_text. Cap at 4 so the
+  // table doesn't blow up horizontally.
+  const compsWithHours = (Array.isArray(data.competitors_top5) ? data.competitors_top5 : [])
+    .filter((c) => c && Array.isArray(c.weekday_text) && c.weekday_text.length > 0)
+    .slice(0, 4);
+
+  const hasCompetitorHours = compsWithHours.length > 0;
+
+  function cell(value, isYour) {
+    const isClosed = value === 'Cls';
+    const bg = isYour ? '#EFF6FF' : '#FFFFFF';
+    const border = isYour ? '1px solid #DBEAFE' : '1px solid #F1F5F9';
+    const color = isClosed ? '#DC2626' : '#1E293B';
+    return `<td style="padding: 9px 4px; font-size: 12px; color: ${color}; text-align: center; background: ${bg}; border-bottom: ${border};">${escapeHtml(value || '—')}</td>`;
+  }
+
+  const headerRow = `<tr style="background: #F8FAFC;">
+    <th style="padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6B7280; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #E5E7EB;">Business</th>
+    ${DAY_LABELS.map((d) => `<th style="padding: 9px 4px; font-size: 11px; font-weight: 700; color: #6B7280; text-align: center; border-bottom: 1px solid #E5E7EB;">${d}</th>`).join('')}
+  </tr>`;
+
+  // FIX 2 (part 2) — detect a "broken" YOUR row, every day either
+  // unparsed (em-dash placeholder) or missing. Skip the broken row and
+  // surface an info box below the table explaining what the user can
+  // do. The 24h special case above means a real 24-hour business
+  // shows '24h' across the row instead of falling into this branch.
+  const yourHasAnyValid = DAYS.some((d) => {
+    const v = yourParsed[d];
+    return v && v !== '—';
+  });
+  const yourCells = DAYS.map((d) => cell(yourParsed[d] || '—', true)).join('');
+  const yourRow = yourHasAnyValid
+    ? `<tr>
+    <td style="padding: 9px 12px; font-size: 13px; font-weight: 700; color: #2563EB; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">YOU</td>
+    ${yourCells}
+  </tr>`
+    : '';
+
+  const compRowsHtml = compsWithHours.map((c) => {
+    const parsed = parseHours(c.weekday_text);
+    const cells = DAYS.map((d) => cell(parsed[d] || '—', false)).join('');
+    return `<tr>
+      <td style="padding: 9px 12px; font-size: 13px; color: #1E293B; border-bottom: 1px solid #F1F5F9; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${escapeHtml(c.name || '')}">${escapeHtml(c.name || 'Unknown')}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const tableHtml = `<div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-family: inherit; min-width: 540px;">
+      <thead>${headerRow}</thead>
+      <tbody>${yourRow}${compRowsHtml}</tbody>
+    </table>
+  </div>`;
+
+  // Info box rendered below the table when YOUR row was suppressed
+  // because no valid times were parsed. Same gray styling as the
+  // "competitor hours not available" notice already in this section.
+  const yourHoursUnreadableHtml = yourHasAnyValid ? '' :
+    `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`;
+
+  // Gap analysis — only when we have competitor hours.
+  let gapInsightsHtml = '';
+  if (hasCompetitorHours) {
+    const insights = [];
+    for (const comp of compsWithHours) {
+      const compNumeric = parseHoursNumeric(comp.weekday_text);
+      const compName = comp.name || 'A nearby competitor';
+      let earlierOpenDays = 0;
+      let earlierOpenGap = 0;
+      let laterCloseDays = 0;
+      let laterCloseGap = 0;
+      const daysYouOpenCompClosed = [];
+
+      for (const day of DAYS) {
+        const y = yourNumeric[day];
+        const c = compNumeric[day];
+        if (y && c) {
+          if (c.open < y.open) {
+            earlierOpenDays++;
+            const gap = y.open - c.open;
+            if (gap > earlierOpenGap && gap <= 6) earlierOpenGap = gap;
+          }
+          if (c.close > y.close) {
+            laterCloseDays++;
+            const gap = c.close - y.close;
+            if (gap > laterCloseGap && gap <= 6) laterCloseGap = gap;
+          }
+        }
+        if (y && !c) daysYouOpenCompClosed.push(day);
+      }
+
+      const compInsights = [];
+      if (earlierOpenDays >= 3 && earlierOpenGap > 0) {
+        compInsights.push(`${escapeHtml(compName)} opens ${earlierOpenGap} hour${earlierOpenGap === 1 ? '' : 's'} earlier than you. They capture morning customers you currently miss.`);
+      }
+      if (laterCloseDays >= 3 && laterCloseGap > 0) {
+        compInsights.push(`${escapeHtml(compName)} closes ${laterCloseGap} hour${laterCloseGap === 1 ? '' : 's'} later. They serve evening customers you currently miss.`);
+      }
+      if (daysYouOpenCompClosed.length > 0) {
+        compInsights.push(`You are open on ${daysYouOpenCompClosed.join(', ')} but ${escapeHtml(compName)} is closed. Promote this on Google and social media as your advantage.`);
+      }
+      if (compInsights.length === 0) {
+        compInsights.push(`Your hours match or exceed ${escapeHtml(compName)}'s. This is not a gap you need to worry about for this competitor.`);
+      }
+      insights.push(...compInsights);
+    }
+
+    if (insights.length > 0) {
+      gapInsightsHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 22px 0 12px;">Gap analysis</h3>
+${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 14px; line-height: 1.6; color: #1E293B;">${i}</div>`).join('')}`;
+    }
+  }
+
+  const noCompHoursFallback = hasCompetitorHours ? '' :
+    `<p style="font-size: 13px; color: #6B7280; margin-top: 12px;">Competitor hours data not available.</p>`;
+
+  return `<div class="section">
+  <h2 id="hours-comparison">Hours comparison</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 14px;">You vs your top competitors. Times shown in 24-hour format.</p>
+  ${tableHtml}
+  ${yourHoursUnreadableHtml}
+  ${noCompHoursFallback}
+  ${gapInsightsHtml}
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// renderSeasonalCalendar — 12-month demand bars + recommendations
+// ─────────────────────────────────────────────────────────────────────
+// Builds a 12-month demand array from existing climate + seasonality
+// signals (peak_month, has_cold_winter, has_hot_summer,
+// peak_tourist_season) using the rules from the user spec. Each month
+// gets a level 1-4 (Low, Medium, High, PEAK) which drives bar width
+// and color.
+//
+// Recommendations section maps months to actions (hire staff, run
+// promotions, take vacation). Upcoming events from data.upcoming_events
+// are listed at the bottom when present.
+//
+// Graceful fallback: when no seasonal signals are available the bars
+// render flat-medium and a small notice appears at the top.
+function renderSeasonalCalendar(data) {
+  if (!data) return '';
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  // Start every month at Medium (level 2).
+  const demand = new Array(12).fill(2);
+
+  // Cold winter market — Jan, Feb, Dec drop to Low.
+  if (data.has_cold_winter === true) {
+    demand[0] = 1;
+    demand[1] = 1;
+    demand[11] = 1;
+  }
+
+  // Peak month — either from data.peak_month directly, or derived from
+  // peak_tourist_season as a fallback. FIX 3A — googlePlaces.js emits
+  // 3-letter month abbreviations like "Jul" via MONTH_NAMES, but this
+  // reader was only checking against the FULL_MONTHS array ("July").
+  // The format mismatch silently failed every report. Accept BOTH the
+  // full name and the 3-letter abbreviation.
+  let peakMonthIdx = null;
+  if (typeof data.peak_month === 'string' && data.peak_month.trim()) {
+    const lc = data.peak_month.toLowerCase();
+    let idx = FULL_MONTHS.findIndex((m) => m.toLowerCase() === lc);
+    if (idx === -1) {
+      idx = MONTHS.findIndex((m) => m.toLowerCase() === lc);
+    }
+    if (idx >= 0) peakMonthIdx = idx;
+  }
+  // FIX 3B — peak_tourist_season is often a range like "Jun-Aug" or
+  // "Dec-Feb". The prior fallback only matched single season-keyword
+  // strings ("summer"/"fall"/"winter"/"spring"), so range formats fell
+  // through to null. Parse the range first; if both endpoints resolve
+  // to valid months, the middle month becomes peakMonthIdx and the
+  // entire range is bumped to at least High (handles wrap-around like
+  // Dec-Feb).
+  if (peakMonthIdx == null && typeof data.peak_tourist_season === 'string'
+      && data.peak_tourist_season.includes('-')) {
+    const parts = data.peak_tourist_season.split('-');
+    if (parts.length === 2) {
+      const startAbbr = parts[0].trim().toLowerCase().slice(0, 3);
+      const endAbbr = parts[1].trim().toLowerCase().slice(0, 3);
+      const startIdx = MONTHS.findIndex((m) => m.toLowerCase() === startAbbr);
+      const endIdx = MONTHS.findIndex((m) => m.toLowerCase() === endAbbr);
+      if (startIdx >= 0 && endIdx >= 0) {
+        // Middle month — handles wrap-around (Dec-Feb → Jan).
+        let middleIdx;
+        if (startIdx <= endIdx) {
+          middleIdx = Math.floor((startIdx + endIdx) / 2);
+          for (let i = startIdx; i <= endIdx; i++) {
+            if (demand[i] < 3) demand[i] = 3;
+          }
+        } else {
+          middleIdx = Math.floor((startIdx + endIdx + 12) / 2) % 12;
+          for (let i = startIdx; i < 12; i++) {
+            if (demand[i] < 3) demand[i] = 3;
+          }
+          for (let i = 0; i <= endIdx; i++) {
+            if (demand[i] < 3) demand[i] = 3;
+          }
+        }
+        peakMonthIdx = middleIdx;
+        demand[peakMonthIdx] = 4;
+      }
+    }
+  }
+  if (peakMonthIdx == null && typeof data.peak_tourist_season === 'string') {
+    const s = data.peak_tourist_season.toLowerCase();
+    if (s.includes('summer')) peakMonthIdx = 6;       // July
+    else if (s.includes('fall') || s.includes('autumn')) peakMonthIdx = 9; // October
+    else if (s.includes('winter')) peakMonthIdx = 0;  // January
+    else if (s.includes('spring')) peakMonthIdx = 3;  // April
+  }
+
+  if (peakMonthIdx != null) {
+    demand[peakMonthIdx] = 4;
+    const before = (peakMonthIdx - 1 + 12) % 12;
+    const after = (peakMonthIdx + 1) % 12;
+    if (demand[before] < 3) demand[before] = 3;
+    if (demand[after] < 3) demand[after] = 3;
+  }
+
+  // Hot summer market — June, July, August at least High (3).
+  if (data.has_hot_summer === true) {
+    if (demand[5] < 3) demand[5] = 3;
+    if (demand[6] < 3) demand[6] = 3;
+    if (demand[7] < 3) demand[7] = 3;
+  }
+
+  // December holiday boost — retail/food/hospitality benefit from the
+  // holiday shopping season. Read profile.id or sector hint from data
+  // to decide.
+  const profileHint = String(
+    (data.profile_id || data.profile_label || data.naics2 || '') + ' ' + (data.business_name || '')
+  ).toLowerCase();
+  const holidayBenefits = /retail|food|grocery|hospitality|restaurant|hotel|gift|jewel|toy|apparel|salon/.test(profileHint);
+  if (holidayBenefits && demand[11] < 3) demand[11] = 3;
+
+  const LEVEL_LABELS = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'PEAK' };
+  const LEVEL_COLORS = { 1: '#E2E8F0', 2: '#94A3B8', 3: '#3B82F6', 4: '#10B981' };
+
+  const currentMonthIdx = new Date().getMonth();
+
+  // Bar rows.
+  const barRows = MONTHS.map((m, idx) => {
+    const level = demand[idx];
+    const label = LEVEL_LABELS[level];
+    const color = LEVEL_COLORS[level];
+    const barWidth = (level / 4) * 100;
+    const isCurrent = idx === currentMonthIdx;
+    const nowMarker = isCurrent
+      ? '<span style="font-size: 11px; color: #2563EB; font-weight: 700; white-space: nowrap;">&larr; NOW</span>'
+      : '';
+    return `<div style="display: grid; grid-template-columns: 44px 1fr 70px 60px; gap: 12px; align-items: center; padding: 5px 0;">
+      <div style="font-weight: ${isCurrent ? 700 : 500}; font-size: 13px; color: ${isCurrent ? '#0F1729' : '#1E293B'};">${m}</div>
+      <div style="background: #F1F5F9; border-radius: 6px; overflow: hidden; height: 18px;">
+        <div style="background: ${color}; height: 100%; width: ${barWidth}%; border-radius: 6px;"></div>
+      </div>
+      <div style="font-size: 12px; font-weight: 600; color: ${color};">${label}</div>
+      <div>${nowMarker}</div>
+    </div>`;
+  }).join('');
+
+  // Group months by level for recommendations.
+  const peakMonths = [];
+  const highMonths = [];
+  const mediumMonths = [];
+  const lowMonths = [];
+  for (let i = 0; i < 12; i++) {
+    if (demand[i] === 4) peakMonths.push(MONTHS[i]);
+    else if (demand[i] === 3) highMonths.push(MONTHS[i]);
+    else if (demand[i] === 2) mediumMonths.push(MONTHS[i]);
+    else lowMonths.push(MONTHS[i]);
+  }
+  function listOrNone(arr) {
+    return arr.length > 0 ? arr.join(', ') : 'No months identified';
+  }
+
+  // FIX 4A — promotion months. Previously this was
+  // `[...lowMonths, ...mediumMonths]` which surfaced up to 11 of 12
+  // months when peak detection failed and most months stayed at the
+  // default "medium" level. Now: prefer the actual slow (low-demand)
+  // months. If none exist, walk backwards from the first high/peak
+  // month to find 1-2 "shoulder season" months — the period right
+  // before demand spikes is when promotions move the needle most.
+  // Cap at 3 either way so the list stays scannable.
+  let promoMonths;
+  if (lowMonths.length > 0) {
+    promoMonths = lowMonths.slice(0, 3);
+  } else {
+    // No low months. Find the earliest peak/high month and pick 1-2
+    // months immediately before it that aren't themselves high/peak.
+    const firstHotIdx = peakMonths.length > 0
+      ? MONTHS.indexOf(peakMonths[0])
+      : (highMonths.length > 0 ? MONTHS.indexOf(highMonths[0]) : -1);
+    if (firstHotIdx >= 0) {
+      const shoulder = [];
+      for (let offset = 1; offset <= 4 && shoulder.length < 2; offset++) {
+        const idx = (firstHotIdx - offset + 12) % 12;
+        if (demand[idx] < 3) shoulder.unshift(MONTHS[idx]);
+      }
+      promoMonths = shoulder;
+    } else {
+      // No signal at all — fall back to first 2 medium months (rare).
+      promoMonths = mediumMonths.slice(0, 2);
+    }
+  }
+
+  // FIX 4B — "Best months to stock up inventory" removed entirely.
+  // The metric is meaningless for service businesses (hotels, salons,
+  // dental, healthcare) and the underlying `beforePeakMonths` array
+  // was already breaking with "No months identified" for any report
+  // where the peak detection failed. Not useful enough to keep for any
+  // sector — deleted.
+  const recommendationsHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 22px 0 12px;">Business recommendations</h3>
+<div style="background: #F8FAFC; border-radius: 8px; padding: 14px 18px;">
+  <p style="margin: 0 0 8px; font-size: 14px; color: #1E293B; line-height: 1.6;"><strong>Best months to hire extra staff:</strong> ${escapeHtml(listOrNone([...peakMonths, ...highMonths]))}</p>
+  <p style="margin: 0 0 8px; font-size: 14px; color: #1E293B; line-height: 1.6;"><strong>Best months to run promotions:</strong> ${escapeHtml(listOrNone(promoMonths))}</p>
+  <p style="margin: 0; font-size: 14px; color: #1E293B; line-height: 1.6;"><strong>Quietest months for vacation:</strong> ${escapeHtml(listOrNone(lowMonths))}</p>
+</div>`;
+
+  // Upcoming events block — listed at the bottom with their date string.
+  const events = Array.isArray(data.upcoming_events) ? data.upcoming_events : [];
+  let eventsHtml = '';
+  if (events.length > 0) {
+    const eventLines = events.slice(0, 8).map((ev) => {
+      if (!ev || typeof ev !== 'object') return '';
+      const name = ev.name || ev.title || 'Event';
+      const date = ev.date || ev.local_date || ev.start_date || '';
+      return `<p style="margin: 0 0 6px; font-size: 14px; color: #1E293B; line-height: 1.6;">&#128197; ${escapeHtml(name)}${date ? `, ${escapeHtml(String(date))}` : ''}</p>`;
+    }).filter(Boolean).join('');
+    if (eventLines) {
+      eventsHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 22px 0 12px;">Local events to plan around</h3>
+<div>${eventLines}</div>`;
+    }
+  }
+
+  // Notice when no seasonal signals fired (everything would be flat
+  // medium-with-no-peak in that case).
+  const hasAnySignal = peakMonthIdx != null || data.has_cold_winter === true || data.has_hot_summer === true || holidayBenefits;
+  const noDataNotice = hasAnySignal ? '' :
+    `<p style="font-size: 13px; color: #6B7280; margin-bottom: 12px;">Add your location to get more accurate seasonal demand data. Showing a flat baseline below.</p>`;
+
+  return `<div class="section">
+  <h2 id="seasonal-calendar">Seasonal demand calendar</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 14px;">When customers need you most.</p>
+  ${noDataNotice}
+  <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px; padding: 18px 22px;">
+    ${barRows}
+  </div>
+  ${recommendationsHtml}
+  ${eventsHtml}
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // renderCompetitorDeepDive — Claude competitor_deep_dive renderer
 // ─────────────────────────────────────────────────────────────────────
 // Renders the "why your top competitor is winning" section. Shows
@@ -5378,7 +6978,7 @@ function renderCompetitorDeepDive(deepDive, outperformedCompetitors) {
   if (items.length === 0 && outperformed.length === 0) return '';
 
   let html = '<div class="section">';
-  html += '<h2>&#128269; Competitor deep dive</h2>';
+  html += '<h2 id="competitor-deep-dive">&#128269; Competitor deep dive</h2>';
   html += '<p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">'
         + 'Only showing competitors where you are not already winning on both rating and review count.'
         + '</p>';
@@ -5431,7 +7031,7 @@ function renderKeyRisks(risks) {
   }).join('');
 
   return `<div class="section">
-  <h2>&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
+  <h2 id="key-risks">&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
   <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now &mdash; with early warning signs so you can act before they become crises.</p>
   ${cardsHtml}
 </div>`;
