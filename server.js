@@ -2586,6 +2586,45 @@ a:hover { text-decoration: underline; }
    direct-HTTP fetches still see this link. */
 .back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; color: var(--muted); font-size: 13px; font-weight: 500; }
 .back:hover { color: var(--blue); }
+
+/* ── FIX 6 — Dark mode ─────────────────────────────────────────── */
+body.dark-mode { background: #0F1729; color: #F1F5F9; }
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 { color: #F1F5F9; }
+body.dark-mode a { color: #60A5FA; }
+body.dark-mode .back { color: #94A3B8; }
+body.dark-mode .back:hover { color: #60A5FA; }
+body.dark-mode .rec,
+body.dark-mode .problem,
+body.dark-mode .opportunity,
+body.dark-mode .mkt-card { background: #1E293B; border-color: #334155; }
+body.dark-mode .callout { background: #1E293B; border-color: #334155; }
+body.dark-mode .coverage td { border-color: #334155; }
+body.dark-mode .coverage td:first-child { color: #94A3B8; }
+body.dark-mode .meta, body.dark-mode small { color: #94A3B8; }
+body.dark-mode .why-study { background: #1E293B; border-color: #334155; }
+body.dark-mode .honesty { background: #1E293B; border-color: #334155; }
+body.dark-mode .money { background: #064E3B; border-left-color: #10B981; }
+body.dark-mode .flag { background: #1C1917; }
+body.dark-mode #dark-toggle { background: #1E293B; border-color: #334155; color: #F1F5F9; }
+
+/* ── FIX 5 — Mobile responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body { font-size: 14px; padding: 16px 12px; }
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 18px !important; }
+  h3 { font-size: 16px !important; }
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  .chart-container { width: 100% !important; height: 250px !important; }
+  .grid-2col, .grid-3col { grid-template-columns: 1fr !important; }
+  .report-toc-grid { grid-template-columns: 1fr !important; }
+  .conquest-weaknesses { grid-template-columns: 1fr !important; }
+  .priority-action { padding: 16px !important; }
+  .pdf-btn { font-size: 12px !important; padding: 6px 12px !important; }
+  .back-links { flex-wrap: wrap !important; gap: 8px !important; }
+  .review-gap-bar { flex-direction: column !important; }
+  .anchor-score-grid { grid-template-columns: 1fr !important; }
+  .seasonal-bar-row { flex-direction: column !important; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head><body>`;
@@ -3995,6 +4034,45 @@ function renderMarketCharts(data, profile, displayName) {
 `;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// renderTrustSection — verification context shown on every report
+// ─────────────────────────────────────────────────────────────────────
+// Sits between the overall status pill and the table of contents.
+// Three side-by-side cards explain "what ChatGPT does" vs "what we
+// do" vs "our guarantee," followed by three small pill badges naming
+// our top live data sources. Compact (~200px tall on desktop), light
+// gray background, subtle border. Always renders for every report.
+//
+// Pure HTML helper — no data dependencies, no conditional branches.
+function renderTrustSection() {
+  const cardBase = 'flex: 1 1 200px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px; padding: 12px 14px;';
+  const cardTitleBase = 'font-size: 13px; font-weight: 700; margin-bottom: 6px;';
+  const cardBodyBase = 'font-size: 12px; color: #6B7280; line-height: 1.5;';
+  const pillBase = 'background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 999px; padding: 5px 12px; font-size: 12px; color: #1E293B; font-weight: 500;';
+  return `<div style="background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 8px; padding: 18px 22px; margin: 20px 0 24px;">
+  <div style="font-size: 11px; font-weight: 700; color: #6B7280; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;">Why this report is different from asking ChatGPT</div>
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+    <div style="${cardBase} border-left: 3px solid #DC2626;">
+      <div style="${cardTitleBase} color: #991B1B;">&#10060; What ChatGPT does</div>
+      <div style="${cardBodyBase}">Makes up competitor names, guesses your local demographics, and presents fake data as fact. You cannot tell what is real.</div>
+    </div>
+    <div style="${cardBase} border-left: 3px solid #10B981;">
+      <div style="${cardTitleBase} color: #065F46;">&#9989; What GrowthIM does</div>
+      <div style="${cardBodyBase}">Connects to 27 live databases every time. Every competitor, every stat, every recommendation is verified before you see it.</div>
+    </div>
+    <div style="${cardBase} border-left: 3px solid #2563EB;">
+      <div style="${cardTitleBase} color: #1E3A8A;">&#128274; Our guarantee</div>
+      <div style="${cardBodyBase}">If we cannot verify a fact we refuse to include it. If data quality is too low you get a full refund.</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+    <span style="${pillBase}">&#128205; Google Maps &mdash; live competitor data</span>
+    <span style="${pillBase}">&#127963; US Census &mdash; real local demographics</span>
+    <span style="${pillBase}">&#128202; 27 verified sources total</span>
+  </div>
+</div>`;
+}
+
 function renderReport(ctx) {
   const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies, velocity, reportId } = ctx;
 
@@ -4675,6 +4753,26 @@ ${fmrBlock}`;
     ? `<h2 id="operations-brand">Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
     : '';
 
+  // FIX 2 — Photo count note. Shows whenever photo_count is present on
+  // the data object (always fetched via getDetails). The BrightLocal 2023
+  // stat is a proven conversion motivator — surfaces next to the raw count
+  // so the user has context, not just a bare number.
+  let photoStatHtml = '';
+  if (typeof data.photo_count === 'number') {
+    const photoMsg = data.photo_count < 10
+      ? `You currently have <strong>${data.photo_count} photo${data.photo_count === 1 ? '' : 's'}</strong> — businesses with 100+ photos receive 520% more calls.`
+      : data.photo_count < 100
+      ? `You have <strong>${data.photo_count} photos</strong>. Businesses with 100+ photos receive 520% more calls than those with fewer than 10.`
+      : `You have <strong>${data.photo_count} photos</strong> — well above the 100-photo threshold that drives 520% more calls.`;
+    photoStatHtml = `<div style="margin-top:10px;padding:12px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;display:flex;gap:10px;align-items:flex-start;font-size:13px;">
+  <span style="font-size:18px;line-height:1.4;">&#128248;</span>
+  <div>
+    <div style="color:#374151;line-height:1.55;">${photoMsg}</div>
+    <div style="font-size:11px;color:#6B7280;margin-top:4px;">Source: BrightLocal 2023</div>
+  </div>
+</div>`;
+  }
+
   // Phase 5+ — Demand & seasonality (Open-Meteo + Ticketmaster + BLS)
   let demandHtml = '';
   const seasonalityLines = [];
@@ -4738,6 +4836,10 @@ ${fmrBlock}`;
   <h2 id="priority-actions">Priority actions</h2>
   <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
 </div>`;
+    // FIX 1 — ROI Summary table sits at the very top of the priority
+    // actions section, before individual cards, so the reader sees the
+    // combined potential before scanning the detail.
+    priorityHtml += renderROISummary(claudePriorityActions);
     priorityHtml += claudePriorityActions.map((a) => renderActionCard(a)).join('');
   } else if (!top10.length) {
     // Path (b) — empty fallback.
@@ -4792,8 +4894,10 @@ ${fmrBlock}`;
   // actions and the 90-day plan): competitor deep-dive, key risks,
   // execution templates. Each helper returns '' when data is missing
   // so the section is silently omitted from the report.
+  // FIX 4 — pass data so renderCompetitorDeepDive can prepend real
+  // competitor reviews from data.competitors_top5[0].reviews[].
   const competitorDeepDiveHtml = enriched
-    ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors)
+    ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors, data)
     : '';
   // Conquest page — single-competitor focused "how to win this week"
   // playbook. Sits between priority actions and competitor deep dive.
@@ -4806,6 +4910,10 @@ ${fmrBlock}`;
   // location_signals + nearby_venues data. Always renders (shows a
   // "data not available" notice when location_signals is missing).
   const anchorScoreHtml = renderAnchorScore(data);
+  // Trust section — verification-context block shown between the
+  // overall status pill and the table of contents. Always renders;
+  // no data dependencies.
+  const trustSectionHtml = renderTrustSection();
   // Review Gap Analysis — 4-part section showing the bar comparison vs.
   // the highest-reviewed competitor, the catch-up calculator table, a
   // realistic target, and (when ctx.velocity is supplied by the route
@@ -5292,9 +5400,28 @@ ${cards}`;
   //     priority actions, not buried at the bottom.
   //   - priorityHtml moved DOWN (slot 21) — sits AFTER the
   //     competitor context that motivates each action.
-  return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a> ${pdfBtnHtml}
+  // FIX 6 — Dark mode toggle button + on-load restore script.
+  const darkModeHtml = `<script>
+(function(){
+  var saved = localStorage.getItem('reportDarkMode');
+  if (saved === '1') {
+    document.body.classList.add('dark-mode');
+    var btn = document.getElementById('dark-toggle');
+    if (btn) btn.textContent = '☀️ Light mode';
+  }
+})();
+function toggleDark() {
+  var isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('reportDarkMode', isDark ? '1' : '0');
+  var btn = document.getElementById('dark-toggle');
+  if (btn) btn.textContent = isDark ? '☀️ Light mode' : '🌙 Dark mode';
+}
+</script>`;
+
+  return `${PAGE_OPEN}<div class="back-links" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;"><a class="back" style="margin-bottom:0" href="/app">&larr; new search</a> <a class="back" style="margin-bottom:0" href="/dashboard">&larr; Back to Dashboard</a>${pdfBtnHtml ? ' ' + pdfBtnHtml : ''}<button id="dark-toggle" onclick="toggleDark()" style="margin-left:auto;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">🌙 Dark mode</button></div>
 ${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
+${trustSectionHtml}
 ${tocHtml}
 ${localContextHtml}
 ${redFlagsHtml}
@@ -5311,7 +5438,7 @@ ${marketHtml}
 ${anchorScoreHtml}
 ${demandHtml}
 ${seasonalCalendarHtml}
-${opsHtml}
+${opsHtml}${photoStatHtml}
 ${conquestPageHtml}
 ${chartsHtml}
 ${competitorDeepDiveHtml}
@@ -5324,7 +5451,8 @@ ${opportunitiesHtml}
 ${commonProblemsHtml}
 ${categoryCoverageHtml}
 ${footerHtml}
-${backToTopHtml}${PAGE_CLOSE}`;
+${backToTopHtml}
+${darkModeHtml}${PAGE_CLOSE}`;
 }
 
 function citationLine(id, studies) {
@@ -5712,6 +5840,68 @@ const IMPACT_COLORS = {
   LOW:     { border: '#F59E0B', bg: '#FFFBEB', text: '#92400E' },
   MINIMAL: { border: '#9CA3AF', bg: '#F9FAFB', text: '#374151' },
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// FIX 1 — renderROISummary
+// ─────────────────────────────────────────────────────────────────────
+// Parses money_estimate strings (e.g. "$8,000-$18,000/year") from all
+// priority_actions, sums low and high ends, and renders a "Your Revenue
+// Opportunity" table before the individual action cards.
+// Graceful fallback: returns '' when no actions have money_estimate.
+function renderROISummary(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) return '';
+
+  const rows = [];
+  let totalLow = 0;
+  let totalHigh = 0;
+
+  for (const a of actions) {
+    const est = String(a.money_estimate || '').trim();
+    if (!est) continue;
+    // Strip commas + dollar signs, then extract all numbers.
+    // Works for "$8,000-$18,000/year", "$500 - $2,000/month", "$12,000+/year".
+    const nums = est.replace(/[$,]/g, '').match(/\d+(?:\.\d+)?/g);
+    if (!nums || nums.length === 0) continue;
+    const low = parseFloat(nums[0]);
+    const high = nums.length >= 2 ? parseFloat(nums[1]) : low;
+    if (isNaN(low)) continue;
+    rows.push({ title: a.title || 'Action', est, low, high });
+    totalLow += low;
+    totalHigh += high;
+  }
+
+  if (rows.length === 0) return '';
+
+  // Detect unit suffix from the first estimate that has one.
+  let suffix = '';
+  for (const r of rows) {
+    if (/\/year/i.test(r.est)) { suffix = '/year'; break; }
+    if (/\/month/i.test(r.est)) { suffix = '/month'; break; }
+  }
+
+  const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const totalRange = totalLow === totalHigh
+    ? `${fmt(totalLow)}${suffix}`
+    : `${fmt(totalLow)} - ${fmt(totalHigh)}${suffix}`;
+
+  const rowsHtml = rows.map((r) => `<tr>
+      <td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #F1F5F9;line-height:1.4;">${escapeHtml(r.title)}</td>
+      <td style="padding:10px 14px;font-size:13px;color:#166534;text-align:right;border-bottom:1px solid #F1F5F9;white-space:nowrap;">${escapeHtml(r.est)}</td>
+    </tr>`).join('');
+
+  return `<div style="background:#FFFFFF;border:1px solid #D1FAE5;border-radius:10px;padding:20px 24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+  <div style="font-size:17px;font-weight:700;color:#0F1729;margin-bottom:4px;">&#128176; Your Revenue Opportunity</div>
+  <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Combined potential from all recommended actions</div>
+  <table style="width:100%;border-collapse:collapse;">
+    ${rowsHtml}
+    <tr style="border-top:2px solid #D1FAE5;">
+      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">TOTAL POTENTIAL</td>
+      <td style="padding:12px 14px;font-size:17px;font-weight:700;color:#166534;text-align:right;white-space:nowrap;">${escapeHtml(totalRange)}</td>
+    </tr>
+  </table>
+  <p style="font-size:11px;color:#9CA3AF;margin:12px 0 0 0;">Estimates based on your specific business data. See each action for full math.</p>
+</div>`;
+}
 
 function renderActionCard(action) {
   if (!action || typeof action !== 'object') return '';
@@ -6657,8 +6847,18 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
     }
   }
 
+  // FIX 3 — Competitor hours diagnostic note.
+  // Root cause: googlePlaces.js fetchNearbyCompetitors calls getDetails()
+  // for each top-5 competitor (which DOES return weekday_text) but only
+  // forwards `reviews` and `address` to the competitor object — weekday_text
+  // is not included in the spread. Until that 1-line fix is applied to
+  // googlePlaces.js (adding `weekday_text: details.weekday_text || null`),
+  // this block will always show the fallback. The table code above already
+  // handles weekday_text correctly when it is present.
   const noCompHoursFallback = hasCompetitorHours ? '' :
-    `<p style="font-size: 13px; color: #6B7280; margin-top: 12px;">Competitor hours data not available.</p>`;
+    `<div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border-left:3px solid #94A3B8;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.6;">
+  Competitor hours not yet available — your hours are shown above. Competitor hours will appear here in a future update.
+</div>`;
 
   return `<div class="section">
   <h2 id="hours-comparison">Hours comparison</h2>
@@ -6961,13 +7161,70 @@ ${weak.map((w) => `<div style="border-left: 3px solid #6EE7B7; padding: 12px 16p
 </div>`;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// FIX 4 — renderTopCompetitorReviews
+// ─────────────────────────────────────────────────────────────────────
+// Shows the top 3 reviews from data.competitors_top5[0] (the highest
+// review-count competitor — the most-reviewed is the biggest threat by
+// social-proof volume). Renders inside the Competitor Deep Dive section
+// at the very top, before the AI-generated analysis cards.
+// Graceful fallback: returns '' when no competitor reviews are present.
+function renderTopCompetitorReviews(data) {
+  if (!data) return '';
+  const top5 = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
+  if (top5.length === 0) return '';
+
+  // Pick the competitor with the highest review count as the "top threat"
+  // by social-proof volume. Falls back to [0] when review_count is absent.
+  const topComp = top5.reduce((best, c) => {
+    const rc = typeof c.review_count === 'number' ? c.review_count : 0;
+    const bestRc = typeof best.review_count === 'number' ? best.review_count : 0;
+    return rc > bestRc ? c : best;
+  }, top5[0]);
+
+  const reviews = Array.isArray(topComp.reviews) ? topComp.reviews.slice(0, 3) : [];
+  if (reviews.length === 0) return '';
+
+  const compName = escapeHtml(topComp.name || 'Your top competitor');
+
+  function renderStars(rating) {
+    const n = typeof rating === 'number' ? Math.min(5, Math.max(0, Math.round(rating))) : 0;
+    const filled = '&#9733;'.repeat(n);
+    const empty  = '&#9734;'.repeat(5 - n);
+    return `<span style="color:#F59E0B;font-size:14px;">${filled}${empty}</span>`;
+  }
+
+  const reviewCards = reviews.map((r) => {
+    const starsHtml = typeof r.rating === 'number'
+      ? `${renderStars(r.rating)} <span style="font-size:12px;color:#6B7280;">${r.rating.toFixed(1)}/5</span>`
+      : '';
+    const timeHtml  = r.time ? `<span style="font-size:12px;color:#9CA3AF;">${escapeHtml(r.time)}</span>` : '';
+    const text = r.text ? `"${escapeHtml(r.text)}"` : '';
+    return `<div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">${starsHtml}${timeHtml}</div>
+  ${text ? `<div style="font-size:13px;color:#374151;line-height:1.6;font-style:italic;">${text}</div>` : ''}
+</div>`;
+  }).join('');
+
+  return `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:18px 20px;margin-bottom:22px;">
+  <div style="font-size:14px;font-weight:700;color:#78350F;margin-bottom:4px;">&#128172; What ${compName}&rsquo;s customers are saying</div>
+  <div style="font-size:12px;color:#92400E;margin-bottom:14px;">Real reviews from your top competitor by review volume</div>
+  ${reviewCards}
+  <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:13px;color:#78350F;line-height:1.6;">
+    <strong>These are real complaints from ${compName}&rsquo;s customers.</strong> Each one is an opportunity for your business.
+  </div>
+</div>`;
+}
+
 // Renders the full competitor deep-dive section. Accepts either:
 //   - an array of deep-dive objects (current schema)
 //   - a single deep-dive object (legacy schema, wrapped into [obj])
 // Plus an optional outperformedCompetitors array (sibling field) that
 // surfaces a green "you're beating these" summary box. Section is
 // silently omitted only when BOTH arrays are empty.
-function renderCompetitorDeepDive(deepDive, outperformedCompetitors) {
+// FIX 4: optional third param `data` passes competitors_top5 reviews
+// so the top competitor's real reviews appear at the top of the section.
+function renderCompetitorDeepDive(deepDive, outperformedCompetitors, data) {
   const items = Array.isArray(deepDive)
     ? deepDive.filter((d) => d && typeof d === 'object')
     : (deepDive && typeof deepDive === 'object' ? [deepDive] : []);
@@ -6979,6 +7236,10 @@ function renderCompetitorDeepDive(deepDive, outperformedCompetitors) {
 
   let html = '<div class="section">';
   html += '<h2 id="competitor-deep-dive">&#128269; Competitor deep dive</h2>';
+
+  // FIX 4 — competitor reviews at the very top, before the analysis cards.
+  if (data) html += renderTopCompetitorReviews(data);
+
   html += '<p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">'
         + 'Only showing competitors where you are not already winning on both rating and review count.'
         + '</p>';

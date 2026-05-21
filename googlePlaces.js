@@ -2769,9 +2769,10 @@ async function fetchNearbyCompetitors({
         ...c,
         reviews,
         address: details.formatted_address || null,
+        weekday_text: details.weekday_text || null,
       };
     } catch (err) {
-      return { ...c, reviews: [], address: null };
+      return { ...c, reviews: [], address: null, weekday_text: null };
     }
   }));
 
