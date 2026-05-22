@@ -2880,6 +2880,11 @@ async function callClaudeEnrichA(bundle) {
   const t0 = Date.now();
   try {
     let response;
+    let fullText = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheWriteTokens = 0;
     try {
       console.log('[claude:A] starting Call A');
       // Audit fix CE3 — real AbortController instead of a Promise.race
@@ -2890,9 +2895,28 @@ async function callClaudeEnrichA(bundle) {
       const acA = new AbortController();
       const timerA = setTimeout(() => acA.abort(), CALL_A_TIMEOUT_MS);
       try {
-        response = await client.messages.create(requestParams, { signal: acA.signal });
+        const stream = await client.messages.stream(
+          requestParams,
+          { signal: acA.signal }
+        );
+        stream.on('text', (chunk) => {
+          fullText += chunk;
+        });
+        response = await stream.finalMessage();
+        inputTokens = response.usage?.input_tokens || 0;
+        outputTokens = response.usage?.output_tokens || 0;
+        cacheReadTokens = response.usage?.cache_read_input_tokens || 0;
+        cacheWriteTokens = response.usage?.cache_creation_input_tokens || 0;
       } catch (err) {
-        if (err && err.name === 'AbortError') throw new Error('CALL_A_TIMEOUT');
+        if (
+          (err && err.name === 'AbortError') ||
+          (err && err.name === 'APIConnectionTimeoutError') ||
+          (err && err.code === 'ETIMEDOUT') ||
+          (err && err.message &&
+           err.message.toLowerCase().includes('timeout'))
+        ) {
+          throw new Error('CALL_A_TIMEOUT');
+        }
         throw err;
       } finally {
         clearTimeout(timerA);
@@ -2932,9 +2956,8 @@ async function callClaudeEnrichA(bundle) {
       }
     }
     const dt = Date.now() - t0;
-    const usage = response.usage || {};
     console.log('[claude:A] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
-    console.log(`[claude:A] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+    console.log(`[claude:A] usage in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_write=${cacheWriteTokens}`);
 
     // ── BATCH-truncation-retry: Claude returns HTTP 200 with truncated
     // output when it hits max_tokens (it's not an exception). Detect
@@ -2989,14 +3012,24 @@ async function callClaudeEnrichA(bundle) {
       return retryText;
     }
 
-    const text = (response.content || [])
-      .filter((b) => b.type === 'text' && b.text && b.text.trim().length > 0)
-      .map((b) => b.text)
-      .join('');
+    const text = fullText;
     return text;
   } catch (err) {
-    console.error('[claude:A] error:', err.message, '/', err.constructor.name);
-    if (err.status != null) console.error('[claude:A] status:', err.status);
+    console.error('[claude:A] error:',
+      err.message || err,
+      '/ ' + (err.name || ''));
+
+    if (
+      (err && err.name === 'AbortError') ||
+      (err && err.name === 'APIConnectionTimeoutError') ||
+      (err && err.code === 'ETIMEDOUT') ||
+      (err && err.message &&
+       err.message.toLowerCase().includes('timeout'))
+    ) {
+      console.log('[claude:A] timeout caught in outer catch — retrying with 7-min cap');
+      throw new Error('CALL_A_TIMEOUT');
+    }
+
     return null;
   }
 }
