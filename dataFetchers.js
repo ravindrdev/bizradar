@@ -695,6 +695,32 @@ async function fetchPageSpeed(websiteUrl) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// fetchCompetitorPageSpeed — per-business wrapper around fetchPageSpeed
+// ═══════════════════════════════════════════════════════════════════
+// Accepts businessName + url so caller can log which competitor is
+// being checked. Returns the same shape as fetchPageSpeed or null.
+async function fetchCompetitorPageSpeed(businessName, url) {
+  if (!url) {
+    console.log('[pagespeed] failed:', businessName, '|', url, '| no URL provided');
+    return null;
+  }
+  const cleanUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+  console.log('[pagespeed] checking:', businessName, '→', cleanUrl);
+  try {
+    const result = await fetchPageSpeed(cleanUrl);
+    if (result && typeof result.mobile_score === 'number') {
+      console.log('[pagespeed] score:', businessName, '→', result.mobile_score + '/100');
+    } else {
+      console.log('[pagespeed] failed:', businessName, '|', cleanUrl, '| no score returned');
+    }
+    return result;
+  } catch (err) {
+    console.log('[pagespeed] failed:', businessName, '|', cleanUrl, '|', err.message);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Phase 5+ — fetchLocationSignals (Overpass API, OpenStreetMap)
 // ═══════════════════════════════════════════════════════════════════
 // Combined query for anchor tenants (within 500m) + transit (within 800m)
@@ -3041,6 +3067,7 @@ module.exports = {
   checkWebsiteExists,
   fetchWeather,
   fetchPageSpeed,
+  fetchCompetitorPageSpeed,
   fetchLocationSignals,
   fetchCountyFIPS,
   fetchBuildingPermits,

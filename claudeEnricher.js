@@ -589,7 +589,8 @@ OUTPUT FORMAT:
       "cost": "$X one-time or $X/month",
       "revenue_potential": "$X-$Y per year",
       "novelty": "zero competitors doing this within 10 miles / rare / common",
-      "review_mention_probability": "high/medium/low"
+      "review_mention_probability": "high/medium/low",
+      "psychology": "3-4 sentences. Explain WHY this specific opportunity works based on how customers actually think and behave. Plain English only. No jargon. Must connect to THIS specific opportunity not generic advice. Never use the words leverage, utilize, or furthermore."
     }
   ],
   "local_context": "2-3 sentences about this specific business in this specific location. Use real local knowledge about this city, state, nearby attractions, local economy. No invented facts.",
@@ -1904,7 +1905,33 @@ THE 18 OPPORTUNITY CATEGORIES (fallback list — only used when the user prompt 
 15. Niche ownership
 16. Food and beverage
 17. Community and cause
-18. Staff empowerment`;
+18. Staff empowerment
+
+PSYCHOLOGY FIELD — MANDATORY:
+For every opportunity write a psychology field of 3-4 sentences explaining WHY this works based on how customers actually think and behave.
+
+Use these principles where relevant:
+- Loss aversion: people fear losing more than they enjoy gaining
+- Social proof: people copy what others do in uncertain situations
+- Commitment: small yes leads to bigger yes later
+- Scarcity: limited availability increases perceived value
+- Peak end rule: people remember the best and last moment of an experience
+- Anchoring: first number seen sets the reference for all others
+- Reciprocity: giving something small makes people want to give back
+- Word of mouth: happy customers tell 5 people, unhappy customers tell 20
+- Memory triggers: sensory details create stronger lasting memories
+
+STRICT RULES for psychology field:
+- 3-4 sentences maximum
+- Plain English only
+- No academic language
+- No jargon
+- Must connect to THIS specific opportunity not generic advice
+- Never use the words leverage or utilize or furthermore
+- Write like explaining to a friend
+
+Example:
+"Customers remember where they took a photo more than what they ate. Every photo shared reaches 5-10 new people for free. Taking a photo creates emotional engagement which makes a review 3 times more likely. You invest once and it keeps working."`;
 
 // ───────────────────────────────────────────────────────────────────
 // Address parsing — extract city/state/zip from Google's formatted_address

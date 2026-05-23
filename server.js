@@ -1577,6 +1577,49 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
+  // FIX 2 — verify each Foursquare venue against Google Places before
+  // including it in the report. Keeps only OPERATIONAL businesses.
+  // Timeout per venue: 5 seconds. Runs sequentially to avoid hammering
+  // the Places API; venue lists are short (typically 5-10 items).
+  if (data.nearby_venues.length > 0 && API_KEY && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+    const verifiedVenues = [];
+    for (const venue of data.nearby_venues) {
+      try {
+        const vUrl = new URL('https://maps.googleapis.com/maps/api/place/findplacefromtext/json');
+        vUrl.searchParams.set('input', venue.name);
+        vUrl.searchParams.set('inputtype', 'textquery');
+        vUrl.searchParams.set('fields', 'place_id,business_status');
+        vUrl.searchParams.set('locationbias', `circle:500@${data.latitude},${data.longitude}`);
+        vUrl.searchParams.set('key', API_KEY);
+        const vac = new AbortController();
+        const vtimer = setTimeout(() => vac.abort(), 5000);
+        let vjson = null;
+        try {
+          const vres = await fetch(vUrl.toString(), { signal: vac.signal });
+          clearTimeout(vtimer);
+          if (vres.ok) vjson = await vres.json();
+        } catch (_) {
+          clearTimeout(vtimer);
+        }
+        const candidates = vjson && Array.isArray(vjson.candidates) ? vjson.candidates : [];
+        if (candidates.length === 0) {
+          console.log('[corridor] not found removing:', venue.name);
+          continue;
+        }
+        if (candidates[0].business_status === 'OPERATIONAL') {
+          console.log('[corridor] verified open:', venue.name);
+          verifiedVenues.push(venue);
+        } else {
+          console.log('[corridor] removed closed:', venue.name);
+        }
+      } catch (err) {
+        console.log('[corridor] not found removing:', venue.name);
+      }
+    }
+    data.nearby_venues = verifiedVenues;
+    data.nearby_venue_count = verifiedVenues.length;
+  }
+
   // Phase 5+ FETCH 11 — TripAdvisor (search → details + reviews)
   // Top-level fields named per spec so the trigger DSL can reference them
   // directly (ta_rating, ta_review_count, ta_subratings, ta_value_gap_detected, …).
@@ -1821,6 +1864,33 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     } catch (err) {
       console.warn('[fetch9-pagespeed] failed:', err.message);
     }
+  }
+
+  // Phase 5+ FETCH 9b — Competitor PageSpeed (parallel, uses cached getDetails)
+  // getDetails calls are almost always cache hits here — top5WithDetails already
+  // fired them during competitor enrichment. PSI calls run in parallel via
+  // Promise.all. Results stored in data.competitors_top5_pagespeed for render.
+  data.competitors_top5_pagespeed = [];
+  if (Array.isArray(data.competitors_top5) && data.competitors_top5.length > 0 && API_KEY) {
+    const psPromises = data.competitors_top5.map(async (comp) => {
+      if (!comp.place_id) return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
+      try {
+        const det = await places.getDetails(comp.place_id, API_KEY);
+        const website = (det && typeof det.website === 'string' && det.website.trim()) ? det.website.trim() : null;
+        if (!website) return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
+        const psResult = await dataFetchers.fetchCompetitorPageSpeed(comp.name, website);
+        return {
+          name: comp.name,
+          website,
+          mobile_score: psResult && typeof psResult.mobile_score === 'number' ? psResult.mobile_score : null,
+          load_time_seconds: psResult && typeof psResult.load_time_seconds === 'number' ? psResult.load_time_seconds : null,
+        };
+      } catch (err) {
+        console.warn('[fetch9b-comp-pagespeed] failed for', comp.name, ':', err.message);
+        return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
+      }
+    });
+    data.competitors_top5_pagespeed = await Promise.all(psPromises);
   }
 
   console.log('[diag] enrichment:', JSON.stringify({
@@ -4690,15 +4760,6 @@ ${fmrBlock}`;
       opsBits.push(`owner-response rate (sample of ${sampleSize}): ${(data.response_rate_estimated * 100).toFixed(0)}%`);
     }
   }
-  // Phase 5+ — PageSpeed mobile signals
-  if (typeof data.website_mobile_score === 'number') {
-    const tier = data.website_mobile_score < 50
-      ? 'NEEDS WORK'
-      : data.website_mobile_score < 80
-      ? 'GOOD'
-      : 'STRONG';
-    opsBits.push(`mobile score: ${data.website_mobile_score}/100 ${tier}`);
-  }
   if (typeof data.load_time_seconds === 'number') {
     const flag = data.load_time_seconds > 3
       ? '⚠️ above 3-second abandonment threshold (S040)'
@@ -4716,15 +4777,67 @@ ${fmrBlock}`;
     ? `<h2 id="operations-brand">Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
     : '';
 
-  // FIX 4 — No website callout. Only shown when website_url is null
-  // (no website listed on Google Business Profile at all).
-  const noWebsiteHtml = data.website_url == null
-    ? `<div style="margin-top:12px;padding:16px 18px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;">
-  <div style="font-size:14px;font-weight:700;color:#991B1B;margin-bottom:8px;">&#9888; No website detected on your Google Business Profile</div>
-  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#7F1D1D;">Businesses without a website lose an estimated 30% of potential customers before first contact. 81% of consumers research a business online before visiting. Without a website, customers who find you on Google have no way to check your services, prices, or book an appointment. Most will move on to a competitor who does have one.</p>
-  <div style="font-size:11px;color:#9CA3AF;">Source: Verisign/IPSOS Consumer Survey</div>
-</div>`
-    : '';
+  // FIX 3 — PageSpeed full section: warning callout + subject score card + competitor table.
+  // Structure:
+  //   (1) Yellow 53%-abandonment stat callout — always shown when section renders
+  //   (2a) Subject has no website → red callout (absorbs old noWebsiteHtml)
+  //   (2b) Subject has website + score → large score card
+  //   (2c) Subject has website but PSI timed out → skipped (table still shown)
+  //   (3) Competitor speed table (shown when competitors_top5_pagespeed is populated)
+  // Score thresholds: ≥90 → green "Fast ✅" | 50–89 → amber "Needs work ⚠️" | <50 → red "Slow ❌"
+  let pagespeedDisplayHtml = '';
+  {
+    const psBgColor = (s) => s >= 90 ? '#16A34A' : s >= 50 ? '#D97706' : '#DC2626';
+    const psLabelStr = (s) => s >= 90 ? 'Fast ✅' : s >= 50 ? 'Needs work ⚠️' : 'Slow ❌';
+
+    // (1) Warning callout
+    const warningHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:13px;color:#92400E;line-height:1.6;">53% of mobile visitors abandon a website that takes more than 3 seconds to load. They do not come back. Your competitor's website speed is shown below — every second faster than you means customers who found you on Google chose them instead before reading a single word about your business. <span style="font-size:11px;opacity:0.75;">Source: Google/SOASTA Research (S040)</span></div>`;
+
+    // (2) Subject section
+    let subjectHtml = '';
+    if (data.website_url == null) {
+      // No website at all — red callout
+      subjectHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:13px;color:#7F1D1D;line-height:1.6;"><strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from — and customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you — contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
+    } else if (typeof data.website_mobile_score === 'number') {
+      // Has website + PSI score → large score card
+      const sc = data.website_mobile_score;
+      const sColor = psBgColor(sc);
+      const sLabel = psLabelStr(sc);
+      const sNote = sc >= 90
+        ? 'Real-time data verified by Google PageSpeed Insights.'
+        : sc >= 50
+        ? 'Real-time data verified by Google PageSpeed Insights. GrowthIM can help improve your score — contact support@growthim.com'
+        : 'Losing customers. Real-time data verified by Google PageSpeed Insights. GrowthIM can help fix this — contact support@growthim.com';
+      const loadTimeLine = typeof data.load_time_seconds === 'number'
+        ? `<div style="font-size:12px;color:#6B7280;margin-top:3px;">Load time: <strong>${data.load_time_seconds.toFixed(1)}s</strong></div>`
+        : '';
+      subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;"><div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your website speed</div><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><div style="font-size:48px;font-weight:800;color:${sColor};line-height:1;">${sc}</div><div><div style="font-size:16px;font-weight:700;color:${sColor};">${escapeHtml(sLabel)}</div><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile PageSpeed Score</div>${loadTimeLine}</div><div style="flex:1;min-width:180px;font-size:12.5px;color:#6B7280;line-height:1.5;">${escapeHtml(sNote)}</div></div></div>`;
+    }
+
+    // (3) Competitor speed table
+    const compPsList = Array.isArray(data.competitors_top5_pagespeed) ? data.competitors_top5_pagespeed : [];
+    let compTableHtml = '';
+    if (compPsList.length > 0) {
+      const rows = compPsList.map((c) => {
+        let scoreCell;
+        if (typeof c.mobile_score === 'number') {
+          const cc = psBgColor(c.mobile_score);
+          const cl = psLabelStr(c.mobile_score);
+          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:10px;font-weight:600;color:${cc};">${escapeHtml(cl)}</span><br><span style="font-size:10px;color:#9CA3AF;">Real-time · Google PageSpeed</span></td>`;
+        } else if (c.website) {
+          scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">Unavailable</td>`;
+        } else {
+          scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">No website</td>`;
+        }
+        return `<tr style="border-top:1px solid #F3F4F6;"><td style="padding:8px 12px;font-size:13px;color:#374151;vertical-align:middle;">${escapeHtml(c.name || '')}</td>${scoreCell}</tr>`;
+      }).join('');
+      compTableHtml = `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#F9FAFB;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Competitor</th><th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile Speed</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    if (subjectHtml || compTableHtml) {
+      pagespeedDisplayHtml = `<div style="margin-top:16px;">${warningHtml}${subjectHtml}${compTableHtml}</div>`;
+    }
+  }
 
   // FIX 2 — Photo count note. Shows whenever photo_count is present on
   // the data object (always fetched via getDetails). The BrightLocal 2023
@@ -4876,6 +4989,10 @@ ${fmrBlock}`;
   // location_signals + nearby_venues data. Always renders (shows a
   // "data not available" notice when location_signals is missing).
   const anchorScoreHtml = renderAnchorScore(data);
+  // Competitive map — Google Maps Embed iframe centered on the business,
+  // searching for the same business type nearby. Falls back to '' when
+  // lat/lon or API key is absent.
+  const mapHtml = renderCompetitiveMap(data, profile);
   // Trust section — verification-context block shown between the
   // overall status pill and the table of contents. Always renders;
   // no data dependencies.
@@ -5008,6 +5125,9 @@ ${cards}`;
         : /rare/i.test(novelty)
         ? 'novelty-rare'
         : 'novelty-common';
+      const psychologyBlock = (o.psychology && typeof o.psychology === 'string' && o.psychology.trim())
+        ? `<div style="margin-top:10px;padding:10px 14px;background:#EEF2FF;border-left:3px solid #6366F1;border-radius:0 6px 6px 0;"><p style="margin:0;font-size:12.5px;color:#3730A3;line-height:1.6;"><strong style="font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#6366F1;">Why customers say yes</strong><br>${escapeHtml(o.psychology.trim())}</p></div>`
+        : '';
       return `<div class="opportunity">
 <div class="op-meta"><span class="op-category">${escapeHtml(o.category || '—')}</span><span class="op-novelty ${noveltyCls}">${escapeHtml(novelty)}</span></div>
 <h3>${escapeHtml(o.title || '')}</h3>
@@ -5017,6 +5137,7 @@ ${cards}`;
 <strong>Revenue potential:</strong> ${escapeHtml(o.revenue_potential || '—')} ·
 <strong>Review-mention probability:</strong> ${escapeHtml(o.review_mention_probability || '—')}
 </p>
+${psychologyBlock}
 </div>`;
     }).join('');
   }
@@ -5291,6 +5412,7 @@ ${cards}`;
     { label: 'Google Ranking Position', anchor: 'ranking-position',   html: rankingEstimateHtml,          highlight: false },
     { label: 'Review Gap Analysis',     anchor: 'review-gap',         html: reviewGapHtml,                highlight: false },
     { label: 'Hours Comparison',        anchor: 'hours-comparison',   html: hoursComparisonHtml,          highlight: false },
+    { label: 'Area Map',                anchor: 'competitive-map',    html: mapHtml,                      highlight: false },
     { label: 'Location and Market',     anchor: 'location-market',    html: marketHtml,                   highlight: false },
     { label: 'Anchor Score',            anchor: 'anchor-score',       html: anchorScoreHtml,              highlight: false },
     { label: 'Seasonal Calendar',       anchor: 'seasonal-calendar',  html: seasonalCalendarHtml,         highlight: false },
@@ -5394,6 +5516,7 @@ ${tripAdvisorHtml}
 ${qualityRatingsHtml}
 ${complianceHtml}
 ${competitiveHtml}
+${mapHtml}
 ${rankingEstimateHtml}
 ${reviewGapHtml}
 ${hoursComparisonHtml}
@@ -5401,7 +5524,7 @@ ${marketHtml}
 ${anchorScoreHtml}
 ${demandHtml}
 ${seasonalCalendarHtml}
-${opsHtml}${noWebsiteHtml}${photoStatHtml}
+${opsHtml}${pagespeedDisplayHtml}${photoStatHtml}
 ${chartsHtml}
 ${competitorDeepDiveHtml}
 ${priorityHtml}
@@ -6090,6 +6213,40 @@ function renderAnchorScore(data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// renderCompetitiveMap — Google Maps Embed iframe of local area
+// ─────────────────────────────────────────────────────────────────────
+// Interactive Google Maps embed centered on the business, searching for
+// the same business type nearby. Falls back to '' when lat/lon or
+// API key is absent.
+function renderCompetitiveMap(data, profile) {
+  if (!data) return '';
+  const lat = data.latitude;
+  const lng = data.longitude;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return '';
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return '';
+
+  const bizTypeRaw = (profile && typeof profile.name === 'string' && profile.name.trim())
+    ? profile.name.trim()
+    : (data.business_type || 'business');
+  const bizType = bizTypeRaw.toLowerCase();
+  const q = encodeURIComponent(`${bizType} near ${lat},${lng}`);
+  const center = `${lat},${lng}`;
+  const src = `https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${q}&center=${center}&zoom=13`;
+
+  return `<div class="section">
+  <h2 id="competitive-map">Your area &mdash; competitors nearby</h2>
+  <iframe
+    src="${src}"
+    style="width:100%;height:400px;border:none;border-radius:8px;"
+    allowfullscreen
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade">
+  </iframe>
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // fetchReviewVelocity — DB lookup for the user's prior review snapshot
 // ─────────────────────────────────────────────────────────────────────
 // Reads the user's most recent prior report for the same business and
@@ -6661,11 +6818,13 @@ function renderHoursComparison(data) {
       : '';
   }
 
+  let anyCompHasNoHours = false;
   const compRowsHtml = allCompetitors.map((c) => {
     // Prefer weekday_text; fall back to hours if present.
     const hoursSource = (Array.isArray(c.weekday_text) && c.weekday_text.length > 0)
       ? c.weekday_text
       : (Array.isArray(c.hours) && c.hours.length > 0 ? c.hours : null);
+    if (!hoursSource) anyCompHasNoHours = true;
     const parsed = hoursSource ? parseHours(hoursSource) : {};
     const cells = DAYS.map((d) => cell(hoursSource ? (parsed[d] || '—') : 'N/A', false)).join('');
     return `<tr>
@@ -6673,6 +6832,10 @@ function renderHoursComparison(data) {
       ${cells}
     </tr>`;
   }).join('');
+
+  const naFootnoteHtml = anyCompHasNoHours
+    ? `<p style="font-size:12px;color:#9CA3AF;margin-top:8px;">N/A means this competitor has not added their business hours to their Google Business Profile.</p>`
+    : '';
 
   const tableHtml = `<div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow-x: auto;">
     <table style="width: 100%; border-collapse: collapse; font-family: inherit; min-width: 540px;">
@@ -6759,6 +6922,7 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
   <h2 id="hours-comparison">Hours comparison</h2>
   <p style="color: #6B7280; font-size: 13px; margin-bottom: 14px;">You vs your top competitors. Times shown in 24-hour format.</p>
   ${tableHtml}
+  ${naFootnoteHtml}
   ${yourHoursUnreadableHtml}
   ${noCompHoursFallback}
   ${gapInsightsHtml}
