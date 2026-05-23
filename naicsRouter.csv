@@ -713,6 +713,7 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 522310,Mortgage and Nonmortgage Loan Brokers,52,finance.community_bank,high,naics4_rule
 522320,"Financial Transactions Processing, Reserve, and Clearinghouse Activities",52,finance.community_bank,high,naics4_rule
 522390,Other Activities Related to Credit Intermediation,52,finance.community_bank,high,naics4_rule
+522910,Farm Credit System Institutions,52,finance.community_bank,high,naics6_override
 523150,Investment Banking and Securities Intermediation,52,finance.ria_wealth_management,high,naics4_rule
 523160,Commodity Contracts Intermediation,52,finance.ria_wealth_management,high,naics4_rule
 523210,Securities and Commodity Exchanges,52,finance.ria_wealth_management,high,naics4_rule

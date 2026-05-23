@@ -1400,7 +1400,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     // for cities >200k pop only; not a /classify use case).
     dataFetchers.fetchCensusByZip(zip, addrParts.city, addrParts.state, null),
     dataFetchers.checkWebsiteExists(websiteUrl),
-    dataFetchers.fetchWeather(data.latitude, data.longitude),
+    dataFetchers.fetchWeather(data.latitude, data.longitude, data.formatted_address),
     dataFetchers.fetchLocationSignals(data.latitude, data.longitude),
     // HUD residential building permits — Census geocoder (FIPS lookup) +
     // HUD ArcGIS query in sequence. Two HTTP calls but only fires ~5s
@@ -1861,6 +1861,9 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   const requiredMissing = profile.required_inputs.filter((f) => {
     if (f === 'google_review_count') return false;
+    // A business with zero reviews has no rating — treat null rating as valid
+    // (all render functions guard typeof === 'number' before using it).
+    if (f === 'google_rating') return false;
     return data[f] === null || data[f] === undefined;
   });
   if (requiredMissing.length) {
@@ -1931,7 +1934,6 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     if (enriched.opportunities) deepCleanDashes(enriched.opportunities);
     if (enriched.seasonal_strategy) deepCleanDashes(enriched.seasonal_strategy);
     if (enriched.competitor_deep_dive) deepCleanDashes(enriched.competitor_deep_dive);
-    if (enriched.conquest_page) deepCleanDashes(enriched.conquest_page);
   }
 
   // Review-gap velocity, look up the user's most recent prior report for
@@ -2874,7 +2876,6 @@ ${execSummary}`;
   function styleTags(text) {
     return String(text || '')
       .replace(/\[VERIFIED\]/g, '<span class="hmark hmark-verified">[VERIFIED]</span>')
-      .replace(/\[CUSTOMER MUST VALIDATE\]/g, '<span class="hmark hmark-validate">[CUSTOMER MUST VALIDATE]</span>')
       .replace(/\[REASONABLE INFERENCE\]/g, '<span class="hmark hmark-inference">[REASONABLE INFERENCE]</span>')
       .replace(/\[INDUSTRY BENCHMARK[^\]]*\]/g, '<span class="hmark hmark-inference">$&</span>')
       .replace(/\[SOURCE: [^\]]+\]/g, '<span class="hmark hmark-inference">$&</span>');
@@ -3208,7 +3209,6 @@ ${partnersHtml ? `<h3 style="margin-top:1em;font-size:14px">Partnership targets<
     const legendBox = `<div class="rec rec-minimal" style="background:var(--surface-soft);font-size:13px;margin:12px 0">
 <h3 style="font-size:13px;color:var(--muted);margin-bottom:8px">About this analysis</h3>
 <p style="margin:4px 0"><span class="hmark hmark-verified">[VERIFIED]</span> &mdash; confirmed from live Google Places, U.S. Census, BLS, HUD, Open-Meteo, or Wikipedia data.</p>
-<p style="margin:4px 0"><span class="hmark hmark-validate">[CUSTOMER MUST VALIDATE]</span> &mdash; our best intelligence; verify before acting.</p>
 <p style="margin:4px 0"><span class="hmark hmark-verified">&#10003; REAL REVIEW</span> &mdash; quote substring-matched against the live Google Place Details review text we fetched for this city.</p>
 <p style="margin:4px 0"><span class="hmark" style="background:var(--danger-bg);color:#991B1B;padding:2px 8px;border-radius:4px;font-size:11px">&#9888; NOT FOUND IN FETCHED REVIEWS</span> &mdash; quote could not be matched to any fetched review; treat as unverified.</p>
 <p class="meta" style="margin:8px 0 0">Persona names are illustrative (fictional). Review quotes are verified live; failed verifications are flagged.</p>
@@ -4035,43 +4035,6 @@ function renderMarketCharts(data, profile, displayName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderTrustSection — verification context shown on every report
-// ─────────────────────────────────────────────────────────────────────
-// Sits between the overall status pill and the table of contents.
-// Three side-by-side cards explain "what ChatGPT does" vs "what we
-// do" vs "our guarantee," followed by three small pill badges naming
-// our top live data sources. Compact (~200px tall on desktop), light
-// gray background, subtle border. Always renders for every report.
-//
-// Pure HTML helper — no data dependencies, no conditional branches.
-function renderTrustSection() {
-  const cardBase = 'flex: 1 1 200px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px; padding: 12px 14px;';
-  const cardTitleBase = 'font-size: 13px; font-weight: 700; margin-bottom: 6px;';
-  const cardBodyBase = 'font-size: 12px; color: #6B7280; line-height: 1.5;';
-  const pillBase = 'background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 999px; padding: 5px 12px; font-size: 12px; color: #1E293B; font-weight: 500;';
-  return `<div style="background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 8px; padding: 18px 22px; margin: 20px 0 24px;">
-  <div style="font-size: 11px; font-weight: 700; color: #6B7280; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;">Why this report is different from asking ChatGPT</div>
-  <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
-    <div style="${cardBase} border-left: 3px solid #DC2626;">
-      <div style="${cardTitleBase} color: #991B1B;">&#10060; What ChatGPT does</div>
-      <div style="${cardBodyBase}">Makes up competitor names, guesses your local demographics, and presents fake data as fact. You cannot tell what is real.</div>
-    </div>
-    <div style="${cardBase} border-left: 3px solid #10B981;">
-      <div style="${cardTitleBase} color: #065F46;">&#9989; What GrowthIM does</div>
-      <div style="${cardBodyBase}">Connects to 27 live databases every time. Every competitor, every stat, every recommendation is verified before you see it.</div>
-    </div>
-    <div style="${cardBase} border-left: 3px solid #2563EB;">
-      <div style="${cardTitleBase} color: #1E3A8A;">&#128274; Our guarantee</div>
-      <div style="${cardBodyBase}">If we cannot verify a fact we refuse to include it. If data quality is too low you get a full refund.</div>
-    </div>
-  </div>
-  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-    <span style="${pillBase}">&#128205; Google Maps &mdash; live competitor data</span>
-    <span style="${pillBase}">&#127963; US Census &mdash; real local demographics</span>
-    <span style="${pillBase}">&#128202; 27 verified sources total</span>
-  </div>
-</div>`;
-}
 
 function renderReport(ctx) {
   const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies, velocity, reportId } = ctx;
@@ -4753,6 +4716,16 @@ ${fmrBlock}`;
     ? `<h2 id="operations-brand">Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
     : '';
 
+  // FIX 4 — No website callout. Only shown when website_url is null
+  // (no website listed on Google Business Profile at all).
+  const noWebsiteHtml = data.website_url == null
+    ? `<div style="margin-top:12px;padding:16px 18px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;">
+  <div style="font-size:14px;font-weight:700;color:#991B1B;margin-bottom:8px;">&#9888; No website detected on your Google Business Profile</div>
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#7F1D1D;">Businesses without a website lose an estimated 30% of potential customers before first contact. 81% of consumers research a business online before visiting. Without a website, customers who find you on Google have no way to check your services, prices, or book an appointment. Most will move on to a competitor who does have one.</p>
+  <div style="font-size:11px;color:#9CA3AF;">Source: Verisign/IPSOS Consumer Survey</div>
+</div>`
+    : '';
+
   // FIX 2 — Photo count note. Shows whenever photo_count is present on
   // the data object (always fetched via getDetails). The BrightLocal 2023
   // stat is a proven conversion motivator — surfaces next to the raw count
@@ -4836,11 +4809,11 @@ ${fmrBlock}`;
   <h2 id="priority-actions">Priority actions</h2>
   <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
 </div>`;
-    // FIX 1 — ROI Summary table sits at the very top of the priority
-    // actions section, before individual cards, so the reader sees the
-    // combined potential before scanning the detail.
-    priorityHtml += renderROISummary(claudePriorityActions);
+    // FIX 6 — Action cards first (HIGH then MEDIUM then LOW), ROI
+    // summary table last so the reader sees the full context before
+    // the combined total.
     priorityHtml += claudePriorityActions.map((a) => renderActionCard(a)).join('');
+    priorityHtml += renderROISummary(claudePriorityActions);
   } else if (!top10.length) {
     // Path (b) — empty fallback.
     priorityHtml = `<h2 id="priority-actions">Priority actions</h2>`;
@@ -4899,13 +4872,6 @@ ${fmrBlock}`;
   const competitorDeepDiveHtml = enriched
     ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors, data)
     : '';
-  // Conquest page — single-competitor focused "how to win this week"
-  // playbook. Sits between priority actions and competitor deep dive.
-  // Returns '' when enriched.conquest_page is missing/empty so the
-  // section is silently omitted.
-  const conquestPageHtml = enriched
-    ? renderConquestPage(enriched.conquest_page)
-    : '';
   // Anchor Score — Walk-Up Traffic Potential panel based on existing
   // location_signals + nearby_venues data. Always renders (shows a
   // "data not available" notice when location_signals is missing).
@@ -4913,7 +4879,6 @@ ${fmrBlock}`;
   // Trust section — verification-context block shown between the
   // overall status pill and the table of contents. Always renders;
   // no data dependencies.
-  const trustSectionHtml = renderTrustSection();
   // Review Gap Analysis — 4-part section showing the bar comparison vs.
   // the highest-reviewed competitor, the catch-up calculator table, a
   // realistic target, and (when ctx.velocity is supplied by the route
@@ -5330,7 +5295,6 @@ ${cards}`;
     { label: 'Anchor Score',            anchor: 'anchor-score',       html: anchorScoreHtml,              highlight: false },
     { label: 'Seasonal Calendar',       anchor: 'seasonal-calendar',  html: seasonalCalendarHtml,         highlight: false },
     { label: 'Operations and Brand',    anchor: 'operations-brand',   html: opsHtml,                      highlight: false },
-    { label: 'How to Beat Competitors', anchor: 'conquest-page',      html: conquestPageHtml,             highlight: true  },
     { label: 'Market Charts',           anchor: 'market-charts',      html: chartsHtml,                   highlight: false },
     { label: 'Competitor Deep Dive',    anchor: 'competitor-deep-dive', html: competitorDeepDiveHtml,       highlight: false },
     { label: 'Priority Actions',        anchor: 'priority-actions',   html: priorityHtml,                 highlight: true  },
@@ -5421,7 +5385,6 @@ function toggleDark() {
   return `${PAGE_OPEN}<div class="back-links" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;"><a class="back" style="margin-bottom:0" href="/app">&larr; new search</a> <a class="back" style="margin-bottom:0" href="/dashboard">&larr; Back to Dashboard</a>${pdfBtnHtml ? ' ' + pdfBtnHtml : ''}<button id="dark-toggle" onclick="toggleDark()" style="margin-left:auto;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">🌙 Dark mode</button></div>
 ${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
-${trustSectionHtml}
 ${tocHtml}
 ${localContextHtml}
 ${redFlagsHtml}
@@ -5438,8 +5401,7 @@ ${marketHtml}
 ${anchorScoreHtml}
 ${demandHtml}
 ${seasonalCalendarHtml}
-${opsHtml}${photoStatHtml}
-${conquestPageHtml}
+${opsHtml}${noWebsiteHtml}${photoStatHtml}
 ${chartsHtml}
 ${competitorDeepDiveHtml}
 ${priorityHtml}
@@ -5555,7 +5517,6 @@ function renderCommonProblems(analysis) {
 <h3>${escapeHtml(th.name)}${sevTag}</h3>
 <div class="honesty honesty-verified"><span class="hmark">[REVIEW EVIDENCE]</span> ${th.mentions} of ${th.total} reviews mention this (weighted score ${th.weighted}).</div>
 <div class="honesty honesty-reasonable-inference"><span class="hmark">[REASONABLE INFERENCE]</span> Typically points to: ${escapeHtml(th.fix_direction)}.</div>
-<div class="honesty honesty-customer-must-validate"><span class="hmark">[CUSTOMER MUST VALIDATE]</span> Confirm with your operations — the algorithm sees what reviewers wrote, not what's actually happening on-site.</div>
 </div>`;
     }).join('');
   }
@@ -5858,13 +5819,23 @@ function renderROISummary(actions) {
   for (const a of actions) {
     const est = String(a.money_estimate || '').trim();
     if (!est) continue;
-    // Strip commas + dollar signs, then extract all numbers.
-    // Works for "$8,000-$18,000/year", "$500 - $2,000/month", "$12,000+/year".
-    const nums = est.replace(/[$,]/g, '').match(/\d+(?:\.\d+)?/g);
-    if (!nums || nums.length === 0) continue;
-    const low = parseFloat(nums[0]);
-    const high = nums.length >= 2 ? parseFloat(nums[1]) : low;
-    if (isNaN(low)) continue;
+    // FIX 7 — skip one-time costs; they are not annual revenue.
+    if (/one[- ]?time|build|setup/i.test(est)) continue;
+    // Extract ALL numbers and use min/max as the revenue range.
+    // This avoids grabbing cost numbers first when Claude writes
+    // formats like "$0-$50/month cost · Revenue: $7,200/year".
+    const allNums = est
+      .replace(/[$,]/g, '')
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map(Number) || [];
+    if (allNums.length === 0) continue;
+    let low = Math.min(...allNums);
+    let high = Math.max(...allNums);
+    // FIX 7 — normalize /month estimates to annual for a consistent total.
+    if (/\/month/i.test(est)) {
+      low = low * 12;
+      high = high * 12;
+    }
     rows.push({ title: a.title || 'Action', est, low, high });
     totalLow += low;
     totalHigh += high;
@@ -5872,12 +5843,8 @@ function renderROISummary(actions) {
 
   if (rows.length === 0) return '';
 
-  // Detect unit suffix from the first estimate that has one.
-  let suffix = '';
-  for (const r of rows) {
-    if (/\/year/i.test(r.est)) { suffix = '/year'; break; }
-    if (/\/month/i.test(r.est)) { suffix = '/month'; break; }
-  }
+  // FIX 7 — always display total as /year regardless of individual units.
+  const suffix = '/year';
 
   const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
   const totalRange = totalLow === totalHigh
@@ -5885,8 +5852,8 @@ function renderROISummary(actions) {
     : `${fmt(totalLow)} - ${fmt(totalHigh)}${suffix}`;
 
   const rowsHtml = rows.map((r) => `<tr>
-      <td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #F1F5F9;line-height:1.4;">${escapeHtml(r.title)}</td>
-      <td style="padding:10px 14px;font-size:13px;color:#166534;text-align:right;border-bottom:1px solid #F1F5F9;white-space:nowrap;">${escapeHtml(r.est)}</td>
+      <td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #F1F5F9;line-height:1.4;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;max-width:0;">${escapeHtml(r.title)}</td>
+      <td style="padding:10px 14px;font-size:13px;color:#166534;text-align:right;border-bottom:1px solid #F1F5F9;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;max-width:0;">${escapeHtml(r.est)}</td>
     </tr>`).join('');
 
   return `<div style="background:#FFFFFF;border:1px solid #D1FAE5;border-radius:10px;padding:20px 24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
@@ -5895,7 +5862,7 @@ function renderROISummary(actions) {
   <table style="width:100%;border-collapse:collapse;">
     ${rowsHtml}
     <tr style="border-top:2px solid #D1FAE5;">
-      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">TOTAL POTENTIAL</td>
+      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">TOTAL ANNUAL POTENTIAL</td>
       <td style="padding:12px 14px;font-size:17px;font-weight:700;color:#166534;text-align:right;white-space:nowrap;">${escapeHtml(totalRange)}</td>
     </tr>
   </table>
@@ -5926,126 +5893,20 @@ function renderActionCard(action) {
     ? `<div style="font-size: 13px; color: #6B7280;">${metaParts.join(' &middot; ')}</div>`
     : '';
 
-  return `<div class="action-card" style="border-left: 4px solid ${colors.border}; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+  return `<div class="action-card" style="border-left: 4px solid ${colors.border}; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
     <span style="background: ${colors.bg}; color: ${colors.text}; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${impact} IMPACT</span>
     <span style="background: ${sourceBg}; color: ${sourceFg}; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">${sourceLabel}</span>
   </div>
-  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">${title}</h3>
-  ${what ? `<div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${what}</span></div>` : ''}
-  ${why ? `<div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
-  ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">${title}</h3>
+  ${what ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${what}</span></div>` : ''}
+  ${why ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
+  ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
   ${metaLine}
 </div>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderConquestPage — Claude conquest_page renderer
-// ─────────────────────────────────────────────────────────────────────
-// Renders the "how to win against your #1 threat" focused page.
-// Distinct from renderCompetitorDeepDive (which lists ALL threats) —
-// this is a single-competitor focused playbook. Dark navy header with
-// the competitor name, 3 weakness cards with red left border, then
-// a green "steal their customers this week" footer.
-//
-// Schema (enriched.conquest_page):
-//   { competitor_name, competitor_rating, competitor_reviews,
-//     distance_miles, distance_human,
-//     weakness_1: { title, evidence, your_move },
-//     weakness_2: { same },
-//     weakness_3: { same },
-//     how_to_steal_customers }
-//
-// Graceful fallback: returns '' when conquest_page is null/missing/empty
-// so the section is silently omitted (no error, no empty box).
-function renderConquestPage(conquestPage) {
-  if (!conquestPage || typeof conquestPage !== 'object') return '';
-  const compName = String(conquestPage.competitor_name || '').trim();
-  if (!compName) return '';
-
-  // Collect weaknesses 1/2/3 — silently skip any that are missing or
-  // structurally invalid so a partial conquest_page still renders the
-  // valid slots rather than the whole section dropping.
-  const weaknesses = ['weakness_1', 'weakness_2', 'weakness_3']
-    .map((key) => conquestPage[key])
-    .filter((w) => w && typeof w === 'object' && (w.title || w.evidence || w.your_move));
-  if (weaknesses.length === 0) return '';
-
-  const rating = typeof conquestPage.competitor_rating === 'number'
-    ? conquestPage.competitor_rating.toFixed(1)
-    : null;
-  const reviews = typeof conquestPage.competitor_reviews === 'number'
-    ? conquestPage.competitor_reviews.toLocaleString('en-US')
-    : null;
-  const distMiles = typeof conquestPage.distance_miles === 'number'
-    ? conquestPage.distance_miles
-    : null;
-  const distHuman = String(conquestPage.distance_human || '').trim();
-  const steal = String(conquestPage.how_to_steal_customers || '').trim();
-
-  // Header — dark navy block ("HOW TO WIN AGAINST")
-  const ratingReviewLine = (rating != null || reviews != null)
-    ? `<div style="font-size: 14px; color: #94A3B8; margin-top: 12px;">${
-        rating != null ? `<span style="color: #FCD34D;">&starf;</span> <strong style="color: #F1F5F9;">${escapeHtml(rating)}</strong>` : ''
-      }${
-        rating != null && reviews != null ? '<span style="color: #475569;"> &middot; </span>' : ''
-      }${
-        reviews != null ? `<strong style="color: #F1F5F9;">${escapeHtml(reviews)}</strong> reviews` : ''
-      }</div>`
-    : '';
-  const distanceLine = (distMiles != null || distHuman)
-    ? `<div style="font-size: 14px; color: #94A3B8; margin-top: 4px;">${
-        distMiles != null ? `<strong style="color: #F1F5F9;">${escapeHtml(distMiles.toFixed(1))} miles</strong> away` : ''
-      }${
-        distMiles != null && distHuman ? ' &mdash; ' : ''
-      }${
-        distHuman ? `<em style="color: #CBD5E1;">${escapeHtml(distHuman)}</em>` : ''
-      }</div>`
-    : '';
-
-  const headerHtml = `<div style="background: #0F1729; color: white; padding: 28px 24px; border-radius: 10px 10px 0 0; border-bottom: 3px solid #1E293B;">
-  <div style="font-size: 12px; color: #10B981; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;">&#127919; How to win against</div>
-  <div style="font-size: 28px; font-weight: 700; color: #F8FAFC; line-height: 1.2;">${escapeHtml(compName)}</div>
-  ${ratingReviewLine}
-  ${distanceLine}
-</div>`;
-
-  // 3 weakness cards — red left border, blue "YOUR MOVE" label
-  const weaknessHtml = weaknesses.map((w, idx) => {
-    const title = String(w.title || '').trim();
-    const evidence = String(w.evidence || '').trim();
-    const yourMove = String(w.your_move || '').trim();
-    return `<div style="border-left: 4px solid #DC2626; padding: 18px 22px; margin: 0; background: #FFFFFF; border-bottom: 1px solid #F1F5F9;">
-  <div style="font-weight: 700; font-size: 16px; color: #0F1729; margin-bottom: 8px;">
-    <span style="display: inline-block; background: #FEE2E2; color: #991B1B; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle;">WEAKNESS ${idx + 1}</span>
-    ${escapeHtml(title)}
-  </div>
-  ${evidence ? `<div style="font-size: 13px; color: #6B7280; font-style: italic; margin: 10px 0; padding: 10px 14px; background: #F9FAFB; border-radius: 6px; line-height: 1.6;">${escapeHtml(evidence)}</div>` : ''}
-  ${yourMove ? `<div style="margin-top: 10px;">
-    <div style="font-size: 11px; font-weight: 700; color: #1D4ED8; letter-spacing: 1px; margin-bottom: 4px;">YOUR MOVE:</div>
-    <div style="font-size: 14px; color: #1E293B; line-height: 1.6;">${escapeHtml(yourMove)}</div>
-  </div>` : ''}
-</div>`;
-  }).join('');
-
-  // Footer — green "STEAL THEIR CUSTOMERS THIS WEEK" callout
-  const stealHtml = steal
-    ? `<div style="background: linear-gradient(135deg, #064E3B 0%, #065F46 100%); color: white; padding: 22px 24px; border-radius: 0 0 10px 10px;">
-  <div style="font-size: 12px; font-weight: 700; color: #6EE7B7; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;">&#128640; Steal their customers this week</div>
-  <div style="font-size: 14px; line-height: 1.7; color: #ECFDF5;">${escapeHtml(steal)}</div>
-</div>`
-    : `<div style="background: #F8FAFC; padding: 16px 24px; border-radius: 0 0 10px 10px; border-top: 1px solid #E5E7EB;"></div>`;
-
-  return `<div class="section">
-  <h2 id="conquest-page">Conquest page</h2>
-  <p style="color: #6B7280; font-size: 13px; margin-bottom: 16px;">Your #1 threat &mdash; and exactly how to take their customers this week.</p>
-  <div style="box-shadow: 0 4px 12px rgba(15, 23, 41, 0.08); border-radius: 10px; overflow: hidden;">
-    ${headerHtml}
-    ${weaknessHtml}
-    ${stealHtml}
-  </div>
-</div>`;
-}
 
 // ─────────────────────────────────────────────────────────────────────
 // calculateAnchorScore — Walk-Up Traffic Potential score (0-100)
@@ -6311,19 +6172,13 @@ function renderReviewGap(data, velocity) {
     ? data.competitor_median_review_count
     : null;
 
-  // Highest-threat competitor for the review-count comparison is the
-  // one with the MOST reviews. googlePlaces.js sorts competitors_top5
-  // by review_count desc upstream, so index 0 is the leader. Fall back
-  // to competitors_top3[0] if top5 isn't populated.
-  let topCompetitor = null;
-  if (Array.isArray(data.competitors_top5) && data.competitors_top5.length > 0) {
-    topCompetitor = data.competitors_top5[0];
-  } else if (Array.isArray(data.competitors_top3) && data.competitors_top3.length > 0) {
-    topCompetitor = data.competitors_top3[0];
-  }
-  const hasCompetitor = !!(topCompetitor
-    && typeof topCompetitor.review_count === 'number'
-    && topCompetitor.review_count > yourReviews);
+  // All competitors with MORE reviews than the subject. Fall back to
+  // competitors_top3 when top5 is not populated.
+  const allComps = Array.isArray(data.competitors_top5) ? data.competitors_top5
+    : (Array.isArray(data.competitors_top3) ? data.competitors_top3 : []);
+  const compsAbove = allComps.filter((c) =>
+    c && typeof c.review_count === 'number' && c.review_count > yourReviews
+  );
 
   // Realistic target, beat the local median by 50%, or your_reviews+50,
   // whichever is higher. When no median is available, fall back to +50.
@@ -6332,16 +6187,18 @@ function renderReviewGap(data, velocity) {
     : yourReviews + 50;
 
   // ── PART 1 + PART 2 — bar comparison + catch-up table ──────────────
+  // Show every competitor that has more reviews than the subject.
   let gapHtml = '';
   let catchUpHtml = '';
-  if (hasCompetitor) {
-    const compReviews = topCompetitor.review_count;
-    const compName = topCompetitor.name || 'Top competitor';
-    const gap = compReviews - yourReviews;
-    const maxBar = compReviews;
-    const yourPct = Math.max(2, Math.round((yourReviews / maxBar) * 100));
+  if (compsAbove.length > 0) {
+    const competitorBlocks = compsAbove.map((comp) => {
+      const compReviews = comp.review_count;
+      const compName = comp.name || 'Top competitor';
+      const gap = compReviews - yourReviews;
+      const maxBar = compReviews;
+      const yourPct = Math.max(2, Math.round((yourReviews / maxBar) * 100));
 
-    gapHtml = `<div style="margin: 16px 0;">
+      const barSection = `<div style="margin: 16px 0;">
   <div style="display: grid; grid-template-columns: 140px 1fr 90px; gap: 12px; align-items: center; font-size: 13px; margin-bottom: 10px;">
     <div style="font-weight: 600; color: #1E293B;">You</div>
     <div style="background: #F1F5F9; border-radius: 6px; overflow: hidden; height: 22px;">
@@ -6364,36 +6221,36 @@ function renderReviewGap(data, velocity) {
 </div>
 <p style="font-size: 14px; line-height: 1.6; color: #1E293B; margin: 14px 0 0;">You are ${gap.toLocaleString('en-US')} reviews behind ${escapeHtml(compName)}. This gap means ${escapeHtml(compName)} appears above you in Google search results for most customers searching in your area.</p>`;
 
-    const rates = [
-      { rate: 5, label: '5 reviews per month' },
-      { rate: 10, label: '10 reviews per month' },
-      { rate: 25, label: '25 reviews per month' },
-      { rate: 50, label: '50 reviews per month' },
-    ];
-    const rows = rates.map((r) => {
-      const months = Math.ceil(gap / r.rate);
-      let statusIcon, statusLabel, color, bg;
-      if (months > 36) {
-        statusIcon = '\u{1F534}'; statusLabel = 'Too slow';
-        color = '#991B1B'; bg = '#FEE2E2';
-      } else if (months >= 13) {
-        statusIcon = '\u{1F7E1}'; statusLabel = 'Slow';
-        color = '#92400E'; bg = '#FEF3C7';
-      } else if (months >= 7) {
-        statusIcon = '\u{1F7E2}'; statusLabel = 'Realistic';
-        color = '#065F46'; bg = '#D1FAE5';
-      } else {
-        statusIcon = '\u{2705}'; statusLabel = 'Fast';
-        color = '#1E40AF'; bg = '#DBEAFE';
-      }
-      return `<tr>
+      const rates = [
+        { rate: 5, label: '5 reviews per month' },
+        { rate: 10, label: '10 reviews per month' },
+        { rate: 25, label: '25 reviews per month' },
+        { rate: 50, label: '50 reviews per month' },
+      ];
+      const rows = rates.map((r) => {
+        const months = Math.ceil(gap / r.rate);
+        let statusIcon, statusLabel, color, bg;
+        if (months > 36) {
+          statusIcon = '\u{1F534}'; statusLabel = 'Too slow';
+          color = '#991B1B'; bg = '#FEE2E2';
+        } else if (months >= 13) {
+          statusIcon = '\u{1F7E1}'; statusLabel = 'Slow';
+          color = '#92400E'; bg = '#FEF3C7';
+        } else if (months >= 7) {
+          statusIcon = '\u{1F7E2}'; statusLabel = 'Realistic';
+          color = '#065F46'; bg = '#D1FAE5';
+        } else {
+          statusIcon = '\u{2705}'; statusLabel = 'Fast';
+          color = '#1E40AF'; bg = '#DBEAFE';
+        }
+        return `<tr>
   <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; font-size: 14px; color: #1E293B;">${escapeHtml(r.label)}</td>
   <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; font-size: 14px; color: #1E293B; text-align: right;">${months} ${months === 1 ? 'month' : 'months'}</td>
   <td style="padding: 10px 14px; border-bottom: 1px solid #F1F5F9; text-align: right;"><span style="display: inline-block; background: ${bg}; color: ${color}; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;">${statusIcon} ${escapeHtml(statusLabel)}</span></td>
 </tr>`;
-    }).join('');
+      }).join('');
 
-    catchUpHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">How long to close the gap?</h3>
+      const tableSection = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">How long to close the gap with ${escapeHtml(compName)}?</h3>
 <div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
   <table style="width: 100%; border-collapse: collapse; font-family: inherit;">
     <thead>
@@ -6406,9 +6263,14 @@ function renderReviewGap(data, velocity) {
     <tbody>${rows}</tbody>
   </table>
 </div>`;
+
+      return barSection + tableSection;
+    });
+
+    gapHtml = competitorBlocks.join('<hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 28px 0;">');
   } else {
-    // No competitor with more reviews than us, skip Parts 1 and 2.
-    gapHtml = `<p style="font-size: 14px; line-height: 1.6; color: #1E293B;">You currently have <strong>${yourReviews.toLocaleString('en-US')}</strong> Google reviews. We did not find any nearby competitors with more reviews than you, so there is no review gap to close right now.</p>`;
+    // No competitor has more reviews than the subject.
+    gapHtml = `<p style="font-size: 14px; line-height: 1.6; color: #1E293B;">You lead all nearby competitors in review count. Keep collecting reviews to maintain this advantage.</p>`;
   }
 
   // ── PART 3 — realistic target ──────────────────────────────────────
@@ -6422,9 +6284,9 @@ function renderReviewGap(data, velocity) {
     const needed = realisticTarget - yourReviews;
     const weeks = Math.ceil(needed / 14); // 2 reviews/day * 7 days
     let openingLine;
-    if (hasCompetitor) {
-      const compReviews = topCompetitor.review_count;
-      const compName = topCompetitor.name || 'Top competitor';
+    if (compsAbove.length > 0) {
+      const compReviews = compsAbove[0].review_count;
+      const compName = compsAbove[0].name || 'Top competitor';
       openingLine = `You do not need to match ${escapeHtml(compName)}'s ${compReviews.toLocaleString('en-US')} reviews to compete. Reaching <strong>${realisticTarget.toLocaleString('en-US')} reviews</strong> puts you above the local median and makes you appear equally credible to first-time Google searchers.`;
     } else {
       openingLine = `Reaching <strong>${realisticTarget.toLocaleString('en-US')} reviews</strong> puts you above the local benchmark and makes you appear credible to first-time Google searchers.`;
@@ -6474,10 +6336,7 @@ function renderReviewGap(data, velocity) {
   <div style="font-size: 14px; line-height: 1.7; color: #1E293B;">${lineHtml}</div>
 </div>`;
   } else {
-    velocityHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 24px 0 10px;">Your real review velocity</h3>
-<div style="background: #F8FAFC; border-left: 3px solid #94A3B8; padding: 14px 18px; border-radius: 0 6px 6px 0;">
-  <div style="font-size: 14px; line-height: 1.6; color: #475569;">Generate your next report in 30 days to see your real review velocity compared to today.</div>
-</div>`;
+    velocityHtml = '';
   }
 
   return `<div class="section">
@@ -6509,12 +6368,18 @@ function renderRankingEstimate(data, profile) {
   const yourReviews = typeof data.google_review_count === 'number' ? data.google_review_count : 0;
   const competitors = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
 
-  if (yourRating == null || competitors.length === 0) {
+  // Only bail out when there are no competitors — we can still show a
+  // ranking when the subject has no rating/reviews (they get score 0).
+  if (competitors.length === 0) {
     return `<div class="section">
   <h2 id="ranking-position">Your Google search position</h2>
   <p style="color: #6B7280; font-size: 14px;">Not enough competitor data to estimate your Google ranking.</p>
 </div>`;
   }
+
+  // When the subject has no rating or zero reviews their score is 0 so
+  // they naturally fall to the bottom of the sorted list.
+  const noReviewsCase = yourRating == null || yourReviews === 0;
 
   // CHANGE 3 — business-type label sourced from the profile registry
   // (profile.name is the same human label already shown in the report
@@ -6552,7 +6417,8 @@ function renderRankingEstimate(data, profile) {
     rating: yourRating,
     reviews: yourReviews,
     isYou: true,
-    score: score(yourRating, yourReviews),
+    // Force score to 0 for zero-review businesses so they sort last.
+    score: noReviewsCase ? 0 : score(yourRating, yourReviews),
   });
 
   // Sort by score descending — position 1 is the best score.
@@ -6565,20 +6431,24 @@ function renderRankingEstimate(data, profile) {
   // accent; competitor rows are plain white with a thin separator.
   const listHtml = allEntries.map((e, idx) => {
     const pos = idx + 1;
-    const rating = e.rating.toFixed(1);
+    // Guard: rating can be null for a zero-review subject business.
+    const ratingStr = typeof e.rating === 'number' ? e.rating.toFixed(1) : null;
     const reviews = e.reviews.toLocaleString('en-US');
     if (e.isYou) {
+      const ratingCell = ratingStr != null
+        ? `<span style="color: #FCD34D;">&starf;</span> ${escapeHtml(ratingStr)}`
+        : `<span style="color: #9CA3AF; font-style: italic;">no rating</span>`;
       return `<div style="display: grid; grid-template-columns: 50px 1fr 80px 110px; gap: 12px; align-items: center; padding: 14px 16px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 6px; margin-bottom: 6px;">
   <div style="font-weight: 700; color: #2563EB; font-size: 16px;">#${pos}</div>
   <div style="font-weight: 700; color: #2563EB;">YOU</div>
-  <div style="font-size: 13px; color: #1E293B;"><span style="color: #FCD34D;">&starf;</span> ${escapeHtml(rating)}</div>
+  <div style="font-size: 13px; color: #1E293B;">${ratingCell}</div>
   <div style="font-size: 13px; color: #1E293B; text-align: right;">${escapeHtml(reviews)} reviews</div>
 </div>`;
     }
     return `<div style="display: grid; grid-template-columns: 50px 1fr 80px 110px; gap: 12px; align-items: center; padding: 12px 16px; background: #FFFFFF; border-bottom: 1px solid #F1F5F9;">
   <div style="font-weight: 700; color: #6B7280; font-size: 14px;">#${pos}</div>
   <div style="color: #1E293B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</div>
-  <div style="font-size: 13px; color: #6B7280;"><span style="color: #FCD34D;">&starf;</span> ${escapeHtml(rating)}</div>
+  <div style="font-size: 13px; color: #6B7280;"><span style="color: #FCD34D;">&starf;</span> ${escapeHtml(ratingStr)}</div>
   <div style="font-size: 13px; color: #6B7280; text-align: right;">${escapeHtml(reviews)} reviews</div>
 </div>`;
   }).join('');
@@ -6618,6 +6488,12 @@ function renderRankingEstimate(data, profile) {
   // search query reflects what a customer would actually type.
   const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(bizType)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
 
+  // Note shown when the subject has no reviews — explains why they
+  // appear at the bottom and motivates the first review action.
+  const noReviewsNoteHtml = noReviewsCase
+    ? `<p style="font-size: 13px; line-height: 1.6; color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 12px 14px; margin: 14px 0 0;">You currently have no Google reviews. Businesses with no reviews always appear below competitors in Google search. Every review you collect moves you up.</p>`
+    : '';
+
   return `<div class="section">
   <h2 id="ranking-position">Your Google search position</h2>
   <div style="background: linear-gradient(135deg, #0F1729 0%, #1E3A8A 100%); color: white; padding: 22px 24px; border-radius: 10px 10px 0 0;">
@@ -6631,8 +6507,9 @@ function renderRankingEstimate(data, profile) {
     </div>
     <p style="font-size: 14px; line-height: 1.6; color: #1E293B; margin: 18px 0 0;">${escapeHtml(guidance)}</p>
     ${movingUpHtml}
+    ${noReviewsNoteHtml}
     <div style="font-size: 11px; color: #9CA3AF; margin-top: 18px; padding-top: 14px; border-top: 1px solid #F1F5F9; line-height: 1.5;">
-      This is an estimate based on rating and review count data. Actual Google rankings vary by user location, search history, and other factors Google does not disclose publicly.
+      This is an estimate based on rating and review count data. Actual Google rankings vary by user location, search history, device, and other signals Google does not disclose publicly.
     </div>
   </div>
 </div>`;
@@ -6655,13 +6532,6 @@ function renderRankingEstimate(data, profile) {
 function renderHoursComparison(data) {
   if (!data) return '';
   const yourHours = Array.isArray(data.weekday_text) ? data.weekday_text : [];
-
-  if (yourHours.length === 0) {
-    return `<div class="section">
-  <h2 id="hours-comparison">Hours comparison</h2>
-  <p style="color: #6B7280; font-size: 14px;">Add your business hours to Google Business Profile to enable this comparison.</p>
-</div>`;
-  }
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -6692,24 +6562,29 @@ function renderHoursComparison(data) {
         result[day] = '24h';
         continue;
       }
-      // Match "9:00 AM, 9:00 PM" or "9:00 AM - 9:00 PM" or "9:00 AM to 9:00 PM"
-      // Em/en/hyphen dashes between times. Google sometimes uses U+2013.
-      const m = rest.match(/(\d+):(\d+)\s*(AM|PM)?\s*[–—\-]\s*(\d+):(\d+)\s*(AM|PM)?/i);
-      if (!m) {
-        result[day] = '—';
+      // Match all time ranges in the string — handles split hours like
+      // "11:00 AM – 3:00 PM, 5:00 PM – 9:00 PM" by finding every range.
+      const timeRangeRe = /(\d+):(\d+)\s*(AM|PM)?\s*[–—\-]+\s*(\d+):(\d+)\s*(AM|PM)?/ig;
+      const allRanges = [];
+      let rm;
+      while ((rm = timeRangeRe.exec(rest)) !== null) {
+        const openH = parseInt(rm[1], 10);
+        const closeH = parseInt(rm[4], 10);
+        const openAmPm = (rm[3] || '').toUpperCase();
+        const closeAmPm = (rm[6] || '').toUpperCase();
+        let open24 = openH;
+        if (openAmPm === 'PM' && openH < 12) open24 += 12;
+        if (openAmPm === 'AM' && openH === 12) open24 = 0;
+        let close24 = closeH;
+        if (closeAmPm === 'PM' && closeH < 12) close24 += 12;
+        if (closeAmPm === 'AM' && closeH === 12) close24 = 0;
+        allRanges.push(`${open24}-${close24}`);
+      }
+      if (allRanges.length > 0) {
+        result[day] = allRanges.join(', ');
         continue;
       }
-      const openH = parseInt(m[1], 10);
-      const closeH = parseInt(m[4], 10);
-      const openAmPm = (m[3] || '').toUpperCase();
-      const closeAmPm = (m[6] || '').toUpperCase();
-      let open24 = openH;
-      if (openAmPm === 'PM' && openH < 12) open24 += 12;
-      if (openAmPm === 'AM' && openH === 12) open24 = 0;
-      let close24 = closeH;
-      if (closeAmPm === 'PM' && closeH < 12) close24 += 12;
-      if (closeAmPm === 'AM' && closeH === 12) close24 = 0;
-      result[day] = `${open24}-${close24}`;
+      result[day] = '—';
     }
     return result;
   }
@@ -6734,12 +6609,16 @@ function renderHoursComparison(data) {
   const yourParsed = parseHours(yourHours);
   const yourNumeric = parseHoursNumeric(yourHours);
 
-  // Only include competitors that have weekday_text. Cap at 4 so the
-  // table doesn't blow up horizontally.
-  const compsWithHours = (Array.isArray(data.competitors_top5) ? data.competitors_top5 : [])
-    .filter((c) => c && Array.isArray(c.weekday_text) && c.weekday_text.length > 0)
+  // Include ALL competitors (cap at 4). Check both weekday_text and
+  // hours fields. Show N/A for any competitor with no hours data.
+  const allCompetitors = (Array.isArray(data.competitors_top5) ? data.competitors_top5 : [])
+    .filter((c) => c)
     .slice(0, 4);
 
+  const compsWithHours = allCompetitors.filter((c) =>
+    (Array.isArray(c.weekday_text) && c.weekday_text.length > 0) ||
+    (Array.isArray(c.hours) && c.hours.length > 0)
+  );
   const hasCompetitorHours = compsWithHours.length > 0;
 
   function cell(value, isYour) {
@@ -6760,21 +6639,35 @@ function renderHoursComparison(data) {
   // surface an info box below the table explaining what the user can
   // do. The 24h special case above means a real 24-hour business
   // shows '24h' across the row instead of falling into this branch.
-  const yourHasAnyValid = DAYS.some((d) => {
+  const yourHasAnyValid = yourHours.length > 0 && DAYS.some((d) => {
     const v = yourParsed[d];
     return v && v !== '—';
   });
-  const yourCells = DAYS.map((d) => cell(yourParsed[d] || '—', true)).join('');
-  const yourRow = yourHasAnyValid
-    ? `<tr>
+  let yourRow;
+  if (yourHours.length === 0) {
+    // FIX 3 — no hours on GBP: show the YOU row with N/A for all 7 days
+    // instead of hiding the section entirely.
+    yourRow = `<tr>
+    <td style="padding: 9px 12px; font-size: 13px; font-weight: 700; color: #2563EB; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">YOU</td>
+    ${DAYS.map(() => `<td style="padding: 9px 4px; font-size: 12px; color: #9CA3AF; text-align: center; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">N/A</td>`).join('')}
+  </tr>`;
+  } else {
+    const yourCells = DAYS.map((d) => cell(yourParsed[d] || '—', true)).join('');
+    yourRow = yourHasAnyValid
+      ? `<tr>
     <td style="padding: 9px 12px; font-size: 13px; font-weight: 700; color: #2563EB; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">YOU</td>
     ${yourCells}
   </tr>`
-    : '';
+      : '';
+  }
 
-  const compRowsHtml = compsWithHours.map((c) => {
-    const parsed = parseHours(c.weekday_text);
-    const cells = DAYS.map((d) => cell(parsed[d] || '—', false)).join('');
+  const compRowsHtml = allCompetitors.map((c) => {
+    // Prefer weekday_text; fall back to hours if present.
+    const hoursSource = (Array.isArray(c.weekday_text) && c.weekday_text.length > 0)
+      ? c.weekday_text
+      : (Array.isArray(c.hours) && c.hours.length > 0 ? c.hours : null);
+    const parsed = hoursSource ? parseHours(hoursSource) : {};
+    const cells = DAYS.map((d) => cell(hoursSource ? (parsed[d] || '—') : 'N/A', false)).join('');
     return `<tr>
       <td style="padding: 9px 12px; font-size: 13px; color: #1E293B; border-bottom: 1px solid #F1F5F9; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${escapeHtml(c.name || '')}">${escapeHtml(c.name || 'Unknown')}</td>
       ${cells}
@@ -6791,8 +6684,10 @@ function renderHoursComparison(data) {
   // Info box rendered below the table when YOUR row was suppressed
   // because no valid times were parsed. Same gray styling as the
   // "competitor hours not available" notice already in this section.
-  const yourHoursUnreadableHtml = yourHasAnyValid ? '' :
-    `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`;
+  const yourHoursUnreadableHtml = yourHours.length === 0
+    ? `<div style="margin-top: 14px; padding: 12px 16px; background: #FEF9C3; border-left: 3px solid #EAB308; border-radius: 0 6px 6px 0; font-size: 13px; color: #713F12; line-height: 1.6;">Your hours are not listed on your Google Business Profile. Add them at <a href="https://business.google.com" target="_blank" rel="noopener" style="color: #713F12; text-decoration: underline;">business.google.com</a> to show customers when you are open.</div>`
+    : (yourHasAnyValid ? '' :
+      `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`);
 
   // Gap analysis — only when we have competitor hours.
   let gapInsightsHtml = '';
@@ -6976,14 +6871,6 @@ function renderSeasonalCalendar(data) {
     if (demand[7] < 3) demand[7] = 3;
   }
 
-  // December holiday boost — retail/food/hospitality benefit from the
-  // holiday shopping season. Read profile.id or sector hint from data
-  // to decide.
-  const profileHint = String(
-    (data.profile_id || data.profile_label || data.naics2 || '') + ' ' + (data.business_name || '')
-  ).toLowerCase();
-  const holidayBenefits = /retail|food|grocery|hospitality|restaurant|hotel|gift|jewel|toy|apparel|salon/.test(profileHint);
-  if (holidayBenefits && demand[11] < 3) demand[11] = 3;
 
   const LEVEL_LABELS = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'PEAK' };
   const LEVEL_COLORS = { 1: '#E2E8F0', 2: '#94A3B8', 3: '#3B82F6', 4: '#10B981' };
@@ -7086,7 +6973,7 @@ function renderSeasonalCalendar(data) {
 
   // Notice when no seasonal signals fired (everything would be flat
   // medium-with-no-peak in that case).
-  const hasAnySignal = peakMonthIdx != null || data.has_cold_winter === true || data.has_hot_summer === true || holidayBenefits;
+  const hasAnySignal = peakMonthIdx != null || data.has_cold_winter === true || data.has_hot_summer === true;
   const noDataNotice = hasAnySignal ? '' :
     `<p style="font-size: 13px; color: #6B7280; margin-bottom: 12px;">Add your location to get more accurate seasonal demand data. Showing a flat baseline below.</p>`;
 
@@ -7161,69 +7048,12 @@ ${weak.map((w) => `<div style="border-left: 3px solid #6EE7B7; padding: 12px 16p
 </div>`;
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// FIX 4 — renderTopCompetitorReviews
-// ─────────────────────────────────────────────────────────────────────
-// Shows the top 3 reviews from data.competitors_top5[0] (the highest
-// review-count competitor — the most-reviewed is the biggest threat by
-// social-proof volume). Renders inside the Competitor Deep Dive section
-// at the very top, before the AI-generated analysis cards.
-// Graceful fallback: returns '' when no competitor reviews are present.
-function renderTopCompetitorReviews(data) {
-  if (!data) return '';
-  const top5 = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
-  if (top5.length === 0) return '';
-
-  // Pick the competitor with the highest review count as the "top threat"
-  // by social-proof volume. Falls back to [0] when review_count is absent.
-  const topComp = top5.reduce((best, c) => {
-    const rc = typeof c.review_count === 'number' ? c.review_count : 0;
-    const bestRc = typeof best.review_count === 'number' ? best.review_count : 0;
-    return rc > bestRc ? c : best;
-  }, top5[0]);
-
-  const reviews = Array.isArray(topComp.reviews) ? topComp.reviews.slice(0, 3) : [];
-  if (reviews.length === 0) return '';
-
-  const compName = escapeHtml(topComp.name || 'Your top competitor');
-
-  function renderStars(rating) {
-    const n = typeof rating === 'number' ? Math.min(5, Math.max(0, Math.round(rating))) : 0;
-    const filled = '&#9733;'.repeat(n);
-    const empty  = '&#9734;'.repeat(5 - n);
-    return `<span style="color:#F59E0B;font-size:14px;">${filled}${empty}</span>`;
-  }
-
-  const reviewCards = reviews.map((r) => {
-    const starsHtml = typeof r.rating === 'number'
-      ? `${renderStars(r.rating)} <span style="font-size:12px;color:#6B7280;">${r.rating.toFixed(1)}/5</span>`
-      : '';
-    const timeHtml  = r.time ? `<span style="font-size:12px;color:#9CA3AF;">${escapeHtml(r.time)}</span>` : '';
-    const text = r.text ? `"${escapeHtml(r.text)}"` : '';
-    return `<div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">${starsHtml}${timeHtml}</div>
-  ${text ? `<div style="font-size:13px;color:#374151;line-height:1.6;font-style:italic;">${text}</div>` : ''}
-</div>`;
-  }).join('');
-
-  return `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:18px 20px;margin-bottom:22px;">
-  <div style="font-size:14px;font-weight:700;color:#78350F;margin-bottom:4px;">&#128172; What ${compName}&rsquo;s customers are saying</div>
-  <div style="font-size:12px;color:#92400E;margin-bottom:14px;">Real reviews from your top competitor by review volume</div>
-  ${reviewCards}
-  <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:13px;color:#78350F;line-height:1.6;">
-    <strong>These are real complaints from ${compName}&rsquo;s customers.</strong> Each one is an opportunity for your business.
-  </div>
-</div>`;
-}
-
 // Renders the full competitor deep-dive section. Accepts either:
 //   - an array of deep-dive objects (current schema)
 //   - a single deep-dive object (legacy schema, wrapped into [obj])
 // Plus an optional outperformedCompetitors array (sibling field) that
 // surfaces a green "you're beating these" summary box. Section is
 // silently omitted only when BOTH arrays are empty.
-// FIX 4: optional third param `data` passes competitors_top5 reviews
-// so the top competitor's real reviews appear at the top of the section.
 function renderCompetitorDeepDive(deepDive, outperformedCompetitors, data) {
   const items = Array.isArray(deepDive)
     ? deepDive.filter((d) => d && typeof d === 'object')
@@ -7236,9 +7066,6 @@ function renderCompetitorDeepDive(deepDive, outperformedCompetitors, data) {
 
   let html = '<div class="section">';
   html += '<h2 id="competitor-deep-dive">&#128269; Competitor deep dive</h2>';
-
-  // FIX 4 — competitor reviews at the very top, before the analysis cards.
-  if (data) html += renderTopCompetitorReviews(data);
 
   html += '<p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">'
         + 'Only showing competitors where you are not already winning on both rating and review count.'
@@ -7389,8 +7216,7 @@ ${m.caveat ? `<em class="meta">${escapeHtml(m.caveat)}</em>` : ''}
     // Replace honesty-marker shorthand in why_your_business with styled spans.
     const styledWhyYou = (whyYou || '')
       .replace(/\[VERIFIED\]/g, '<span class="hmark hmark-verified">[VERIFIED]</span>')
-      .replace(/\[REASONABLE INFERENCE\]/g, '<span class="hmark hmark-inference">[REASONABLE INFERENCE]</span>')
-      .replace(/\[CUSTOMER MUST VALIDATE\]/g, '<span class="hmark hmark-validate">[CUSTOMER MUST VALIDATE]</span>');
+      .replace(/\[REASONABLE INFERENCE\]/g, '<span class="hmark hmark-inference">[REASONABLE INFERENCE]</span>');
 
     return `<div class="rec rec-${t.impact.toLowerCase()}">
 <h3>${idx + 1}. <span class="${impactClass}">${escapeHtml(t.impact)} IMPACT</span>${aiBadge} ${extraTagHtml} · ${escapeHtml(rec.id)} <small>(score ${t.score.toFixed(2)})</small></h3>
@@ -7440,15 +7266,6 @@ ${moneyHtml}
       : `Your <code>${escapeHtml(c.field)}</code> is ${escapeHtml(actualS)}.`;
     layer3Bits.push({ tag: 'VERIFIED', text: phrase });
   }
-  // CUSTOMER MUST VALIDATE for is_unknown() and missing fields.
-  for (const f of ev.unknowns) {
-    if (data[f] === null || data[f] === undefined) {
-      layer3Bits.push({
-        tag: 'CUSTOMER MUST VALIDATE',
-        text: `Public data couldn't measure <code>${escapeHtml(f)}</code>. Verify from your own records or measure directly.`,
-      });
-    }
-  }
   // Always-trigger (KPI-style) recs have no field comparisons.
   if (!layer3Bits.length && t.isAlwaysTrigger) {
     layer3Bits.push({
@@ -7461,14 +7278,6 @@ ${moneyHtml}
     tag: 'REASONABLE INFERENCE',
     text: `This pattern is typical for businesses like yours; the exact lift you'll see depends on execution quality and current baseline.`,
   });
-  // Tier-3 disclosure line if any cited study is vendor-tier.
-  if (rec.tier3_disclosure_required) {
-    layer3Bits.push({
-      tag: 'CUSTOMER MUST VALIDATE',
-      text: 'One or more cited studies are vendor research (Tier 3) — validate the magnitude against independent sources before committing budget.',
-    });
-  }
-
   const layer3Html = layer3Bits.map((b) => {
     const cls = b.tag.toLowerCase().replace(/\s+/g, '-');
     return `<div class="honesty honesty-${cls}"><span class="hmark">[${escapeHtml(b.tag)}]</span> ${b.text}</div>`;

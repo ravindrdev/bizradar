@@ -469,3 +469,10 @@ Water Damage Restoration,Trades & Home Services,562910,Remediation Services,admi
 Wildlife Removal,Trades & Home Services,561710,Exterminating and Pest Control Services,admin.security_pest,high,modern_via_naics6
 Window Cleaning,Trades & Home Services,561720,Janitorial Services,admin.facility_services,high,modern_via_naics6
 Window Tinting / Auto,Trades & Home Services,811121,"Automotive Body, Paint, and Interior Repair and Maintenance",other_services.auto_repair,high,modern_via_naics6
+farm credit,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+agricultural lending,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+agricultural finance,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+compeer financial,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+farm loan,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+rural lending,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword
+agricultural bank,Finance,522910,Farm Credit System Institutions,finance.community_bank,high,keyword

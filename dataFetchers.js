@@ -473,7 +473,84 @@ const WEATHER_CACHE = new LRUCache({ max: 1000, ttl: WEATHER_TTL_MS });
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-async function fetchWeather(lat, lon) {
+// State-level climate defaults — used as fallback when Open-Meteo
+// fetch fails, times out, or returns empty data. Keyed by 2-letter
+// US state abbreviation.
+const STATE_CLIMATE = {
+  WI: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MN: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MI: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  IL: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  OH: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  IN: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  IA: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MO: { has_cold_winter: true,  has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  ND: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  SD: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  NE: { has_cold_winter: true,  has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  KS: { has_cold_winter: true,  has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  NY: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  PA: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MA: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  CT: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  NJ: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  ME: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  NH: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  VT: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  CO: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  UT: { has_cold_winter: true,  has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  WY: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MT: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  ID: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  WA: { has_cold_winter: false, has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  OR: { has_cold_winter: false, has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  CA: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  NV: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  AZ: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  NM: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  TX: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  OK: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  AR: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  LA: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  MS: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  AL: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  GA: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  FL: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Apr', peak_tourist_season: 'Dec-Feb' },
+  SC: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jun', peak_tourist_season: 'Mar-May' },
+  NC: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  VA: { has_cold_winter: false, has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  WV: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  KY: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  TN: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  MD: { has_cold_winter: false, has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  DE: { has_cold_winter: false, has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  RI: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+  HI: { has_cold_winter: false, has_hot_summer: true,  peak_month: 'Dec', peak_tourist_season: 'Dec-Feb' },
+  AK: { has_cold_winter: true,  has_hot_summer: false, peak_month: 'Jul', peak_tourist_season: 'Jun-Aug' },
+};
+
+// Returns a state-based climate estimate when the Open-Meteo API is
+// unavailable. Parses the 2-letter state code from a Google
+// formatted_address (e.g. "123 Main St, Dodgeville, WI 53533, USA").
+function fetchWeatherFallback(address) {
+  const stateMatch = /,\s*([A-Z]{2})\s+\d{5}/.exec(address || '');
+  const stateCode = stateMatch ? stateMatch[1] : null;
+  const climate = stateCode ? STATE_CLIMATE[stateCode] : null;
+  if (climate) {
+    console.log('[fetch5-weather] using state fallback for:', stateCode);
+    return { ...climate, is_fallback: true };
+  }
+  console.log('[fetch5-weather] using state fallback for:', stateCode || 'unknown');
+  return {
+    has_cold_winter: false,
+    has_hot_summer: false,
+    peak_month: 'Jul',
+    peak_tourist_season: 'Jun-Aug',
+    is_fallback: true,
+  };
+}
+
+async function fetchWeather(lat, lon, address) {
   if (lat == null || lon == null) return null;
   const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
   const cached = WEATHER_CACHE.get(key);
@@ -493,7 +570,7 @@ async function fetchWeather(lat, lon) {
 
   const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${sd}&end_date=${ed}&daily=temperature_2m_max,precipitation_sum&temperature_unit=fahrenheit&timezone=auto`;
   const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 5000);
+  const timer = setTimeout(() => ac.abort(), 15000);
   try {
     const res = await fetch(url, { signal: ac.signal });
     if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
@@ -501,7 +578,7 @@ async function fetchWeather(lat, lon) {
     const dailyMax = (json.daily && json.daily.temperature_2m_max) || [];
     const dailyPrecip = (json.daily && json.daily.precipitation_sum) || [];
     const dates = (json.daily && json.daily.time) || [];
-    if (!dailyMax.length || !dates.length) return null;
+    if (!dailyMax.length || !dates.length) return fetchWeatherFallback(address);
 
     // Aggregate into monthly averages
     const buckets = {}; // 1-12 → { tempSum, tempN, precipSum, precipN }
@@ -522,7 +599,7 @@ async function fetchWeather(lat, lon) {
       const b = buckets[m];
       if (b.tempN > 0) monthAvgs[m] = b.tempSum / b.tempN;
     }
-    if (!Object.keys(monthAvgs).length) return null;
+    if (!Object.keys(monthAvgs).length) return fetchWeatherFallback(address);
 
     // Peak month = highest avg max-temp
     let peakMonth = null;
@@ -552,7 +629,7 @@ async function fetchWeather(lat, lon) {
     return value;
   } catch (err) {
     console.warn('[fetch-weather] failed:', err.message);
-    return null;
+    return fetchWeatherFallback(address);
   } finally {
     clearTimeout(timer);
   }

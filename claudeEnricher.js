@@ -1602,6 +1602,31 @@ EXAMPLE — BAD output (this is FORBIDDEN):
 
 COMPETITOR DEEP DIVE — MANDATORY RULES:
 
+ABSOLUTE RULE — READ FIRST:
+The words "reviews", "review count", "rating", "stars", "★" must NEVER
+appear in these fields:
+- their_weakness
+- what_they_do_better
+- steal_their_customers
+- executive_summary
+
+Review data is shown in a completely separate section of the report.
+Repeating it here is redundant and wastes the owner's time.
+
+Focus ONLY on:
+- Real amenity differences
+- Service differences
+- Pricing differences
+- Hours differences
+- Physical location advantages
+- Staff or expertise differences
+- Technology or booking differences
+- Anything found via web search
+
+If you cannot find a real operational difference without mentioning reviews:
+Write "No operational gap identified from available data."
+Never use review counts as a gap.
+
 You will receive up to 5 competitors in competitors.top5.
 
 For EACH of those competitors, apply this check FIRST:
@@ -1655,6 +1680,27 @@ For each competitor that needs a deep dive, generate:
    reviews from their top_reviews. Same evidence-label format
    as step 3. If no negative reviews are available in the bundle,
    return their_weakness as []. NEVER invent weaknesses.
+
+STRICT RULES FOR competitor_deep_dive (FIX 6):
+- NEVER mention review counts in their_weakness or what_they_do_better
+- NEVER mention rating differences in their_weakness or what_they_do_better
+- NEVER say "they have X reviews vs your Y" anywhere in these fields
+- NEVER say "their rating is higher/lower" anywhere in these fields
+- Review gap data is already shown in a separate dedicated section —
+  do NOT repeat it inside competitor_deep_dive
+- Focus ONLY on real operational differences found via web search or
+  evidence in the bundle: amenities, services, pricing, hours,
+  facilities, menu, policies, staff, atmosphere, specialties
+
+WEB SEARCH FOR MISSING NEGATIVE REVIEWS (FIX 7):
+If a competitor has no negative reviews (no 1-star or 2-star reviews)
+in the data bundle, you MUST perform a web search to find complaints:
+  Search query: "[competitor name] [city] complaints OR negative reviews OR problems 2025"
+Use ONLY what the web search actually returns as evidence.
+If the web search finds nothing, write:
+  their_weakness: [{ "complaint": "No specific complaints found in public reviews.", "evidence": "[INFERRED FROM DATA]: Web search returned no specific complaints for this competitor.", "your_opportunity": "No documented weakness found — focus on your own strengths." }]
+NEVER invent weaknesses. NEVER fabricate complaints. NEVER guess what
+might be wrong. Only use verified information from web search results.
 
 5. steal_their_customers — ONE paragraph, MAX 80 words. Must
    include:

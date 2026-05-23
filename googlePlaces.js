@@ -60,6 +60,7 @@ const DETAIL_FIELDS = [
   'url',
   'geometry',
   'opening_hours',
+  'current_opening_hours',
   'types',
 ].join(',');
 
@@ -2769,10 +2770,10 @@ async function fetchNearbyCompetitors({
         ...c,
         reviews,
         address: details.formatted_address || null,
-        weekday_text: details.weekday_text || null,
+        weekday_text: details.opening_hours?.weekday_text || [],
       };
     } catch (err) {
-      return { ...c, reviews: [], address: null, weekday_text: null };
+      return { ...c, reviews: [], address: null, weekday_text: [] };
     }
   }));
 
