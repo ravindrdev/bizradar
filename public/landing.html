@@ -557,6 +557,268 @@ img { max-width: 100%; display: block; }
   .section-title { font-size: 26px; }
   .trust-row { gap: 14px; row-gap: 8px; font-size: 12.5px; }
 }
+
+/* ─────────── FOUNDER SOURCE GRID ─────────── */
+.source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.source-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 20px;
+}
+.source-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F1729;
+  margin: 0 0 8px;
+}
+.source-card-body {
+  font-size: 14px;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0;
+}
+.badge-live {
+  display: inline-block;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+.badge-gov {
+  display: inline-block;
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+@media (max-width: 768px) {
+  .source-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .source-grid { grid-template-columns: 1fr; }
+}
+
+/* ─────────── FOUNDER MESSAGE ─────────── */
+.founder {
+  background: var(--navy);
+  width: 100%;
+}
+.founder-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 80px 24px;
+  text-align: center;
+}
+.founder-exp-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  text-align: left;
+}
+.founder-label {
+  display: block;
+  font-size: 12px;
+  color: #3B82F6;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+.founder-text {
+  font-size: 22px;
+  color: var(--white);
+  line-height: 1.9;
+  font-weight: 400;
+}
+.founder-text p { margin: 0 0 28px; }
+.founder-text p:last-child { margin-bottom: 0; }
+/* CHANGE 1 — poem lines: first two subdued, last line pops */
+.founder-bold { margin-top: 52px; }
+.founder-bold p {
+  line-height: 1.55;
+  text-align: center;
+  margin: 0 0 20px;
+}
+.founder-bold p:nth-child(1),
+.founder-bold p:nth-child(2) {
+  font-size: 26px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+}
+.founder-bold p:last-child {
+  font-size: 38px;
+  font-weight: 800;
+  color: #2563EB;
+  letter-spacing: -0.5px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+/* CHANGE 2 — pill toggle button */
+.founder-toggle {
+  display: block;
+  margin: 48px auto 0;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: var(--white);
+  font-size: 14px;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  padding: 12px 28px;
+  border-radius: 100px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.founder-toggle:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.6);
+}
+.founder-exp-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--white);
+  text-align: center;
+  margin: 0 0 56px;
+  line-height: 1.3;
+}
+.founder-point { margin-bottom: 64px; }
+.founder-point:last-child { margin-bottom: 0; }
+/* CHANGE 3 — watermark point numbers */
+.founder-point-num {
+  font-size: 64px;
+  font-weight: 800;
+  color: rgba(37,99,235,0.3);
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: inherit;
+}
+.founder-point-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+.founder-point-body {
+  font-size: 16px;
+  color: var(--muted-2);
+  line-height: 1.8;
+}
+.founder-point-body p { margin: 0 0 18px; }
+.founder-point-body p:last-child { margin-bottom: 0; }
+.founder-source {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline;
+  margin: -4px 0 24px;
+}
+.founder-source:hover { color: var(--white); }
+.founder-closing {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+/* CHANGE 4 — data cards + guarantee rows */
+.founder-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 60px 0 40px;
+}
+.founder-verify-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--white);
+  text-align: center;
+  line-height: 1.4;
+  margin: 0 0 32px;
+}
+.founder-data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.founder-data-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  color: var(--white);
+}
+.founder-data-icon { font-size: 24px; display: block; margin-bottom: 10px; }
+.founder-data-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.founder-badge-gov  { background: rgba(16,185,129,0.15); color: #10B981; }
+.founder-badge-live { background: rgba(37,99,235,0.15);  color: #2563EB; }
+.founder-badge-geo  { background: rgba(124,58,237,0.15); color: #7C3AED; }
+.founder-badge-red  { background: rgba(220,38,38,0.15);  color: #DC2626; }
+.founder-badge-amber{ background: rgba(217,119,6,0.15);  color: #D97706; }
+.founder-data-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  margin: 0 0 6px;
+}
+.founder-data-text {
+  font-size: 13.5px;
+  color: var(--muted-2);
+  line-height: 1.6;
+  margin: 0;
+}
+.founder-guarantee {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.8);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.founder-guarantee:last-child { border-bottom: none; }
+.founder-guarantee-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+@media (max-width: 600px) {
+  .founder-inner { padding: 40px 20px; }
+  .founder-exp-inner { padding: 0 20px 40px; }
+  .founder-text { font-size: 18px; }
+  .founder-bold p:nth-child(1),
+  .founder-bold p:nth-child(2) { font-size: 20px; }
+  .founder-bold p:last-child { font-size: 30px; }
+  .founder-exp-title { font-size: 20px; }
+  .founder-point-num { font-size: 48px; }
+  .founder-point-title { font-size: 18px; }
+  .founder-data-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -602,6 +864,116 @@ img { max-width: 100%; display: block; }
       <span class="trust-item"><span class="trust-check">✓</span> Instant delivery</span>
       <span class="trust-item"><span class="trust-check">✓</span> 27 data sources</span>
       <span class="trust-item"><span class="trust-check">✓</span> Money-back guarantee</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── FOUNDER MESSAGE ─────────── -->
+<section class="founder">
+  <div class="founder-inner">
+    <span class="founder-label">A MESSAGE FROM OUR FOUNDER</span>
+
+    <div class="founder-text">
+      <p>Your market knows things about itself that you don't.</p>
+      <p>Not because you aren't smart.<br>Not because you aren't working hard enough.</p>
+      <p>Because nobody ever showed you how to look.</p>
+      <p>Big companies have entire teams doing this for them.<br>Big companies have the radar.</p>
+    </div>
+
+    <div class="founder-bold">
+      <p>You have been doing it alone.</p>
+      <p>In the dark.</p>
+      <p>Not anymore.</p>
+    </div>
+
+    <button class="founder-toggle" id="founder-toggle" onclick="toggleFounderExpanded()">Why other AI tools get this wrong &#9660;</button>
+  </div>
+
+  <div id="founder-expanded" style="display:none;">
+    <div class="founder-exp-inner">
+
+      <h2 class="founder-exp-title">Why ChatGPT, Gemini, Grok<br>and Perplexity get it wrong</h2>
+
+      <div class="founder-point">
+        <div class="founder-point-num">01</div>
+        <div class="founder-point-title">They cannot access the data you need</div>
+        <div class="founder-point-body">
+          <p>GrowthIM had to formally apply to the US Government to get access to restricted data sources.</p>
+          <p>We use 27 verified sources. These APIs are NOT public. You have to REQUEST access. You have to prove your use case. You have to get APPROVED.</p>
+          <p>ChatGPT never applied. Gemini never applied. Grok never applied.</p>
+          <p>So they simply do not have this data. At all.</p>
+        </div>
+      </div>
+
+      <div class="founder-point">
+        <div class="founder-point-num">02</div>
+        <div class="founder-point-title">If they say I don't know you will never come back</div>
+        <div class="founder-point-body">
+          <p>So they never say it.</p>
+          <p>Instead they fill the gap with something that SOUNDS right. That is hallucination.</p>
+          <p>Not lying on purpose. Just predicting what SHOULD be there based on patterns.</p>
+          <p>The problem is it sounds completely real and confident. And you have no way to know the difference.</p>
+        </div>
+      </div>
+
+      <div class="founder-point">
+        <div class="founder-point-num">03</div>
+        <div class="founder-point-title">The research proves it</div>
+        <div class="founder-point-body">
+          <p>Stanford HAI found that 33 to 42 percent of AI responses contain at least one fabricated fact.</p>
+          <a class="founder-source" href="https://aiindex.stanford.edu" target="_blank" rel="noopener">Stanford AI Index Report 2024</a>
+          <p>MIT researchers found that AI uses words like definitely and certainly 34 percent MORE when it is WRONG than when it is right.</p>
+          <a class="founder-source" href="https://csail.mit.edu" target="_blank" rel="noopener">MIT CSAIL January 2025</a>
+          <p class="founder-closing">The more confident it sounds the more likely it is making things up.</p>
+        </div>
+      </div>
+
+      <hr class="founder-divider">
+
+      <h3 class="founder-verify-title">Every fact verified.<br>Every source real.</h3>
+
+      <div class="founder-data-grid">
+        <div class="founder-data-card">
+          <span class="founder-data-icon">🏛</span>
+          <span class="founder-data-badge founder-badge-gov">GOV</span>
+          <div class="founder-data-title">Government Restricted Data</div>
+          <p class="founder-data-text">Restricted US government databases formally approved for verified business intelligence. Not available to general AI tools.</p>
+        </div>
+        <div class="founder-data-card">
+          <span class="founder-data-icon">📍</span>
+          <span class="founder-data-badge founder-badge-live">LIVE</span>
+          <div class="founder-data-title">Live Location Data</div>
+          <p class="founder-data-text">Real time location and foot traffic data updated continuously. What is happening right now.</p>
+        </div>
+        <div class="founder-data-card">
+          <span class="founder-data-icon">📊</span>
+          <span class="founder-data-badge founder-badge-live">LIVE</span>
+          <div class="founder-data-title">Market Intelligence</div>
+          <p class="founder-data-text">Industry and employment data from verified institutional sources. Real numbers for your exact market.</p>
+        </div>
+        <div class="founder-data-card">
+          <span class="founder-data-icon">🗺</span>
+          <span class="founder-data-badge founder-badge-geo">GEO</span>
+          <div class="founder-data-title">Geographic Intelligence</div>
+          <p class="founder-data-text">Mapping and proximity data for accurate local analysis. How accessible your business is.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:40px;">
+        <div class="founder-guarantee">
+          <span class="founder-guarantee-badge founder-badge-red">MONEY BACK</span>
+          <span>If we cannot verify your business on Google Maps we stop immediately and refund you. Period.</span>
+        </div>
+        <div class="founder-guarantee">
+          <span class="founder-guarantee-badge founder-badge-red">MONEY BACK</span>
+          <span>If your business type is one we cannot analyze we tell you upfront and refund you. No report that is not useful.</span>
+        </div>
+        <div class="founder-guarantee">
+          <span class="founder-guarantee-badge founder-badge-amber">AUTO FIXED</span>
+          <span>If our AI writes something that sounds made up our system catches it and rewrites that section automatically before you ever see it.</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -804,6 +1176,18 @@ img { max-width: 100%; display: block; }
 </footer>
 
 <script>
+function toggleFounderExpanded() {
+  const expanded = document.getElementById('founder-expanded');
+  const trigger = document.getElementById('founder-toggle');
+  if (expanded.style.display === 'none' || expanded.style.display === '') {
+    expanded.style.display = 'block';
+    trigger.textContent = 'Why other AI tools get this wrong ▲';
+  } else {
+    expanded.style.display = 'none';
+    trigger.textContent = 'Why other AI tools get this wrong ▼';
+  }
+}
+
 (function () {
   // ── Navbar hide-on-scroll-down, show-on-scroll-up ──
   // Tracks scroll direction and toggles a CSS class. Threshold of 80px
