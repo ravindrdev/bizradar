@@ -818,6 +818,112 @@ img { max-width: 100%; display: block; }
   .founder-point-num { font-size: 48px; }
   .founder-point-title { font-size: 18px; }
   .founder-data-grid { grid-template-columns: 1fr; }
+  .challenge-box { padding: 24px; }
+  .challenge-code { font-size: 13px; }
+  .challenge-headline { font-size: 18px; }
+}
+
+/* ─────────── CHALLENGE SECTION ─────────── */
+.challenge-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 40px;
+  margin: 60px auto 0;
+  max-width: 640px;
+}
+.challenge-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #D97706;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.challenge-headline {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+  margin: 12px 0 0;
+}
+.challenge-sub {
+  font-size: 16px;
+  color: rgba(255,255,255,0.7);
+  margin: 10px 0 32px;
+  line-height: 1.6;
+}
+.challenge-step {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.challenge-step:last-of-type { margin-bottom: 0; }
+.challenge-step-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.challenge-step-label.blue { color: #2563EB; }
+.challenge-step-label.amber { color: #D97706; }
+.challenge-instruction {
+  font-size: 15px;
+  color: var(--white);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.challenge-code {
+  display: block;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 12px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #60A5FA;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.challenge-note {
+  display: block;
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  font-style: italic;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.challenge-result {
+  background: rgba(220,38,38,0.1);
+  border: 1px solid rgba(220,38,38,0.3);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-top: 20px;
+}
+.challenge-result-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #DC2626;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.challenge-result-text {
+  font-size: 15px;
+  color: var(--white);
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+.challenge-result-bottom {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(220,38,38,0.2);
+  font-style: italic;
+  line-height: 1.6;
+  display: block;
 }
 </style>
 </head>
@@ -925,6 +1031,32 @@ img { max-width: 100%; display: block; }
           <p>MIT researchers found that AI uses words like definitely and certainly 34 percent MORE when it is WRONG than when it is right.</p>
           <a class="founder-source" href="https://csail.mit.edu" target="_blank" rel="noopener">MIT CSAIL January 2025</a>
           <p class="founder-closing">The more confident it sounds the more likely it is making things up.</p>
+        </div>
+      </div>
+
+      <!-- CHALLENGE SECTION -->
+      <div class="challenge-box">
+        <span class="challenge-label">Try it yourself right now</span>
+        <h3 class="challenge-headline">Still not convinced?</h3>
+        <p class="challenge-sub">Do this test right now and see for yourself.</p>
+
+        <div class="challenge-step">
+          <span class="challenge-step-label blue">STEP 1</span>
+          <p class="challenge-instruction">Open ChatGPT, Gemini, Grok, Perplexity, or Claude.<br><br>Type this exactly:</p>
+          <code class="challenge-code">Give me the latest 20 Google reviews for [any business near you]</code>
+          <span class="challenge-note">Read what it gives you. It will sound completely real. Specific names. Specific dates. Specific details.</span>
+        </div>
+
+        <div class="challenge-step">
+          <span class="challenge-step-label amber">STEP 2</span>
+          <p class="challenge-instruction">Now WITHOUT closing the chat type this exact follow up:</p>
+          <code class="challenge-code">Be brutally honest with me. Did you fabricate any of these 20 reviews or are every single one of them real?</code>
+        </div>
+
+        <div class="challenge-result">
+          <span class="challenge-result-label">What will happen</span>
+          <p class="challenge-result-text">The AI will admit it made up at least 50% of those reviews.<br><br>Every single name.<br>Every single date.<br>Every single detail.<br>Invented. Confidently. Instantly.</p>
+          <span class="challenge-result-bottom">That is the data you have been making business decisions with. GrowthIM uses only verified real data. Every time.</span>
         </div>
       </div>
 
