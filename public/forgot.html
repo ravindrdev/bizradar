@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reset your password — GrowthIM</title>
+<title>Reset your password - GrowthIM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -290,7 +290,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     if (newPassword.length < 8) return showError(errBox, 'Password must be at least 8 characters.');
     if (newPassword !== confirmNewPassword) return showError(errBox, 'Passwords do not match.');
     if (!pendingEmail || !pendingOtp) {
-      return showError(errBox, 'Session expired — please restart the reset flow.');
+      return showError(errBox, 'Session expired, please restart the reset flow.');
     }
 
     const btn = $('reset-btn');
@@ -314,7 +314,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
         btn.textContent = 'Reset Password';
         return;
       }
-      // Done — redirect to login with a success flash.
+      // Done - redirect to login with a success flash.
       pendingOtp = '';
       pendingEmail = '';
       window.location.href = '/login.html?msg=' + encodeURIComponent('Password reset! Please login.');

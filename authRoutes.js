@@ -1,4 +1,4 @@
-/* authRoutes.js — Express router for email/password auth.
+/* authRoutes.js - Express router for email/password auth.
 
    Mounted in server.js as: app.use('/auth', authRoutes)
    So every route here is prefixed: /auth/signup, /auth/login, etc.
@@ -40,7 +40,7 @@ function clearAuthCookie(res) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Audit fix AR2 — whitelist of user-safe error messages thrown by
+// Audit fix AR2 - whitelist of user-safe error messages thrown by
 // auth.js. Anything outside this set (e.g. a raw pg error like
 // "duplicate key value violates unique constraint", or a nodemailer
 // "EAUTH 535-5.7.8 …") gets swallowed and replaced with a generic
@@ -130,7 +130,7 @@ router.post('/cancel-signup', async (req, res) => {
     const out = await auth.deleteUnverifiedUser(email);
     return res.json(out);
   } catch (err) {
-    // Never fail this — it's fire-and-forget from the client.
+    // Never fail this - it's fire-and-forget from the client.
     return res.json({ success: false, error: err.message });
   }
 });

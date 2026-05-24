@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GrowthIM — Know your market. Own your city.</title>
+  <title>GrowthIM - Know your market. Own your city.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Google Places Autocomplete — API key is injected server-side
+  <!-- Google Places Autocomplete - API key is injected server-side
        from process.env.GOOGLE_PLACES_API_KEY via the / route handler. -->
   <script src="https://maps.googleapis.com/maps/api/js?key=%%GOOGLE_API_KEY%%&libraries=places&callback=initAutocomplete" async defer></script>
   <style>
@@ -235,7 +235,7 @@
     @keyframes lp-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
     .lp-term-progress-bar.pulsing { animation: lp-pulse 1.4s ease-in-out infinite; }
 
-    /* Overtime warning — shown when initial ETA hits 0 but report not done.
+    /* Overtime warning - shown when initial ETA hits 0 but report not done.
        Amber banner so the user knows it's still working, not crashed. */
     .lp-term-overtime-warning {
       margin-top: 12px;
@@ -250,7 +250,7 @@
     }
     .lp-term-overtime-warning[hidden] { display: none; }
 
-    /* Quiet warning — shown when SSE stream goes 30+ seconds without an event.
+    /* Quiet warning - shown when SSE stream goes 30+ seconds without an event.
        Different from overtime: this fires even mid-countdown, so it can show
        early during the long Claude calls. */
     .lp-term-quiet-warning {
@@ -427,7 +427,7 @@
   <div class="lp-hero">
     <h1>Know your market. <span class="accent">Own your city.</span></h1>
     <p class="tagline">Real data → ranked actions.</p>
-    <p class="body">GrowthIM analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next — or what business to start.</p>
+    <p class="body">GrowthIM analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next, or what business to start.</p>
   </div>
 
   <div class="lp-modes" role="tablist" aria-label="Mode">
@@ -484,7 +484,7 @@
       <div class="lp-error" id="err-market" hidden></div>
     </div>
 
-    <!-- Shared terminal-style loading widget — visible during fetch,
+    <!-- Shared terminal-style loading widget - visible during fetch,
          hidden otherwise. Driven by Server-Sent Events from
          /progress/:sessionId so each line + the % bar reflect actual
          pipeline phase the server just entered. -->
@@ -498,20 +498,22 @@
       </div>
       <!-- Current step message (live) + step counter -->
       <div id="term-current-message" style="margin-top:14px;color:#10B981;font-size:13px;min-height:20px">Connecting...</div>
-      <div id="term-step-counter" style="color:#64748B;font-size:11px;margin-top:4px">Step 0 of —</div>
-      <!-- Overtime banner — JS un-hides it when the initial ETA expires. -->
+      <div id="term-step-counter" style="color:#64748B;font-size:11px;margin-top:4px">Step 0 of -</div>
+      <!-- Overtime banner - JS un-hides it when the initial ETA expires. -->
       <div id="term-overtime-warning" class="lp-term-overtime-warning" hidden>
-        <strong>Still working</strong> &mdash; Claude AI is generating your full report.
-        This can take up to 5 minutes. Please don&rsquo;t refresh or close this tab.
+        <strong>Still working</strong> - GrowthIM Intelligence Engine is building your report.
+        This can take up to 8 minutes. Please don&rsquo;t refresh or close this tab.
       </div>
-      <!-- Quiet banner — JS un-hides it when the SSE stream goes 30+ seconds silent. -->
+      <!-- Quiet banner - JS un-hides it when the SSE stream goes 30+ seconds silent. -->
       <div id="term-quiet-warning" class="lp-term-quiet-warning" hidden>
-        Claude AI is writing your report &mdash; this is the longest step.
-        Average wait: 2&ndash;3 more minutes. Your report IS coming. Don&rsquo;t refresh.
+        GrowthIM Intelligence Engine is doing deep research on your market. This is the most thorough step.
+        Average wait from here: 3-5 minutes. Your report IS coming. Do not refresh.
       </div>
+      <!-- Engine-activated banner - shown when step 16 (pct=48) fires, hidden on completion. -->
+      <div id="term-engine-banner" style="display:none; background:#1E3A5F; border-left:4px solid #3B82F6; color:#FFFFFF; padding:12px 16px; border-radius:6px; margin-top:12px; font-size:14px; font-weight:500;">GrowthIM Intelligence Engine activated.</div>
       <div class="lp-term-log" id="term-log"></div>
       <div class="lp-term-status">
-        Estimated time remaining: <span id="term-eta">&mdash;</span>
+        Estimated time remaining: <span id="term-eta">-</span>
       </div>
     </div>
   </div>
@@ -565,8 +567,8 @@
 <script>
   // ── Mode selector ────────────────────────────────────────────────
   const TITLES = {
-    rate:   'GrowthIM — Rate your business',
-    market: 'GrowthIM — Find your best business',
+    rate:   'GrowthIM - Rate your business',
+    market: 'GrowthIM - Find your best business',
   };
   const cards       = document.querySelectorAll('.lp-card');
   const panelRate   = document.getElementById('form-rate');
@@ -590,7 +592,7 @@
   }
   cards.forEach((c) => c.addEventListener('click', () => setMode(c.dataset.mode)));
 
-  // ── SSE-driven progress — replaces the old fake animations ──────
+  // ── SSE-driven progress - replaces the old fake animations ──────
   // The flow:
   //   1. User clicks Analyze.
   //   2. We generate a sessionId, open EventSource('/progress/' + id).
@@ -610,10 +612,10 @@
   // Initial countdown (in seconds) per mode. Tuned to match observed
   // wall-clock averages, NOT optimistic best-cases. When the countdown
   // hits 0 the timer flips to count-up mode with a "Still working"
-  // banner — never an error or timeout message.
-  const INITIAL_ETA_SECONDS = { rate: 120, market: 240 };
+  // banner - never an error or timeout message.
+  const INITIAL_ETA_SECONDS = { rate: 480, market: 600 };
   // After this many ms with no SSE event, the quiet banner appears.
-  // Set to 30s — fires comfortably during the long Claude calls
+  // Set to 30s - fires comfortably during the long Claude calls
   // (Tier 5b runs 60-90s with one event at start and one at end).
   const QUIET_THRESHOLD_MS = 30000;
 
@@ -632,10 +634,11 @@
     bar.style.transition = 'width 0.5s ease, background 200ms ease';
     bar.style.width = '0%';
     document.getElementById('term-current-message').textContent = 'Connecting...';
-    document.getElementById('term-step-counter').textContent = 'Step 0 of —';
-    document.getElementById('term-eta').textContent = '—';
+    document.getElementById('term-step-counter').textContent = 'Step 0 of -';
+    document.getElementById('term-eta').textContent = '-';
     document.getElementById('term-overtime-warning').hidden = true;
     document.getElementById('term-quiet-warning').hidden = true;
+    document.getElementById('term-engine-banner').style.display = 'none';
   }
 
   // Append a single log line styled like the existing [→] / [✓] rows.
@@ -678,12 +681,12 @@
     terminal.hidden = false;
     btn.hidden = true;
 
-    // Anti-refresh warning — the moment the user clicks Analyze, set
+    // Anti-refresh warning - the moment the user clicks Analyze, set
     // a beforeunload handler so leaving/refreshing prompts a confirm.
     // This is cleared on report arrival OR on network error so the
     // user never sees the prompt for a no-longer-running request.
     window.onbeforeunload = function () {
-      return "Your report is being generated. If you leave now you will lose it and need to start over. Stay on this page.";
+      return "GrowthIM is still building your report. If you leave now you will lose your report and need to start over. Please stay on this page.";
     };
 
     const sessionId = genSessionId();
@@ -709,15 +712,23 @@
       const bar = document.getElementById('term-bar');
 
       if (countdown > 0) {
-        // Initial countdown phase — show M:SS remaining.
+        // Initial countdown phase - show M:SS remaining.
         etaEl.textContent = formatTime(countdown) + ' remaining';
       } else {
-        // Past initial estimate — flip to "Still working — M:SS over estimate"
-        // and hold the bar at ≥95% with a pulsing animation. We never
-        // jump to 100% from this side; only the actual response arrival
-        // completes the bar.
+        // Past initial estimate - hold bar at ≥95% with pulsing animation.
+        // Show tiered amber message based on how many minutes past ETA.
         const overtime = Math.abs(countdown);
-        etaEl.textContent = 'Still working — ' + formatTime(overtime) + ' past estimate';
+        etaEl.textContent = 'Still working - ' + formatTime(overtime) + ' past estimate';
+        const minutesPast = Math.floor(overtime / 60);
+        if (minutesPast < 2) {
+          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM Intelligence Engine is building your report. Please keep this tab open.';
+        } else if (minutesPast < 5) {
+          overtimeEl.innerHTML = '<strong>Still working</strong> - Your market has a lot of data to analyze. This sometimes takes up to 15 minutes for complex markets with many competitors. Your report IS coming. Do not refresh.';
+        } else if (minutesPast < 10) {
+          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking longer than usual. GrowthIM is doing deep research on your competitors and market. Complex markets can take up to 20 minutes. Please keep this tab open.';
+        } else {
+          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is finalizing your report. This is the last step. Thank you for your patience. Your report will appear automatically.';
+        }
         overtimeEl.hidden = false;
         if (lastPct < 95) {
           bar.style.width = '95%';
@@ -725,18 +736,22 @@
         bar.classList.add('pulsing');
       }
 
-      // Quiet detection — runs every tick regardless of countdown phase.
-      // 30s silence → show the amber "Claude is writing your report"
-      // banner. Hides automatically on the next SSE event.
+      // Quiet detection - runs every tick regardless of countdown phase.
+      // Only shows after BOTH conditions are true:
+      //   1. 6 minutes (360s) have elapsed since the user clicked Analyze
+      //   2. SSE stream has been silent for QUIET_THRESHOLD_MS (30s)
+      // This prevents the banner from flashing early during normal
+      // inter-step gaps; it's only meaningful during the long Claude call.
       const sinceLastUpdate = Date.now() - lastSseUpdate;
-      if (sinceLastUpdate > QUIET_THRESHOLD_MS) {
+      const elapsedSinceStart = Date.now() - startTime;
+      if (sinceLastUpdate > QUIET_THRESHOLD_MS && elapsedSinceStart >= 360000) {
         quietEl.hidden = false;
       } else {
         quietEl.hidden = true;
       }
     }
     etaInterval = setInterval(tickEta, 1000);
-    tickEta(); // fire once immediately so the user sees a value, not "—"
+    tickEta(); // fire once immediately so the user sees a value, not "-"
 
     // Open the progress stream BEFORE posting so the first event isn't
     // missed. Browser EventSource auto-reconnects on transient drops.
@@ -752,7 +767,7 @@
       lastSseUpdate = Date.now();
       document.getElementById('term-quiet-warning').hidden = true;
 
-      // Progress bar — only ever advances forward.
+      // Progress bar - only ever advances forward.
       if (data.pct >= lastPct) {
         lastPct = data.pct;
         // Don't shrink the bar even if SSE pct is below the 95% floor
@@ -778,8 +793,13 @@
         appendLogLine('✓', '[' + elapsed + 's] ' + data.message);
       }
 
+      // Show engine-activated banner on step 16.
+      if (data.pct === 48 || (data.message && data.message.includes('Intelligence Engine activated'))) {
+        document.getElementById('term-engine-banner').style.display = 'block';
+      }
+
       if (data.pct >= 100) {
-        // Server says complete — finalise immediately, even if POST
+        // Server says complete - finalise immediately, even if POST
         // response is still in flight.
         isComplete = true;
         if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
@@ -787,6 +807,7 @@
         document.getElementById('term-eta').textContent = '✓ complete';
         document.getElementById('term-overtime-warning').hidden = true;
         document.getElementById('term-quiet-warning').hidden = true;
+        document.getElementById('term-engine-banner').style.display = 'none';
         try { evt.close(); } catch (_) {}
       }
     };
@@ -833,7 +854,7 @@
     }
 
     // Start polling. notFoundStreak guards against a process restart
-    // wiping the in-memory jobStore mid-flight — after ~30s of
+    // wiping the in-memory jobStore mid-flight - after ~30s of
     // 'not_found' we give up and tell the user to retry.
     let notFoundStreak = 0;
     const pollHandle = setInterval(async () => {
@@ -872,11 +893,11 @@
           }
           return;
         }
-        // 'processing' — keep polling. Reset the not_found streak in
+        // 'processing' - keep polling. Reset the not_found streak in
         // case we hit a transient inconsistency earlier.
         notFoundStreak = 0;
       } catch (e) {
-        // Transient network blip — keep polling on the next tick.
+        // Transient network blip - keep polling on the next tick.
         console.warn('[poll] error:', e && e.message);
       }
     }, 3000);
@@ -893,7 +914,7 @@
     // Pull the place_id captured by initAutocomplete (hidden input
     // created in the place_changed listener at the bottom of the page).
     // When present, server.js will skip its 7-step findPlace resolver
-    // and use this place_id directly — guarantees the exact business
+    // and use this place_id directly - guarantees the exact business
     // Google's autocomplete showed in the dropdown.
     const placeIdInput = document.getElementById('GrowthIM-place-id');
     const placeId = placeIdInput ? placeIdInput.value : '';

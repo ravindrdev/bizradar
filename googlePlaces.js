@@ -9,7 +9,7 @@
 // dependency: dataFetchers does not require googlePlaces.
 const dataFetchers = require('./dataFetchers');
 
-// LRU-Cache wrapper — bounded-size cache with per-entry TTL. Replaces
+// LRU-Cache wrapper - bounded-size cache with per-entry TTL. Replaces
 // the raw `new Map()` caches throughout this file so the process can't
 // OOM under sustained traffic (each cache previously grew unbounded
 // because the only eviction was TTL on read, not size on write).
@@ -27,7 +27,7 @@ const GEOCODE_URL =
 
 // Words that should NOT count as meaningful business-name signals during
 // nameSimilarity scoring. Pure locality / direction / street-type words
-// only — brand-relevant words like 'inn', 'hotel', 'suites', 'lodge'
+// only - brand-relevant words like 'inn', 'hotel', 'suites', 'lodge'
 // are KEPT because they actually distinguish brands ("Holiday Inn" vs
 // "Holiday Suites"). Stripping those would make every hotel look the
 // same to the matcher.
@@ -65,7 +65,7 @@ const DETAIL_FIELDS = [
 ].join(',');
 
 // Simple in-memory cache for competitor results, 24h TTL keyed by place_id.
-// (Process-lifetime only — not persistent. Phase 3 acceptable; persistent
+// (Process-lifetime only - not persistent. Phase 3 acceptable; persistent
 // cache deferred to future batch.) max=1000 caps memory under traffic.
 const COMPETITOR_TTL_MS = 24 * 60 * 60 * 1000;
 const COMPETITOR_CACHE = new LRUCache({ max: 1000, ttl: COMPETITOR_TTL_MS });
@@ -73,11 +73,11 @@ const COMPETITOR_CACHE = new LRUCache({ max: 1000, ttl: COMPETITOR_TTL_MS });
 // 24-hour cache for Google Places Details responses, keyed by place_id.
 // Each Details call costs ~$0.017; caching cuts repeat-lookup cost for
 // the same business to zero within the TTL window. BATCH13 spec p.5
-// calls for Redis with 24h TTL — this LRU is the in-process v1 of that.
+// calls for Redis with 24h TTL - this LRU is the in-process v1 of that.
 const DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
 const DETAILS_CACHE = new LRUCache({ max: 1000, ttl: DETAILS_TTL_MS });
 
-// 30-day cache for geocoding results — addresses don't move. Keyed by
+// 30-day cache for geocoding results - addresses don't move. Keyed by
 // the lowercase normalized address string (with state appended). Values
 // are { lat, lon } or null when geocoding failed (cached so we don't
 // re-fire on every retry).
@@ -86,12 +86,12 @@ const GEOCODE_CACHE = new LRUCache({ max: 1000, ttl: GEOCODE_TTL_MS });
 
 // ── HTTP timeout helper (audit fix GP1) ──────────────────────────────
 // Node's global fetch has NO default timeout, so a stuck Google socket
-// would hold a worker indefinitely — leaking sockets, memory, and
+// would hold a worker indefinitely - leaking sockets, memory, and
 // jobStore entries on the server side. Every Google Places call in
 // this file is wrapped via fetchWithTimeout so a slow / hung upstream
 // fails fast instead of pinning resources.
 //
-// 8 s default matches Google's documented p99 for Places (~3–4 s) with
+// 8 s default matches Google's documented p99 for Places (~3-4 s) with
 // a 2× safety margin. Callers that need a different budget (e.g.
 // geocode → 5 s) can override via the timeoutMs option.
 //
@@ -118,7 +118,7 @@ async function fetchWithTimeout(url, { timeoutMs = 8000, ...init } = {}) {
 // closures so the geocoding-fallback path can share them.
 // ─────────────────────────────────────────────────────────────────────
 
-// doTextSearch — single Google Places Text Search call, returns the
+// doTextSearch - single Google Places Text Search call, returns the
 // raw `results` array (matches the existing inline pattern used by
 // fetchNearbyCompetitors and fetchBusinessTypeCompetitors).
 async function doTextSearch(q, apiKey) {
@@ -132,7 +132,7 @@ async function doTextSearch(q, apiKey) {
   return Array.isArray(json.results) ? json.results : [];
 }
 
-// extractAddressPart — pulls the address portion (everything from the
+// extractAddressPart - pulls the address portion (everything from the
 // first comma-segment that starts with "<digits> ") out of the user
 // input. Returns null when no street-numbered segment is found.
 //   "Baymont, 1581 W South Park, Oshkosh WI" → "1581 W South Park, Oshkosh WI"
@@ -149,7 +149,7 @@ function extractAddressPart(userInput) {
   return null;
 }
 
-// extractStreetNumber — leading "<digits> " in a string. Requires the
+// extractStreetNumber - leading "<digits> " in a string. Requires the
 // trailing space so suite numbers ("Suite 200") and zero-spaced runs
 // ("1800S Koeller") don't false-match.
 function extractStreetNumber(str) {
@@ -158,25 +158,25 @@ function extractStreetNumber(str) {
   return m ? m[1] : null;
 }
 
-// extractState — 2-letter US state code. Used to disambiguate common
+// extractState - 2-letter US state code. Used to disambiguate common
 // city names ("Springfield") in the geocoder.
 function extractState(userInput) {
   const m = String(userInput || '').match(/\b([A-Z]{2})\b(?:\s+\d{5})?/);
   return m ? m[1] : null;
 }
 
-// extractKeyword — most-meaningful word from the BUSINESS NAME portion
+// extractKeyword - most-meaningful word from the BUSINESS NAME portion
 // of the input (everything before the first comma). Used to narrow the
 // nearby-search results to the right category, e.g. "baymont" pulls
 // only Baymont-branded hotels out of a 200-meter radius.
 //
 // FIX 3a: returns null when the first comma-segment LOOKS LIKE an
 // address (starts with digits). Pure-address inputs have no business
-// name to extract a keyword from — caller will then fall back to
+// name to extract a keyword from - caller will then fall back to
 // "highest review-count business at that lat/lon" tiebreaker.
 function extractKeyword(userInput) {
   const firstSegment = String(userInput || '').split(',')[0].trim();
-  // Pure-address input — no business-name keyword to extract.
+  // Pure-address input - no business-name keyword to extract.
   if (/^\d+/.test(firstSegment)) return null;
 
   const namePart = firstSegment
@@ -191,7 +191,7 @@ function extractKeyword(userInput) {
   return words[0] || null;
 }
 
-// nameSimilarity — Jaccard-style overlap of meaningful words between
+// nameSimilarity - Jaccard-style overlap of meaningful words between
 // the user input and a candidate's name. Returns 0.0-1.0. Filters out
 // LOCALITY_WORDS + pure numbers + duplicates so common locality words
 // (e.g. "oshkosh") don't inflate similarity.
@@ -216,14 +216,14 @@ function nameSimilarity(userInput, resultName) {
   return matches.length / userWords.length;
 }
 
-// isRealBusiness — distinguishes a business POI from a geocoded street
+// isRealBusiness - distinguishes a business POI from a geocoded street
 // address. Must carry establishment/POI types AND not be pure-address
 // types only.
 //
 // FIX 4 (relaxed): the prior rating>0 OR reviews>0 activity requirement
 // was disqualifying state parks, government buildings, museums, and
 // other landmarks that legitimately have no Google rating in the API
-// response. Now only the type signals are checked — that's enough to
+// response. Now only the type signals are checked - that's enough to
 // distinguish a business from a `street_address` geocoded entry.
 function isRealBusiness(result) {
   if (!result) return false;
@@ -246,7 +246,7 @@ function isRealBusiness(result) {
   return hasBusinessType && !onlyAddressTypes;
 }
 
-// isOperationalOrUnknown — keeps a Places result if Google reports it
+// isOperationalOrUnknown - keeps a Places result if Google reports it
 // as OPERATIONAL or doesn't report business_status at all (some places
 // don't carry it). Drops CLOSED_PERMANENTLY / PERMANENTLY_CLOSED /
 // CLOSED_TEMPORARILY so Claude never sees closed businesses in the
@@ -260,13 +260,13 @@ function isOperationalOrUnknown(result) {
   console.log(
     '[places] filtered out:',
     result.name,
-    '— status:',
+    '- status:',
     result.business_status
   );
   return false;
 }
 
-// scoreResult — composite score for a candidate result.
+// scoreResult - composite score for a candidate result.
 //   -999  = disqualified (not a real business)
 //   100+  = high confidence (skip geocoding fallback)
 //    60+  = medium confidence
@@ -279,7 +279,7 @@ function scoreResult(result, userInput) {
   let score = 0;
 
   // Street-number scoring: 60 for exact match, 20 for "very close"
-  // (within 10 — same building complex / mall row).
+  // (within 10 - same building complex / mall row).
   const addressPart = extractAddressPart(userInput);
   const userStreet = extractStreetNumber(addressPart);
   const resultStreet = extractStreetNumber(result.formatted_address || result.vicinity || '');
@@ -306,7 +306,7 @@ function scoreResult(result, userInput) {
   return score;
 }
 
-// geocodeAddress — resolves an address string to { lat, lon }. Caches
+// geocodeAddress - resolves an address string to { lat, lon }. Caches
 // results (and nulls) for 30 days. Always appends `state` when present
 // to disambiguate common city names.
 async function geocodeAddress(addressStr, state, apiKey) {
@@ -320,7 +320,7 @@ async function geocodeAddress(addressStr, state, apiKey) {
   }
   const url = `${GEOCODE_URL}?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
 
-  // Audit fix GP2 — 15 s timeout per attempt, with one 3-s-back-off
+  // Audit fix GP2 - 15 s timeout per attempt, with one 3-s-back-off
   // retry on failure. Previously a bare `await fetch(url)` with no
   // timeout could pin the worker on a hung Google socket.
   async function tryOnce() {
@@ -329,7 +329,7 @@ async function geocodeAddress(addressStr, state, apiKey) {
     const data = await resp.json().catch(() => null);
     if (!data) throw new Error('non-JSON response');
     if (data.status !== 'OK' || !(data.results && data.results[0])) {
-      // Successful API call but no usable result — cache the null so
+      // Successful API call but no usable result - cache the null so
       // we don't re-fire on every retry.
       console.warn(`[geocode] no result for: ${fullAddress} status: ${data.status}`);
       GEOCODE_CACHE.set(cacheKey, { ts: Date.now(), value: null });
@@ -349,7 +349,7 @@ async function geocodeAddress(addressStr, state, apiKey) {
   try {
     return await tryOnce();
   } catch (e1) {
-    console.warn(`[geocode] attempt 1 failed for ${fullAddress} — retrying in 3 s: ${e1.message}`);
+    console.warn(`[geocode] attempt 1 failed for ${fullAddress} - retrying in 3 s: ${e1.message}`);
     await new Promise((r) => setTimeout(r, 3000));
     try {
       return await tryOnce();
@@ -360,14 +360,14 @@ async function geocodeAddress(addressStr, state, apiKey) {
   }
 }
 
-// doNearbySearch — calls Google Places Nearby Search at lat/lon with
+// doNearbySearch - calls Google Places Nearby Search at lat/lon with
 // optional keyword filter. Returns a filtered list of real businesses
 // (non-business POIs / geocoded entries are stripped via isRealBusiness).
 async function doNearbySearch(lat, lon, radiusMeters, keyword, apiKey) {
   let url = `${NEARBY_URL}?location=${lat},${lon}&radius=${radiusMeters}&key=${apiKey}`;
   if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
 
-  // Audit fix GP4 — 15 s timeout per attempt with one 3-s-back-off
+  // Audit fix GP4 - 15 s timeout per attempt with one 3-s-back-off
   // retry, same pattern as geocodeAddress above. Previously a bare
   // `await fetch(url)` with no timeout.
   async function tryOnce() {
@@ -387,7 +387,7 @@ async function doNearbySearch(lat, lon, radiusMeters, keyword, apiKey) {
   try {
     return await tryOnce();
   } catch (e1) {
-    console.warn(`[nearby] attempt 1 failed — retrying in 3 s: ${e1.message}`);
+    console.warn(`[nearby] attempt 1 failed - retrying in 3 s: ${e1.message}`);
     await new Promise((r) => setTimeout(r, 3000));
     try {
       return await tryOnce();
@@ -407,18 +407,18 @@ async function findPlace(query, apiKey) {
   // (e.g. "Baymont by Wyndham Oshkosh Airport, 1581 W South Park Ave"
   // → Wingate at 1800 S Koeller). The new resolver geocodes the
   // user's address and does a Nearby Search at that lat/lon when
-  // text-search confidence is low — cutting through Google's name-
+  // text-search confidence is low - cutting through Google's name-
   // weighted ranking volatility.
   //
-  // STEP 1 — parse user input
-  // STEP 2 — run text searches in parallel (top-5 from each)
-  // STEP 3 — score every unique candidate
-  // STEP 4 — high-confidence (score ≥ 100) → return
-  // STEP 5 — geocoding fallback (50m → 100m → 200m radii with keyword)
-  // STEP 6 — return best text-search result with confidence markers
-  // STEP 7 — null if nothing usable
+  // STEP 1 - parse user input
+  // STEP 2 - run text searches in parallel (top-5 from each)
+  // STEP 3 - score every unique candidate
+  // STEP 4 - high-confidence (score ≥ 100) → return
+  // STEP 5 - geocoding fallback (50m → 100m → 200m radii with keyword)
+  // STEP 6 - return best text-search result with confidence markers
+  // STEP 7 - null if nothing usable
   //
-  // toResult — preserves _low_confidence + _user_input markers when
+  // toResult - preserves _low_confidence + _user_input markers when
   // the resolver isn't sure (renderReport reads these to render a
   // "closest match found" warning banner).
   function toResult(top, opts) {
@@ -429,10 +429,10 @@ async function findPlace(query, apiKey) {
       // Nearby Search results carry their address in `vicinity`, not
       // `formatted_address`. Without this fallback, geocoding-fallback
       // winners were silently losing their address (Baymont test #31,
-      // Panera #64, Colectivo #71, etc. — 9 false-negative test cases).
+      // Panera #64, Colectivo #71, etc. - 9 false-negative test cases).
       formatted_address: top.formatted_address || top.vicinity || null,
       types: Array.isArray(top.types) ? top.types : [],
-      // Phase 5+ — Text Search responses include geometry; surfacing it
+      // Phase 5+ - Text Search responses include geometry; surfacing it
       // saves /market-analysis from making an extra getDetails round-trip
       // just to read lat/lng for downstream fetchers.
       geometry: top.geometry || null,
@@ -446,7 +446,7 @@ async function findPlace(query, apiKey) {
 
   console.log(`[findPlace] input: ${query}`);
 
-  // ── STEP 1 — Parse user input ───────────────────────────────────
+  // ── STEP 1 - Parse user input ───────────────────────────────────
   const addressPart = extractAddressPart(query);
   const userStreetNum = extractStreetNumber(addressPart);
   const state = extractState(query);
@@ -455,7 +455,7 @@ async function findPlace(query, apiKey) {
     `[findPlace] address: ${addressPart || '(none)'} | street: ${userStreetNum || '(none)'} | state: ${state || '(none)'} | keyword: ${keyword || '(none)'}`
   );
 
-  // ── STEP 2 — Run text searches in parallel ──────────────────────
+  // ── STEP 2 - Run text searches in parallel ──────────────────────
   const searches = [doTextSearch(query, apiKey).catch((err) => {
     console.warn(`[findPlace] search1 (full query) failed: ${err.message}`);
     return [];
@@ -490,7 +490,7 @@ async function findPlace(query, apiKey) {
     return true;
   });
 
-  // ── STEP 3 — Score all candidates ───────────────────────────────
+  // ── STEP 3 - Score all candidates ───────────────────────────────
   const scored = uniqueCandidates
     .map((c) => ({ result: c, score: scoreResult(c, query) }))
     .filter((s) => s.score > -999)
@@ -504,12 +504,12 @@ async function findPlace(query, apiKey) {
   }
   const best = scored[0] || null;
 
-  // ── STEP 4 — High confidence → return ──────────────────────────
+  // ── STEP 4 - High confidence → return ──────────────────────────
   // FIX 2: threshold depends on whether the user gave us a street
   // number. With a street number, we should be MORE aggressive about
   // forcing the geocoding fallback to kick in (chains like McDonald's
   // / Subway / Starbucks return their most-popular location for the
-  // brand search and ignore the street number — only geocoding can
+  // brand search and ignore the street number - only geocoding can
   // disambiguate). Without a street number, we have nothing better
   // to compare against, so the original 100 threshold stands.
   const highConfidenceThreshold = userStreetNum ? 120 : 100;
@@ -519,13 +519,13 @@ async function findPlace(query, apiKey) {
     return toResult(best.result);
   }
 
-  // ── STEP 5 — Geocoding fallback ─────────────────────────────────
+  // ── STEP 5 - Geocoding fallback ─────────────────────────────────
   // Fires when we have a parseable street address AND text-search
   // confidence is below the threshold. Tries small radii first to
   // keep results focused.
   if (addressPart) {
     console.log(
-      `[findPlace] low confidence: ${best ? best.score : 0} (threshold: ${highConfidenceThreshold}) — trying geocoding fallback`
+      `[findPlace] low confidence: ${best ? best.score : 0} (threshold: ${highConfidenceThreshold}) - trying geocoding fallback`
     );
     const geo = await geocodeAddress(addressPart, state, apiKey);
     if (geo) {
@@ -533,7 +533,7 @@ async function findPlace(query, apiKey) {
       for (const radius of radii) {
         const nearby = await doNearbySearch(geo.lat, geo.lon, radius, keyword, apiKey);
         if (nearby.length === 0) {
-          console.log(`[findPlace] no results at ${radius}m — expanding`);
+          console.log(`[findPlace] no results at ${radius}m - expanding`);
           continue;
         }
 
@@ -565,7 +565,7 @@ async function findPlace(query, apiKey) {
 
         // FIX 3b: when there's no business-name keyword (pure-address
         // input), the winner is the most-established business at the
-        // address — sort by review count desc instead of by score, since
+        // address - sort by review count desc instead of by score, since
         // all results have similar weak scores without a name to anchor.
         if (!keyword) {
           nearbyScored.sort((a, b) => {
@@ -592,10 +592,10 @@ async function findPlace(query, apiKey) {
         }
 
         // Use nearby winner when ANY of:
-        //   (A) exact street match (FIX 2 — strongest signal possible)
+        //   (A) exact street match (FIX 2 - strongest signal possible)
         //   (B) score-with-bonus ≥ 60 AND sim ≥ 0.2 (street match path)
         //   (C) score meaningfully better than text result (best+10)
-        //   (D) keyword is null (pure address input — review-count winner)
+        //   (D) keyword is null (pure address input - review-count winner)
         const hasStreetMatch = bestNearby.score >= 60 && bestNearby.sim >= 0.2;
         const betterThanText = bestNearby.score > (best ? best.score : 0) + 10;
         const pureAddressInput = !keyword;
@@ -615,19 +615,19 @@ async function findPlace(query, apiKey) {
         }
 
         console.log(
-          `[findPlace] nearby results not better than text search — stopping at ${radius}m`
+          `[findPlace] nearby results not better than text search - stopping at ${radius}m`
         );
         break;
       }
     }
   }
 
-  // ── STEP 6 — Use best text result, mark confidence ─────────────
+  // ── STEP 6 - Use best text result, mark confidence ─────────────
   if (best) {
     if (best.score < 60) {
       console.warn(
         `[findPlace] LOW CONFIDENCE result: ${best.result.name} `
-        + `score: ${best.score} — may be wrong business`
+        + `score: ${best.score} - may be wrong business`
       );
       console.log(`[findPlace] using: ${best.result.name} ${best.result.formatted_address}`);
       return toResult(best.result, { low_confidence: true, user_input: query });
@@ -639,7 +639,7 @@ async function findPlace(query, apiKey) {
     return toResult(best.result);
   }
 
-  // ── STEP 7 — Nothing found ─────────────────────────────────────
+  // ── STEP 7 - Nothing found ─────────────────────────────────────
   console.error(`[findPlace] no result found for: ${query}`);
   return null;
 }
@@ -647,7 +647,7 @@ async function findPlace(query, apiKey) {
 async function getDetails(placeId, apiKey) {
   if (!placeId) throw new Error('getDetails: placeId required');
 
-  // Check cache first — 24h TTL per BATCH13 spec p.5.
+  // Check cache first - 24h TTL per BATCH13 spec p.5.
   const cached = DETAILS_CACHE.get(placeId);
   if (cached && Date.now() - cached.ts < DETAILS_TTL_MS) {
     console.log(`[cache] details hit for ${placeId}`);
@@ -661,7 +661,7 @@ async function getDetails(placeId, apiKey) {
   if (json.status !== 'OK') {
     throw new Error(`Places Details status=${json.status} ${json.error_message || ''}`);
   }
-  // Successful fetch — store in cache before returning.
+  // Successful fetch - store in cache before returning.
   DETAILS_CACHE.set(placeId, { ts: Date.now(), value: json.result });
   return json.result;
 }
@@ -669,7 +669,7 @@ async function getDetails(placeId, apiKey) {
 /* Map Places Details response to the algorithm's INPUT_FIELDS shape.
    Required: place_id, google_rating, google_review_count, business_status.
    BATCH14 additions:
-     - latitude/longitude (from geometry — needed for Nearby Search)
+     - latitude/longitude (from geometry - needed for Nearby Search)
      - hours_complete (true when opening_hours has all 7 weekdays)
      - is_open_now (from opening_hours.open_now)
      - responds_to_reviews (any review has owner reply)
@@ -681,7 +681,7 @@ async function getDetails(placeId, apiKey) {
 function toInputFields(detail) {
   const reviews = detail.reviews || [];
 
-  // Review recency — DISABLED.
+  // Review recency - DISABLED.
   // Google Places API returns max 5 reviews sorted by RELEVANCE, not by
   // date. reviews[0] is therefore not guaranteed to be the most recent
   // review, and the resulting "days ago" number is unreliable for any
@@ -691,12 +691,12 @@ function toInputFields(detail) {
   // every recency-based recommendation/risk rather than fire on noise.
   const reviewRecencyDays = null;
 
-  // Owner-response detection — DISABLED for headline metrics.
+  // Owner-response detection - DISABLED for headline metrics.
   // Google Places API returns max 5 reviews (sorted by relevance). A
   // response rate computed from 5 reviews is unreliable for any business
   // with meaningful review volume: a restaurant with 1,393 total reviews
   // may have replied to 500 of them, but if the 5 we sampled have no
-  // visible owner_reply the calculated rate is 0% — a confidently wrong
+  // visible owner_reply the calculated rate is 0% - a confidently wrong
   // signal. We force responds_to_reviews and response_rate_estimated to
   // null so downstream code (claudeEnricher, ranker, server diag) skips
   // every response-rate-based recommendation/risk rather than fire on
@@ -721,8 +721,8 @@ function toInputFields(detail) {
   const respondsToReviews = null;
   const responseRateEstimated = null;
 
-  // Hours completeness — opening_hours.weekday_text is an array of 7 strings
-  // when fully populated. Some businesses list only a subset (e.g. "Mon–Fri"
+  // Hours completeness - opening_hours.weekday_text is an array of 7 strings
+  // when fully populated. Some businesses list only a subset (e.g. "Mon-Fri"
   // only). Special hours: opening_hours.special_days exists in newer responses.
   const hours = detail.opening_hours || null;
   const weekdayText = hours && Array.isArray(hours.weekday_text) ? hours.weekday_text : null;
@@ -743,31 +743,31 @@ function toInputFields(detail) {
     google_review_count:
       typeof detail.user_ratings_total === 'number' ? detail.user_ratings_total : 0,
     business_status: detail.business_status || null,
-    // Photo count semantics — Google Places API caps the `photos` array at
+    // Photo count semantics - Google Places API caps the `photos` array at
     // 10 regardless of how many photos the business actually has on Google
     // Maps. A business with 10 photos in the API response could have 10,
-    // 50, or 500+ in reality — there is no signal that distinguishes them.
+    // 50, or 500+ in reality - there is no signal that distinguishes them.
     // We therefore expose the count only when it's BELOW the cap (genuinely
     // low, actionable data) and null it out at/above the cap (unknown).
     // Downstream (claudeEnricher) treats null as "do not mention" and a
-    // real number as "the business genuinely has few photos — flag it".
+    // real number as "the business genuinely has few photos - flag it".
     photo_count: Array.isArray(detail.photos)
       ? (detail.photos.length >= 10 ? null : detail.photos.length)
       : 0,
     review_recency_days: reviewRecencyDays,
 
-    // BATCH14 — review response
+    // BATCH14 - review response
     responds_to_reviews: respondsToReviews,
     response_rate_estimated: responseRateEstimated,
     reviews_sampled: reviews.length,
 
-    // BATCH14 — operations: hours
+    // BATCH14 - operations: hours
     hours_complete: hoursComplete,
     hours_has_special: hoursHasSpecial,
     is_open_now: isOpenNow,
     weekday_text: weekdayText,
 
-    // BATCH14 — geo (used for Nearby Search and distance calculations)
+    // BATCH14 - geo (used for Nearby Search and distance calculations)
     latitude,
     longitude,
 
@@ -784,7 +784,7 @@ function toInputFields(detail) {
 
 /* Pick the most specific Google type to use for Nearby Search competitor
    discovery. Skip the generic anchors ("establishment", "point_of_interest").
-   Prefer the first remaining type — Google orders these primary-first. */
+   Prefer the first remaining type - Google orders these primary-first. */
 function pickNearbySearchType(types) {
   if (!Array.isArray(types) || !types.length) return null;
   const skip = new Set(['establishment', 'point_of_interest', 'food', 'health', 'store']);
@@ -794,13 +794,13 @@ function pickNearbySearchType(types) {
   return null;
 }
 
-/* fetchNearbyCompetitors — 4-source competitor-discovery waterfall.
+/* fetchNearbyCompetitors - 4-source competitor-discovery waterfall.
 
    Sources, run in order, stop when post-filter pool ≥ POOL_TARGET (5):
      1. Google Nearby Search with `type=`, radius ladder 5/15/50 mi
      2. Google Places Text Search with locality-biased synonym queries
         (delegated to dataFetchers.fetchGoogleTextCompetitors)
-     3. Google Nearby Search with NO type, `keyword=` instead — catches
+     3. Google Nearby Search with NO type, `keyword=` instead - catches
         businesses Google tagged differently than the type we passed
      4. Foursquare nearby venues (no rating/review_count, but at least
         names + distances for thin markets)
@@ -826,7 +826,7 @@ const RADIUS_FALLBACKS = [8047, 24140, 80467]; // 5mi / 15mi / 50mi in meters
 const POOL_TARGET = 5;
 
 // ─────────────────────────────────────────────────────────────────────
-// FIX 1 — buildCompetitorQuery
+// FIX 1 - buildCompetitorQuery
 // ─────────────────────────────────────────────────────────────────────
 // Build a Google Text Search query string from the subject business's
 // NAICS-6 / Google types / business name. Replaces the old type-based
@@ -835,8 +835,8 @@ const POOL_TARGET = 5;
 // coarse and `keyword=` matches anywhere in name/desc.
 //
 // Resolution order (first hit wins):
-//   1. Exact NAICS-6 lookup in NAICS_QUERIES — highest specificity
-//   2. NAICS-4 prefix match — broader fallback
+//   1. Exact NAICS-6 lookup in NAICS_QUERIES - highest specificity
+//   2. NAICS-4 prefix match - broader fallback
 //   3. First non-generic Google type, with underscores → spaces
 //   4. Keyword extracted from the business name itself
 //   5. The business name (chain identifiers stripped, first 3 words)
@@ -851,14 +851,14 @@ const NAICS_QUERIES = {
   '111421': 'christmas tree farm nursery',
   '111998': 'agritourism farm pick-your-own pumpkin patch',
   '111':    'farm produce agriculture',
-  // Livestock (112xxx) — consumer-facing animal operations
+  // Livestock (112xxx) - consumer-facing animal operations
   '112120': 'dairy farm creamery milk farm cheese producer',
   '112210': 'pig farm hog farm pork producer livestock',
   '112300': 'chicken farm poultry farm egg farm hatchery',
   '112410': 'sheep farm lamb farm wool producer',
   '112420': 'goat farm goat dairy goat cheese livestock',
   // Note: '112130' (Dual-Purpose Cattle Ranching) WAS keyed as 'petting
-  // zoo farm' — wrong NAICS (petting zoos are 712130, separate entry).
+  // zoo farm' - wrong NAICS (petting zoos are 712130, separate entry).
   // Removed in this batch; petting zoos hit 712130 below.
   '112':    'livestock farm ranch',
   // Retail food manufacturing (consumer-facing storefronts).
@@ -869,7 +869,7 @@ const NAICS_QUERIES = {
   '312130': 'winery vineyard wine tasting room',
   '312140': 'distillery spirits whiskey tasting room',
   '312':    'brewery winery distillery',
-  // Real estate — food hall operators (lessor of food vendor space)
+  // Real estate - food hall operators (lessor of food vendor space)
   '531120': 'food hall market hall food market indoor market vendor',
   // Accommodation
   '721110': 'hotel motel inn',
@@ -885,13 +885,13 @@ const NAICS_QUERIES = {
   '722330': 'food truck mobile food street food vendor',
   '722320': 'event venue caterer wedding venue',
   '722599': 'ghost kitchen cloud kitchen delivery restaurant virtual kitchen',
-  // Retail — grocery / specialty food
+  // Retail - grocery / specialty food
   '445110': 'grocery supermarket',
   '445131': 'convenience store c-store corner store mini mart gas station',
   '445230': 'farmers market outdoor market community market public market',
   '445298': 'specialty food store',
   '445320': 'liquor store wine shop spirits store beer wine bottle shop',
-  // Retail — pets / home / general merchandise
+  // Retail - pets / home / general merchandise
   '459910': 'pet supply store',
   '444110': 'home center hardware',
   '449110': 'furniture store home furnishings sofa mattress bedroom living room decor',
@@ -903,7 +903,7 @@ const NAICS_QUERIES = {
   '459420': 'gift shop souvenir store novelty shop gifts tourist shop',
   '459510': 'antique store antique mall vintage shop consignment thrift store second hand',
   '459991': 'vape shop e-cigarette smoke shop tobacco shop',
-  // Retail — apparel / shoes / jewelry
+  // Retail - apparel / shoes / jewelry
   '458110': 'clothing store boutique fashion apparel retail women men clothing',
   '458210': 'shoe store footwear retail sneaker store boot shop',
   '458310': 'jewelry store jeweler diamond engagement ring watch store fine jewelry',
@@ -920,7 +920,7 @@ const NAICS_QUERIES = {
   '621399': 'acupuncture traditional chinese medicine holistic health alternative medicine wellness',
   '812199': 'day spa massage spa wellness spa beauty spa med spa float tank cryotherapy',
   // Instruction / fitness / recreation niches that share NAICS-3 with
-  // larger categories — explicit entries so competitor pools are
+  // larger categories - explicit entries so competitor pools are
   // on-target.
   '611610': 'dance studio ballet jazz hip hop music school piano guitar violin lessons arts classes performing arts',
   '611519': 'cooking school culinary classes cooking class chef trade school vocational school technical program career training',
@@ -1004,7 +1004,7 @@ const NAICS_QUERIES = {
   '459999': 'crystal shop metaphysical store spiritual goods new age healing crystals tarot',
   // NAICS-keyed targeted queries for niche businesses that fall through
   // the generic catch-alls. Optometry covered separately above.
-  // NOTE: '812199' lives at line ~847 above with the richer spa query —
+  // NOTE: '812199' lives at line ~847 above with the richer spa query -
   // a duplicate entry here was silently overwriting it (JS object-literal
   // last-wins semantics) so day spas / massage spas / med spas were
   // getting the narrow "float tank wellness specialty" query instead.
@@ -1015,12 +1015,12 @@ const NAICS_QUERIES = {
   '512131': 'movie theater cinema multiplex film theater AMC Regal Cinemark',
   '512132': 'drive-in theater outdoor cinema movie theater',
   '713120': 'arcade video game arcade barcade family entertainment center gaming',
-  // BUG 26 — Removed 11 keyword-keyed entries (knife_throwing, hookah,
+  // BUG 26 - Removed 11 keyword-keyed entries (knife_throwing, hookah,
   // cat_cafe, rage_room, ghost_tour, sensory_deprivation, cryotherapy,
   // iv_drip, oxygen_bar, psychic, crystal_shop). They were dead code:
   // buildCompetitorQuery only ever looks up NAICS-6 keys, never these
   // string keys. The niche queries they covered are now all reachable
-  // via NAICS routes — axe/knife throwing via 713990; cat cafe via the
+  // via NAICS routes - axe/knife throwing via 713990; cat cafe via the
   // restaurant routes; hookah / oxygen bar / IV drip / cryotherapy /
   // sensory deprivation via 812199 (specialty wellness); ghost tour
   // via 561520; psychic / crystal shop via 459999.
@@ -1062,7 +1062,7 @@ const COMPETITOR_NAME_KEYWORDS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────
-// RESTAURANT CUISINE DETECTION — used only when naics6 starts with 722
+// RESTAURANT CUISINE DETECTION - used only when naics6 starts with 722
 // ─────────────────────────────────────────────────────────────────────
 // 6-layer pipeline: Google's own cuisine type → review keyword scoring
 // (with name multiplier for fusion-aware tie-breaking) → strong single
@@ -1072,14 +1072,14 @@ const COMPETITOR_NAME_KEYWORDS = [
 // ranked by Google prominence) into cuisine-specific queries that
 // surface real peer competitors. Spec: BATCH-cuisine-detection.
 //
-// IMPORTANT — gating: the spec called for `naics2 === '72'`, but
+// IMPORTANT - gating: the spec called for `naics2 === '72'`, but
 // NAICS-72 is "Accommodation AND Food Services" so that condition
 // would also fire on hotels (721xxx) and route them through Layer 6
 // fallback. We use `naics6.startsWith('722')` to confine cuisine
 // detection to food service only.
 // BUG-1 fix: removed 'cafe', 'bar', 'bakery' from this map. Google
 // tags MOST full-service restaurants with `bar` (and many burger
-// joints with `bakery`) as the FIRST type — Layer 1 was hijacking
+// joints with `bakery`) as the FIRST type - Layer 1 was hijacking
 // 25+ subjects (Le Bernardin, Eddie V's, Nobu, Olive Garden, etc.)
 // into "bar pub near {city}" or "bakery near {city}" queries that
 // produced zero cuisine-relevant competitors. Generic types
@@ -1124,7 +1124,7 @@ const CUISINE_FOOD_KEYWORDS = {
     'saag', 'palak', 'makhani', 'kulfi',
   ],
   chinese: [
-    // BUG-6 FIX-8: added xiao long bao, har gow, etc. — Chinese
+    // BUG-6 FIX-8: added xiao long bao, har gow, etc. - Chinese
     // restaurants like Din Tai Fung, Joe's Shanghai, Hakkasan have
     // reviews dominated by these specific terms not the generic
     // ones from the original list.
@@ -1185,7 +1185,7 @@ const CUISINE_FOOD_KEYWORDS = {
     'quesadilla', 'chile relleno',
   ],
   italian: [
-    // BUG-3 fix: removed 'pizza' and 'marinara' — both terms appear
+    // BUG-3 fix: removed 'pizza' and 'marinara' - both terms appear
     // heavily in pizza-restaurant reviews and were beating the pizza
     // category in Layer 2 review scoring (Lucali, Una Pizza
     // Napoletana, Pizza Hut all routed to italian instead of pizza).
@@ -1222,7 +1222,7 @@ const CUISINE_FOOD_KEYWORDS = {
     // BUG-E: added more greek-exclusive variants ('moussaka greek',
     // 'lamb chops greek style', 'greek salad with feta', 'retsina
     // wine', 'whole fish greek style') at the top of the list.
-    // Note: 'hummus', 'kebab', 'pita' are NOT in this list — they
+    // Note: 'hummus', 'kebab', 'pita' are NOT in this list - they
     // belong to middleeastern only. 'pita greek' (suffixed form)
     // remains here as it's an unambiguous greek phrase.
     'spanakopita', 'avgolemono', 'pastitsio',
@@ -1283,7 +1283,7 @@ const CUISINE_FOOD_KEYWORDS = {
   pizza: [
     // BUG-6 FIX-1: added bare 'pizza', 'pizzeria', 'pie', 'mozzarella',
     // 'pepperoni', 'margherita' etc. The prior list was all
-    // multi-word phrases that rarely appear verbatim — pizza
+    // multi-word phrases that rarely appear verbatim - pizza
     // category was 0/5 because no review contained "wood fired pizza"
     // exactly. 'pizza' was removed from italian (BUG-3) so safe to
     // own here exclusively.
@@ -1380,7 +1380,7 @@ const CUISINE_QUERIES = {
   peruvian:      'peruvian restaurant',
 };
 
-// Layer 3 — unambiguous single phrases that confirm cuisine even
+// Layer 3 - unambiguous single phrases that confirm cuisine even
 // when Layer 2's score threshold (≥2 unique matches) isn't reached.
 const STRONG_SINGLE_KEYWORDS = {
   'biryani':         'indian restaurant',
@@ -1440,7 +1440,7 @@ const NAME_CUISINE_SIGNALS = {
     // BUG-5 fix: added 'noodle bar', 'ramen bar', 'izakaya',
     // 'omakase', 'momofuku' to catch concept restaurants whose
     // name doesn't include a generic "japanese" / "tokyo" token.
-    // BUG-6 FIX-5: removed 'hana' (too short — caught Bohanan's
+    // BUG-6 FIX-5: removed 'hana' (too short - caught Bohanan's
     // steakhouse, Havana, Indiana etc.). Added 'matsuhisa'.
     'japan', 'japanese', 'tokyo', 'osaka',
     'kyoto', 'sakura', 'fuji', 'zen garden',
@@ -1450,7 +1450,7 @@ const NAME_CUISINE_SIGNALS = {
     'omakase', 'momofuku', 'matsuhisa',
   ],
   korean: [
-    // BUG-6 FIX-6: added Korean dish names — many US Korean
+    // BUG-6 FIX-6: added Korean dish names - many US Korean
     // restaurants are named after specific dishes (jjimdak,
     // bossam, etc.) rather than carrying "Korean" in the name.
     'jjimdak', 'samgyupsal', 'galbi tang',
@@ -1474,7 +1474,7 @@ const NAME_CUISINE_SIGNALS = {
   ],
   mexican: [
     // BUG-6 FIX-5: removed 'taqueria' (caught Korean fusion places).
-    // BUG-A: removed 'el ', 'la ', 'los ' — too generic, caught
+    // BUG-A: removed 'el ', 'la ', 'los ' - too generic, caught
     // La Madia (italian), La Mer (french), El Gran (anything),
     // Los Gatos (city). Replaced with explicit Spanish-Spanish
     // phrases that are unambiguously mexican-restaurant.
@@ -1596,7 +1596,7 @@ const NAME_CUISINE_SIGNALS = {
     'malnati', 'giordano', 'uno pizzeria',
     'pizzaiolo',
   ],
-  // BUG-6 FIX-7: burger name signals — bare 'burger' / 'burgers'
+  // BUG-6 FIX-7: burger name signals - bare 'burger' / 'burgers'
   // plus famous burger joints by name (J.G. Melon, Apple Pan,
   // Hodad's) and burger chains (Five Guys, In-N-Out, etc.).
   burger: [
@@ -1610,7 +1610,7 @@ const NAME_CUISINE_SIGNALS = {
   ],
 };
 
-// Layer 5 — chains we KNOW the right competitor category for. Maps a
+// Layer 5 - chains we KNOW the right competitor category for. Maps a
 // chain-name fragment to a query that surfaces the chain's actual
 // peers (e.g. Pizza Hut → Domino's / Papa John's, NOT artisan pizza).
 const CHAIN_CATEGORY_QUERIES = {
@@ -1672,7 +1672,7 @@ const CHAIN_CATEGORY_QUERIES = {
   'hooters':            'casual sports bar chain',
 };
 
-// Layer 5 — generic chain detection for chains NOT in
+// Layer 5 - generic chain detection for chains NOT in
 // CHAIN_CATEGORY_QUERIES. When a name fragment matches here but
 // not above, we use the chain name itself (cleaned, first 3 words)
 // as the query.
@@ -1697,7 +1697,7 @@ const FAST_FOOD_CHAINS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────
-// Layer 1.5 — Claude + web search cuisine micro-call
+// Layer 1.5 - Claude + web search cuisine micro-call
 // ─────────────────────────────────────────────────────────────────────
 // Single-shot call to claude-haiku-4-5 with the `web_search_20250305`
 // server-side tool enabled. Asks Claude to pick ONE cuisine label from
@@ -1722,12 +1722,12 @@ const FAST_FOOD_CHAINS = [
 // `text` content block.
 //
 // Cost: ~$0.003 per non-cached call (haiku-4-5 with web search). Cache
-// is process-lifetime (no TTL — cuisine type doesn't change), keyed by
+// is process-lifetime (no TTL - cuisine type doesn't change), keyed by
 // `name|city|state` per spec. Note: `queryWithLocality` and
 // `queryNoLocality` inside fetchNearbyCompetitors pass different city/
 // state (the latter passes null), so they will trigger TWO calls per
 // new business; switch the cache key to name-only if cost matters.
-// Process-lifetime cache (no TTL — cuisine type doesn't change). Bounded
+// Process-lifetime cache (no TTL - cuisine type doesn't change). Bounded
 // at max=1000 so memory stays flat under sustained traffic.
 const CUISINE_CACHE = new LRUCache({ max: 1000 });
 // Same shape, used by detectCompetitorQueryWithClaude (the safety-net
@@ -1826,7 +1826,7 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
     }
 
     console.log(
-      `[competitor-query] ${businessName} → layer:1.5 claude returned: "${cuisine}" (not valid — skipping)`
+      `[competitor-query] ${businessName} → layer:1.5 claude returned: "${cuisine}" (not valid - skipping)`
     );
     CUISINE_CACHE.set(cacheKey, null);
     return null;
@@ -1837,7 +1837,7 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// detectCompetitorQueryWithClaude — Claude+websearch safety-net fallback
+// detectCompetitorQueryWithClaude - Claude+websearch safety-net fallback
 // ─────────────────────────────────────────────────────────────────────
 // Fires from fetchNearbyCompetitors MID-LADDER, right after the 50-mile
 // rung (RADIUS_LADDER index 5) when the pool still has <5 competitors.
@@ -1848,8 +1848,8 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
 // hits into the existing pool via tryAdd.
 //
 // Firing earlier (after rung 5 instead of after rung 7) means a
-// pathological-query business — like Cricket Wireless whose name-based
-// fallback returned 0 across 8 rungs in the prior architecture — gets
+// pathological-query business - like Cricket Wireless whose name-based
+// fallback returned 0 across 8 rungs in the prior architecture - gets
 // proper category queries before paying for the 75-mile and 150-mile
 // rungs. If Claude doesn't fill the pool, the ladder continues to
 // rungs 6 and 7 as a last resort.
@@ -1982,7 +1982,7 @@ async function detectCompetitorQueryWithClaude(businessName, city, state, naics6
 
     // With web_search enabled, content[] interleaves tool_use /
     // web_search_tool_result blocks with intermediate text. Take the
-    // LAST text block — that's Claude's synthesized JSON answer.
+    // LAST text block - that's Claude's synthesized JSON answer.
     const textBlock = data && Array.isArray(data.content)
       ? data.content.filter((b) => b && b.type === 'text').pop()
       : null;
@@ -2025,7 +2025,7 @@ async function detectCompetitorQueryWithClaude(businessName, city, state, naics6
       return null;
     }
 
-    // Validate none contain businessName — Claude was told not to leak
+    // Validate none contain businessName - Claude was told not to leak
     // the subject's name into search terms. If it did, reject the whole
     // response rather than risk a self-match polluting the pool.
     const nameLower = String(businessName || '').toLowerCase().trim();
@@ -2085,7 +2085,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
   // ─── RESORT DETECTION (overrides the generic hotel query) ─────────
   // NAICS 721110 covers both limited-service hotels and full-service
   // destination resorts. Names with "resort" or "lodge" signal the
-  // higher-amenity model — use a resort-targeted query so the competitor
+  // higher-amenity model - use a resort-targeted query so the competitor
   // pool surfaces other resorts/destination lodges instead of generic
   // chain hotels.
   if (naics6Str === '721110') {
@@ -2102,7 +2102,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
   // NAICS 812199 (Other Personal Care Services) covers a broad mix of
   // day spas, med spas, float tanks, cryotherapy, eyelash/microblading,
   // AND tattoo parlors + body piercing studios. The default spa query
-  // is useless for a tattoo shop — surface tattoo-specific competitors
+  // is useless for a tattoo shop - surface tattoo-specific competitors
   // when the name signals tattoo/piercing/body art.
   if (naics6Str === '812199') {
     const nameLowerTT = String(businessName || '').toLowerCase();
@@ -2118,7 +2118,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     }
   }
 
-  // ─── RESTAURANTS — cuisine detection runs FIRST ────────────────────
+  // ─── RESTAURANTS - cuisine detection runs FIRST ────────────────────
   // Only NAICS 722xxx (food service). Hotels (721xxx) skip this entire
   // block and go through the generic NAICS_QUERIES path below. See
   // the gating note in the cuisine-constants comment header.
@@ -2139,7 +2139,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     // taqueria-named places, etc. catch before review noise.
     // Logged layers 0-5; old 1-6 numbering retired.
 
-    // Layer 0 — Chain detection (most specific match wins outright).
+    // Layer 0 - Chain detection (most specific match wins outright).
     for (const chainKey of Object.keys(CHAIN_CATEGORY_QUERIES)) {
       if (nameLower.includes(chainKey)) {
         console.log(
@@ -2164,7 +2164,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       return chainWords + suffix;
     }
 
-    // Layer 1 — Google's own cuisine type tag (most reliable for the
+    // Layer 1 - Google's own cuisine type tag (most reliable for the
     // types still in GOOGLE_CUISINE_TYPES after BUG-1 cleanup).
     for (const gType of types) {
       if (GOOGLE_CUISINE_TYPES[gType]) {
@@ -2175,7 +2175,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       }
     }
 
-    // ── NEW Layer 1.5 — Claude micro-call (cheap, cached) ────────────
+    // ── NEW Layer 1.5 - Claude micro-call (cheap, cached) ────────────
     // Catches chef-driven, foreign-language-named, and concept restaurants
     // that the deterministic layers miss (Babbo, Daniel, Atomix, Cosme,
     // Au Cheval, Fish Cheeks, Crying Tiger, Jean-Georges, etc.). One
@@ -2188,7 +2188,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       return (CUISINE_QUERIES[claudeCuisine] || `${claudeCuisine} restaurant`) + suffix;
     }
 
-    // Layer 2 — business-name cultural / cuisine signals (moved up
+    // Layer 2 - business-name cultural / cuisine signals (moved up
     // from old Layer 4 so name-obvious cuisine isn't drowned out by
     // review keyword noise).
     for (const [cuisine, signals] of Object.entries(NAME_CUISINE_SIGNALS)) {
@@ -2200,10 +2200,10 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       }
     }
 
-    // Layer 3 — review keyword scoring with name multiplier (was
+    // Layer 3 - review keyword scoring with name multiplier (was
     // Layer 2; moved down so name signals get first shot).
     // Count matches per cuisine; the cuisine with the most matches
-    // wins (handles fusion restaurants — chicken-tikka-burger should
+    // wins (handles fusion restaurants - chicken-tikka-burger should
     // score higher on indian than burger). Cuisines whose signal also
     // appears in the business name get a 3× multiplier.
     const cuisineScores = {};
@@ -2221,7 +2221,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       // BUG-F: name multiplier raised 3x → 5x. When the business
       // name carries a cuisine signal, that cuisine should clearly
       // dominate over review-keyword noise (e.g. Hankook Taqueria
-      // — name says korean but reviews mention 'taco' from their
+      // - name says korean but reviews mention 'taco' from their
       // fusion menu). 5x means a single name signal beats up to
       // 4 reviews-only matches of any other cuisine.
       cuisineScores[cuisine] = cuisineScores[cuisine] ? cuisineScores[cuisine] * 5 : 5;
@@ -2246,7 +2246,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       }
     }
 
-    // Layer 4 — strong single keywords (one match suffices).
+    // Layer 4 - strong single keywords (one match suffices).
     for (const [kw, query] of Object.entries(STRONG_SINGLE_KEYWORDS)) {
       if (allReviews.includes(kw)) {
         console.log(
@@ -2256,23 +2256,23 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
       }
     }
 
-    // Layer 5 — generic restaurant fallback.
+    // Layer 5 - generic restaurant fallback.
     console.log(
       `[competitor-query] ${businessName} → layer:5 (fallback) no cuisine detected`
     );
     return 'restaurant dining' + suffix;
   }
 
-  // ─── NON-RESTAURANTS — existing 5-priority logic, unchanged ────────
+  // ─── NON-RESTAURANTS - existing 5-priority logic, unchanged ────────
 
-  // Priority 1 — exact NAICS-6 lookup
+  // Priority 1 - exact NAICS-6 lookup
   if (naics6Str && NAICS_QUERIES[naics6Str]) {
     const q = NAICS_QUERIES[naics6Str] + suffix;
     console.log(`[competitors] search query: "${q}" (NAICS-6 exact ${naics6Str})`);
     return q;
   }
 
-  // Priority 2 — NAICS-4 prefix scan
+  // Priority 2 - NAICS-4 prefix scan
   if (naics6Str.length >= 4) {
     const naics4 = naics6Str.substring(0, 4);
     const naics4Match = Object.keys(NAICS_QUERIES).find((k) => k.startsWith(naics4));
@@ -2283,7 +2283,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     }
   }
 
-  // Priority 2b — NAICS-3 exact key lookup (e.g. '111', '312' entries)
+  // Priority 2b - NAICS-3 exact key lookup (e.g. '111', '312' entries)
   if (naics6Str.length >= 3) {
     const naics3 = naics6Str.substring(0, 3);
     if (NAICS_QUERIES[naics3]) {
@@ -2293,7 +2293,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     }
   }
 
-  // Priority 2c — NAICS-2 exact key lookup
+  // Priority 2c - NAICS-2 exact key lookup
   if (naics6Str.length >= 2) {
     const naics2Key = naics6Str.substring(0, 2);
     if (NAICS_QUERIES[naics2Key]) {
@@ -2303,7 +2303,7 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     }
   }
 
-  // Priority 3 — first non-generic Google type
+  // Priority 3 - first non-generic Google type
   const types = Array.isArray(googleTypes) ? googleTypes : [];
   const specificType = types.find((t) => !COMPETITOR_QUERY_SKIP_TYPES.has(t));
   if (specificType) {
@@ -2311,14 +2311,14 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     return typeWords + suffix;
   }
 
-  // Priority 4 — keyword extracted from business name
+  // Priority 4 - keyword extracted from business name
   const nameLower = String(businessName || '').toLowerCase();
   if (nameLower) {
     const found = COMPETITOR_NAME_KEYWORDS.find((k) => nameLower.includes(k));
     if (found) return found + suffix;
   }
 
-  // Priority 5 — clean business name fallback
+  // Priority 5 - clean business name fallback
   const cleanName = String(businessName || '')
     .replace(/by wyndham|by hilton|by marriott|by ihg/gi, '')
     .replace(/\bLLC\b|\bInc\b|\bCorp\b|\bLtd\b/gi, '')
@@ -2330,27 +2330,27 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// RADIUS_LADDER — replaces the prior getCompetitorRadius single-shot.
+// RADIUS_LADDER - replaces the prior getCompetitorRadius single-shot.
 // ─────────────────────────────────────────────────────────────────────
 // fetchNearbyCompetitors now climbs this ladder from smallest to largest,
 // stopping as soon as the deduped pool reaches POOL_TARGET (5). The
 // largest radius actually queried is returned as `search_radius_miles`
 // so renderReport can pick the appropriate "limited competition" note.
 //
-// Step 4 (150 mi) reaches into nearby states — that wide a search only
+// Step 4 (150 mi) reaches into nearby states - that wide a search only
 // fires for businesses in genuinely empty rural categories (e.g. a
 // rural-only specialty in northern WI may have 0 competitors within
 // 75 mi but several across the MN border). When step 4 still returns
 // 0, the renderer surfaces a "potential monopoly" callout.
 const RADIUS_LADDER = [
-  1609,    // Step 1 — 1 mile     (immediate block / strip mall)
-  4828,    // Step 2 — 3 miles    (neighborhood)
-  12875,   // Step 3 — 8 miles    (small-city core)
-  24140,   // Step 4 — 15 miles   (greater small-town area)
-  48280,   // Step 5 — 30 miles   (regional)
-  80467,   // Step 6 — 50 miles   (multi-county)
-  120700,  // Step 7 — 75 miles   (cross-region)
-  241400,  // Step 8 — 150 miles  (nearby states; query drops locality)
+  1609,    // Step 1 - 1 mile     (immediate block / strip mall)
+  4828,    // Step 2 - 3 miles    (neighborhood)
+  12875,   // Step 3 - 8 miles    (small-city core)
+  24140,   // Step 4 - 15 miles   (greater small-town area)
+  48280,   // Step 5 - 30 miles   (regional)
+  80467,   // Step 6 - 50 miles   (multi-county)
+  120700,  // Step 7 - 75 miles   (cross-region)
+  241400,  // Step 8 - 150 miles  (nearby states; query drops locality)
 ];
 
 // Normalize a business name for fuzzy dedup + subject exclusion.
@@ -2383,11 +2383,11 @@ function toCompetitorFromGoogle(r, baseLat, baseLng, source) {
 // Walker House (9.4 mi, 4.9★) for AmericInn Dodgeville.
 //
 // Buckets:
-//   0 — under 2 miles  (immediate / walking competitors)
-//   1 — under 5 miles  (same-town competitors)
-//   2 — under 15 miles (greater-area competitors)
-//   3 — beyond 15 miles
-//   4 — distance unknown (Foursquare or geometry-less results)
+//   0 - under 2 miles  (immediate / walking competitors)
+//   1 - under 5 miles  (same-town competitors)
+//   2 - under 15 miles (greater-area competitors)
+//   3 - beyond 15 miles
+//   4 - distance unknown (Foursquare or geometry-less results)
 function competitorComparator(a, b) {
   function bucket(d) {
     if (d == null) return 4;
@@ -2406,33 +2406,33 @@ function competitorComparator(a, b) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// classifyCompetitorTier — 'threat' | 'winning' | 'neutral'
+// classifyCompetitorTier - 'threat' | 'winning' | 'neutral'
 // ─────────────────────────────────────────────────────────────────────
 // Compares a competitor against the SUBJECT business's rating + review
 // count using ABSOLUTE thresholds, not subject-relative ratios. The
 // prior subject-relative logic produced two failure modes:
 //   - Brand-new subjects (0 reviews) had every competitor flagged as a
-//     threat — even tiny 3-review competitors — because the "no signals"
+//     threat - even tiny 3-review competitors - because the "no signals"
 //     short-circuit returned 'threat' for everyone. Result: panic-
 //     inducing reports for the customer cohort that most needs an
 //     achievable benchmark.
 //   - Large established subjects (500+ reviews) had nearly every
 //     competitor flagged 'winning' because `compReviews > sReviews * 0.5`
-//     requires the competitor to have 250+ reviews to count as a threat —
+//     requires the competitor to have 250+ reviews to count as a threat -
 //     a high-rated 100-review competitor was silently dismissed.
 //
-// New scheme — three tiers:
-//   threat   — genuinely better than the subject; render as a card.
-//   winning  — subject is meaningfully outperforming; render as a muted
+// New scheme - three tiers:
+//   threat   - genuinely better than the subject; render as a card.
+//   winning  - subject is meaningfully outperforming; render as a muted
 //              "you're winning" line.
-//   neutral  — similar level / not enough signal to judge. Caller (the
+//   neutral  - similar level / not enough signal to judge. Caller (the
 //              renderer in server.js) currently filters by tier === 'threat'
-//              and tier === 'winning' — neutrals are silently dropped so
+//              and tier === 'winning' - neutrals are silently dropped so
 //              the report doesn't get cluttered with no-information cards.
 //
 // SMALL / NEW SUBJECT (sReviews < 25):
 //   Absolute rating thresholds only (review-count ratios are meaningless
-//   when the denominator is tiny). Rule order matters — the cReviews < 5
+//   when the denominator is tiny). Rule order matters - the cReviews < 5
 //   neutral check runs BEFORE the weak-rating check so a low-rated
 //   competitor with too-few reviews bails to neutral instead of being
 //   confidently labeled winning on a 3-review sample:
@@ -2442,7 +2442,7 @@ function competitorComparator(a, b) {
 //     neutral  = everything else
 //
 // ESTABLISHED SUBJECT (sReviews >= 25):
-//   Rating-GAP-based — measures real outperformance, not raw review count:
+//   Rating-GAP-based - measures real outperformance, not raw review count:
 //     ratingGap = cRating - sRating
 //     threat   = ratingGap >= 0.5 AND cReviews >= 20
 //     winning  = ratingGap <= -0.3 OR cRating < 3.8
@@ -2453,20 +2453,20 @@ function classifyCompetitorTier(comp, subjectRating, subjectReviewCount) {
   const sRating  = typeof subjectRating === 'number' ? subjectRating : 0;
   const sReviews = typeof subjectReviewCount === 'number' ? subjectReviewCount : 0;
 
-  // SMALL / NEW SUBJECT — under 25 reviews. Use absolute rating thresholds;
+  // SMALL / NEW SUBJECT - under 25 reviews. Use absolute rating thresholds;
   // review-count comparisons are noise at this scale.
   if (sReviews < 25) {
-    // Genuinely better than the subject — real threat.
+    // Genuinely better than the subject - real threat.
     if (cRating >= 4.5 && cReviews >= 10) {
       return 'threat';
     }
-    // Too few reviews to judge — could be a great new place or a bad one.
+    // Too few reviews to judge - could be a great new place or a bad one.
     // Bail out as neutral BEFORE the weak-rating check so a 3.2★/3-review
     // competitor doesn't get labeled winning on a tiny sample.
     if (cReviews < 5) {
       return 'neutral';
     }
-    // Weak competitor (and enough reviews to trust the rating) — subject
+    // Weak competitor (and enough reviews to trust the rating) - subject
     // is already winning. cReviews >= 5 is guaranteed by the early-return above.
     if (cRating < 3.8) {
       return 'winning';
@@ -2475,10 +2475,10 @@ function classifyCompetitorTier(comp, subjectRating, subjectReviewCount) {
     return 'neutral';
   }
 
-  // ESTABLISHED SUBJECT — 25+ reviews. Use rating GAP as the signal.
+  // ESTABLISHED SUBJECT - 25+ reviews. Use rating GAP as the signal.
   const ratingGap = cRating - sRating;
 
-  // Competitor is significantly better — genuine threat.
+  // Competitor is significantly better - genuine threat.
   if (ratingGap >= 0.5 && cReviews >= 20) {
     return 'threat';
   }
@@ -2492,7 +2492,7 @@ function classifyCompetitorTier(comp, subjectRating, subjectReviewCount) {
   return 'neutral';
 }
 
-// Fuzzy name dedup — collapse two entries with the same 20-char
+// Fuzzy name dedup - collapse two entries with the same 20-char
 // normalized prefix into the one with more data (higher review_count).
 function fuzzyDedupByName(arr) {
   const byNorm = new Map();
@@ -2516,7 +2516,7 @@ function fuzzyDedupByName(arr) {
 async function fetchNearbyCompetitors({
   placeId, lat, lng, type, apiKey,
   city = null, state = null, subjectName = null,
-  // FIX 1/2 additions — used by buildCompetitorQuery + getCompetitorRadius.
+  // FIX 1/2 additions - used by buildCompetitorQuery + getCompetitorRadius.
   // All optional so legacy callers (none in production) still work; the
   // /classify route in server.js passes them all.
   businessName = null,
@@ -2527,7 +2527,7 @@ async function fetchNearbyCompetitors({
 }) {
   if (!lat || !lng || !apiKey) return null;
 
-  // Cache key bumped to v5 — restaurant cuisine detection in
+  // Cache key bumped to v5 - restaurant cuisine detection in
   // buildCompetitorQuery now produces cuisine-specific queries for
   // 722xxx subjects, so old v4 entries (generic 'restaurant dining')
   // are intentionally orphaned.
@@ -2540,7 +2540,7 @@ async function fetchNearbyCompetitors({
   // ── Subject reviews fetch (food-service only) ────────────────────
   // The cuisine-detection pipeline in buildCompetitorQuery (Layers 2
   // and 3) scans the SUBJECT business's review text for cuisine
-  // keywords. Pull the subject's reviews via getDetails — almost
+  // keywords. Pull the subject's reviews via getDetails - almost
   // always a 24h DETAILS_CACHE hit because server.js called getDetails
   // earlier in the request to populate the report. Gated on 722xxx so
   // hotels/dental/etc. don't pay any extra Details cost. Failure is
@@ -2561,8 +2561,8 @@ async function fetchNearbyCompetitors({
     }
   }
 
-  // ── FIX 1 — Build the Text Search query from NAICS / types / name
-  // Two query variants — locality version for steps 1-7 (most specific),
+  // ── FIX 1 - Build the Text Search query from NAICS / types / name
+  // Two query variants - locality version for steps 1-7 (most specific),
   // and a no-locality version for the final step 8 (150 mi, intentionally
   // catches matches across nearby states by dropping the "near {city} {state}"
   // suffix). buildCompetitorQuery returns just the category keywords when
@@ -2570,7 +2570,7 @@ async function fetchNearbyCompetitors({
   // 722xxx; safe to pass for other categories (ignored by the function).
   // Both calls are now `await`ed because buildCompetitorQuery became
   // async with the addition of Layer 1.5 (Claude cuisine micro-call).
-  // The second call is essentially free — cuisine result is cached
+  // The second call is essentially free - cuisine result is cached
   // process-lifetime by (name|city|state) so the no-locality variant
   // hits the same key.
   const queryWithLocality = await buildCompetitorQuery(
@@ -2602,12 +2602,12 @@ async function fetchNearbyCompetitors({
     // them as competitors. isOperationalOrUnknown logs each drop.
     if (!isOperationalOrUnknown(rawGoogleResult)) return;
     const c = toCompetitorFromGoogle(rawGoogleResult, lat, lng, source);
-    // FIX 2 — post-filter by actual distance. Google Text Search treats
+    // FIX 2 - post-filter by actual distance. Google Text Search treats
     // `radius` as a relevance bias (not a hard cap), so a 1-mile-bias
     // call routinely returns results 8-10 miles away. Drop anything
     // beyond 1.5x the current step's radius. The buffer allows slight
     // overreach (a hotel at 1.2mi on the 1mi step is fine) but keeps
-    // far-away high-relevance matches out — they'll be picked up on a
+    // far-away high-relevance matches out - they'll be picked up on a
     // later wider rung where they actually belong.
     if (
       typeof maxRadiusMeters === 'number'
@@ -2627,13 +2627,13 @@ async function fetchNearbyCompetitors({
 
   // ── 8-step radius ladder (1 → 3 → 8 → 15 → 30 → 50 → 75 → 150 mi) ─
   // Climbs until the deduped cumulative pool reaches POOL_TARGET (5).
-  // Each step is an independent Text Search call — Google's relevance
+  // Each step is an independent Text Search call - Google's relevance
   // ranker re-evaluates per radius, so a wider call may bring back
   // entirely new prominent results not present in the smaller call.
   // Step 8 (150 mi) drops "near {city} {state}" from the query so
   // category matches across state lines surface in genuinely empty
   // rural markets.
-  // `radiusUsedMeters` = the LARGEST radius that fired — renderReport
+  // `radiusUsedMeters` = the LARGEST radius that fired - renderReport
   // keys the "limited competition" callout off this value.
   //
   // Claude+websearch fallback now fires INSIDE the loop, right after
@@ -2672,24 +2672,24 @@ async function fetchNearbyCompetitors({
       for (const r of results) tryAdd(r, 'google_text', stepRadius);
     } catch (err) {
       console.warn(`[competitors] step ${stepIdx + 1} (${stepMiles}mi) failed:`, err.message);
-      // Don't break — try the next radius rung anyway.
+      // Don't break - try the next radius rung anyway.
     }
     // Per-step diagnostic. `pool.length` is the cumulative deduped count;
     // `stepResultCount` is what THIS call returned (overlap is fine).
     const stoppingHere = pool.length >= POOL_TARGET || isLastStep;
     console.log(
-      `[competitors] ${subjectLabel} — ${pool.length} found at ${stepMiles} miles`
-      + (stoppingHere ? ' — done' : ' — expanding...')
+      `[competitors] ${subjectLabel} - ${pool.length} found at ${stepMiles} miles`
+      + (stoppingHere ? ' - done' : ' - expanding...')
     );
     if (pool.length >= POOL_TARGET) break;
 
-    // ── Mid-ladder Claude fallback — fires ONCE after rung 5 (50 mi)
+    // ── Mid-ladder Claude fallback - fires ONCE after rung 5 (50 mi)
     // when the deterministic ladder is on track to fail. stepIdx === 5
     // is the natural single-fire gate; the loop only visits each index
     // once so we don't need an extra "already fired" flag.
     if (stepIdx === 5 && pool.length < POOL_TARGET) {
       console.log(
-        `[competitor-claude] only ${pool.length} found after 50 miles — trying Claude+websearch fallback `
+        `[competitor-claude] only ${pool.length} found after 50 miles - trying Claude+websearch fallback `
         + `for ${subjectLabel} in ${city || '(unknown)'} ${state || ''}`
       );
       claudeResult = await detectCompetitorQueryWithClaude(
@@ -2737,10 +2737,10 @@ async function fetchNearbyCompetitors({
       // Else fall through to rungs 6 and 7 (75 mi, 150 mi) as last resort.
     }
   }
-  // Final 150-mile fall-through diagnostic — distinguishes "found just
+  // Final 150-mile fall-through diagnostic - distinguishes "found just
   // enough at 150mi" from "exhausted ladder".
   if (pool.length < POOL_TARGET && radiusUsedMeters >= RADIUS_LADDER[RADIUS_LADDER.length - 1]) {
-    console.log(`[competitors] only ${pool.length} found within 150 miles — may be limited competition`);
+    console.log(`[competitors] only ${pool.length} found within 150 miles - may be limited competition`);
   }
 
   // ── Fuzzy dedup, sort, slice ─────────────────────────────────────
@@ -2750,10 +2750,10 @@ async function fetchNearbyCompetitors({
   const top7 = fuzzed.slice(0, 7);
   const top5 = top7.slice(0, 5);
 
-  // ── FIX 3 — Fetch Place Details for top 5 in parallel ────────────
+  // ── FIX 3 - Fetch Place Details for top 5 in parallel ────────────
   // Each detail fetch hits the existing 24h DETAILS_CACHE so repeat
   // analyses are free. Reviews truncated to 300 chars × 3 per business
-  // — gives downstream renderers/Claude real review evidence per
+  // - gives downstream renderers/Claude real review evidence per
   // competitor (currently unused; available for future wiring).
   const top5WithDetails = await Promise.all(top5.map(async (c) => {
     if (!c.place_id) return { ...c, reviews: [], address: null };
@@ -2808,7 +2808,7 @@ async function fetchNearbyCompetitors({
     sources_used: sourcesUsed,
     search_radius_miles: Math.round(radiusUsedMeters / 1609.34),
     competitor_query: queryWithLocality,
-    // Claude fallback metadata — null when the fallback didn't fire or
+    // Claude fallback metadata - null when the fallback didn't fire or
     // returned no usable result. Lets the report later surface phrasing
     // like "We looked for: cell phone stores, wireless carrier stores,
     // phone repair shops near Madison WI" when the deterministic query
@@ -2842,7 +2842,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// fetchBusinessTypeCompetitors — Market Analysis (Mode 2) novelty signal
+// fetchBusinessTypeCompetitors - Market Analysis (Mode 2) novelty signal
 // ─────────────────────────────────────────────────────────────────────
 // Counts how many businesses of a specific type exist within
 // radiusMiles of (lat, lon), and converts the count into a 1-10
@@ -2893,7 +2893,7 @@ async function fetchBusinessTypeCompetitors(businessType, lat, lon, radiusMiles,
 
   // Google's Text Search clamps radius to 50,000m (~31 miles); larger
   // values are accepted but capped server-side. The radius parameter
-  // also acts as a soft bias rather than a hard filter — that's fine
+  // also acts as a soft bias rather than a hard filter - that's fine
   // for novelty counting (we want a regional signal, not strict cap).
   const radiusMeters = Math.min(Math.round(radiusMiles * 1609), 50000);
   const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(businessType)}`

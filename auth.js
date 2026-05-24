@@ -1,6 +1,6 @@
-/* auth.js — email/password auth core for GrowthIM.
+/* auth.js - email/password auth core for GrowthIM.
 
-   Pure logic — no Express, no HTTP. Used by authRoutes.js.
+   Pure logic - no Express, no HTTP. Used by authRoutes.js.
 
    Functions:
      generateOTP()                                   → 6-digit string
@@ -21,7 +21,7 @@
        and discarded; only its bcrypt hash sits in otp_code. This means
        even a DB dump leak can't be replayed against the 10-minute
        window.
-     - All errors thrown here have user-safe messages — callers re-throw
+     - All errors thrown here have user-safe messages, callers re-throw
        them to the client without leaking schema info. */
 
 const bcrypt = require('bcrypt');
@@ -36,7 +36,7 @@ const JWT_EXPIRY = '7d';
 
 // ── SMTP transporter (lazy) ─────────────────────────────────────────
 // Hardcoded for Namecheap Private Email. host/port/secure are no
-// longer configurable via env — only the credentials (SMTP_USER /
+// longer configurable via env, only the credentials (SMTP_USER /
 // SMTP_PASS) come from environment so production secrets stay out of
 // version control. SMTP_HOST and SMTP_PORT remain in .env for
 // documentation but are unread by this code. If either credential is
@@ -51,15 +51,15 @@ function getTransporter() {
   cachedTransporter = nodemailer.createTransport({
     host: 'mail.privateemail.com',
     port: 465,
-    secure: true, // SMTPS — TLS from the first byte, required by Namecheap on 465
+    secure: true, // SMTPS - TLS from the first byte, required by Namecheap on 465
     auth: { user, pass },
-    // Audit fix A1 — bounded SMTP timeouts. Without these a hung
+    // Audit fix A1 - bounded SMTP timeouts. Without these a hung
     // Namecheap socket holds /auth/signup for Node's default socket
     // timeout (~5 min) before failing, leaving the user staring at a
     // spinner with no feedback.
-    connectionTimeout: 10000, // 10 s — TCP/TLS handshake
-    greetingTimeout:   10000, // 10 s — wait for SMTP server greeting
-    socketTimeout:     15000, // 15 s — between any two read/write events
+    connectionTimeout: 10000, // 10 s - TCP/TLS handshake
+    greetingTimeout:   10000, // 10 s - wait for SMTP server greeting
+    socketTimeout:     15000, // 15 s - between any two read/write events
   });
   return cachedTransporter;
 }
@@ -90,8 +90,8 @@ function verifyJWT(token) {
 async function sendOTPEmail(email, otp, type) {
   const transporter = getTransporter();
   const subject = type === 'reset'
-    ? 'GrowthIM — reset your password'
-    : 'GrowthIM — verify your email';
+    ? 'GrowthIM - reset your password'
+    : 'GrowthIM - verify your email';
   const body =
 `Your GrowthIM ${type === 'reset' ? 'password reset' : 'verification'} code is:
 
@@ -99,10 +99,10 @@ async function sendOTPEmail(email, otp, type) {
 
 This code expires in ${OTP_TTL_MIN} minutes. If you didn't request this, you can safely ignore this email.
 
-— GrowthIM`;
+- GrowthIM`;
 
   if (!transporter) {
-    // SMTP not configured — log OTP so local dev can complete the flow.
+    // SMTP not configured - log OTP so local dev can complete the flow.
     console.log(`\n[auth] SMTP not configured. OTP for ${email} (${type}): ${otp}\n`);
     return;
   }
@@ -144,7 +144,7 @@ async function createPendingUser(name, email, password) {
   const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
 
   // otp_attempts is reset to 0 by the column default on every fresh
-  // INSERT (audit fix A3 — bounded OTP brute force).
+  // INSERT (audit fix A3 - bounded OTP brute force).
   const ins = await pool.query(
     `INSERT INTO users (name, email, password_hash, email_verified, otp_code, otp_expires, otp_type, otp_attempts, created_at)
      VALUES ($1, $2, $3, false, $4, $5, 'signup', 0, NOW())
@@ -153,7 +153,7 @@ async function createPendingUser(name, email, password) {
   );
   const newUserId = ins.rows[0].id;
 
-  // Audit fix A2 — if SMTP fails, roll back the pending row so the
+  // Audit fix A2 - if SMTP fails, roll back the pending row so the
   // user can immediately re-attempt the signup. Without this rollback
   // the row sits in the DB with a valid OTP they never received,
   // blocking the email for 10 minutes.
@@ -176,7 +176,7 @@ async function verifySignupOTP(email, otp) {
   );
   const user = r.rows[0];
   if (!user) throw new Error('No pending signup');
-  // Audit fix A3 — bounded OTP brute force. After 5 incorrect attempts
+  // Audit fix A3 - bounded OTP brute force. After 5 incorrect attempts
   // we lock the row out and force the user to request a fresh code
   // (via Resend, which calls createPendingUser and resets the counter).
   if ((user.otp_attempts || 0) >= 5) {
@@ -245,13 +245,13 @@ async function sendPasswordResetOTP(email) {
   const otpHash = await hashOTP(otp);
   const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
 
-  // Audit fix A3 — reset otp_attempts on every new reset code so the
+  // Audit fix A3 - reset otp_attempts on every new reset code so the
   // lockout counter is per-code, not per-account-lifetime.
   await pool.query(
     `UPDATE users SET otp_code = $1, otp_expires = $2, otp_type = 'reset', otp_attempts = 0 WHERE id = $3`,
     [otpHash, expires, user.id]
   );
-  // Audit fix A2 — surface a user-safe error and clear the reset
+  // Audit fix A2 - surface a user-safe error and clear the reset
   // state if the email never makes it out (SMTP outage, etc.).
   try {
     await sendOTPEmail(e, otp, 'reset');
@@ -275,7 +275,7 @@ async function verifyResetOTP(email, otp) {
   );
   const user = r.rows[0];
   if (!user) throw new Error('No active reset request');
-  // Audit fix A3 — bounded brute force on the reset code.
+  // Audit fix A3 - bounded brute force on the reset code.
   if ((user.otp_attempts || 0) >= 5) {
     throw new Error('Too many incorrect attempts. Request a new code.');
   }
@@ -290,7 +290,7 @@ async function verifyResetOTP(email, otp) {
     ).catch(() => {});
     throw new Error('Incorrect code');
   }
-  // NOTE: do NOT clear OTP here — resetPassword() will re-verify and clear.
+  // NOTE: do NOT clear OTP here - resetPassword() will re-verify and clear.
   return true;
 }
 
@@ -299,7 +299,7 @@ async function resetPassword(email, otp, newPassword) {
   if (!newPassword || newPassword.length < 8) {
     throw new Error('Password must be at least 8 characters');
   }
-  // Re-verify OTP before changing the password — protects against
+  // Re-verify OTP before changing the password - protects against
   // someone hitting /auth/reset-password directly without doing the
   // OTP verification step.
   await verifyResetOTP(e, otp);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard — GrowthIM</title>
+<title>Dashboard - GrowthIM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -542,15 +542,15 @@ a { color: var(--blue); text-decoration: none; }
       .replace(/'/g, '&#39;');
   }
   function fmtFullDate(iso) {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
+    if (isNaN(d.getTime())) return '-';
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
   function fmtMonthYear(iso) {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
+    if (isNaN(d.getTime())) return '-';
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   }
   function firstName(full) {
@@ -632,17 +632,17 @@ a { color: var(--blue); text-decoration: none; }
     errorTextEl.textContent = message || 'Something went wrong. Please try again.';
     showView('error');
     // Also clear the stat skeletons so they don't keep shimmering forever.
-    if (statTotal.querySelector('.skeleton')) statTotal.textContent = '—';
-    if (statSince.querySelector('.skeleton')) statSince.textContent = '—';
-    if (statLast.querySelector('.skeleton'))  statLast.textContent  = '—';
+    if (statTotal.querySelector('.skeleton')) statTotal.textContent = '-';
+    if (statSince.querySelector('.skeleton')) statSince.textContent = '-';
+    if (statLast.querySelector('.skeleton'))  statLast.textContent  = '-';
     userEmailEl.textContent = '';
     userEmailEl.classList.remove('loading');
     heroNameEl.textContent = 'there';
   }
 
   // ── Main loader ──
-  // 1. /auth/me — verify session. 401 → redirect to /login.html.
-  // 2. /api/dashboard — populate UI.
+  // 1. /auth/me - verify session. 401 → redirect to /login.html.
+  // 2. /api/dashboard - populate UI.
   // Failures at either step land in showError().
   async function loadDashboard() {
     showView('loading');
@@ -679,7 +679,7 @@ a { color: var(--blue); text-decoration: none; }
 
   // ── Logout ──
   // POST /auth/logout to clear the JWT cookie, then redirect. Always
-  // redirects even if the network call fails — keeps the UX flow
+  // redirects even if the network call fails - keeps the UX flow
   // unbroken when the server is briefly unreachable.
   logoutBtn.addEventListener('click', async () => {
     logoutBtn.disabled = true;

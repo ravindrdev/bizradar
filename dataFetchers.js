@@ -1,14 +1,14 @@
-// LRU-Cache wrapper — bounded-size cache with per-entry TTL. Replaces
+// LRU-Cache wrapper - bounded-size cache with per-entry TTL. Replaces
 // the raw `new Map()` caches throughout this file so the process can't
 // OOM under sustained traffic. max=1000 entries each; existing TTLs
 // preserved. Pattern is unchanged: `cache.get(key)` returns either the
 // stored { ts, value } wrapper or undefined (when LRU has evicted),
 // and the existing `if (cached && Date.now() - cached.ts < TTL)` check
-// continues to work — the explicit TTL math becomes belt-and-suspenders
+// continues to work - the explicit TTL math becomes belt-and-suspenders
 // since LRU handles eviction internally.
 const { LRUCache } = require('lru-cache');
 
-/* dataFetchers.js — non-Google data sources.
+/* dataFetchers.js - non-Google data sources.
 
    BATCH14 / 360°:
      - extractZipFromAddress(formatted_address) → 5-digit ZIP or null
@@ -33,11 +33,11 @@ function parseIntOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-// isOperationalOrUnknown — keep Places results that are OPERATIONAL or
+// isOperationalOrUnknown - keep Places results that are OPERATIONAL or
 // whose business_status field is missing; drop CLOSED_PERMANENTLY /
 // PERMANENTLY_CLOSED / CLOSED_TEMPORARILY with a console log so the
 // filter is auditable. Duplicated (intentionally) in googlePlaces.js
-// to avoid a circular require — dataFetchers must not depend on
+// to avoid a circular require - dataFetchers must not depend on
 // googlePlaces (googlePlaces requires dataFetchers).
 function isOperationalOrUnknown(result) {
   if (!result) return false;
@@ -46,7 +46,7 @@ function isOperationalOrUnknown(result) {
   console.log(
     '[places] filtered out:',
     result.name,
-    '— status:',
+    '- status:',
     result.business_status
   );
   return false;
@@ -78,16 +78,16 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 // a release window. Helper: _fetchAcsJson(pathAfterAcs5, timeoutMs).
 //
 // Fields:
-//   B19013_001E — Median household income
-//   B01001_001E — Total population (sex by age table — same number as B01003)
-//   B25010_001E — Average household size
+//   B19013_001E - Median household income
+//   B01001_001E - Total population (sex by age table - same number as B01003)
+//   B25010_001E - Average household size
 //   ── Housing extension (Phase 5+) ──
-//   B25001_001E — Total housing units
-//   B25002_003E — Vacant housing units
-//   B25003_002E — Owner-occupied units
-//   B25003_003E — Renter-occupied units
-//   B25077_001E — Median home value (owner-occupied)
-//   B25064_001E — Median gross rent
+//   B25001_001E - Total housing units
+//   B25002_003E - Vacant housing units
+//   B25003_002E - Owner-occupied units
+//   B25003_003E - Renter-occupied units
+//   B25077_001E - Median home value (owner-occupied)
+//   B25064_001E - Median gross rent
 const ACS_YEARS = ['2024', '2023'];
 
 async function _fetchAcsJson(pathAfterAcs5, timeoutMs = 5000) {
@@ -100,12 +100,12 @@ async function _fetchAcsJson(pathAfterAcs5, timeoutMs = 5000) {
     try {
       const res = await fetch(url, { signal: ac.signal });
       if (!res.ok) {
-        console.warn('[census] ' + year + ' HTTP ' + res.status + ' — trying next year');
+        console.warn('[census] ' + year + ' HTTP ' + res.status + ', trying next year');
         continue;
       }
       const data = await res.json();
       if (!Array.isArray(data) || data.length < 2) {
-        console.warn('[census] ' + year + ' returned no rows — trying next year');
+        console.warn('[census] ' + year + ' returned no rows, trying next year');
         continue;
       }
       if (year !== ACS_YEARS[0]) {
@@ -113,7 +113,7 @@ async function _fetchAcsJson(pathAfterAcs5, timeoutMs = 5000) {
       }
       return data;
     } catch (e) {
-      console.warn('[census] ' + year + ' failed: ' + e.message + ' — trying next year');
+      console.warn('[census] ' + year + ' failed: ' + e.message + ', trying next year');
     } finally {
       clearTimeout(timer);
     }
@@ -121,7 +121,7 @@ async function _fetchAcsJson(pathAfterAcs5, timeoutMs = 5000) {
   return null;
 }
 
-// Legacy alias retained — direct URL constant removed; callers use
+// Legacy alias retained - direct URL constant removed; callers use
 // _fetchAcsJson with the path-after-acs5 query string instead.
 const CENSUS_ZIP_PATH = '?get=B19013_001E,B01001_001E,B25010_001E,B25001_001E,B25002_003E,B25003_002E,B25003_003E,B25077_001E,B25064_001E&for=zip%20code%20tabulation%20area:';
 
@@ -132,10 +132,10 @@ const CENSUS_CACHE = new LRUCache({ max: 1000, ttl: CENSUS_TTL_MS });
 // State name → 2-digit FIPS for the place-level (city) lookup. Used
 // by fetchCensusByZip when city + state are provided so we can pull
 // the more accurate place-level population for small cities (ZIP-level
-// figures over-count rural areas around the city — e.g. ZIP 53533
+// figures over-count rural areas around the city - e.g. ZIP 53533
 // covers ~7,400 people but Dodgeville city itself is ~5,100).
 // State + DC + U.S. territory FIPS codes. DC and territories were
-// missing — every business in Washington DC and Puerto Rico fell
+// missing - every business in Washington DC and Puerto Rico fell
 // through to ZIP-only lookups and got over/under-counted ZCTA
 // population instead of the more accurate place-level number.
 const STATE_FIPS = {
@@ -155,7 +155,7 @@ const STATE_FIPS = {
 
 // Separate 30-day cache for the place-level lookup. Keyed by
 // `${city.toLowerCase()}|${state.toLowerCase()}`. Stores just the
-// place population we extract from the ACS place table — kept
+// place population we extract from the ACS place table - kept
 // separate so different ZIPs in the same city share the same place row.
 const CENSUS_PLACE_CACHE = new LRUCache({ max: 1000, ttl: CENSUS_TTL_MS });
 
@@ -181,7 +181,7 @@ function extractZipFromAddress(formattedAddress) {
   return m2 ? m2[1] : null;
 }
 
-// Fetch ZIP-level data — the original behavior. Throws on total
+// Fetch ZIP-level data - the original behavior. Throws on total
 // year-fallback failure (existing /classify pipeline relies on this via
 // Promise.allSettled to distinguish "data unavailable" from "no rows").
 async function _fetchCensusZipLevel(zip) {
@@ -221,7 +221,7 @@ async function _fetchCensusZipLevel(zip) {
     total_population: cleanCensusValue(row[1]),
     average_household_size: cleanCensusValue(row[2]),
     zip,
-    // Housing extension — packaged as a sub-object so claudeEnricher
+    // Housing extension - packaged as a sub-object so claudeEnricher
     // can pass `census_housing` to Claude as a single coherent block
     // regardless of how many fields end up populated.
     census_housing: {
@@ -238,9 +238,9 @@ async function _fetchCensusZipLevel(zip) {
 
 // Fetch place-level (city) population for a given city+state. Returns
 // just the population number (or null if no match). Uses ACS variable
-// B01003_001E (canonical total population field — same value as
+// B01003_001E (canonical total population field - same value as
 // B01001_001E but cleaner name in the place table). The /place:*
-// query returns every place in the state — we filter by name match.
+// query returns every place in the state - we filter by name match.
 async function _fetchCensusPlacePopulation(city, state) {
   if (!city || !state) return null;
   const stateFIPS = STATE_FIPS[state.toUpperCase()];
@@ -263,10 +263,10 @@ async function _fetchCensusPlacePopulation(city, state) {
     // Header row: ["NAME","B19013_001E","B01003_001E","B25010_001E","state","place"]
     // Data rows e.g.: ["Dodgeville city, Wisconsin","56324","5067","2.31","55","21300"]
     // Match by name: substring + " " (so "Dodgeville" matches "Dodgeville city, …"
-    // but NOT "Dodgeville Township" — using the trailing space rule).
+    // but NOT "Dodgeville Township" - using the trailing space rule).
     const cityLower = city.toLowerCase();
     // Find every row whose place name STARTS with the city name. Then
-    // pick the one with the largest population — Chicago city (2.7M)
+    // pick the one with the largest population - Chicago city (2.7M)
     // beats Chicago Heights (29k) and Chicago Ridge village (14k),
     // both of which would otherwise win on .find()'s first-match
     // semantics depending on alphabetical row ordering.
@@ -298,7 +298,7 @@ async function _fetchCensusPlacePopulation(city, state) {
   }
 }
 
-// County-level median income — used for big cities (pop > 200k) where
+// County-level median income - used for big cities (pop > 200k) where
 // a single ZIP captures a downtown census tract dominated by transient
 // / student population and dramatically understates median income.
 // (Chicago ZIP 60601 ACS median ≈ $45k; Cook County ACS median ≈ $75k.)
@@ -334,7 +334,7 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
 
   // Run ZIP, place, and county-income lookups in parallel. The latter
   // two only fire when the inputs are present. Population comes from
-  // place when we have it (always — see below), with ZIP as fallback;
+  // place when we have it (always - see below), with ZIP as fallback;
   // income comes from county for cities >200k and ZIP otherwise.
   const wantPlace = city && state;
   const wantCounty = !!countyFIPS;
@@ -348,7 +348,7 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
 
   // ── Population resolution ──────────────────────────────────────
   // FIX 2: the prior "prefer place only when smaller than ZIP" was
-  // backwards for big cities — Chicago place-pop 2.7M > ZIP 60601's
+  // backwards for big cities - Chicago place-pop 2.7M > ZIP 60601's
   // ~15k, so the old logic kept the wrong (tiny) ZIP figure. New rule:
   // when we have place pop, ALWAYS use it.
   let total_population = zipResult.total_population;
@@ -357,7 +357,7 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
     total_population = placeResult.total_population;
     population_source = 'city';
   } else if (typeof zipResult.total_population === 'number') {
-    // Place lookup miss (uncommon but possible — non-incorporated
+    // Place lookup miss (uncommon but possible - non-incorporated
     // localities or geocoding mismatches). ZIP figure may be
     // understated for downtown-only ZIPs of large cities; we surface
     // the source so the caller can hedge if needed.
@@ -366,18 +366,18 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
 
   // ── Income resolution ──────────────────────────────────────────
   // Priority order:
-  //   1. CITY (place-level) income — when the place lookup returned a
+  //   1. CITY (place-level) income - when the place lookup returned a
   //      number. City-level ACS median is more representative than
   //      ZIP-level for any city size: small cities (Dodgeville) get a
   //      tighter local figure than the ZCTA that bleeds into rural
   //      land, and big cities (Chicago) skip the downtown-ZIP transient-
   //      population skew because city-wide median averages across all
   //      neighborhoods.
-  //   2. COUNTY income — defensive fallback for big cities (pop > 200k)
+  //   2. COUNTY income - defensive fallback for big cities (pop > 200k)
   //      when the city place lookup misses for some reason but a county
   //      FIPS is available. Still better than the downtown ZIP figure
   //      for the transient-population case.
-  //   3. ZIP income — final fallback for everything else.
+  //   3. ZIP income - final fallback for everything else.
   let median_household_income = zipResult.median_household_income;
   let income_source = 'zip';
   if (placeResult && typeof placeResult.median_household_income === 'number') {
@@ -395,10 +395,10 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
   // ── FIX 4: single-line sanity-check log when called with locality
   // context. Logs nothing for /classify (which invokes with zip only).
   if (city && state) {
-    const popStr = typeof total_population === 'number' ? total_population.toLocaleString('en-US') : '—';
-    const incStr = typeof median_household_income === 'number' ? median_household_income.toLocaleString('en-US') : '—';
+    const popStr = typeof total_population === 'number' ? total_population.toLocaleString('en-US') : '-';
+    const incStr = typeof median_household_income === 'number' ? median_household_income.toLocaleString('en-US') : '-';
     console.log(
-      `[census] ${city}, ${state} — pop: ${popStr} (${population_source}) | income: $${incStr} (${income_source})`
+      `[census] ${city}, ${state} - pop: ${popStr} (${population_source}) | income: $${incStr} (${income_source})`
     );
   }
 
@@ -420,7 +420,7 @@ async function fetchCensusByZip(zip, city = null, state = null, countyFIPS = nul
    (HTTP 2xx/3xx within 3 seconds), false on 4xx/5xx, or null on timeout
    / DNS error / abort. Some hosts reject HEAD; on a method-not-allowed
    response (405), retry with a GET that aborts on first byte.
-   No caching — these change rarely but per-request cost is negligible. */
+   No caching - these change rarely but per-request cost is negligible. */
 async function checkWebsiteExists(url) {
   if (!url || typeof url !== 'string') return null;
   // Normalize: must have scheme.
@@ -461,19 +461,19 @@ async function checkWebsiteExists(url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchWeather (Open-Meteo historical archive, free, no key)
+// Phase 5+ - fetchWeather (Open-Meteo historical archive, free, no key)
 // ═══════════════════════════════════════════════════════════════════
 // The user's spec called for `/v1/forecast?monthly=...` but Open-Meteo's
 // /v1/forecast is short-term (16 days) and doesn't accept a `monthly`
 // parameter. We use /v1/archive (historical) for the past full year of
-// daily highs and aggregate them into monthly averages — that gives real
+// daily highs and aggregate them into monthly averages - that gives real
 // climatology suitable for "peak month" / "cold winter" classification.
 const WEATHER_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const WEATHER_CACHE = new LRUCache({ max: 1000, ttl: WEATHER_TTL_MS });
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// State-level climate defaults — used as fallback when Open-Meteo
+// State-level climate defaults - used as fallback when Open-Meteo
 // fetch fails, times out, or returns empty data. Keyed by 2-letter
 // US state abbreviation.
 const STATE_CLIMATE = {
@@ -636,7 +636,7 @@ async function fetchWeather(lat, lon, address) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchPageSpeed (Google PSI, mobile strategy)
+// Phase 5+ - fetchPageSpeed (Google PSI, mobile strategy)
 // ═══════════════════════════════════════════════════════════════════
 // PSI commonly takes 8-15 seconds. We give it a 15s hard upper bound;
 // returns null on timeout so the report renders without speed metrics
@@ -662,7 +662,7 @@ async function fetchPageSpeed(websiteUrl) {
 
   const url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(websiteUrl)}&strategy=mobile&key=${apiKey}`;
   const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 15000);
+  const timer = setTimeout(() => ac.abort(), 30000);
   try {
     const res = await fetch(url, { signal: ac.signal });
     if (!res.ok) throw new Error(`PageSpeed HTTP ${res.status}`);
@@ -695,7 +695,7 @@ async function fetchPageSpeed(websiteUrl) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// fetchCompetitorPageSpeed — per-business wrapper around fetchPageSpeed
+// fetchCompetitorPageSpeed - per-business wrapper around fetchPageSpeed
 // ═══════════════════════════════════════════════════════════════════
 // Accepts businessName + url so caller can log which competitor is
 // being checked. Returns the same shape as fetchPageSpeed or null.
@@ -721,7 +721,7 @@ async function fetchCompetitorPageSpeed(businessName, url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchLocationSignals (Overpass API, OpenStreetMap)
+// Phase 5+ - fetchLocationSignals (Overpass API, OpenStreetMap)
 // ═══════════════════════════════════════════════════════════════════
 // Combined query for anchor tenants (within 500m) + transit (within 800m)
 // in a single round-trip. Hard 5s timeout; null on timeout/error.
@@ -753,7 +753,7 @@ async function callOverpass(endpoint, body, timeoutMs) {
     });
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      throw new Error(`Overpass HTTP ${res.status} — ${errBody.slice(0, 120).replace(/\s+/g, ' ')}`);
+      throw new Error(`Overpass HTTP ${res.status} - ${errBody.slice(0, 120).replace(/\s+/g, ' ')}`);
     }
     return await res.json();
   } finally {
@@ -814,7 +814,7 @@ out center tags;`;
 
       const tags = el.tags || {};
 
-      // Anchor tenant — name matches a known big-box brand, OR shop type
+      // Anchor tenant - name matches a known big-box brand, OR shop type
       // is supermarket/department_store/mall (those are anchors regardless
       // of name).
       const isAnchorByName = name && ANCHOR_BRAND_RE.test(name);
@@ -826,7 +826,7 @@ out center tags;`;
         }
       }
 
-      // Transit — bus stop or rail station, threshold check below.
+      // Transit - bus stop or rail station, threshold check below.
       if (tags.highway === 'bus_stop' || tags.railway === 'station') {
         if (nearestTransit == null || distance < nearestTransit) {
           nearestTransit = distance;
@@ -850,7 +850,7 @@ out center tags;`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchBuildingPermits (HUD residential permits)
+// Phase 5+ - fetchBuildingPermits (HUD residential permits)
 // ═══════════════════════════════════════════════════════════════════
 // Two-step pipeline:
 //   1. Census geocoder (free, no key) → county FIPS-5 from a street address
@@ -862,7 +862,7 @@ out center tags;`;
 //     `SINGLE_FAMILY_PERMITS_YYYY`, `ALL_MULTIFAMILY_PERMITS_YYYY` triplets.
 //   - One row per U.S. county keyed on `GEOID` (5-digit FIPS as a string).
 //
-// Cache: 30 days per FIPS — same county yields the same data forever, so
+// Cache: 30 days per FIPS - same county yields the same data forever, so
 // a small in-memory map is plenty.
 const PERMITS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PERMITS_CACHE = new LRUCache({ max: 1000, ttl: PERMITS_TTL_MS });
@@ -871,7 +871,7 @@ const HUD_URL = 'https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/servic
 const CENSUS_GEOCODER_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/address';
 
 // Pull street / city / state out of a Google formatted_address string.
-// Handles "<street>, <city>, <ST> <zip>[-zip4][, USA]" — same shape as
+// Handles "<street>, <city>, <ST> <zip>[-zip4][, USA]" - same shape as
 // claudeEnricher's parseAddress but kept local to avoid a cross-module
 // dependency.
 function parseAddressForGeocoder(formatted) {
@@ -1045,7 +1045,7 @@ async function fetchBuildingPermitsByAddress(formattedAddress) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchUpcomingEvents (Ticketmaster Discovery v2)
+// Phase 5+ - fetchUpcomingEvents (Ticketmaster Discovery v2)
 // ═══════════════════════════════════════════════════════════════════
 // Returns up to 5 upcoming events within 10 miles of the business in
 // the next 90 days. Used by the C4 Demand section + by Claude as
@@ -1102,7 +1102,7 @@ async function fetchUpcomingEvents(city, state) {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      console.warn(`[fetch-events] HTTP ${res.status} — ${body.slice(0, 200).replace(/\s+/g, ' ')}`);
+      console.warn(`[fetch-events] HTTP ${res.status} - ${body.slice(0, 200).replace(/\s+/g, ' ')}`);
       return [];
     }
     const json = await res.json();
@@ -1118,7 +1118,7 @@ async function fetchUpcomingEvents(city, state) {
       date: (ev.dates && ev.dates.start && ev.dates.start.localDate) || null,
       venue: (ev._embedded && Array.isArray(ev._embedded.venues) && ev._embedded.venues[0] && ev._embedded.venues[0].name) || null,
       // Kept null so downstream renderers/Claude bundle don't need to
-      // change shape — Ticketmaster doesn't expose attendance either.
+      // change shape - Ticketmaster doesn't expose attendance either.
       attendance_estimate: null,
     }));
     EVENTS_CACHE.set(cacheKey, { ts: Date.now(), value: events });
@@ -1132,11 +1132,11 @@ async function fetchUpcomingEvents(city, state) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchNearbyVenues (Foursquare Places API)
+// Phase 5+ - fetchNearbyVenues (Foursquare Places API)
 // ═══════════════════════════════════════════════════════════════════
 // Returns up to 10 popular nearby venues across food / arts / outdoors
 // within a 1km radius. Used by Claude as walkability + partnership
-// context. Empty array on missing key / failure / timeout — never throws.
+// context. Empty array on missing key / failure / timeout - never throws.
 //
 // MIGRATION (2026-05-08): the legacy api.foursquare.com/v3/places/search
 // endpoint was retired and now returns HTTP 410. Migrated to the new
@@ -1172,23 +1172,23 @@ function fsqCategoryLabel(catId, fallbackName) {
   return fallbackName || 'other';
 }
 
-// isVenueOpen — Google cross-check for a Foursquare venue.
+// isVenueOpen - Google cross-check for a Foursquare venue.
 // Runs a single Text Search and inspects business_status on the top
 // hit. Returns:
-//   true   — Google confirms operational (or status field absent)
-//   false  — Google confirms closed permanently / temporarily, OR
+//   true   - Google confirms operational (or status field absent)
+//   false  - Google confirms closed permanently / temporarily, OR
 //            the venue has no Google hit at all (likely de-indexed)
-//   null   — UNKNOWN: both attempts failed (timeout / 5xx / network).
+//   null   - UNKNOWN: both attempts failed (timeout / 5xx / network).
 //            Caller treats null as "keep the venue" so a transient
 //            Google outage doesn't silently drop the whole venue list.
 //
 // Audit fix DF1 + DF2:
-//   1. 1-hour in-memory LRU cache keyed by name+address — repeat
+//   1. 1-hour in-memory LRU cache keyed by name+address - repeat
 //      lookups for the same venue inside the same hour skip Google.
 //   2. 2-attempt retry: 8 s timeout per attempt, 2 s backoff between.
 //   3. AbortController on every fetch (the previous bare `await fetch`
 //      had no timeout and a hung Google socket pinned the worker).
-//   4. res.ok / res.json() failures are caught — no raw JSON.parse
+//   4. res.ok / res.json() failures are caught - no raw JSON.parse
 //      crashes on a 5xx HTML response.
 //   5. Unknown state returned distinctly so the caller can keep the
 //      venue rather than fail-open by accident.
@@ -1236,13 +1236,13 @@ async function isVenueOpen(venueName, venueAddress, apiKey) {
   try {
     result = await tryOnce();
   } catch (e1) {
-    console.warn('[venues] attempt 1 failed for', venueName, '— retrying in 2 s:', e1.message);
+    console.warn('[venues] attempt 1 failed for', venueName, '- retrying in 2 s:', e1.message);
     await new Promise((r) => setTimeout(r, 2000));
     try {
       result = await tryOnce();
     } catch (e2) {
-      console.warn('[venues] attempt 2 also failed for', venueName, '— returning UNKNOWN:', e2.message);
-      // Do not cache the unknown state — next call should retry.
+      console.warn('[venues] attempt 2 also failed for', venueName, '- returning UNKNOWN:', e2.message);
+      // Do not cache the unknown state - next call should retry.
       return null;
     }
   }
@@ -1263,7 +1263,7 @@ async function fetchNearbyVenues(lat, lon) {
     return cached.value;
   }
 
-  // Request `closed_bucket`, `hours`, and `location` explicitly — these
+  // Request `closed_bucket`, `hours`, and `location` explicitly - these
   // are non-default fields on the new Foursquare /places/search endpoint.
   // `closed_bucket` powers STEP 1 (free cheap filter); `location.address`
   // is needed by STEP 2 (Google cross-check) to disambiguate names like
@@ -1293,13 +1293,13 @@ async function fetchNearbyVenues(lat, lon) {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      console.warn(`[fetch-venues] HTTP ${res.status} — ${body.slice(0, 160).replace(/\s+/g, ' ')}`);
+      console.warn(`[fetch-venues] HTTP ${res.status} - ${body.slice(0, 160).replace(/\s+/g, ' ')}`);
       return [];
     }
     const json = await res.json();
     const rawResults = Array.isArray(json.results) ? json.results : [];
 
-    // ── STEP 1 — Foursquare closed_bucket filter (free, no API cost). ──
+    // ── STEP 1 - Foursquare closed_bucket filter (free, no API cost). ──
     // Foursquare's `closed_bucket` is its own closure heuristic. Drop
     // the most-confident closed buckets BEFORE we spend Google quota
     // verifying them. Venues with bucket absent/unknown pass through
@@ -1318,16 +1318,16 @@ async function fetchNearbyVenues(lat, lon) {
       return true;
     });
 
-    // ── STEP 2 — Google cross-check on survivors. ──
+    // ── STEP 2 - Google cross-check on survivors. ──
     // One Text Search per venue, 200ms gap between calls to avoid the
     // Places API rate limit (~50 QPS, but we share quota with the
     // competitor + findPlace pipelines). On a network error we keep
-    // the venue (conservative — fail-open rather than drop a real
+    // the venue (conservative - fail-open rather than drop a real
     // venue because of a transient blip).
     const googleKey = process.env.GOOGLE_PLACES_API_KEY;
     const verifiedVenues = [];
     if (!googleKey) {
-      console.warn('[fetch-venues] no GOOGLE_PLACES_API_KEY — skipping cross-check');
+      console.warn('[fetch-venues] no GOOGLE_PLACES_API_KEY - skipping cross-check');
       for (const r of fsqOpen) verifiedVenues.push(r);
     } else {
       for (let i = 0; i < fsqOpen.length; i++) {
@@ -1338,11 +1338,11 @@ async function fetchNearbyVenues(lat, lon) {
           open = await isVenueOpen(r.name, addr, googleKey);
         } catch (err) {
           console.warn('[venues] verify error for', r.name, ':', err.message);
-          open = null; // unknown — treat as keep
+          open = null; // unknown - treat as keep
         }
-        // Audit fix DF1/DF2 — isVenueOpen now returns true/false/null.
+        // Audit fix DF1/DF2 - isVenueOpen now returns true/false/null.
         // Only an EXPLICIT false drops the venue; both true (open) and
-        // null (UNKNOWN — both Google attempts failed) keep it, so a
+        // null (UNKNOWN - both Google attempts failed) keep it, so a
         // transient Google outage can't silently empty the venue list.
         if (open !== false) verifiedVenues.push(r);
         // 200ms inter-call delay (skip on the last iteration).
@@ -1356,7 +1356,7 @@ async function fetchNearbyVenues(lat, lon) {
     const venuesRaw = verifiedVenues.map((r) => {
       const primaryCat = (Array.isArray(r.categories) && r.categories[0]) || {};
       // Each category now has fsq_category_id (was: id) plus a name field.
-      // The new API doesn't expose `popularity` directly — venues are
+      // The new API doesn't expose `popularity` directly - venues are
       // already ordered by popularity via sort=POPULARITY, so we keep the
       // field for back-compat but set it to null.
       return {
@@ -1367,7 +1367,7 @@ async function fetchNearbyVenues(lat, lon) {
       };
     });
     // Dedupe by lowercase trimmed name so 3 Starbucks within 1km collapse
-    // to one entry — partnership suggestions otherwise see the same chain
+    // to one entry - partnership suggestions otherwise see the same chain
     // repeated, drowning out unique nearby businesses.
     const seenNames = new Set();
     const venues = venuesRaw.filter((v) => {
@@ -1387,7 +1387,7 @@ async function fetchNearbyVenues(lat, lon) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchTripAdvisor (TripAdvisor Content API)
+// Phase 5+ - fetchTripAdvisor (TripAdvisor Content API)
 // ═══════════════════════════════════════════════════════════════════
 // Three-step pipeline:
 //   1. /location/search?searchQuery=… → location_id
@@ -1397,7 +1397,7 @@ async function fetchNearbyVenues(lat, lon) {
 //
 // Returns the merged object on success, or null if any step fails. The
 // Content API requires a Referer header (their gateway 403s requests
-// without one — even though docs don't mention it). Cache 24h per
+// without one - even though docs don't mention it). Cache 24h per
 // businessName + city. 8s timeout per individual call.
 const TRIPADVISOR_TTL_MS = 24 * 60 * 60 * 1000;
 const TRIPADVISOR_CACHE = new LRUCache({ max: 1000, ttl: TRIPADVISOR_TTL_MS });
@@ -1432,7 +1432,7 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
       const res = await fetch(url, { headers: TA_HEADERS, signal: ac.signal });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        console.warn(`[fetch-tripadvisor] search HTTP ${res.status} — ${body.slice(0, 160).replace(/\s+/g, ' ')}`);
+        console.warn(`[fetch-tripadvisor] search HTTP ${res.status} - ${body.slice(0, 160).replace(/\s+/g, ' ')}`);
         return null;
       }
       const json = await res.json();
@@ -1523,7 +1523,7 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
     ? reviews.data.slice(0, 3).map((r) => ({
         rating: typeof r.rating === 'number' ? r.rating : null,
         title: r.title || null,
-        // Full review text — no truncation. Field is still named
+        // Full review text - no truncation. Field is still named
         // `snippet` for back-compat with downstream consumers
         // (claudeEnricher renderer reads r.snippet); name retained,
         // contents now unabridged.
@@ -1565,16 +1565,16 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchBLSEmployment (BLS Public Data API v2)
+// Phase 5+ - fetchBLSEmployment (BLS Public Data API v2)
 // ═══════════════════════════════════════════════════════════════════
 // Sector-wide employment level for the business's NAICS-2 sector. Used
 // by the C4 Demand section + Claude's local labor-market context.
 //
-// CES (Current Employment Statistics) National series — monthly
+// CES (Current Employment Statistics) National series - monthly
 // employment levels reported in THOUSANDS. Stable IDs, broad coverage,
 // no occupation/area dimension to worry about (unlike OEWS). The live
 // API test (2026-05-08) confirmed the prior OEWS series IDs were
-// rejected by BLS as "Series does not exist" — these CES IDs are the
+// rejected by BLS as "Series does not exist" - these CES IDs are the
 // drop-in replacement. 30-day cache per naics2.
 const BLS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const BLS_CACHE = new LRUCache({ max: 1000, ttl: BLS_TTL_MS });
@@ -1590,7 +1590,7 @@ const BLS_SERIES_BY_NAICS2 = {
   '54':    'CES6054000001',  // Professional & Technical Services
   '56':    'CES6056000001',  // Admin & Waste Services
   // Split education vs healthcare. Previously both NAICS-2 keys mapped
-  // to the combined CES6500000001 supersector — a dental practice and
+  // to the combined CES6500000001 supersector - a dental practice and
   // a tutoring center saw identical sector-employment numbers.
   '61':    'CES6561000001',  // Education Services (private only)
   '62':    'CES6562000001',  // Health Care and Social Assistance
@@ -1613,7 +1613,7 @@ async function fetchBLSEmployment(naics2) {
   }
 
   const url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/';
-  // Dynamic year window — always pull the most recent 3 years available
+  // Dynamic year window - always pull the most recent 3 years available
   // (BLS endyear is the current calendar year; startyear two years prior).
   // The prior hardcoded '2022'-'2024' window was stale by 2026.
   const _now = new Date();
@@ -1652,7 +1652,7 @@ async function fetchBLSEmployment(naics2) {
     }
     const latest = dataPoints[0]; // BLS returns most-recent first
     const valNum = Number(latest.value);
-    // CES reports monthly employment in THOUSANDS — multiply to get the
+    // CES reports monthly employment in THOUSANDS - multiply to get the
     // raw job count. `period` is "M01"-"M12" (or "M13" for annual avg);
     // we surface it verbatim per the user's "format as M{month}" spec.
     const value = {
@@ -1672,14 +1672,14 @@ async function fetchBLSEmployment(naics2) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchUSDANASS (USDA QuickStats API)
+// Phase 5+ - fetchUSDANASS (USDA QuickStats API)
 // ═══════════════════════════════════════════════════════════════════
 // Internally fetches AREA HARVESTED for CORN + SOYBEANS + WHEAT for the
 // state, picks the highest by acres → top_commodity. Returns combined
 // agricultural profile. ONLY meaningful for NAICS-2 = 11 (agriculture).
 //
 // The function signature accepts a `commodity` arg (per the user spec)
-// but treats it as a hint — the cross-commodity comparison is what
+// but treats it as a hint - the cross-commodity comparison is what
 // produces the "top" answer.
 const USDA_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const USDA_CACHE = new LRUCache({ max: 1000, ttl: USDA_TTL_MS });
@@ -1727,8 +1727,8 @@ async function fetchUSDANASS(state, commodity) {
   if (!apiKey) return null;
 
   // Cache key includes commodity so a berry farm and a corn farm in the
-  // same state don't share a cache entry — the detected commodity is now
-  // queried first (it was previously ignored — broken ternary bug below).
+  // same state don't share a cache entry - the detected commodity is now
+  // queried first (it was previously ignored - broken ternary bug below).
   const cacheKey = state.toUpperCase() + '|' + (commodity || 'DEFAULT');
   const cached = USDA_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < USDA_TTL_MS) {
@@ -1738,7 +1738,7 @@ async function fetchUSDANASS(state, commodity) {
 
   // Build the commodity list, prioritizing the detected commodity.
   // Old code was `USDA_COMMODITIES.includes(commodity) ? USDA_COMMODITIES : USDA_COMMODITIES`
-  // — identical on both sides of the ternary, so `commodity` was silently
+  // - identical on both sides of the ternary, so `commodity` was silently
   // discarded and every farm got CORN/SOYBEANS/WHEAT (Maine blueberry farm
   // got "Top crop: CORN"). New behavior: when a non-default commodity is
   // detected (BERRIES, HONEY, MUSHROOMS, APPLES, GRAPES, PUMPKINS, etc.),
@@ -1763,7 +1763,7 @@ async function fetchUSDANASS(state, commodity) {
     top_commodity_acres: top.acres,
     commodities: hits,
     // farm_count not directly available from AREA HARVESTED; left null
-    // so downstream renders "—" rather than fabricating a number.
+    // so downstream renders "-" rather than fabricating a number.
     farm_count: null,
     state_ag_profile: `Top crop ${top.commodity.toLowerCase()} (${top.acres.toLocaleString('en-US')} ac harvested 2022); also: ${summary}`,
   };
@@ -1772,7 +1772,7 @@ async function fetchUSDANASS(state, commodity) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchFMCSA (FMCSA QCMobile carrier safety lookup)
+// Phase 5+ - fetchFMCSA (FMCSA QCMobile carrier safety lookup)
 // ═══════════════════════════════════════════════════════════════════
 // Carrier safety rating + DOT operating authority. Only meaningful for
 // NAICS-2 = 48-49 (transportation & warehousing). Returns null when
@@ -1807,7 +1807,7 @@ async function fetchFMCSA(businessName) {
     const json = await res.json();
     const arr = Array.isArray(json && json.content) ? json.content : [];
     if (!arr.length) {
-      // Cache the negative result — name not in FMCSA database.
+      // Cache the negative result - name not in FMCSA database.
       FMCSA_CACHE.set(cacheKey, { ts: Date.now(), value: null });
       return null;
     }
@@ -1835,7 +1835,7 @@ async function fetchFMCSA(businessName) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchNPIRegistry (CMS NPI Registry, no key required)
+// Phase 5+ - fetchNPIRegistry (CMS NPI Registry, no key required)
 // ═══════════════════════════════════════════════════════════════════
 // Healthcare provider license verification by organization name + city/state.
 // Free, no auth. ONLY meaningful for NAICS-2 = 62 (health care).
@@ -1899,7 +1899,7 @@ async function fetchNPIRegistry(businessName, city, state) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchFairMarketRents (HUD User FMR API)
+// Phase 5+ - fetchFairMarketRents (HUD User FMR API)
 // ═══════════════════════════════════════════════════════════════════
 // Two-step: list metro areas → match by state → get FMR rates.
 // ONLY meaningful for NAICS-2 = 53 (real estate & rental & leasing).
@@ -1910,7 +1910,7 @@ async function fetchNPIRegistry(businessName, city, state) {
 // is then queried for FMR data.
 //
 // AUTH: HUD User API requires a Bearer token even for listMetroAreas
-// (the live test confirmed 401 without one — the original spec note
+// (the live test confirmed 401 without one - the original spec note
 // "no key needed" was wrong). Register for a free token at
 // https://www.huduser.gov/portal/dataset/fmr-api.html → set HUD_API_KEY
 // in .env. Without a key, this fetcher short-circuits to null.
@@ -1958,10 +1958,10 @@ async function fetchFairMarketRents(state, city = null) {
     return cached.value;
   }
 
-  // Step 1 — list metros and pick one matching this state.
+  // Step 1 - list metros and pick one matching this state.
   // Live response shape (verified 2026-05-08):
   //   [{ cbsa_code: "METRO11540M11540", area_name: "Appleton, WI MSA", category: "MetroArea" }, …]
-  // No state_alpha field — state is embedded in area_name as ", XX MSA"
+  // No state_alpha field - state is embedded in area_name as ", XX MSA"
   // (or ", XX HUD Metro FMR Area" for sub-state HUD areas). The first
   // match wins; for predictable picks consider sorting by area_name.
   const metros = await _hudGet(`${HUD_FMR_BASE}/listMetroAreas`);
@@ -1989,7 +1989,7 @@ async function fetchFairMarketRents(state, city = null) {
     return null;
   }
 
-  // Step 2 — pull FMR data for the selected metro.
+  // Step 2 - pull FMR data for the selected metro.
   // Live response shape:
   //   { data: { metro_name, area_name, counties_msa, basicdata: {
   //       Efficiency, One-Bedroom, Two-Bedroom, …, year } } }
@@ -2016,7 +2016,7 @@ async function fetchFairMarketRents(state, city = null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchFDICData (FDIC BankFind, no key required)
+// Phase 5+ - fetchFDICData (FDIC BankFind, no key required)
 // ═══════════════════════════════════════════════════════════════════
 // Bank financial health by name + state. Active institutions only,
 // sorted by deposits descending. ONLY meaningful for community-bank /
@@ -2087,11 +2087,11 @@ async function fetchFDICData(businessName, state) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — fetchGoogleTextCompetitors (Google Places Text Search)
+// Phase 5+ - fetchGoogleTextCompetitors (Google Places Text Search)
 // ═══════════════════════════════════════════════════════════════════
 // Source 2 of the competitor-discovery waterfall used by
 // googlePlaces.fetchNearbyCompetitors. Returns raw Places-API results
-// (NOT the unified competitor shape) — caller is responsible for
+// (NOT the unified competitor shape) - caller is responsible for
 // converting + dedup + subject filtering.
 //
 // Why this exists: Nearby Search (lat/lon based) misses places Google
@@ -2129,7 +2129,7 @@ async function fetchGoogleTextCompetitors(type, lat, lon, city, state) {
 
   const synonyms = TYPE_SYNONYMS[type] || [type, `${type} near me`];
   // "near {city} {state}" is what gives Text Search the locality bias.
-  // When city/state are absent we fall back to keyword-only — still
+  // When city/state are absent we fall back to keyword-only - still
   // useful but less geographically anchored.
   const locality = (city && state) ? ` near ${city} ${state}` : '';
   const queries = synonyms.map((syn) => `${syn}${locality}`);
@@ -2183,7 +2183,7 @@ async function fetchGoogleTextCompetitors(type, lat, lon, city, state) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — Market Analysis (Mode 2) fetcher stubs
+// Phase 5+ - Market Analysis (Mode 2) fetcher stubs
 // ═══════════════════════════════════════════════════════════════════
 // Three placeholders so the /market-analysis route can wire end-to-end.
 // Real implementations will follow the same pattern as the rest of this
@@ -2197,7 +2197,7 @@ async function fetchGoogleTextCompetitors(type, lat, lon, city, state) {
 const FIPS_BY_CITY_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const FIPS_BY_CITY_CACHE = new LRUCache({ max: 1000, ttl: FIPS_BY_CITY_TTL_MS });
 
-// Coordinates-based variant — the older /geographies/address path
+// Coordinates-based variant - the older /geographies/address path
 // 400s when called without a `street` parameter (Census requires real
 // street). /geographies/coordinates takes lat/lon directly and always
 // returns the containing county. lat/lon come from Google Places which
@@ -2206,7 +2206,7 @@ const FIPS_BY_CITY_CACHE = new LRUCache({ max: 1000, ttl: FIPS_BY_CITY_TTL_MS })
 // effectively a lat/lon lookup.
 async function fetchCountyFIPSByCity(city, state, lat, lon) {
   if (lat == null || lon == null) {
-    console.warn('[county-coords] no lat/lon — cannot resolve county');
+    console.warn('[county-coords] no lat/lon - cannot resolve county');
     return null;
   }
   const cacheKey = `${city ? city.toLowerCase() : ''}|${state ? state.toLowerCase() : ''}|${(+lat).toFixed(3)},${(+lon).toFixed(3)}`;
@@ -2323,7 +2323,7 @@ async function fetchZipByCity(city, state) {
 }
 
 // ── fetchCountyBusinessDensity ───────────────────────────────────────
-// Census County Business Patterns 2023 — fires 1 + 15 = 16 parallel
+// Census County Business Patterns 2023 - fires 1 + 15 = 16 parallel
 // queries against the public CBP endpoint to pull total establishments
 // + per-NAICS-2 establishment counts for the queried county. Uses
 // CENSUS_API_KEY when present (raises the rate limit from 500/day).
@@ -2367,7 +2367,7 @@ async function _cbpCallOne(stateFIPS, countyCode, naicsCode) {
     });
     if (!res.ok) {
       // Census CBP returns 204 / 404 when the (county, NAICS) cell has
-      // no data — common in small rural counties. Treat as null silently.
+      // no data - common in small rural counties. Treat as null silently.
       if (res.status !== 204 && res.status !== 404) {
         console.warn(`[fetch-cbp] HTTP ${res.status} for naics=${naicsCode}`);
       }
@@ -2532,14 +2532,14 @@ async function fetchWalkScore(/* lat, lon, address */) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — 5 more keyless / free-key extensions
+// Phase 5+ - 5 more keyless / free-key extensions
 // ═══════════════════════════════════════════════════════════════════
 // All five fail gracefully (return null) on missing key / HTTP error /
 // parse error / timeout. Each is sector-scoped at the call site
 // (server.js decides when to fire). 30-day in-memory caches keyed by
 // the natural identity of the input.
 
-// ─── fetchFoodData — USDA FoodData Central (key required) ─────────
+// ─── fetchFoodData - USDA FoodData Central (key required) ─────────
 // Returns up to 5 foods matching `query` (cuisine name, ingredient,
 // menu item) with calories + protein. Used by restaurant / grocery
 // sectors for menu-planning and nutritional-positioning ideas.
@@ -2593,7 +2593,7 @@ async function fetchFoodData(query) {
   }
 }
 
-// ─── fetchOpenFoodFacts — Open Food Facts (no key) ────────────────
+// ─── fetchOpenFoodFacts - Open Food Facts (no key) ────────────────
 // Crowd-sourced food product database. Returns up to 5 products
 // matching `query` with name, categories, Nutri-Score, ingredients.
 // Used by restaurant / grocery sectors for menu / merchandising ideas.
@@ -2653,8 +2653,8 @@ async function fetchOpenFoodFacts(query) {
   }
 }
 
-// ─── fetchDatamuse — Datamuse (no key) ────────────────────────────
-// "Means like" lookup — returns up to 10 words/phrases semantically
+// ─── fetchDatamuse - Datamuse (no key) ────────────────────────────
+// "Means like" lookup - returns up to 10 words/phrases semantically
 // related to the input word. Used across all sectors for naming
 // (menu items, promotions, campaign names) brainstorming context.
 const DATAMUSE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -2694,7 +2694,7 @@ async function fetchDatamuse(word) {
   }
 }
 
-// ─── fetchNearbyParks — National Park Service (key required) ──────
+// ─── fetchNearbyParks - National Park Service (key required) ──────
 // Returns up to 10 federal parks in the state with name, designation,
 // description, URL, entrance fee. Used by hotel / restaurant / retail
 // sectors for partnership / package framing.
@@ -2745,7 +2745,7 @@ async function fetchNearbyParks(stateCode) {
   }
 }
 
-// ─── fetchNOAAClimate — NOAA Climate Data Online (key required) ───
+// ─── fetchNOAAClimate - NOAA Climate Data Online (key required) ───
 // Two-step: find the closest weather station to lat/lon, then pull
 // annual-average-temperature climate normals for that station. Used
 // across all sectors as long-term-validated seasonality context (more
@@ -2764,7 +2764,7 @@ async function fetchNOAAClimate(lat, lon) {
     return cached.value;
   }
   try {
-    // STEP 1 — nearest station inside a ~55km bounding box.
+    // STEP 1 - nearest station inside a ~55km bounding box.
     const stationUrl =
       'https://www.ncdc.noaa.gov' +
       '/cdo-web/api/v2/stations' +
@@ -2786,7 +2786,7 @@ async function fetchNOAAClimate(lat, lon) {
       NOAA_CACHE.set(cacheKey, { ts: Date.now(), value: null });
       return null;
     }
-    // STEP 2 — annual avg-temp normals for the picked station.
+    // STEP 2 - annual avg-temp normals for the picked station.
     const climateUrl =
       'https://www.ncdc.noaa.gov' +
       '/cdo-web/api/v2/data' +
@@ -2822,7 +2822,7 @@ async function fetchNOAAClimate(lat, lon) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ — 4 free-API extensions (no API keys required)
+// Phase 5+ - 4 free-API extensions (no API keys required)
 // ═══════════════════════════════════════════════════════════════════
 // All four fail gracefully (return null) on HTTP error / parse error /
 // timeout so a missing or down endpoint never blocks the /classify
@@ -2830,7 +2830,7 @@ async function fetchNOAAClimate(lat, lon) {
 // decides when to fire each based on NAICS prefix); this file only
 // exposes the fetchers.
 
-// ─── fetchCDCPlaces — CDC PLACES (Socrata, no key) ────────────────
+// ─── fetchCDCPlaces - CDC PLACES (Socrata, no key) ────────────────
 // Returns local health metrics (dental visits, obesity, smoking,
 // diabetes, physical inactivity, depression) for a city. Used by
 // healthcare / fitness / restaurant sectors to identify underserved
@@ -2843,7 +2843,7 @@ async function fetchCDCPlaces(city, state, county) {
   if (!city && !county) return null;
 
   // Prefer the county-level dataset (swc5-untb) when we have a county
-  // name — it covers EVERY county nationwide, including small towns
+  // name - it covers EVERY county nationwide, including small towns
   // (Dodgeville/Iowa County) that the city-level dataset (cwsq-ngmh)
   // drops because it only covers 50k+ populated places. Falls back to
   // the city-level query when county is empty.
@@ -2889,7 +2889,7 @@ async function fetchCDCPlaces(city, state, county) {
       CDC_PLACES_CACHE.set(cacheKey, { ts: Date.now(), value: null });
       return null;
     }
-    // Extract key health metrics — substring-match on measureid so
+    // Extract key health metrics - substring-match on measureid so
     // we tolerate slight name variations across PLACES releases AND
     // between the city-level (cwsq-ngmh) and county-level (swc5-untb)
     // datasets, which share the same measure naming convention.
@@ -2919,7 +2919,7 @@ async function fetchCDCPlaces(city, state, county) {
   }
 }
 
-// ─── fetchHRSADental — HRSA Dental HPSA lookup (no key) ───────────
+// ─── fetchHRSADental - HRSA Dental HPSA lookup (no key) ───────────
 // Returns whether an address sits inside a dental Health Professional
 // Shortage Area and the HPSA score. Fires only for NAICS 6212 (dental
 // practices) since the data is dental-specific. A positive result is
@@ -2929,7 +2929,7 @@ const HRSA_CACHE = new LRUCache({ max: 1000, ttl: HRSA_TTL_MS });
 
 async function fetchHRSADental(state, county) {
   if (!state || !county) return null;
-  // Strip a trailing " County" suffix on the input — HRSA's ArcGIS
+  // Strip a trailing " County" suffix on the input - HRSA's ArcGIS
   // layer stores county names without that suffix.
   const countyClean = String(county).replace(/\s+county\s*$/i, '').trim();
   if (!countyClean) return null;
@@ -2944,7 +2944,7 @@ async function fetchHRSADental(state, county) {
     // HRSA migrated their HPSA data to ArcGIS FeatureServer (the old
     // datawarehouse.hrsa.gov/.../hpsaByAddress endpoint returns HTML
     // now). New endpoint accepts state + county via a where-clause.
-    // Escape single quotes in the county name — ArcGIS uses a SQL-like
+    // Escape single quotes in the county name - ArcGIS uses a SQL-like
     // WHERE clause and counties named O'Brien / Prince George's / etc.
     // would otherwise break the query and return no HPSA designation,
     // silently dropping the NHSC loan-forgiveness recommendation for
@@ -3004,7 +3004,7 @@ async function fetchHRSADental(state, county) {
   }
 }
 
-// ─── fetchUSDAERS — USDA ERS ARMS farm economics (key required) ───
+// ─── fetchUSDAERS - USDA ERS ARMS farm economics (key required) ───
 // Returns state-level farm economic indicators (net farm sales).
 // Fires for agriculture / restaurant / food-retail sectors.
 // API key obtained at https://api.ers.usda.gov/key-signup.
@@ -3015,7 +3015,7 @@ async function fetchUSDAERS(state) {
   if (!state) return null;
   const key = process.env.USDA_ERS_API_KEY;
   if (!key) {
-    console.warn('[usda-ers] no API key — skip');
+    console.warn('[usda-ers] no API key - skip');
     return null;
   }
   const cacheKey = String(state).toUpperCase();
@@ -3087,11 +3087,11 @@ module.exports = {
   fetchWalkScore,
   fetchZipByCity,
   fetchCountyFIPSByCity,
-  // Phase 5+ — 3 new keyless extensions
+  // Phase 5+ - 3 new keyless extensions
   fetchCDCPlaces,
   fetchHRSADental,
   fetchUSDAERS,
-  // Phase 5+ — 5 more extensions (FoodData, OFF, Datamuse, NPS, NOAA)
+  // Phase 5+ - 5 more extensions (FoodData, OFF, Datamuse, NPS, NOAA)
   fetchFoodData,
   fetchOpenFoodFacts,
   fetchDatamuse,

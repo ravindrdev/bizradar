@@ -193,7 +193,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     if (unloadHandler) return;
     unloadHandler = () => {
       if (!pendingEmail) return;
-      // navigator.sendBeacon — guaranteed to fire during unload.
+      // navigator.sendBeacon - guaranteed to fire during unload.
       const data = new Blob([JSON.stringify({ email: pendingEmail })], { type: 'application/json' });
       navigator.sendBeacon('/auth/cancel-signup', data);
     };
@@ -276,7 +276,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
         verifyBtn.textContent = 'Verify';
         return;
       }
-      // Verified — JWT cookie is set. Don't fire the unload cleanup
+      // Verified - JWT cookie is set. Don't fire the unload cleanup
       // beacon now that the user is fully created. Wipe in-memory
       // credentials too.
       detachUnloadCleanup();
@@ -297,7 +297,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
   // first, then re-inserts with a fresh OTP, so resend works cleanly.
   $('resend-btn').addEventListener('click', async () => {
     if (!pendingEmail || !pendingPassword) {
-      showError($('otp-error'), 'Session expired — please restart signup.');
+      showError($('otp-error'), 'Session expired, please restart signup.');
       return;
     }
     hideError($('otp-error'));
@@ -322,7 +322,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
         btn.textContent = 'Resend code';
         return;
       }
-      // Success — restart the 60-second cooldown.
+      // Success - restart the 60-second cooldown.
       startResendCountdown();
     } catch (e) {
       showError($('otp-error'), 'Network error. Please try again.');

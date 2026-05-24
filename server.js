@@ -21,7 +21,7 @@ const { scoreRecommendations, evaluateRedFlags } = require('./ranker');
 const triggerDsl = require('./triggerDsl');
 const claudeEnricher = require('./claudeEnricher');
 // marketScorer is required by claudeMarketAnalyst.js, not by server.js
-// directly — the prior import here was dead code.
+// directly - the prior import here was dead code.
 const claudeMarketAnalyst = require('./claudeMarketAnalyst');
 const { verifyQuotes } = require('./provenance');
 const studies = require('./verifiedStudies.json');
@@ -30,15 +30,15 @@ const sectorProblems = require('./sectorCommonProblems.json');
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 // DATABASE_URL is required for Postgres-backed features (users, reports,
-// payments). The rest of the app still boots without it — the warning
+// payments). The rest of the app still boots without it - the warning
 // surfaces the missing config without crashing the process.
 if (!process.env.DATABASE_URL) {
   console.warn(
-    '[startup] DATABASE_URL is not set — database features (users, reports, payments) will be unavailable'
+    '[startup] DATABASE_URL is not set - database features (users, reports, payments) will be unavailable'
   );
 }
 
-// Audit fix X1 — fail-fast on missing JWT_SECRET. Without this guard,
+// Audit fix X1 - fail-fast on missing JWT_SECRET. Without this guard,
 // every signup / login throws "secretOrPrivateKey must have a value"
 // at jwt.sign() time with a cryptic error and the process keeps
 // running healthy. Better to crash loudly at boot.
@@ -55,12 +55,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ── Audit fix S4 / X2 — rate limiting ────────────────────────────────
-// authLimiter:    /auth/* — 20 attempts per IP per 15 min. Throttles
+// ── Audit fix S4 / X2 - rate limiting ────────────────────────────────
+// authLimiter:    /auth/* - 20 attempts per IP per 15 min. Throttles
 //                 login brute-force, OTP brute-force, signup spam,
 //                 forgot-password email bombs, and /auth/cancel-signup
 //                 abuse (AR1).
-// reportLimiter:  /classify + /market-analysis — 10 reports per IP per
+// reportLimiter:  /classify + /market-analysis - 10 reports per IP per
 //                 hour. Bounds Claude + Google Places cost burn even
 //                 from a leaked cookie.
 const rateLimit = require('express-rate-limit');
@@ -79,14 +79,14 @@ const reportLimiter = rateLimit({
   message: { ok: false, error: 'Too many report generations. Try again in an hour.' },
 });
 
-// User auth router — handles signup, login, OTP verification, forgot
+// User auth router - handles signup, login, OTP verification, forgot
 // password, and /auth/me. JWT cookie 'token' is set on successful
 // signup or login. Routes that need authentication wrap their handler
 // with requireAuth (imported above from authMiddleware.js).
 app.use('/auth', authLimiter, authRoutes);
 
 // ─────────────────────────────────────────────────────────────────────
-// GET /api/dashboard — JSON feed for the user's dashboard page.
+// GET /api/dashboard - JSON feed for the user's dashboard page.
 // Auth-protected: requireAuth populates req.user from the JWT cookie,
 // so user identity comes "for free" without a second users-table
 // lookup. Only the reports query actually hits Postgres on this route.
@@ -115,19 +115,19 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// GET /report/:id — replay a previously generated report as HTML.
+// GET /report/:id - replay a previously generated report as HTML.
 //
 // Auth-protected. The WHERE clause ALSO scopes by user_id, so a logged-
 // in user attempting to read someone else's report by guessing the ID
-// gets the same "not found" response as a truly nonexistent ID — no
+// gets the same "not found" response as a truly nonexistent ID - no
 // information leak about which IDs exist.
 //
 // The saved report_json carries a _type discriminator written by the
 // /classify and /market-analysis save paths above:
-//   _type === 'classify'         → renderReport(ctx) — same shape and
+//   _type === 'classify'         → renderReport(ctx) - same shape and
 //                                  same studies attachment used in the
 //                                  live /classify flow.
-//   _type === 'market_analysis'  → renderMarketReport(result) — same
+//   _type === 'market_analysis'  → renderMarketReport(result) - same
 //                                  call site used in the live
 //                                  /market-analysis flow.
 // Anything else is treated as a legacy 'classify' record (defensive
@@ -136,13 +136,13 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 // The response wraps the rendered report HTML with a sticky GrowthIM
 // navbar (REPORT_VIEW_NAVBAR below). That navbar gives the user a
 // deterministic "My Dashboard" link on every report page so they
-// never need to use the browser Back button — Back across a
+// never need to use the browser Back button - Back across a
 // bfcache-disabled page can briefly show a stale state on the
 // dashboard and feel like a logout, even though the JWT cookie is
 // fully intact. Clicking "My Dashboard" does a fresh top-level
 // navigation that re-runs the dashboard's /auth/me check with the
 // still-valid cookie. The Logout button is the ONLY mechanism in
-// the report-view flow that touches the cookie — verified by grep
+// the report-view flow that touches the cookie - verified by grep
 // for clearCookie / Set-Cookie across the report-view path.
 // ─────────────────────────────────────────────────────────────────────
 const REPORT_VIEW_NAVBAR = `
@@ -240,7 +240,7 @@ app.get('/report/:id', requireAuth, async (req, res) => {
     if (payload && payload._type === 'market_analysis') {
       // The market-analysis renderer reads the same fields it would
       // have read live (top10, deep_dive, raw, _quote_verification,
-      // etc.) — they all serialize through JSON.stringify cleanly.
+      // etc.) - they all serialize through JSON.stringify cleanly.
       html = renderMarketReport(payload);
     } else {
       // Default to the classify renderer. `studies` is loaded fresh
@@ -269,7 +269,7 @@ app.get('/report/:id', requireAuth, async (req, res) => {
         reportId: idNum,
       });
     }
-    // FIX 3 — Em-dash post-processing for the replay route. The saved
+    // FIX 3 - Em-dash post-processing for the replay route. The saved
     // JSON is already dash-cleaned (we run deepCleanDashes in the
     // /classify pipeline before INSERT), but legacy reports persisted
     // before that fix still contain em dashes in their enriched fields.
@@ -291,13 +291,13 @@ app.get('/report/:id', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// GET /report/:id/pdf — generate a printable PDF of a saved report
+// GET /report/:id/pdf - generate a printable PDF of a saved report
 // ─────────────────────────────────────────────────────────────────────
 // Uses @sparticuz/chromium + puppeteer-core to launch headless Chromium,
 // load the same HTML the /report/:id replay route renders, and print it
 // to PDF with A4 paper + 15-20mm margins.
 //
-// Auth: same WHERE user_id = req.user.id guard as /report/:id — users
+// Auth: same WHERE user_id = req.user.id guard as /report/:id - users
 // can only PDF reports they own. 404 is returned for both nonexistent
 // and not-yours so the IDs don't leak.
 //
@@ -360,7 +360,7 @@ app.get('/report/:id/pdf', requireAuth, async (req, res) => {
     html = cleanDashes(html);
 
     // Lazy-load puppeteer + chromium so a missing/broken binary doesn't
-    // crash server startup — only this route fails, with a clean JSON
+    // crash server startup - only this route fails, with a clean JSON
     // error to the caller.
     const chromium = require('@sparticuz/chromium');
     const puppeteer = require('puppeteer-core');
@@ -408,7 +408,7 @@ app.get('/report/:id/pdf', requireAuth, async (req, res) => {
   }
 });
 
-// GET / — public marketing landing page (GrowthIM brand).
+// GET / - public marketing landing page (GrowthIM brand).
 // Plain file send; no API-key injection needed because the landing
 // page never calls Google Maps.
 app.get('/', (req, res) => {
@@ -425,8 +425,8 @@ app.get('/', (req, res) => {
   }
 });
 
-// GET /app — the actual GrowthIM report-generation UI (index.html).
-// Audit fix S8 — soft auth check: if there's no JWT cookie, bounce to
+// GET /app - the actual GrowthIM report-generation UI (index.html).
+// Audit fix S8 - soft auth check: if there's no JWT cookie, bounce to
 // /login.html so users don't fill out the form only to hit a 401 on
 // /classify submit. requireAuth would 401 (no UX redirect) so we
 // inspect the cookie directly here.
@@ -453,12 +453,12 @@ app.get('/app', (req, res) => {
   }
 });
 
-// GET /dashboard — extensionless alias for /dashboard.html so the
+// GET /dashboard - extensionless alias for /dashboard.html so the
 // post-login redirect (and any "/dashboard" link in copy/emails)
 // resolves cleanly instead of returning "Cannot GET /dashboard".
 // The HTML's own JS fetches /auth/me on load and bounces to
 // /login.html when no JWT cookie is present, so this route stays
-// public — the auth check happens client-side after the file loads.
+// public - the auth check happens client-side after the file loads.
 app.get('/dashboard', (req, res) => {
   try {
     const html = fs.readFileSync(
@@ -503,7 +503,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes that take >1s emit progress events via sendProgress(sessionId).
 // The frontend opens GET /progress/:sessionId BEFORE submitting the
 // form so the live stream is connected by the time the POST starts.
-// Audit fix S2 / S3 — cap progressClients and gate behind requireAuth
+// Audit fix S2 / S3 - cap progressClients and gate behind requireAuth
 // so an unauthenticated attacker can't probe other users' session IDs
 // and can't pile up SSE connections to exhaust memory.
 const MAX_PROGRESS_CLIENTS = 500;
@@ -543,7 +543,7 @@ layer0.loadRegistries();
 naicsRouter.load();
 profileResolver.load();
 
-// BUG 29 — Startup validation: every study_id referenced by a profile
+// BUG 29 - Startup validation: every study_id referenced by a profile
 // recommendation MUST exist in verifiedStudies.json. Catches typos and
 // dangling references before they cause silent rendering failures in
 // the citation linter (which only warn-logs at request time). Runs once
@@ -574,12 +574,12 @@ profileResolver.load();
     }
     if (missingCount === 0) {
       console.log(
-        '[startup] study_id validation OK — ' + totalRefs + ' references across ' +
+        '[startup] study_id validation OK - ' + totalRefs + ' references across ' +
         Object.keys(allProfiles).length + ' profiles, all resolve to verifiedStudies.json'
       );
     } else {
       console.error(
-        '[startup] study_id validation FAILED — ' + missingCount + ' of ' + totalRefs +
+        '[startup] study_id validation FAILED - ' + missingCount + ' of ' + totalRefs +
         ' references point to unknown studies:'
       );
       for (const m of missing) {
@@ -592,7 +592,7 @@ profileResolver.load();
 })();
 
 // ─────────────────────────────────────────────────────────────────────
-// Async report job pattern — keeps Railway's 5-minute HTTP proxy
+// Async report job pattern - keeps Railway's 5-minute HTTP proxy
 // timeout from killing /classify and /market-analysis mid-request.
 //
 // Browser POSTs to /classify (or /market-analysis). The route
@@ -601,33 +601,56 @@ profileResolver.load();
 // The browser polls GET /report-status/:jobId every few seconds,
 // and redirects to /report/:id once status === 'ready'.
 //
-// jobStore is in-memory only — survives within the process, evicted
-// after 30 minutes by the cleanup interval below. If the process
-// restarts mid-flight, the browser's poll surfaces 'not_found' and
-// the UI shows a "session expired" message. The Postgres row (if
-// the save ran) still appears in /dashboard either way.
+// Job state is persisted in the jobs table so jobs survive server
+// restarts. Rows are purged hourly after 24 hours.
 // ─────────────────────────────────────────────────────────────────────
-const jobStore = new Map();
 
-function setJob(sessionId, patch) {
+// Create jobs table and indexes on startup if they do not exist.
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS jobs (
+        job_id     TEXT PRIMARY KEY,
+        user_id    INTEGER,
+        status     TEXT NOT NULL DEFAULT 'processing',
+        report_id  INTEGER,
+        error      TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS jobs_user_id_idx    ON jobs (user_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS jobs_created_at_idx ON jobs (created_at)');
+    console.log('[jobs] table ready');
+  } catch (err) {
+    console.error('[jobs] table create failed:', err.message);
+  }
+})();
+
+async function setJob(sessionId, userId) {
   if (!sessionId) return;
-  jobStore.set(sessionId, {
-    status: 'processing',
-    reportId: null,
-    error: null,
-    createdAt: Date.now(),
-    ...(jobStore.get(sessionId) || {}),
-    ...patch,
-  });
+  try {
+    await pool.query(
+      `INSERT INTO jobs (job_id, user_id, status, report_id, error, created_at, updated_at)
+       VALUES ($1, $2, 'processing', NULL, NULL, NOW(), NOW())
+       ON CONFLICT (job_id) DO UPDATE SET updated_at = NOW()`,
+      [sessionId, userId]
+    );
+  } catch (err) {
+    console.error('[jobs] setJob failed:', err.message);
+  }
 }
 
-function failJob(sessionId, message) {
+async function failJob(sessionId, message) {
   if (!sessionId) return;
-  setJob(sessionId, {
-    status: 'error',
-    reportId: null,
-    error: String(message || 'Report generation failed').slice(0, 1000),
-  });
+  try {
+    await pool.query(
+      `UPDATE jobs SET status = 'error', error = $2, updated_at = NOW() WHERE job_id = $1`,
+      [sessionId, String(message || 'Report generation failed').slice(0, 1000)]
+    );
+  } catch (err) {
+    console.error('[jobs] failJob DB update failed:', err.message);
+  }
   // Surface on the live progress channel too so the page's terminal
   // log shows the failure immediately rather than waiting up to 3 s
   // for the next /report-status poll.
@@ -639,46 +662,64 @@ function failJob(sessionId, message) {
   } catch (_) { /* progress stream may already be closed */ }
 }
 
-function completeJob(sessionId, reportId) {
+async function completeJob(sessionId, reportId) {
   if (!sessionId) return;
-  setJob(sessionId, {
-    status: 'ready',
-    reportId: reportId == null ? null : reportId,
-    error: null,
-  });
+  try {
+    await pool.query(
+      `UPDATE jobs SET status = 'ready', report_id = $2, error = NULL, updated_at = NOW() WHERE job_id = $1`,
+      [sessionId, reportId == null ? null : reportId]
+    );
+  } catch (err) {
+    console.error('[jobs] completeJob DB update failed:', err.message);
+  }
 }
 
-// Cleanup loop — every 30 minutes evict job entries older than 30
-// minutes. `unref()` so the timer never blocks a clean process exit.
-setInterval(() => {
-  const cutoff = Date.now() - 30 * 60 * 1000;
-  for (const [id, job] of jobStore) {
-    if (job && job.createdAt < cutoff) jobStore.delete(id);
+// Cleanup loop - every hour purge job rows older than 24 hours.
+// `unref()` so the timer never blocks a clean process exit.
+setInterval(async () => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM jobs WHERE created_at < NOW() - INTERVAL '24 hours'`
+    );
+    if (result.rowCount > 0) {
+      console.log(`[jobs] cleanup: deleted ${result.rowCount} old job(s)`);
+    }
+  } catch (err) {
+    console.error('[jobs] cleanup failed:', err.message);
   }
-}, 30 * 60 * 1000).unref();
+}, 60 * 60 * 1000).unref();
 
-// GET /report-status/:jobId — polled by the browser every 3 s after
+// GET /report-status/:jobId - polled by the browser every 3 s after
 // it submits /classify or /market-analysis. Defensive cross-user
 // check: the job entry stores the user that started it, and we
-// return 'not_found' if a different user polls — sessionIds are
+// return 'not_found' if a different user polls - sessionIds are
 // random client tokens but if one leaks we don't want a second
 // logged-in user to be able to read the first one's status.
-app.get('/report-status/:jobId', requireAuth, (req, res) => {
-  const job = jobStore.get(String(req.params.jobId || ''));
-  if (!job) return res.json({ status: 'not_found' });
-  if (job.userId != null && job.userId !== req.user.id) {
+app.get('/report-status/:jobId', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT status, report_id, error, user_id FROM jobs WHERE job_id = $1`,
+      [String(req.params.jobId || '')]
+    );
+    if (!rows.length) return res.json({ status: 'not_found' });
+    const job = rows[0];
+    if (job.user_id != null && job.user_id !== req.user.id) {
+      return res.json({ status: 'not_found' });
+    }
+    return res.json({
+      status: job.status,
+      reportId: job.report_id,
+      error: job.error,
+    });
+  } catch (err) {
+    console.error('[report-status] DB error:', err.message);
     return res.json({ status: 'not_found' });
   }
-  return res.json({
-    status: job.status,
-    reportId: job.reportId,
-    error: job.error,
-  });
 });
 
 app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   const input = (req.body.query || '').trim();
-  // Optional — set by the landing-page autocomplete when the user picks
+  // Optional - set by the landing-page autocomplete when the user picks
   // a suggestion from the dropdown. Lets us skip the 7-step findPlace
   // resolver and use Google's exact place_id directly. Empty string
   // when the user typed free text without selecting a suggestion;
@@ -692,7 +733,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // browser starts polling /report-status/:jobId at 3 s cadence; the
   // actual report runs inside setImmediate() below, free of any
   // upstream HTTP timeout.
-  setJob(sessionId, { userId });
+  await setJob(sessionId, userId);
   res.json({ ok: true, jobId: sessionId });
 
   // From here on we run detached. Every error path inside the try
@@ -706,7 +747,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       failJob(sessionId, 'Please enter a business name and city.');
       return;
     }
-    sendProgress(sessionId, { step: 1, total: 8, message: 'Finding your business on Google...', pct: 10 });
+    sendProgress(sessionId, { step: 1, total: 29, message: 'Locating your business on Google Maps...', pct: 2 });
 
   let layer0Result;
   try {
@@ -719,7 +760,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // Phase-1 hotel keyword patch (kept as a fast-path; saves a Places call
   // when the input mentions "hotel"/"motel"/"inn" anywhere in the string
   // and Layer 0 didn't classify it. Word-boundary matching (\b) ensures
-  // the keyword is matched as its own token in the full input — including
+  // the keyword is matched as its own token in the full input - including
   // when surrounded by an address ("Holiday Inn, 100 Main St, Town, ST ZIP").
   // Note: CamelCase brands like "AmericInn" lack a word boundary inside
   // the token; those are caught by BRAND_CHAIN (Wyndham/Choice/etc.) at
@@ -734,7 +775,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     };
   }
 
-  // Phase-3 fallback — when Layer 0 produced no NAICS, do an early Places
+  // Phase-3 fallback - when Layer 0 produced no NAICS, do an early Places
   // Text Search and try to derive NAICS from the result's types[] array.
   // If types[] is degenerate (no match in either pass), fall through to a
   // name-based pattern match against the Place's name field. We stash
@@ -744,17 +785,17 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // supplied a place_id, set placeStub up front so EVERY downstream
   // `if (!placeStub)` guard (Phase-3 types fallback, claude-classify
   // fallback, main resolver) skips findPlace and uses Google's exact
-  // selected place_id. Backwards compatible — when no place_id is
+  // selected place_id. Backwards compatible - when no place_id is
   // present, placeStub stays null and findPlace runs as before.
   if (clientPlaceId) {
     placeStub = {
       place_id: clientPlaceId,
       name: input.split(',')[0].trim(),
     };
-    console.log('[classify] place_id set early:', clientPlaceId, '— all findPlace calls skipped');
-    // BUG 8 — when the landing-page autocomplete supplied a place_id we
+    console.log('[classify] place_id set early:', clientPlaceId, '- all findPlace calls skipped');
+    // BUG 8 - when the landing-page autocomplete supplied a place_id we
     // short-circuited findPlace, but the resulting placeStub has only
-    // `place_id` + `name` — no `types`. That broke the Phase-3 types
+    // `place_id` + `name` - no `types`. That broke the Phase-3 types
     // fallback (mapSpecificType / mapGenericType both got `undefined`)
     // AND the Claude-classify fallback (which passes placeStub.types).
     // Fetch details up front to populate types; the 24h DETAILS_CACHE
@@ -768,7 +809,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
           console.log('[classify] place_id early-details:', placeStub.types.length, 'types fetched');
         }
       } catch (e) {
-        console.warn('[classify] place_id early-details failed:', e.message, '— continuing without types');
+        console.warn('[classify] place_id early-details failed:', e.message, '- continuing without types');
       }
     }
   }
@@ -797,7 +838,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       failJob(sessionId, `No Google Places match for "${input}". Try a more specific business name or address.`);
       return;
     }
-    // Tier 1: name fallback — runs FIRST so brand/keyword signals override
+    // Tier 1: name fallback - runs FIRST so brand/keyword signals override
     // misleading Google type tags (Phase 2 Session 9.5.1+):
     //   - breweries tagged 'bar' → brewery_winery_distillery wins
     //   - chiropractors tagged 'gym' → chiropractic wins
@@ -805,11 +846,11 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     //   - cleaning services tagged 'laundry' → cleaning wins (Honolulu maid)
     //
     // Match against TWO sources, in this order:
-    //   1. Input business name (text before the street address) — captures
+    //   1. Input business name (text before the street address) - captures
     //      user intent even when Google returns a truncated/different name
     //      ("Inglenook" instead of "Inglenook Winery", "1600 Glenarm Place"
     //      instead of "Greystar Real Estate").
-    //   2. Google's returned place_name — fallback for inputs that don't
+    //   2. Google's returned place_name - fallback for inputs that don't
     //      have a parseable business-name prefix.
     //
     // The business-name prefix is extracted with the same regex as the
@@ -875,7 +916,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Diagnostic — Phase 3 instrumentation
+  // Diagnostic - Phase 3 instrumentation
   console.log('[diag] classify:', JSON.stringify({
     input,
     layer0_mode: layer0Result.mode,
@@ -885,14 +926,14 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     google_types_returned: typesFallback ? typesFallback.types : (placeStub ? placeStub.types : null),
   }));
 
-  // Diagnostic response headers — set before any res.send so all branches
+  // Diagnostic response headers - set before any res.send so all branches
   // (waitlist, unsupported, error, blocked, report) carry them. The test
   // harness reads these to capture Layer 0 mode without parsing HTML.
   res.setHeader('X-Layer0-Mode', layer0Result.mode || 'unknown');
   res.setHeader('X-Naics6', layer0Result.naics6 || '');
   res.setHeader('X-Place-Name', placeStub && placeStub.name ? encodeURIComponent(placeStub.name) : '');
 
-  // OOS check via naicsRouter — short-circuits to waitlist for explicit
+  // OOS check via naicsRouter - short-circuits to waitlist for explicit
   // OUT_OF_SCOPE_NICHE / OUT_OF_SCOPE_REGULATED entries.
   const routedProfileId = naicsRouter.lookupProfileId(layer0Result.naics6);
   if (routedProfileId && routedProfileId.startsWith('OUT_OF_SCOPE_')) {
@@ -905,7 +946,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   let profile = profileResolver.resolveProfile(layer0Result.naics6);
 
-  // Phase 5+ — Claude classification fallback. When Layer 0 + Phase-3
+  // Phase 5+ - Claude classification fallback. When Layer 0 + Phase-3
   // both failed to produce a profile-resolvable NAICS-6, ask Claude to
   // classify the business based on user input + Google place name + types.
   // One extra ~$0.002 call. Only fires here, not on every request.
@@ -937,7 +978,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
         confidence: 'LOW',
         _claudeClassified: true,
       };
-      // Re-run OOS check on Claude's NAICS — if it lands on an explicit
+      // Re-run OOS check on Claude's NAICS - if it lands on an explicit
       // OUT_OF_SCOPE_* row, route to the waitlist exactly as we would
       // for a deterministic OOS hit.
       const claudeRoutedId = naicsRouter.lookupProfileId(claudeNaics);
@@ -965,7 +1006,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   if (!profile) {
     res.setHeader('X-Profile-Id', '');
     res.setHeader('X-Status', 'unsupported');
-    failJob(sessionId, `This business type is not yet supported by GrowthIM. We support 1400+ business types — if you think your input should have matched one of them, please contact us at support@growthim.com and we'll add coverage for your category.`);
+    failJob(sessionId, `This business type is not yet supported by GrowthIM. We support 1400+ business types. If you think your input should have matched one of them, please contact us at support@growthim.com and we'll add coverage for your category.`);
     return;
   }
   res.setHeader('X-Profile-Id', profile.id);
@@ -979,13 +1020,13 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   if (!placeStub) {
     try {
       if (clientPlaceId) {
-        console.log('[classify] using client place_id:', clientPlaceId, '— skipping findPlace');
+        console.log('[classify] using client place_id:', clientPlaceId, '- skipping findPlace');
         placeStub = {
           place_id: clientPlaceId,
           name: input.split(',')[0].trim(),
         };
       } else {
-        console.log('[classify] no place_id — running findPlace');
+        console.log('[classify] no place_id - running findPlace');
         placeStub = await places.findPlace(input, API_KEY);
       }
     } catch (err) {
@@ -998,7 +1039,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  sendProgress(sessionId, { step: 2, total: 8, message: `Found: ${placeStub.name || 'business'} — fetching details...`, pct: 20 });
+  sendProgress(sessionId, { step: 2, total: 29, message: `Found: ${placeStub.name || 'business'}, reading your profile...`, pct: 5 });
   let detail;
   try {
     detail = await places.getDetails(placeStub.place_id, API_KEY);
@@ -1007,9 +1048,11 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     return;
   }
   sendProgress(sessionId, {
-    step: 3, total: 8,
-    message: `${(detail && detail.user_ratings_total) || 0} reviews loaded — scanning competitors...`,
-    pct: 35,
+    step: 3, total: 29,
+    message: (detail && detail.user_ratings_total)
+      ? `Scanning ${detail.user_ratings_total} customer reviews for patterns...`
+      : 'Scanning customer reviews for patterns...',
+    pct: 8,
   });
 
   const data = places.toInputFields(detail);
@@ -1022,13 +1065,13 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data._low_confidence = true;
     data._user_input = placeStub._user_input || input;
   }
-  // BATCH16 — pass the raw review array through for the Common Problems
+  // BATCH16 - pass the raw review array through for the Common Problems
   // section's keyword-mining pass. Google's legacy Places Details API
   // returns up to 5 reviews; ample for a v1 keyword scan.
   data.sample_reviews = Array.isArray(detail.reviews) ? detail.reviews : [];
 
   // ════════════════════════════════════════════════════════════════════
-  // BATCH14 — 360° signal expansion. Run all enrichment fetches in
+  // BATCH14 - 360° signal expansion. Run all enrichment fetches in
   // parallel. Each fetch is wrapped in its own try/catch so a single
   // failure (Census API down, website returns 404, no Nearby competitors)
   // never blocks the rest of the report. Promise.allSettled ensures the
@@ -1043,16 +1086,16 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   //
   // FETCHES 3 + 5 (review-response signals + hours completeness) are
   // already extracted synchronously inside places.toInputFields() since
-  // the data is in the Places Details payload — no extra API call needed.
+  // the data is in the Places Details payload - no extra API call needed.
   // ════════════════════════════════════════════════════════════════════
   const nearbyType = places.pickNearbySearchType(data.google_types);
   const zip = dataFetchers.extractZipFromAddress(data.formatted_address);
   const websiteUrl = data.website;
 
-  // Phase 5+ — extended to 5 parallel fetches: competitors, census,
+  // Phase 5+ - extended to 5 parallel fetches: competitors, census,
   // website HEAD check, weather climatology (Open-Meteo), and location
   // signals (Overpass / OpenStreetMap). PageSpeed is run conditionally
-  // AFTER this batch — only if the website check confirms the site loads
+  // AFTER this batch - only if the website check confirms the site loads
   // (per spec: "Only call if website_url is not null and website_exists
   // is true"). Each promise has its own try/catch + timeout, so one
   // failure never blocks the rest of the report.
@@ -1061,7 +1104,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // since it already handles the Google formatted_address shape.
   const addrParts = claudeEnricher.parseAddress(data.formatted_address || '');
 
-  // Phase 5+ — derived fields the new sector-conditional fetchers need.
+  // Phase 5+ - derived fields the new sector-conditional fetchers need.
   // Stuff onto `data` (rather than separate locals) so the Claude bundle
   // and the renderer pick them up too.
   data.business_name = data.name || input;
@@ -1074,7 +1117,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // restaurant, winery as bar, escape room as retail, etc.). Fires
   // BEFORE data.sector_naics2 is computed so a correction flows into
   // the sector-gated fetcher promises below. Profile is NOT re-
-  // resolved here — if NAICS changes, profile.id may end up stale
+  // resolved here - if NAICS changes, profile.id may end up stale
   // (acceptable trade-off; flagged for follow-up).
   try {
     const aiVerification = await claudeEnricher.verifyBusinessClassification(data, layer0Result);
@@ -1113,16 +1156,16 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
           console.log(
             '[layer0-ai] no profile found for corrected NAICS',
             layer0Result.naics6,
-            '— attempting AI profile selection'
+            '- attempting AI profile selection'
           );
         }
       } catch (e) {
         console.error('[layer0-ai] profile re-resolve failed:', e.message);
       }
 
-      // BUG 9 — When correctedProfile was found AND the AI correction
+      // BUG 9 - When correctedProfile was found AND the AI correction
       // didn't move the high-level NAICS-2 sector, the registry-resolved
-      // profile is already a strong match — skipping selectBestProfile
+      // profile is already a strong match - skipping selectBestProfile
       // avoids an unnecessary Haiku call and prevents the cross-check
       // from second-guessing a perfectly valid in-sector correction.
       const originalSectorN2 = layer0Result.original_naics
@@ -1161,7 +1204,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
         }
       } else {
         console.log(
-          '[profile-selector] skipped — correctedProfile found and sector unchanged (n2=' +
+          '[profile-selector] skipped - correctedProfile found and sector unchanged (n2=' +
           originalSectorN2 + ')'
         );
       }
@@ -1172,24 +1215,24 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       layer0Result.ai_reasoning = aiVerification.reasoning;
     }
   } catch (e) {
-    console.error('[layer0-ai] verification failed:', e.message, '— continuing with original');
+    console.error('[layer0-ai] verification failed:', e.message, '- continuing with original');
   }
 
   data.sector_naics2 = naics2FromNaics6(layer0Result.naics6);
   data.profile_id = profile.id;
 
-  // Phase 5+ — sector-conditional promises. Skip (resolve to null)
+  // Phase 5+ - sector-conditional promises. Skip (resolve to null)
   // when the business doesn't belong to the relevant NAICS-2 sector
-  // or profile family — saves API budget and keeps the data bundle
+  // or profile family - saves API budget and keeps the data bundle
   // free of fields that don't apply.
-  // BLS employment by sector — expanded coverage:
-  //   54/61/62/23/44-45 (original — professional/edu/health/construction/retail)
+  // BLS employment by sector - expanded coverage:
+  //   54/61/62/23/44-45 (original - professional/edu/health/construction/retail)
   //   71 (entertainment), 72 (hotels+restaurants), 81 (personal services)
   const BLS_NAICS2 = new Set(['54','61','62','23','44','45','44-45','71','72','81']);
   const blsPromise = BLS_NAICS2.has(data.sector_naics2)
     ? dataFetchers.fetchBLSEmployment(data.sector_naics2)
     : Promise.resolve(null);
-  // USDA NASS — detect crop type from business name so a berry farm
+  // USDA NASS - detect crop type from business name so a berry farm
   // gets BERRIES data instead of generic CORN. Fail-safe default to CORN
   // (largest national commodity, broadest data coverage in NASS QuickStats).
   const detectCrop = (name, naics6) => {
@@ -1207,7 +1250,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     if (n.includes('soy') || n.includes('soybean')) return 'SOYBEANS';
     return 'CORN';
   };
-  // NAICS-6 source of truth for these gates: layer0Result.naics6 — NOT
+  // NAICS-6 source of truth for these gates: layer0Result.naics6 - NOT
   // data.naics6 (the latter is never assigned by any upstream code).
   // Captured once into a local const so the three gates below are
   // consistent and don't fall back to undefined.
@@ -1218,18 +1261,18 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     console.log('[usda-nass] detected crop:', crop, 'for:', data.name || data.business_name);
     usdaPromise = dataFetchers.fetchUSDANASS(data.state, crop);
   }
-  // FMCSA Safety — narrowed to actual trucking operations. Previously
+  // FMCSA Safety - narrowed to actual trucking operations. Previously
   // fired for all 48-49 (transit/limo/taxi/pipeline/scenic transport
   // got safety lookups they don't need). naics3 derived from naics6
   // distinguishes the trucking subset:
-  //   484 (truck transportation) — core target
+  //   484 (truck transportation) - core target
   //   488 (support activities for transportation, e.g., freight brokers)
   // Excludes 485 transit/limo/taxi, 486 pipeline, 487 scenic, 492 courier.
   const fmcsaNaics3 = gateNaics6.slice(0, 3);
   const fmcsaPromise = (fmcsaNaics3 === '484' || fmcsaNaics3 === '488')
     ? dataFetchers.fetchFMCSA(data.business_name)
     : Promise.resolve(null);
-  // NPI Registry — health-sector NAICS-2 = 62 plus veterinarians (541940,
+  // NPI Registry - health-sector NAICS-2 = 62 plus veterinarians (541940,
   // technically NAICS-2 = 54). Vets carry NPI numbers; previous gate
   // missed them because of the NAICS-2 boundary.
   const npiPromise = (data.sector_naics2 === '62' || gateNaics6 === '541940')
@@ -1242,7 +1285,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     ? dataFetchers.fetchFDICData(data.business_name, data.state)
     : Promise.resolve(null);
 
-  // Phase 5+ — 4 new keyless sector-gated promises. NAICS prefix gates
+  // Phase 5+ - 4 new keyless sector-gated promises. NAICS prefix gates
   // mirror the spec: only fire when the business sector benefits from
   // that data source so we don't waste calls on every /classify.
   const naics6 = (layer0Result && layer0Result.naics6) || '';
@@ -1253,7 +1296,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // ── Resolve county EARLY for CDC Places + HRSA Dental ───────────
   // The building-permits fetcher inside the main Promise.allSettled
   // batch eventually populates data.county_name, but that's too late
-  // for CDC and HRSA — both promises are CONSTRUCTED before that
+  // for CDC and HRSA - both promises are CONSTRUCTED before that
   // batch runs. Pre-resolve via the Census geocoder (cached 30 days
   // per city+state, so first call costs ~300ms, cached hits are 0ms).
   // Fail-open: if the geocoder is unreachable or returns no county,
@@ -1283,7 +1326,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     } catch (e) {
       console.error(
         '[county-early] failed:', e.message,
-        '— CDC/HRSA will use city fallback'
+        '- CDC/HRSA will use city fallback'
       );
     }
   }
@@ -1291,13 +1334,13 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // (renderer, claudeEnricher bundle, etc.) can read it without
   // waiting for the building-permits result block. Permits will
   // overwrite later with the same value (or a more authoritative
-  // one from the HUD ArcGIS layer) — safe to overwrite.
+  // one from the HUD ArcGIS layer) - safe to overwrite.
   if (earlyCountyName) {
     data.county_name = earlyCountyName;
     data.county_fips = earlyCountyFIPS;
   }
 
-  // CDC PLACES local health metrics — medical (621) / fitness (713) / restaurants (722)
+  // CDC PLACES local health metrics - medical (621) / fitness (713) / restaurants (722)
   const cdcPromise = (naics3 === '621' || naics3 === '713' || naics3 === '722')
     ? dataFetchers.fetchCDCPlaces(
         (addrParts && addrParts.city) || '',
@@ -1306,7 +1349,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       )
     : Promise.resolve(null);
 
-  // HRSA Dental Health Professional Shortage Area — dental practices only (6212)
+  // HRSA Dental Health Professional Shortage Area - dental practices only (6212)
   // Uses the ArcGIS HPSA_Dental FeatureServer; needs state + county.
   const hrsaPromise = (naics4 === '6212')
     ? dataFetchers.fetchHRSADental(
@@ -1315,7 +1358,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       )
     : Promise.resolve(null);
 
-  // USDA ERS ARMS farm economics — agriculture (11) / restaurants (722) /
+  // USDA ERS ARMS farm economics - agriculture (11) / restaurants (722) /
   // grocery (445) / food manufacturing (311 bakeries) / beverage
   // manufacturing (312 breweries/wineries/distilleries). 311 and 312 are
   // consumer-facing food producers with retail dynamics; ERS food-price
@@ -1324,38 +1367,38 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     ? dataFetchers.fetchUSDAERS((addrParts && addrParts.state) || '')
     : Promise.resolve(null);
 
-  // Phase 5+ — 5 more keyless / free-key sector-gated promises.
+  // Phase 5+ - 5 more keyless / free-key sector-gated promises.
   // FoodData + Open Food Facts both seed off a cuisine / food query;
   // fall back to a sensible default for grocery (445) where no
   // cuisine field is set by the cuisine-detection pipeline.
   const foodQuery = data.cuisine || data.cuisine_type
     || (naics3 === '445' ? 'grocery' : 'food');
 
-  // USDA FoodData Central — restaurants (722) / grocery (445) /
+  // USDA FoodData Central - restaurants (722) / grocery (445) /
   // food manufacturing (311 bakeries) / beverage manufacturing (312).
   const foodDataPromise = (naics3 === '722' || naics3 === '445' || naics3 === '311' || naics3 === '312')
     ? dataFetchers.fetchFoodData(foodQuery)
     : Promise.resolve(null);
 
-  // Open Food Facts — restaurants (722) / grocery (445)
+  // Open Food Facts - restaurants (722) / grocery (445)
   const offPromise = (naics3 === '722' || naics3 === '445')
     ? dataFetchers.fetchOpenFoodFacts(foodQuery)
     : Promise.resolve(null);
 
-  // Datamuse — fires for ALL sectors. Seeds off the business name so
+  // Datamuse - fires for ALL sectors. Seeds off the business name so
   // Claude has related-concept words for naming ideas.
   const datamusePromise = dataFetchers.fetchDatamuse(
     data.business_name || data.name || ''
   );
 
-  // NPS — hotels (721) / restaurants (722) / retail (44-45) /
-  // entertainment (71 — golf, museums, escape rooms, zoos, amusement).
+  // NPS - hotels (721) / restaurants (722) / retail (44-45) /
+  // entertainment (71 - golf, museums, escape rooms, zoos, amusement).
   // Park proximity drives tourism traffic for all of these.
   const npsPromise = (naics3 === '721' || naics3 === '722' || naics2 === '44' || naics2 === '45' || naics2 === '71')
     ? dataFetchers.fetchNearbyParks((addrParts && addrParts.state) || '')
     : Promise.resolve(null);
 
-  // NOAA Climate Data Online — fires for ALL sectors. Long-term
+  // NOAA Climate Data Online - fires for ALL sectors. Long-term
   // temperature normals augment Open-Meteo's rolling 12-month signal.
   const noaaPromise = dataFetchers.fetchNOAAClimate(data.latitude, data.longitude);
 
@@ -1382,7 +1425,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       // getCompetitorRadius picks the right search distance based on
       // sector (hotels/healthcare/etc. need wider radii) and
       // population. T1 RULE: population is null here because Census
-      // fires in the same Promise.allSettled batch — the helper
+      // fires in the same Promise.allSettled batch - the helper
       // defaults to a rural-sized radius when population is unknown.
       businessName: data.name,
       naics6: layer0Result.naics6,
@@ -1390,34 +1433,34 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       googleTypes: data.google_types,
       population: null,
     }),
-    // FIX 1 — pass city + state so fetchCensusByZip's place-level branch
+    // FIX 1 - pass city + state so fetchCensusByZip's place-level branch
     // fires. Without these args, _fetchCensusPlacePopulation is skipped
     // and `total_population` falls back to the ZCTA-level number (which
     // overstates the city by ~50% for Dodgeville WI: ZCTA 7,397 vs
     // city 4,994). countyFIPS isn't known yet at this point in the
-    // route — the building-permits fetcher resolves it later — so we
+    // route - the building-permits fetcher resolves it later - so we
     // pass null and skip the county-income branch on /classify (income
     // for cities >200k pop only; not a /classify use case).
     dataFetchers.fetchCensusByZip(zip, addrParts.city, addrParts.state, null),
     dataFetchers.checkWebsiteExists(websiteUrl),
     dataFetchers.fetchWeather(data.latitude, data.longitude, data.formatted_address),
     dataFetchers.fetchLocationSignals(data.latitude, data.longitude),
-    // HUD residential building permits — Census geocoder (FIPS lookup) +
+    // HUD residential building permits - Census geocoder (FIPS lookup) +
     // HUD ArcGIS query in sequence. Two HTTP calls but only fires ~5s
     // worst-case via internal timeouts. Cached 30 days per county FIPS.
     dataFetchers.fetchBuildingPermitsByAddress(data.formatted_address),
-    // Ticketmaster Discovery v2 — top 5 upcoming events within 10 miles.
+    // Ticketmaster Discovery v2 - top 5 upcoming events within 10 miles.
     // Returns empty array gracefully when TICKETMASTER_API_KEY is unset
     // or the city/state has nothing in their catalog.
     dataFetchers.fetchUpcomingEvents(addrParts.city, addrParts.state),
-    // Phase 5+ FETCH 10 — Foursquare v3 nearby venues (food/arts/outdoors).
+    // Phase 5+ FETCH 10 - Foursquare v3 nearby venues (food/arts/outdoors).
     // Returns [] when no key is configured. Cached 24h per lat/lon@3dec.
     dataFetchers.fetchNearbyVenues(data.latitude, data.longitude),
-    // Phase 5+ FETCH 11 — TripAdvisor Content API (search → details +
+    // Phase 5+ FETCH 11 - TripAdvisor Content API (search → details +
     // reviews). Three HTTP calls internally; returns null if any step
     // fails. Cached 24h per businessName + city.
     dataFetchers.fetchTripAdvisor(data.name || input, data.formatted_address),
-    // Phase 5+ FETCH 12-18 — sector-conditional sources. Each was
+    // Phase 5+ FETCH 12-18 - sector-conditional sources. Each was
     // resolved above to either a real fetch promise or Promise.resolve(null).
     blsPromise,
     usdaPromise,
@@ -1425,20 +1468,36 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     npiPromise,
     fmrPromise,
     fdicPromise,
-    // Phase 5+ — 3 new keyless sector-gated fetchers
+    // Phase 5+ - 3 new keyless sector-gated fetchers
     cdcPromise,
     hrsaPromise,
     ersPromise,
-    // Phase 5+ — 5 more sector-gated / always-on fetchers
+    // Phase 5+ - 5 more sector-gated / always-on fetchers
     foodDataPromise,
     offPromise,
     datamusePromise,
     npsPromise,
     noaaPromise,
   ]);
-  sendProgress(sessionId, { step: 4, total: 8, message: 'Census, weather, permits loaded — running scoring engine...', pct: 50 });
+  // Steps 4-13: all data sources just resolved from the parallel block -
+  // surface them one-by-one over the next few seconds so the user sees
+  // each source loading rather than a long pause.
+  [
+    { step:  4, pct: 11, msg: 'Identifying competitors within 5 miles...' },
+    { step:  5, pct: 14, msg: 'Pulling live competitor ratings and hours...' },
+    { step:  6, pct: 17, msg: 'Checking competitor website speeds...' },
+    { step:  7, pct: 20, msg: `Loading US Census data for ${data.city || ''}...` },
+    { step:  8, pct: 23, msg: 'Reading household income and population data...' },
+    { step:  9, pct: 26, msg: 'Fetching building permits from HUD database...' },
+    { step: 10, pct: 29, msg: `Checking NOAA climate records for ${data.city || ''}...` },
+    { step: 11, pct: 32, msg: 'Scanning Ticketmaster for events within 30 miles...' },
+    { step: 12, pct: 35, msg: 'Mapping commercial corridor around your location...' },
+    { step: 13, pct: 38, msg: 'Running Bureau of Labor Statistics query...' },
+  ].forEach((s, i) => setTimeout(() =>
+    sendProgress(sessionId, { step: s.step, total: 29, message: s.msg, pct: s.pct }), i * 400
+  ));
 
-  // FETCH 1 — competitor stats (or null on failure)
+  // FETCH 1 - competitor stats (or null on failure)
   if (competitorRes.status === 'fulfilled' && competitorRes.value) {
     data.competitor_count = competitorRes.value.competitor_count;
     data.competitor_median_rating = competitorRes.value.competitor_median_rating;
@@ -1458,13 +1517,13 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // FETCH 2 — Census ACS (or null on failure)
+  // FETCH 2 - Census ACS (or null on failure)
   if (censusRes.status === 'fulfilled' && censusRes.value) {
     data.median_household_income = censusRes.value.median_household_income;
     data.total_population = censusRes.value.total_population;
     data.average_household_size = censusRes.value.average_household_size;
     data.census_zip = censusRes.value.zip;
-    // Phase 5+ — housing extension piggybacks on the same ACS call.
+    // Phase 5+ - housing extension piggybacks on the same ACS call.
     data.census_housing = censusRes.value.census_housing || null;
   } else {
     data.median_household_income = null;
@@ -1477,7 +1536,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // FETCH 4 — website HEAD check
+  // FETCH 4 - website HEAD check
   if (websiteRes.status === 'fulfilled') {
     data.website_url = websiteUrl || null;
     data.website_exists = websiteRes.value;
@@ -1487,7 +1546,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     console.warn('[fetch4] website-check failed:', websiteRes.reason && websiteRes.reason.message);
   }
 
-  // Phase 5+ FETCH 5 — Open-Meteo climatology
+  // Phase 5+ FETCH 5 - Open-Meteo climatology
   // Top-level fields named per the user's trigger spec (peak_tourist_season,
   // has_cold_winter, etc.) so the trigger DSL can reference them directly.
   if (weatherRes.status === 'fulfilled' && weatherRes.value) {
@@ -1507,7 +1566,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 6 — Overpass / OpenStreetMap location signals
+  // Phase 5+ FETCH 6 - Overpass / OpenStreetMap location signals
   if (locationRes.status === 'fulfilled' && locationRes.value) {
     data.location_signals = locationRes.value;
     data.anchor_tenants = locationRes.value.anchor_tenants;
@@ -1525,7 +1584,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 7 — HUD residential building permits (Census geocoder
+  // Phase 5+ FETCH 7 - HUD residential building permits (Census geocoder
   // → HUD ArcGIS layer 24). Top-level fields named per user's spec so the
   // trigger DSL can reference them directly.
   if (permitsRes.status === 'fulfilled' && permitsRes.value) {
@@ -1554,7 +1613,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 8 — Ticketmaster upcoming events (city/state)
+  // Phase 5+ FETCH 8 - Ticketmaster upcoming events (city/state)
   // Returns [] gracefully when no API key is set or the call fails.
   if (eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value)) {
     data.upcoming_events = eventsRes.value;
@@ -1565,7 +1624,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 10 — Foursquare nearby venues (food/arts/outdoors)
+  // Phase 5+ FETCH 10 - Foursquare nearby venues (food/arts/outdoors)
   if (venuesRes.status === 'fulfilled' && Array.isArray(venuesRes.value)) {
     data.nearby_venues = venuesRes.value;
     data.nearby_venue_count = venuesRes.value.length;
@@ -1577,7 +1636,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // FIX 2 — verify each Foursquare venue against Google Places before
+  // FIX 2 - verify each Foursquare venue against Google Places before
   // including it in the report. Keeps only OPERATIONAL businesses.
   // Timeout per venue: 5 seconds. Runs sequentially to avoid hammering
   // the Places API; venue lists are short (typically 5-10 items).
@@ -1620,7 +1679,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data.nearby_venue_count = verifiedVenues.length;
   }
 
-  // Phase 5+ FETCH 11 — TripAdvisor (search → details + reviews)
+  // Phase 5+ FETCH 11 - TripAdvisor (search → details + reviews)
   // Top-level fields named per spec so the trigger DSL can reference them
   // directly (ta_rating, ta_review_count, ta_subratings, ta_value_gap_detected, …).
   if (tripAdvisorRes.status === 'fulfilled' && tripAdvisorRes.value) {
@@ -1656,7 +1715,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 12 — BLS sector employment level
+  // Phase 5+ FETCH 12 - BLS sector employment level
   if (blsRes.status === 'fulfilled' && blsRes.value) {
     data.bls_employment = blsRes.value;
     data.bls_employment_level = blsRes.value.employment_level;
@@ -1672,7 +1731,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 13 — USDA NASS agriculture profile
+  // Phase 5+ FETCH 13 - USDA NASS agriculture profile
   if (usdaRes.status === 'fulfilled' && usdaRes.value) {
     data.usda_nass = usdaRes.value;
     data.top_commodity = usdaRes.value.top_commodity;
@@ -1688,7 +1747,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 14 — FMCSA carrier safety
+  // Phase 5+ FETCH 14 - FMCSA carrier safety
   if (fmcsaRes.status === 'fulfilled' && fmcsaRes.value) {
     data.fmcsa = fmcsaRes.value;
     data.dot_number = fmcsaRes.value.dot_number;
@@ -1708,7 +1767,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 15 — NPI Registry healthcare provider
+  // Phase 5+ FETCH 15 - NPI Registry healthcare provider
   if (npiRes.status === 'fulfilled' && npiRes.value) {
     data.npi = npiRes.value;
     data.npi_number = npiRes.value.npi_number;
@@ -1726,7 +1785,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 16 — HUD Fair Market Rents
+  // Phase 5+ FETCH 16 - HUD Fair Market Rents
   if (fmrRes.status === 'fulfilled' && fmrRes.value) {
     data.hud_fmr = fmrRes.value;
     data.fmr_studio = fmrRes.value.fmr_studio;
@@ -1746,7 +1805,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 17 — FDIC bank data
+  // Phase 5+ FETCH 17 - FDIC bank data
   if (fdicRes.status === 'fulfilled' && fdicRes.value) {
     data.fdic = fdicRes.value;
     data.fdic_bank_name = fdicRes.value.bank_name;
@@ -1762,7 +1821,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 20 — CDC PLACES local health metrics (sector-gated)
+  // Phase 5+ FETCH 20 - CDC PLACES local health metrics (sector-gated)
   if (cdcRes.status === 'fulfilled' && cdcRes.value) {
     data.cdc_health = cdcRes.value;
   } else {
@@ -1772,7 +1831,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 21 — HRSA Dental HPSA (dental practices only)
+  // Phase 5+ FETCH 21 - HRSA Dental HPSA (dental practices only)
   if (hrsaRes.status === 'fulfilled' && hrsaRes.value) {
     data.hrsa_dental = hrsaRes.value;
   } else {
@@ -1782,7 +1841,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 22 — USDA ERS ARMS farm economics (sector-gated)
+  // Phase 5+ FETCH 22 - USDA ERS ARMS farm economics (sector-gated)
   if (ersRes.status === 'fulfilled' && ersRes.value) {
     data.usda_ers = ersRes.value;
   } else {
@@ -1792,7 +1851,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 23 — USDA FoodData Central (sector-gated)
+  // Phase 5+ FETCH 23 - USDA FoodData Central (sector-gated)
   if (foodDataRes.status === 'fulfilled' && foodDataRes.value) {
     data.food_data = foodDataRes.value;
   } else {
@@ -1802,7 +1861,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 24 — Open Food Facts (sector-gated)
+  // Phase 5+ FETCH 24 - Open Food Facts (sector-gated)
   if (offRes.status === 'fulfilled' && offRes.value) {
     data.open_food_facts = offRes.value;
   } else {
@@ -1812,7 +1871,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 25 — Datamuse related words (all sectors)
+  // Phase 5+ FETCH 25 - Datamuse related words (all sectors)
   if (datamuseRes.status === 'fulfilled' && datamuseRes.value) {
     data.related_words = datamuseRes.value;
   } else {
@@ -1822,7 +1881,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 26 — NPS national parks (sector-gated)
+  // Phase 5+ FETCH 26 - NPS national parks (sector-gated)
   if (npsRes.status === 'fulfilled' && npsRes.value) {
     data.nearby_nps_parks = npsRes.value;
   } else {
@@ -1832,7 +1891,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 27 — NOAA Climate Data Online (all sectors)
+  // Phase 5+ FETCH 27 - NOAA Climate Data Online (all sectors)
   if (noaaRes.status === 'fulfilled' && noaaRes.value) {
     data.noaa_climate = noaaRes.value;
   } else {
@@ -1842,7 +1901,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 9 — Google PageSpeed Insights (mobile)
+  // Phase 5+ FETCH 9 - Google PageSpeed Insights (mobile)
   // Conditional: only call if the website check passed. PSI takes 8-15s
   // even on healthy sites; we cap at 15s in the fetcher and fall through
   // to null fields on timeout. Report renders regardless.
@@ -1866,31 +1925,41 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     }
   }
 
-  // Phase 5+ FETCH 9b — Competitor PageSpeed (parallel, uses cached getDetails)
-  // getDetails calls are almost always cache hits here — top5WithDetails already
-  // fired them during competitor enrichment. PSI calls run in parallel via
-  // Promise.all. Results stored in data.competitors_top5_pagespeed for render.
+  // Phase 5+ FETCH 9b - Competitor PageSpeed (sequential, 2s gap between calls)
+  // getDetails calls are almost always cache hits here - top5WithDetails already
+  // fired them during competitor enrichment. PSI calls run sequentially with a
+  // 2s pause between each to avoid saturating the PSI API and hitting the 30s
+  // timeout on all calls simultaneously. Results stored in
+  // data.competitors_top5_pagespeed for render.
   data.competitors_top5_pagespeed = [];
   if (Array.isArray(data.competitors_top5) && data.competitors_top5.length > 0 && API_KEY) {
-    const psPromises = data.competitors_top5.map(async (comp) => {
-      if (!comp.place_id) return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
+    const compPagespeedResults = [];
+    for (const comp of data.competitors_top5) {
+      if (!comp.place_id) {
+        compPagespeedResults.push({ name: comp.name, website: null, mobile_score: null, load_time_seconds: null });
+        continue;
+      }
       try {
         const det = await places.getDetails(comp.place_id, API_KEY);
         const website = (det && typeof det.website === 'string' && det.website.trim()) ? det.website.trim() : null;
-        if (!website) return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
-        const psResult = await dataFetchers.fetchCompetitorPageSpeed(comp.name, website);
-        return {
-          name: comp.name,
-          website,
-          mobile_score: psResult && typeof psResult.mobile_score === 'number' ? psResult.mobile_score : null,
-          load_time_seconds: psResult && typeof psResult.load_time_seconds === 'number' ? psResult.load_time_seconds : null,
-        };
+        if (website) {
+          const result = await dataFetchers.fetchCompetitorPageSpeed(comp.name, website);
+          compPagespeedResults.push({
+            name: comp.name,
+            website,
+            mobile_score: result ? result.mobile_score : null,
+            load_time_seconds: result ? result.load_time_seconds : null,
+          });
+          await new Promise(r => setTimeout(r, 2000));
+        } else {
+          compPagespeedResults.push({ name: comp.name, website: null, mobile_score: null, load_time_seconds: null });
+        }
       } catch (err) {
         console.warn('[fetch9b-comp-pagespeed] failed for', comp.name, ':', err.message);
-        return { name: comp.name, website: null, mobile_score: null, load_time_seconds: null };
+        compPagespeedResults.push({ name: comp.name, website: null, mobile_score: null, load_time_seconds: null });
       }
-    });
-    data.competitors_top5_pagespeed = await Promise.all(psPromises);
+    }
+    data.competitors_top5_pagespeed = compPagespeedResults;
   }
 
   console.log('[diag] enrichment:', JSON.stringify({
@@ -1931,7 +2000,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   const requiredMissing = profile.required_inputs.filter((f) => {
     if (f === 'google_review_count') return false;
-    // A business with zero reviews has no rating — treat null rating as valid
+    // A business with zero reviews has no rating - treat null rating as valid
     // (all render functions guard typeof === 'number' before using it).
     if (f === 'google_rating') return false;
     return data[f] === null || data[f] === undefined;
@@ -1953,9 +2022,9 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   const ranked = scoreRecommendations(profile, data, studies.studies);
   const strengths = computeStrengths(profile, data);
-  sendProgress(sessionId, { step: 5, total: 8, message: 'Scoring complete — sending to Claude AI...', pct: 60 });
+  sendProgress(sessionId, { step: 14, total: 29, message: 'Calculating your market position score...', pct: 41 });
 
-  // Phase 5 — Claude enrichment. Builds a deterministic data bundle from
+  // Phase 5 - Claude enrichment. Builds a deterministic data bundle from
   // the prior pipeline outputs and asks Claude for: enriched WHY-IT-WORKS
   // / WHY-YOUR-BUSINESS for the top 3 recs, 5 opportunity ideas (from 18
   // categories), and a local_context paragraph. On any failure (no key,
@@ -1968,31 +2037,48 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     ranked,
     studies: studies.studies,
   });
-  sendProgress(sessionId, { step: 6, total: 8, message: 'Claude is analyzing your report...', pct: 75 });
+  sendProgress(sessionId, { step: 15, total: 29, message: 'Cross-referencing 27 verified data sources...', pct: 44 });
+  // Steps 16-28: fake progress ticks fired during the Claude call (60-330s).
+  // Each timer is stored so they can all be cleared the moment Claude returns.
+  const claudeTimers = [];
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 16, total: 29, message: 'GrowthIM Intelligence Engine activated...', pct: 48 }),  10000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 17, total: 29, message: 'Researching your top competitors in depth...', pct: 52 }),  25000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 18, total: 29, message: 'Identifying what competitors do better than you...', pct: 56 }),  40000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 19, total: 29, message: 'Finding competitor weaknesses you can exploit...', pct: 60 }),  55000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 20, total: 29, message: 'Building your competitor deep dive analysis...', pct: 64 }),  70000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 21, total: 29, message: 'Scanning your market for untapped opportunities...', pct: 68 }),  90000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 22, total: 29, message: 'Finding opportunities nobody in your market is doing...', pct: 72 }), 110000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 23, total: 29, message: 'Calculating your seasonal demand strategy...', pct: 76 }), 130000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 24, total: 29, message: 'Writing your priority actions with revenue estimates...', pct: 80 }), 150000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 25, total: 29, message: 'Building your 90-day action plan week by week...', pct: 84 }), 170000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 26, total: 29, message: 'Calculating revenue opportunities for your market...', pct: 88 }), 190000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 27, total: 29, message: 'Generating your key risks and early warning signs...', pct: 92 }), 210000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 28, total: 29, message: 'Finalizing your market intelligence report...', pct: 96 }), 230000));
   const enriched = await claudeEnricher.enrichWithClaude(dataBundle);
   // Detect Call A failure so renderReport can surface the partial-report
   // banner at the top of the page. enrichWithClaude returns a partial
   // object with _partial:'A_failed' when callClaudeEnrichA returned null
   // (main 20-min timeout AND 7-min fallback timeout both expired, or any
   // other A-only failure). null indicates total Claude failure (no API
-  // key or unreachable client) — also treated as a partial state.
+  // key or unreachable client) - also treated as a partial state.
   if (enriched && enriched._partial === 'A_failed') {
     data.call_a_failed = true;
-    console.warn('[claude] Call A failed (Call B partial) — partial report banner will be shown');
+    console.warn('[claude] Call A failed (Call B partial) - partial report banner will be shown');
   } else if (!enriched) {
-    // Total Claude failure — no API key, network unreachable, or both
+    // Total Claude failure - no API key, network unreachable, or both
     // calls rejected catastrophically. Render the Claude-unavailable
     // banner instead of the partial-report banner so the user knows the
     // AI-enhanced sections are entirely missing (not just half of them).
     data.claude_unavailable = true;
-    console.warn('[claude] enrichWithClaude returned null — full Claude-unavailable banner will be shown');
+    console.warn('[claude] enrichWithClaude returned null - full Claude-unavailable banner will be shown');
   }
-  sendProgress(sessionId, { step: 7, total: 8, message: 'Building your report...', pct: 90 });
+  claudeTimers.forEach(t => clearTimeout(t));
+  sendProgress(sessionId, { step: 29, total: 29, message: 'Your report is ready.', pct: 100 });
 
-  // FIX 3 — Em-dash post-processing. Walk every Claude-generated field
+  // FIX 3 - Em-dash post-processing. Walk every Claude-generated field
   // listed by the user and strip em/en/horizontal-bar dashes IN PLACE
   // before we render or persist. This is the belt-and-braces second
-  // pass behind the ABSOLUTE FORBIDDEN RULE in SYSTEM_PROMPT_A — when
+  // pass behind the ABSOLUTE FORBIDDEN RULE in SYSTEM_PROMPT_A - when
   // (not if) the model slips a dash through, we catch it here so the
   // user never sees one. Cleans the enriched object so:
   //   1. The rendered HTML below is dash-free by construction.
@@ -2026,14 +2112,14 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     studies: studies.studies,
     velocity,
   });
-  // Defense in depth — also pass the final HTML string through cleanDashes
+  // Defense in depth - also pass the final HTML string through cleanDashes
   // in case any dashes came through template chrome or non-cleaned fields.
   html = cleanDashes(html);
 
   // Citation linter (post-render, warn-only). Walk every cited study_id
   // referenced in the rendered report's top-10 recommendations and verify
   // it resolves in verifiedStudies.json. Bad references log a console
-  // warning but do NOT block the response — the user wants visibility
+  // warning but do NOT block the response - the user wants visibility
   // during testing without breaking production reports.
   try {
     const claims = (ranked.top10 || []).flatMap((t) =>
@@ -2051,7 +2137,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
       for (const err of lintResult.errors) console.warn('[lint]   ' + err);
     } else {
       console.log(
-        `[lint] ${profile.id} report passes — ${claims.length} claims, ${lintResult.sourceCount} unique studies cited`
+        `[lint] ${profile.id} report passes - ${claims.length} claims, ${lintResult.sourceCount} unique studies cited`
       );
     }
   } catch (err) {
@@ -2060,7 +2146,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   // ── Persist report to Postgres ──────────────────────────────────
   // Only saves when the request is authenticated (req.user set by
-  // requireAuth). The save is fire-and-forget from the user's POV —
+  // requireAuth). The save is fire-and-forget from the user's POV -
   // any DB failure logs to stderr but does NOT block the response,
   // so the user always receives their report even if Postgres is
   // momentarily unreachable. The `_type` discriminator lets
@@ -2068,7 +2154,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // saved data later.
   // Persist the report and capture the new id. The polling browser
   // is going to redirect to /report/:id, so DB save success is now
-  // load-bearing — if it fails we surface the error rather than
+  // load-bearing - if it fails we surface the error rather than
   // silently completing into a dead link.
   let savedReportId = null;
   try {
@@ -2112,7 +2198,6 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     return;
   }
 
-  sendProgress(sessionId, { step: 8, total: 8, message: 'Done!', pct: 100 });
   completeJob(sessionId, savedReportId);
    } catch (jobErr) {
     console.error('[classify] background job failed:', jobErr && jobErr.message, jobErr && jobErr.stack);
@@ -2128,14 +2213,14 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   console.log('[market-analysis] called for', city, state);
 
   // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
-  setJob(sessionId, { userId });
+  await setJob(sessionId, userId);
   res.json({ ok: true, jobId: sessionId });
 
   setImmediate(async () => {
    res.setHeader = function () {};
    try {
 
-  // ── TIER 1 — Validation ─────────────────────────────────────────
+  // ── TIER 1 - Validation ─────────────────────────────────────────
   if (!city || !city.trim() || !state || !state.trim()) {
     failJob(sessionId, 'City and state are required.');
     return;
@@ -2168,9 +2253,9 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   const cancelTimers = () => { for (const t of timers) clearTimeout(t); };
 
   try {
-    // ── TIER 2 → 5 — Orchestrate via claudeMarketAnalyst.analyzeCity
+    // ── TIER 2 → 5 - Orchestrate via claudeMarketAnalyst.analyzeCity
     // The analyzer pulls geocode + 4 parallel data agents + scoring +
-    // why_this_city batch + deep dive on #1 — see the comments in
+    // why_this_city batch + deep dive on #1 - see the comments in
     // claudeMarketAnalyst.js for the full flow.
     const result = await claudeMarketAnalyst.analyzeCity(
       city.trim(),
@@ -2181,7 +2266,7 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
       }
     );
 
-    // ── Provenance — verify every quote Claude emitted against the
+    // ── Provenance - verify every quote Claude emitted against the
     // exact review_snippets we shipped to it. Result is attached to
     // `result` so renderMarketReport can render colour-coded badges.
     if (result && result.deep_dive && result._provenance) {
@@ -2191,7 +2276,7 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
       const failed = result._quote_verification.filter((q) => q.verified === false).length;
       console.log(
         `[provenance] ${verified}/${total} quotes verified`
-        + (failed > 0 ? ` — ${failed} UNVERIFIED` : '')
+        + (failed > 0 ? ` - ${failed} UNVERIFIED` : '')
       );
     }
 
@@ -2203,16 +2288,16 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
     // Same fire-and-forget pattern as /classify above. Market analysis
     // covers ~20 business types so naics_code uses the #1-ranked
     // sector's NAICS-2 when available, else null. business_name is
-    // tagged with "— market analysis" so the dashboard's list can
+    // tagged with "- market analysis" so the dashboard's list can
     // distinguish saved cities from saved businesses at a glance.
-    // DB save is load-bearing now — the polling browser redirects to
+    // DB save is load-bearing now - the polling browser redirects to
     // /report/:id and needs a real row to land on.
     let savedReportId = null;
     try {
       if (userId) {
         const cityNorm = city.trim();
         const stateNorm = state.trim().toUpperCase();
-        const businessName = `${cityNorm}, ${stateNorm} — market analysis`;
+        const businessName = `${cityNorm}, ${stateNorm} - market analysis`;
         const address = (result && result.location) || `${cityNorm}, ${stateNorm}`;
         const naicsCode =
           (result && Array.isArray(result.top10) && result.top10[0] && result.top10[0].naics2)
@@ -2259,14 +2344,14 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   });
 });
 
-// ── POST /market-chat — Tier 5c follow-up Q&A ──────────────────────
+// ── POST /market-chat - Tier 5c follow-up Q&A ──────────────────────
 // Stateful: relies on the 24h MARKET_CACHE inside claudeMarketAnalyst.
 // The front-end (renderMarketReport's embedded chat) submits city +
 // state + question; we look up the cached analysis and pass it as
 // context to a 1000-token Claude call.
 app.post('/market-chat', requireAuth, async (req, res) => {
   const { city, state } = req.body || {};
-  // Sanitize the user question — cap length, strip HTML tags. The
+  // Sanitize the user question - cap length, strip HTML tags. The
   // value still gets sent to Claude verbatim, but the cap blocks
   // prompt-injection attacks that try to stuff thousands of tokens
   // of "ignore previous instructions" content, and the HTML strip
@@ -2298,7 +2383,7 @@ app.listen(PORT, () => {
   console.log(`GrowthIM listening on http://localhost:${PORT}`);
 });
 
-// BLS Business Employment Dynamics — survival rates for the 2013
+// BLS Business Employment Dynamics - survival rates for the 2013
 // cohort tracked through 2023. Keyed by NAICS-2 (multi-prefix sectors
 // use range form: 31-33, 44-45, 48-49). Source: BLS BED Table 7,
 // "Survival of private-sector establishments by opening year." Used by
@@ -2340,9 +2425,9 @@ function naics2FromNaics6(naics6) {
   return p;
 }
 
-// computeStrengths — returns array of plain-English 2-sentence strengths.
+// computeStrengths - returns array of plain-English 2-sentence strengths.
 // Each strength is sentence-1 (what the fact is) + sentence-2 (why it
-// matters). Raw data strings like "127 reviews > 43" are FORBIDDEN —
+// matters). Raw data strings like "127 reviews > 43" are FORBIDDEN -
 // the report must read as English prose for small business owners.
 // Always returns at least one entry; if no measurable strength fires,
 // emits the default "you exist on Google" fallback.
@@ -2350,7 +2435,7 @@ function computeStrengths(profile, data) {
   const b = profile.benchmarks || {};
   const out = [];
 
-  // Rating above benchmark — two tiers depending on the delta.
+  // Rating above benchmark - two tiers depending on the delta.
   if (typeof data.google_rating === 'number' && typeof b.good_rating === 'number'
       && data.google_rating > b.good_rating) {
     const rating = data.google_rating.toFixed(1);
@@ -2372,7 +2457,7 @@ function computeStrengths(profile, data) {
   }
 
   // Reviews above local median (preferred) or above industry benchmark (fallback).
-  // "Nx the local median of M reviews" wording — local median wins when
+  // "Nx the local median of M reviews" wording - local median wins when
   // googlePlaces fed us competitor_median_review_count.
   if (typeof data.google_review_count === 'number'
       && typeof data.competitor_median_review_count === 'number'
@@ -2398,7 +2483,7 @@ function computeStrengths(profile, data) {
     );
   }
 
-  // Hours complete — all 7 days listed on Google.
+  // Hours complete - all 7 days listed on Google.
   if (data.hours_complete === true) {
     out.push(
       `Your business hours are fully listed on Google for all 7 days. ` +
@@ -2406,7 +2491,7 @@ function computeStrengths(profile, data) {
     );
   }
 
-  // Website exists — verified (website_exists === true means the URL
+  // Website exists - verified (website_exists === true means the URL
   // actually loaded in our HTTP check, not just that a URL was listed).
   if (data.website_exists === true) {
     out.push(
@@ -2415,7 +2500,7 @@ function computeStrengths(profile, data) {
     );
   }
 
-  // Open now — Google reports the business as open at fetch time.
+  // Open now - Google reports the business as open at fetch time.
   if (data.is_open_now === true) {
     out.push(
       `Your business is currently open and marked as operational on Google. ` +
@@ -2432,7 +2517,7 @@ function computeStrengths(profile, data) {
     );
   }
 
-  // Default fallback — if NOTHING measurable fired, show at least one
+  // Default fallback - if NOTHING measurable fired, show at least one
   // strength so the section reads as positive rather than empty.
   if (out.length === 0) {
     out.push(
@@ -2462,26 +2547,30 @@ function escapeHtml(s) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// cleanDashes — post-processing safety net for Claude output
-// ─────────────────────────────────────────────────────────────────────
+// cleanDashes - post-processing safety net for Claude output
+// -----------------------------------------------------------------
 // SYSTEM_PROMPT_A forbids em/en/horizontal-bar dashes (ABSOLUTE FORBIDDEN
 // RULE at the top of the prompt), but models occasionally slip them in
 // anyway. This is the belt-and-braces second pass that strips them out.
 //
 // Replaces:
-//   " — " → ", "   (em dash with spaces)
-//   "—"   → ", "   (em dash anywhere)
-//   " – " → ", "   (en dash with spaces)
-//   "–"   → ", "   (en dash anywhere)
-//   "―"   → ", "   (horizontal bar)
-// Then collapses any "" / ", ," double commas.
+//   " - " (em dash with spaces)   -> ", "
+//   "-"   (em dash anywhere)      -> ", "
+//   " - " (en dash with spaces)   -> ", "
+//   "-"   (en dash anywhere)      -> "-"
+//   "&#x2015;" (horizontal bar)   -> ", "
+//   " - " HTML entity         -> ", "
+//   "-" HTML entity         -> "-"
+// Then collapses any double commas.
 //
-// NOTE: This regex matches literal Unicode dash characters only. HTML
-// entities like &mdash; used as design separators in template chrome
-// (e.g. "Month 1 &mdash; Foundation") are not touched — those are
-// deliberate UI choices, not AI hallucination.
+// NOTE: HTML entity replacement handles cases where Claude output
+// contains  -  or - literal entity text in its response.
 function cleanDashes(text) {
   if (!text || typeof text !== 'string') return text;
+
+  // HTML entities first (before Unicode char replacements)
+  text = text.replace(/&mdash;/g, ', ');
+  text = text.replace(/&ndash;/g, '-');
 
   // Em dash with spaces, comma
   text = text.replace(/ — /g, ', ');
@@ -2489,11 +2578,11 @@ function cleanDashes(text) {
   // Em dash without spaces, comma space
   text = text.replace(/—/g, ', ');
 
-  // En dash with spaces, comma
-  text = text.replace(/ – /g, ', ');
+  // En dash with spaces, hyphen
+  text = text.replace(/ – /g, '-');
 
-  // En dash without spaces, comma space
-  text = text.replace(/–/g, ', ');
+  // En dash without spaces, hyphen
+  text = text.replace(/–/g, '-');
 
   // Horizontal bar, comma space
   text = text.replace(/―/g, ', ');
@@ -2505,7 +2594,7 @@ function cleanDashes(text) {
   return text;
 }
 
-// deepCleanDashes — recursive walker for arrays/objects with nested
+// deepCleanDashes - recursive walker for arrays/objects with nested
 // string values. Mutates in place and returns the same reference so it
 // can be applied to enriched fields before they're persisted to DB.
 // Skips numbers, booleans, null, and undefined.
@@ -2527,13 +2616,13 @@ function deepCleanDashes(value) {
   return value;
 }
 
-// PAGE_OPEN / PAGE_CLOSE — chrome shared by every render function
+// PAGE_OPEN / PAGE_CLOSE - chrome shared by every render function
 // (renderReport, renderMarketReport, renderError, renderUnsupported,
 // renderWaitlist, renderBlocked). Two consumption paths:
-//   1. Direct HTTP — full doc loads in browser
-//   2. JS injection — landing page does `result.innerHTML = html`,
+//   1. Direct HTTP - full doc loads in browser
+//   2. JS injection - landing page does `result.innerHTML = html`,
 //      which strips doctype/html/body but keeps inner content +
-//      <style> tag. Styles leak globally — that's fine because all
+//      <style> tag. Styles leak globally - that's fine because all
 //      report classes are unique (.rec, .status, .impact, etc.) and
 //      don't collide with the landing page's .lp-* / .result-* names.
 //
@@ -2584,7 +2673,7 @@ a:hover { text-decoration: underline; }
 .status.needs   { background: var(--amber-tint);   color: #92400E; }
 .status.blocked { background: var(--danger-bg);    color: #991B1B; }
 
-/* ── Priority action card (.rec) — blue left accent ─────────────── */
+/* ── Priority action card (.rec) - blue left accent ─────────────── */
 .rec { border: 1px solid var(--border); border-left: 4px solid var(--blue); padding: 16px 18px; margin: 12px 0; background: var(--surface); border-radius: 8px; }
 .rec h3 { font-size: 15px; margin: 0 0 8px; }
 .rec-high    { border-left-color: var(--emerald); }
@@ -2637,7 +2726,7 @@ a:hover { text-decoration: underline; }
 .callout-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--blue); margin-bottom: 6px; text-transform: uppercase; }
 .callout p { margin: 0; line-height: 1.55; }
 
-/* ── Opportunity card (/classify) — emerald left accent ────────── */
+/* ── Opportunity card (/classify) - emerald left accent ────────── */
 .opportunity { padding: 16px 18px; margin: 12px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--emerald); border-radius: 8px; }
 .opportunity h3 { margin: 4px 0 6px; font-size: 15px; }
 .op-meta { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
@@ -2647,7 +2736,7 @@ a:hover { text-decoration: underline; }
 .novelty-rare   { background: var(--amber);   color: #FFFFFF; }
 .novelty-common { background: var(--muted);   color: #FFFFFF; }
 
-/* ── Market analysis card (/market-analysis) — navy left accent ── */
+/* ── Market analysis card (/market-analysis) - navy left accent ── */
 .mkt-card { padding: 18px 20px; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 8px; }
 .mkt-card h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mkt-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #FFFFFF; font-size: 13px; font-weight: 700; flex-shrink: 0; }
@@ -2659,7 +2748,7 @@ a:hover { text-decoration: underline; }
 .back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; color: var(--muted); font-size: 13px; font-weight: 500; }
 .back:hover { color: var(--blue); }
 
-/* ── FIX 6 — Dark mode ─────────────────────────────────────────── */
+/* ── FIX 6 - Dark mode ─────────────────────────────────────────── */
 body.dark-mode { background: #0F1729; color: #F1F5F9; }
 body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 { color: #F1F5F9; }
 body.dark-mode a { color: #60A5FA; }
@@ -2679,7 +2768,7 @@ body.dark-mode .money { background: #064E3B; border-left-color: #10B981; }
 body.dark-mode .flag { background: #1C1917; }
 body.dark-mode #dark-toggle { background: #1E293B; border-color: #334155; color: #F1F5F9; }
 
-/* ── FIX 5 — Mobile responsive ─────────────────────────────────── */
+/* ── FIX 5 - Mobile responsive ─────────────────────────────────── */
 @media (max-width: 768px) {
   body { font-size: 14px; padding: 16px 12px; }
   h1 { font-size: 22px !important; }
@@ -2709,9 +2798,9 @@ function renderError(message) {
 <p>${escapeHtml(message)}</p>${PAGE_CLOSE}`;
 }
 
-/* OOS demand logging — every out-of-scope hit appended to oos_log.jsonl
+/* OOS demand logging - every out-of-scope hit appended to oos_log.jsonl
    so we can prioritize sub-profile work based on what users actually type.
-   Async write (fs.promises.appendFile) — non-blocking; if the write
+   Async write (fs.promises.appendFile) - non-blocking; if the write
    rejects we log to stderr but never break the request. */
 const fsPromises = fs.promises;
 function logOosHit(input, layer0Result, oosVariant) {
@@ -2732,48 +2821,48 @@ function logOosHit(input, layer0Result, oosVariant) {
 
 function renderWaitlist(input, layer0Result, profileId) {
   let heading, reason, waitlistFooter;
-  // NAICS-specific OOS messages — overrides the generic per-profile-id
+  // NAICS-specific OOS messages - overrides the generic per-profile-id
   // messages below for business types where the generic copy (e.g.,
   // "DEA, pharmacy boards") doesn't apply. Falls through to the switch
   // for any NAICS not in this list.
   const naics6 = (layer0Result && layer0Result.naics6) || '';
   const naics3 = naics6.slice(0, 3);
   if (naics3 === '813') {
-    heading = 'Religious / faith-based organizations — out of scope';
+    heading = 'Religious / faith-based organizations - out of scope';
     reason = 'Religious and faith-based organizations have unique nonprofit governance, tax-exempt status, and community dynamics that require specialized guidance. GrowthIM currently does not support this sector.';
     waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else if (naics6 === '812930') {
-    heading = 'Parking operations — out of scope';
+    heading = 'Parking operations - out of scope';
     reason = 'Parking operations involve municipal permits, zoning regulations and real estate dynamics that need specialized advice beyond GrowthIM’s current scope.';
     waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else if (naics6 === '812921' || naics6 === '812922') {
-    heading = 'Photo finishing — not currently supported';
+    heading = 'Photo finishing - not currently supported';
     reason = 'This business sector is not currently supported by GrowthIM. We are expanding our coverage regularly.';
     waitlistFooter = 'Sub-profiles for this sector are on the roadmap. Add yourself to the waitlist (signup form coming in a later phase).';
   } else if (naics6 === '459930') {
-    heading = 'Manufactured home dealers — out of scope';
+    heading = 'Manufactured home dealers - out of scope';
     reason = 'Manufactured home dealers operate under HUD regulations and unique financing structures that require specialized advice beyond GrowthIM’s current scope.';
     waitlistFooter = 'No waitlist for this sector at this time. See the GrowthIM roadmap for future coverage updates.';
   } else switch (profileId) {
     case 'OUT_OF_SCOPE_REGULATED':
-      heading = 'Regulated sector — waitlist';
+      heading = 'Regulated sector - waitlist';
       reason = 'This sector has industry-specific licensing or regulatory dynamics (e.g., DEA, state pharmacy/optical boards) that need a dedicated profile rather than the generalized retail/personal-care baseline.';
       waitlistFooter = 'Sub-profiles for this sector are on the roadmap. Add yourself to the waitlist (signup form coming in a later phase).';
       break;
     case 'OUT_OF_SCOPE_NICHE':
-      heading = 'Niche sector — waitlist';
+      heading = 'Niche sector - waitlist';
       reason = "This sector is a niche operation whose dynamics don't fit our generalized profiles. A future sub-profile will address it.";
       waitlistFooter = 'Sub-profiles for this sector are on the roadmap. Add yourself to the waitlist (signup form coming in a later phase).';
       break;
     case 'OUT_OF_SCOPE_55':
-      heading = 'Out of scope — corporate / holding';
+      heading = 'Out of scope - corporate / holding';
       reason = "GrowthIM serves consumer-facing local businesses. Holding companies, regional managing offices, and corporate HQs don't fit that pattern.";
-      waitlistFooter = 'No waitlist for this sector — GrowthIM is intentionally not designed to serve this category.';
+      waitlistFooter = 'No waitlist for this sector. GrowthIM is intentionally not designed to serve this category.';
       break;
     case 'OUT_OF_SCOPE_92':
-      heading = 'Out of scope — public administration';
+      heading = 'Out of scope - public administration';
       reason = 'GrowthIM serves private-sector consumer-facing businesses. Government agencies have different operational frameworks.';
-      waitlistFooter = 'No waitlist for this sector — GrowthIM is intentionally not designed to serve this category.';
+      waitlistFooter = 'No waitlist for this sector. GrowthIM is intentionally not designed to serve this category.';
       break;
     default:
       heading = 'Out of scope';
@@ -2781,7 +2870,7 @@ function renderWaitlist(input, layer0Result, profileId) {
       waitlistFooter = 'See the GrowthIM roadmap for sectors planned in later phases.';
   }
   return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
-<h1>GrowthIM — ${escapeHtml(heading)}</h1>
+<h1>GrowthIM - ${escapeHtml(heading)}</h1>
 <div class="status blocked">${escapeHtml(profileId)}</div>
 <p>${escapeHtml(reason)}</p>
 <p class="meta">Your input "${escapeHtml(input)}" classified to NAICS ${escapeHtml(layer0Result.naics6)}.</p>
@@ -2790,9 +2879,9 @@ function renderWaitlist(input, layer0Result, profileId) {
 
 function renderUnsupported(input, layer0Result) {
   return `${PAGE_OPEN}<a class="back" href="/app">&larr; new search</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
-<h1>GrowthIM — business type not yet supported</h1>
+<h1>GrowthIM - business type not yet supported</h1>
 <p>This business type is not yet supported by GrowthIM. We support 1400+
-business types — if you think your input should have matched one of them,
+business types. If you think your input should have matched one of them,
 please contact us at <a href="mailto:support@growthim.com">support@growthim.com</a>
 and we'll add coverage for your category.</p>
 <p class="meta">Your input "${escapeHtml(input)}" was classified as
@@ -2806,12 +2895,12 @@ function renderBlocked(profile, layer0Result, data, blockingFlag) {
 <h1>${escapeHtml(data.name || 'Business')}</h1>
 <div class="status blocked">REPORT BLOCKED</div>
 <div class="flag critical">${escapeHtml(blockingFlag.message)}</div>
-<p class="meta">${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}</p>${PAGE_CLOSE}`;
+<p class="meta">${escapeHtml(profile.name)} - NAICS ${escapeHtml(layer0Result.naics6)}</p>${PAGE_CLOSE}`;
 }
 
 // Render the Market Analysis (Mode 2) report. Takes an options object
-// — { city, state, top5, analysis, census, age_profile, weather,
-// permits, walk_score, county_density } — produced by the route
+// - { city, state, top5, analysis, census, age_profile, weather,
+// permits, walk_score, county_density } - produced by the route
 // pipeline. Re-uses the standard PAGE_OPEN chrome + back link so the
 // page is visually consistent with renderReport / renderError.
 function renderMarketReport(result) {
@@ -2854,13 +2943,13 @@ function renderMarketReport(result) {
     const s = quoteStatus(evidenceText);
     if (s.tier === 'verified') {
       const meta = [s.author, s.time].filter(Boolean).join(', ');
-      const label = meta ? `&#10003; REAL REVIEW &mdash; ${escapeHtml(meta)}` : '&#10003; REAL REVIEW';
+      const label = meta ? `&#10003; REAL REVIEW - ${escapeHtml(meta)}` : '&#10003; REAL REVIEW';
       return `<span class="hmark hmark-verified">${label}</span>`;
     }
     if (s.tier === 'fabricated') {
       return `<span class="hmark" style="background:var(--danger-bg);color:#991B1B;padding:2px 8px;border-radius:4px;font-size:11px">&#9888; NOT FOUND IN FETCHED REVIEWS</span>`;
     }
-    return `<span class="hmark" style="background:var(--surface-soft);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:11px">REVIEW &mdash; unverified</span>`;
+    return `<span class="hmark" style="background:var(--surface-soft);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:11px">REVIEW - unverified</span>`;
   }
   // Tier-driven wrapper class so the surrounding box colour matches
   // the badge (green for verified, red for fabricated, amber for the
@@ -2873,7 +2962,7 @@ function renderMarketReport(result) {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // SECTION 1 — HEADER
+  // SECTION 1 - HEADER
   // ─────────────────────────────────────────────────────────────────
   let healthBadge = '';
   let gradeBadge = '';
@@ -2897,12 +2986,12 @@ function renderMarketReport(result) {
   const sourcesHtml = `<p class="meta">Powered by: ${sources.map((s) => escapeHtml(s)).join(' · ')}</p>`;
 
   const headerHtml = `<a class="back" href="/app">&larr; Start over</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
-<h1>Market Intelligence — ${safeCity}, ${safeState}${healthBadge}${gradeBadge}</h1>
+<h1>Market Intelligence - ${safeCity}, ${safeState}${healthBadge}${gradeBadge}</h1>
 ${sourcesHtml}
 ${execSummary}`;
 
   // ─────────────────────────────────────────────────────────────────
-  // SECTION 2 — MARKET SNAPSHOT (6 cards)
+  // SECTION 2 - MARKET SNAPSHOT (6 cards)
   // ─────────────────────────────────────────────────────────────────
   const fmtNum = (v) => (typeof v === 'number') ? v.toLocaleString('en-US') : 'N/A';
   const fmtUsd = (v) => (typeof v === 'number') ? '$' + v.toLocaleString('en-US') : 'N/A';
@@ -2920,7 +3009,7 @@ ${execSummary}`;
   ).join('')}</table>`;
 
   // ─────────────────────────────────────────────────────────────────
-  // SECTION 3 — TOP 10 BUSINESS IDEAS
+  // SECTION 3 - TOP 10 BUSINESS IDEAS
   // Each card: rank badge + business type + score breakdown bars
   // (gap/feasibility/growth) + competitor count + novelty + cost +
   // 5-year survival + why_this_city paragraph.
@@ -2976,7 +3065,7 @@ ${renderScoreBar('Gap (40%)', breakdown.gap_score, 'var(--emerald)')}
 ${renderScoreBar('Feasibility (35%)', breakdown.feasibility_score, 'var(--blue)')}
 ${renderScoreBar('Growth (25%)', breakdown.growth_score, 'var(--amber)')}`;
 
-        // ── Tier 1 winner card — gold border + scroll-link to deep dive
+        // ── Tier 1 winner card - gold border + scroll-link to deep dive
         const isWinner = rank === 1;
         const winnerStyle = isWinner
           ? ' style="border-left:6px solid var(--amber);box-shadow:0 0 0 2px var(--amber-tint)"'
@@ -2985,7 +3074,7 @@ ${renderScoreBar('Growth (25%)', breakdown.growth_score, 'var(--amber)')}`;
           ? `<p style="margin:14px 0 0"><a href="#deep-dive-anchor" style="display:inline-block;padding:8px 16px;background:var(--amber);color:#fff;border-radius:6px;font-weight:600;text-decoration:none">&darr; Full deep dive below</a></p>`
           : '';
 
-        // ── Tier 2 (ranks 2-5) — medium-depth block
+        // ── Tier 2 (ranks 2-5) - medium-depth block
         let tier2Block = '';
         if (rank >= 2 && rank <= 5) {
           const t2 = findTierInsight(rank, tier2Insights);
@@ -2996,7 +3085,7 @@ ${renderScoreBar('Growth (25%)', breakdown.growth_score, 'var(--amber)')}`;
 ${t2.why_now ? `<p style="margin:0 0 10px"><strong>Why now in ${safeCity}:</strong> ${styleTags(t2.why_now)}</p>` : ''}
 ${actions.length ? `<p style="margin:0 0 4px"><strong>First 3 actions:</strong></p>
 <ol style="margin:0 0 10px;padding-left:22px">
-${actions.slice(0, 3).map((a) => `<li>${escapeHtml(a.action || '—')} <span class="meta">— ${escapeHtml(a.cost || '$?')} · ${escapeHtml(a.timeline || 'TBD')}</span></li>`).join('')}
+${actions.slice(0, 3).map((a) => `<li>${escapeHtml(a.action || '-')} <span class="meta">${escapeHtml(a.cost || '$?')} · ${escapeHtml(a.timeline || 'TBD')}</span></li>`).join('')}
 </ol>` : ''}
 ${steps.length ? `<p style="margin:0 0 4px"><strong>Startup steps:</strong></p>
 <ol style="margin:0 0 10px;padding-left:22px">
@@ -3007,7 +3096,7 @@ ${t2.key_risk ? `<p style="margin:0;color:var(--danger)"><strong>Key risk:</stro
           }
         }
 
-        // ── Tier 3 (ranks 6-10) — light block, muted
+        // ── Tier 3 (ranks 6-10) - light block, muted
         let tier3Block = '';
         if (rank >= 6 && rank <= 10) {
           const t3 = findTierInsight(rank, tier3Insights);
@@ -3024,8 +3113,8 @@ ${t3.key_risk ? `<p style="margin:0;color:var(--muted)"><strong>Risk:</strong> $
 ${styledWhy ? `<p>${styledWhy}</p>` : ''}
 <table class="coverage" style="margin-top:8px">
 <tr><td>Competition</td><td>${compText}${competitorList ? ' <span class="meta">(' + competitorList + ')</span>' : ''}</td></tr>
-<tr><td>Startup cost</td><td><strong>${escapeHtml(s.startup_cost_range || '—')}</strong></td></tr>
-<tr><td>5-year survival</td><td><strong>${escapeHtml(s.survival_y5 || '—')}</strong>${s.naics2 ? ` <span class="meta">(NAICS ${escapeHtml(s.naics2)})</span>` : ''}</td></tr>
+<tr><td>Startup cost</td><td><strong>${escapeHtml(s.startup_cost_range || '-')}</strong></td></tr>
+<tr><td>5-year survival</td><td><strong>${escapeHtml(s.survival_y5 || '-')}</strong>${s.naics2 ? ` <span class="meta">(NAICS ${escapeHtml(s.naics2)})</span>` : ''}</td></tr>
 </table>
 <div style="margin-top:10px">${bars}</div>
 ${tier2Block}
@@ -3040,7 +3129,7 @@ ${winnerLink}
 ${top10Html}`;
 
   // ─────────────────────────────────────────────────────────────────
-  // SECTION 4 — DEEP DIVE on #1
+  // SECTION 4 - DEEP DIVE on #1
   // Pulls the merged Call-A + Call-B fields from analyzeCity's
   // generateDeepDive(). Each subsection renders only when present.
   // ─────────────────────────────────────────────────────────────────
@@ -3057,12 +3146,12 @@ ${top10Html}`;
                      : 'medium';
       sbaRiskHtml = `<h3>Sector survival outlook</h3>
 <div class="rec rec-${riskTier}">
-<h3>${escapeHtml(sr.best_sector || 'Top sector')} <span class="impact impact-${riskTier}">${escapeHtml(sr.risk_level || '—')} RISK</span></h3>
+<h3>${escapeHtml(sr.best_sector || 'Top sector')} <span class="impact impact-${riskTier}">${escapeHtml(sr.risk_level || '-')} RISK</span></h3>
 <table class="coverage">
-  <tr><td>1-year survival</td><td><strong>${escapeHtml(sr.year1_survival || '—')}</strong></td></tr>
-  <tr><td>3-year survival</td><td><strong>${escapeHtml(sr.year3_survival || '—')}</strong></td></tr>
-  <tr><td>5-year survival</td><td><strong>${escapeHtml(sr.year5_survival || '—')}</strong></td></tr>
-  <tr><td>10-year survival</td><td><strong>${escapeHtml(sr.year10_survival || '—')}</strong></td></tr>
+  <tr><td>1-year survival</td><td><strong>${escapeHtml(sr.year1_survival || '-')}</strong></td></tr>
+  <tr><td>3-year survival</td><td><strong>${escapeHtml(sr.year3_survival || '-')}</strong></td></tr>
+  <tr><td>5-year survival</td><td><strong>${escapeHtml(sr.year5_survival || '-')}</strong></td></tr>
+  <tr><td>10-year survival</td><td><strong>${escapeHtml(sr.year10_survival || '-')}</strong></td></tr>
 </table>
 ${sr.context ? `<p>${escapeHtml(sr.context)}</p>` : ''}
 <p class="meta"><small>Source: BLS Business Employment Dynamics, 2013 cohort tracked through 2023</small></p>
@@ -3094,7 +3183,7 @@ ${o.bed2013_risk ? `<p class="meta">Risk: ${escapeHtml(o.bed2013_risk)}</p>` : '
     // Quick wins
     let quickWinsHtml = '';
     if (Array.isArray(dive.quick_wins) && dive.quick_wins.length) {
-      quickWinsHtml = `<h3>Quick wins — do these this week</h3>` + dive.quick_wins.map((q) => `
+      quickWinsHtml = `<h3>Quick wins - do these this week</h3>` + dive.quick_wins.map((q) => `
 <div class="rec rec-medium">
 <h3>${escapeHtml(q.action || 'Action')} <span class="impact impact-medium">${escapeHtml(q.timeline || 'Today')}</span></h3>
 ${q.why ? `<p>${escapeHtml(q.why)}</p>` : ''}
@@ -3106,12 +3195,12 @@ ${q.why ? `<p>${escapeHtml(q.why)}</p>` : ''}
     let stealHtml = '';
     if (Array.isArray(dive.steal_strategy) && dive.steal_strategy.length) {
       stealHtml = `<h3>Steal strategy <span class="ai-badge">AI</span></h3>
-<p class="meta">What's working for local businesses — with the actual review evidence.</p>` +
+<p class="meta">What's working for local businesses, with the actual review evidence.</p>` +
         dive.steal_strategy.map((s) => {
           const actions = Array.isArray(s.actions_to_steal) ? s.actions_to_steal : [];
           return `<div class="rec rec-high">
-<h3>${escapeHtml(s.business_name || 'Business')} <span class="impact impact-${(s.confidence || '').toLowerCase() === 'high' ? 'high' : 'medium'}">${escapeHtml(s.confidence || '—')}</span></h3>
-<p class="meta">${s.tenure ? 'Tenure: ' + escapeHtml(s.tenure) + ' · ' : ''}Trust weight: ${typeof s.trust_weight === 'number' ? s.trust_weight.toFixed(2) : '—'}</p>
+<h3>${escapeHtml(s.business_name || 'Business')} <span class="impact impact-${(s.confidence || '').toLowerCase() === 'high' ? 'high' : 'medium'}">${escapeHtml(s.confidence || '-')}</span></h3>
+<p class="meta">${s.tenure ? 'Tenure: ' + escapeHtml(s.tenure) + ' · ' : ''}Trust weight: ${typeof s.trust_weight === 'number' ? s.trust_weight.toFixed(2) : '-'}</p>
 ${s.what_they_do_well ? `<p><strong>What they do well:</strong> ${escapeHtml(s.what_they_do_well)}</p>` : ''}
 <ol style="margin:8px 0 0;padding-left:24px">
 ${actions.map((a) => `<li style="margin:8px 0">
@@ -3125,17 +3214,17 @@ ${a.cost ? `<p class="meta" style="margin:2px 0">Cost: ${escapeHtml(a.cost)}</p>
         }).join('');
     }
 
-    // Hidden gaps (high priority — local-specific)
+    // Hidden gaps (high priority - local-specific)
     let hiddenGapsHtml = '';
     if (Array.isArray(dive.hidden_gaps) && dive.hidden_gaps.length) {
-      hiddenGapsHtml = `<h3>Hidden gaps — high priority</h3>
-<p class="meta">Problems unique to ${safeCity} — not universal.</p>` + dive.hidden_gaps.map((h) => `
+      hiddenGapsHtml = `<h3>Hidden gaps - high priority</h3>
+<p class="meta">Problems unique to ${safeCity}, not universal.</p>` + dive.hidden_gaps.map((h) => `
 <div class="flag critical">
 <h3>${escapeHtml(h.title || 'Gap')}</h3>
 ${h.evidence ? `<p class="meta">${quoteBadge(h.evidence)} ${escapeHtml(h.evidence)}</p>` : ''}
 ${h.why_hidden ? `<p>${escapeHtml(h.why_hidden)}</p>` : ''}
 ${h.business_to_open ? `<p><strong>Business to open:</strong> ${escapeHtml(h.business_to_open)}</p>` : ''}
-<p class="meta">${h.timeline ? escapeHtml(h.timeline) + ' · ' : ''}Cost: ${escapeHtml(h.cost_to_open || '—')}</p>
+<p class="meta">${h.timeline ? escapeHtml(h.timeline) + ' · ' : ''}Cost: ${escapeHtml(h.cost_to_open || '-')}</p>
 </div>`).join('');
     }
 
@@ -3147,15 +3236,15 @@ ${h.business_to_open ? `<p><strong>Business to open:</strong> ${escapeHtml(h.bus
 <table class="coverage">
 <tr><td><strong>Segment</strong></td><td><strong>% of reviews</strong></td><td><strong>Serving them</strong></td><td><strong>Gap</strong></td><td><strong>Lost rev/mo</strong></td></tr>
 ${dive.persona_gap_matrix.map((g) => `<tr>
-<td>${escapeHtml(g.segment || '—')}${g.confirmed ? ' <span class="hmark hmark-verified">CONFIRMED</span>' : ''}</td>
-<td>${escapeHtml(g.review_mention_pct || '—')}</td>
-<td>${typeof g.businesses_serving_them === 'number' ? g.businesses_serving_them : '—'}</td>
-<td><strong>${typeof g.gap_points === 'number' ? g.gap_points + ' pts' : '—'}</strong></td>
-<td>${escapeHtml(g.lost_revenue_est || '—')}</td>
+<td>${escapeHtml(g.segment || '-')}${g.confirmed ? ' <span class="hmark hmark-verified">CONFIRMED</span>' : ''}</td>
+<td>${escapeHtml(g.review_mention_pct || '-')}</td>
+<td>${typeof g.businesses_serving_them === 'number' ? g.businesses_serving_them : '-'}</td>
+<td><strong>${typeof g.gap_points === 'number' ? g.gap_points + ' pts' : '-'}</strong></td>
+<td>${escapeHtml(g.lost_revenue_est || '-')}</td>
 </tr>`).join('')}
 </table>` + dive.persona_gap_matrix.filter((g) => g.business_to_open || g.root_cause).map((g) => `
 <div class="honesty honesty-reasonable-inference">
-<p><strong>${escapeHtml(g.segment || '—')}:</strong> ${escapeHtml(g.root_cause || '')}</p>
+<p><strong>${escapeHtml(g.segment || '-')}:</strong> ${escapeHtml(g.root_cause || '')}</p>
 ${g.business_to_open ? `<p>→ <strong>Open:</strong> ${escapeHtml(g.business_to_open)}</p>` : ''}
 </div>`).join('');
     }
@@ -3166,7 +3255,7 @@ ${g.business_to_open ? `<p>→ <strong>Open:</strong> ${escapeHtml(g.business_to
       personasHtml = `<h3>Customer personas</h3>` + dive.personas.map((p) => `
 <div class="rec rec-medium">
 <h3>${escapeHtml(p.name || 'Persona')}</h3>
-<p class="meta">${escapeHtml(p.profile || '—')}${p.gap_source ? ' · Gap source: ' + escapeHtml(p.gap_source) : ''}</p>
+<p class="meta">${escapeHtml(p.profile || '-')}${p.gap_source ? ' · Gap source: ' + escapeHtml(p.gap_source) : ''}</p>
 ${p.review_source ? `<div class="${quoteHonestyClass(p.review_source)}" style="margin:6px 0">${quoteBadge(p.review_source)} ${escapeHtml(p.review_source)}</div>` : ''}
 <table class="coverage">
 ${p.spend_trigger ? `<tr><td>Spend trigger</td><td>${escapeHtml(p.spend_trigger)}</td></tr>` : ''}
@@ -3208,7 +3297,7 @@ ${lc.fix ? `<p>→ <strong>Fix:</strong> ${escapeHtml(lc.fix)}</p>` : ''}
           const isZeroComp = s.opportunity_window && /zero competition/i.test(s.opportunity_window);
           const zeroBadge = isZeroComp ? ` <span class="impact impact-high">ZERO COMPETITION WINDOW</span>` : '';
           return `<div class="rec rec-medium">
-<h3>${season.charAt(0).toUpperCase() + season.slice(1)}${s.dominant_persona ? ` <span class="meta">— ${escapeHtml(s.dominant_persona)}</span>` : ''}${zeroBadge}</h3>
+<h3>${season.charAt(0).toUpperCase() + season.slice(1)}${s.dominant_persona ? ` <span class="meta"> ${escapeHtml(s.dominant_persona)}</span>` : ''}${zeroBadge}</h3>
 ${s.best_business_to_open ? `<p><strong>Business to open:</strong> ${escapeHtml(s.best_business_to_open)}</p>` : ''}
 ${s.marketing_message ? `<p><strong>Headline:</strong> "${escapeHtml(s.marketing_message)}"</p>` : ''}
 ${s.event_tie_in ? `<p><strong>Event tie-in:</strong> ${escapeHtml(s.event_tie_in)}</p>` : ''}
@@ -3230,16 +3319,16 @@ ${s.off_season_survival ? `<div class="honesty honesty-customer-must-validate"><
       // Producers may be strings or objects depending on Claude's output.
       const fmtProducer = (p) => typeof p === 'string'
         ? `<li>${escapeHtml(p)}</li>`
-        : `<li><strong>${escapeHtml(p.name || '—')}</strong>${p.city ? ' (' + escapeHtml(p.city) + ')' : ''}${typeof p.distance_miles === 'number' ? ` — ${p.distance_miles} mi` : ''}: ${escapeHtml(p.product || '—')}${p.price ? ' · ' + escapeHtml(p.price) : ''}</li>`;
+        : `<li><strong>${escapeHtml(p.name || '-')}</strong>${p.city ? ' (' + escapeHtml(p.city) + ')' : ''}${typeof p.distance_miles === 'number' ? ` - ${p.distance_miles} mi` : ''}: ${escapeHtml(p.product || '-')}${p.price ? ' · ' + escapeHtml(p.price) : ''}</li>`;
       const fmtAttract = (a) => typeof a === 'string'
         ? `<li>${escapeHtml(a)}</li>`
-        : `<li><strong>${escapeHtml(a.name || '—')}</strong>${typeof a.distance_miles === 'number' ? ` — ${a.distance_miles} mi` : ''}${a.annual_visitors ? ': ' + escapeHtml(a.annual_visitors) : ''}</li>`;
+        : `<li><strong>${escapeHtml(a.name || '-')}</strong>${typeof a.distance_miles === 'number' ? ` - ${a.distance_miles} mi` : ''}${a.annual_visitors ? ': ' + escapeHtml(a.annual_visitors) : ''}</li>`;
       const fmtEvent = (e) => typeof e === 'string'
         ? `<li>${escapeHtml(e)}</li>`
-        : `<li><strong>${escapeHtml(e.name || '—')}</strong>${e.timing ? ' (' + escapeHtml(e.timing) + ')' : ''}${e.attendance ? ': ' + escapeHtml(e.attendance) : ''}</li>`;
+        : `<li><strong>${escapeHtml(e.name || '-')}</strong>${e.timing ? ' (' + escapeHtml(e.timing) + ')' : ''}${e.attendance ? ': ' + escapeHtml(e.attendance) : ''}</li>`;
       const fmtPartner = (p) => typeof p === 'string'
         ? `<li>${escapeHtml(p)}</li>`
-        : `<li><strong>${escapeHtml(p.name || '—')}</strong>${typeof p.rating === 'number' ? ` ${p.rating}★` : ''}${typeof p.distance_miles === 'number' ? ` · ${p.distance_miles} mi` : ''}: ${escapeHtml(p.angle || '—')}</li>`;
+        : `<li><strong>${escapeHtml(p.name || '-')}</strong>${typeof p.rating === 'number' ? ` ${p.rating}★` : ''}${typeof p.distance_miles === 'number' ? ` · ${p.distance_miles} mi` : ''}: ${escapeHtml(p.angle || '-')}</li>`;
       const producersHtml = renderArr(hl.named_producers, fmtProducer);
       const attractionsHtml = renderArr(hl.named_attractions, fmtAttract);
       const eventsHtml = renderArr(hl.named_events, fmtEvent);
@@ -3256,13 +3345,13 @@ ${partnersHtml ? `<h3 style="margin-top:1em;font-size:14px">Partnership targets<
       }
     }
 
-    // Known gaps (bottom — universal)
+    // Known gaps (bottom - universal)
     let knownGapsHtml = '';
     if (Array.isArray(dive.known_gaps) && dive.known_gaps.length) {
-      knownGapsHtml = `<h3 style="opacity:0.7">Known gaps — universal complaints</h3>
+      knownGapsHtml = `<h3 style="opacity:0.7">Known gaps - universal complaints</h3>
 <p class="meta">Common across most markets; address but don't lead.</p>
 <ul style="opacity:0.85">${dive.known_gaps.map((k) =>
-        `<li><strong>${escapeHtml(k.title || '—')}:</strong> ${escapeHtml(k.one_line_opportunity || '—')}</li>`
+        `<li><strong>${escapeHtml(k.title || '-')}:</strong> ${escapeHtml(k.one_line_opportunity || '-')}</li>`
       ).join('')}</ul>`;
     }
 
@@ -3273,17 +3362,17 @@ ${partnersHtml ? `<h3 style="margin-top:1em;font-size:14px">Partnership targets<
       const tier = (c.level || '').toLowerCase() === 'high' ? 'high'
                  : (c.level || '').toLowerCase() === 'low' ? 'low'
                  : 'medium';
-      confidenceHtml = `<p class="meta"><span class="impact impact-${tier}">${escapeHtml(c.level || '—')} CONFIDENCE</span>${typeof c.score === 'number' ? ` · score ${c.score.toFixed(2)}` : ''}${typeof c.sources_confirmed === 'number' ? ` · ${c.sources_confirmed} sources` : ''}${c.note ? ' · ' + escapeHtml(c.note) : ''}</p>`;
+      confidenceHtml = `<p class="meta"><span class="impact impact-${tier}">${escapeHtml(c.level || '-')} CONFIDENCE</span>${typeof c.score === 'number' ? ` · score ${c.score.toFixed(2)}` : ''}${typeof c.sources_confirmed === 'number' ? ` · ${c.sources_confirmed} sources` : ''}${c.note ? ' · ' + escapeHtml(c.note) : ''}</p>`;
     }
 
     const legendBox = `<div class="rec rec-minimal" style="background:var(--surface-soft);font-size:13px;margin:12px 0">
 <h3 style="font-size:13px;color:var(--muted);margin-bottom:8px">About this analysis</h3>
-<p style="margin:4px 0"><span class="hmark hmark-verified">[VERIFIED]</span> &mdash; confirmed from live Google Places, U.S. Census, BLS, HUD, Open-Meteo, or Wikipedia data.</p>
-<p style="margin:4px 0"><span class="hmark hmark-verified">&#10003; REAL REVIEW</span> &mdash; quote substring-matched against the live Google Place Details review text we fetched for this city.</p>
-<p style="margin:4px 0"><span class="hmark" style="background:var(--danger-bg);color:#991B1B;padding:2px 8px;border-radius:4px;font-size:11px">&#9888; NOT FOUND IN FETCHED REVIEWS</span> &mdash; quote could not be matched to any fetched review; treat as unverified.</p>
+<p style="margin:4px 0"><span class="hmark hmark-verified">[VERIFIED]</span> - confirmed from live Google Places, U.S. Census, BLS, HUD, Open-Meteo, or Wikipedia data.</p>
+<p style="margin:4px 0"><span class="hmark hmark-verified">&#10003; REAL REVIEW</span> - quote substring-matched against the live Google Place Details review text we fetched for this city.</p>
+<p style="margin:4px 0"><span class="hmark" style="background:var(--danger-bg);color:#991B1B;padding:2px 8px;border-radius:4px;font-size:11px">&#9888; NOT FOUND IN FETCHED REVIEWS</span> - quote could not be matched to any fetched review; treat as unverified.</p>
 <p class="meta" style="margin:8px 0 0">Persona names are illustrative (fictional). Review quotes are verified live; failed verifications are flagged.</p>
 </div>`;
-    // ── Verification summary line — appended at the end of the deep dive
+    // ── Verification summary line - appended at the end of the deep dive
     const verifTotal = verifications.length;
     const verifPassed = verifications.filter((v) => v && v.verified === true).length;
     const verifFailed = verifications.filter((v) => v && v.verified === false).length;
@@ -3291,7 +3380,7 @@ ${partnersHtml ? `<h3 style="margin-top:1em;font-size:14px">Partnership targets<
     const verifSummary = verifTotal > 0
       ? `<p class="meta" style="margin-top:18px;padding:10px 12px;background:var(--surface-soft);border-radius:6px"><strong>${verifPassed} of ${verifTotal}</strong> review quotes verified against live Google data.${verifFailed > 0 ? ` <span style="color:var(--danger);font-weight:600">${verifFailed} could not be verified.</span>` : ''}${verifSkipped > 0 ? ` <span class="meta">${verifSkipped} were too short to verify.</span>` : ''}</p>`
       : '';
-    deepDiveHtml = `<h2 id="deep-dive-anchor">Deep dive — #1: ${escapeHtml(top1Type)}</h2>
+    deepDiveHtml = `<h2 id="deep-dive-anchor">Deep dive - #1: ${escapeHtml(top1Type)}</h2>
 ${legendBox}
 ${sbaRiskHtml}
 ${topOppsHtml}
@@ -3308,24 +3397,24 @@ ${confidenceHtml}
 ${verifSummary}`;
   } else {
     deepDiveHtml = `<h2>Deep dive</h2>
-<p class="ai-fallback-note">Deep dive analysis unavailable — Claude AI did not return a usable response. Top 10 ranking is still based on real data.</p>`;
+<p class="ai-fallback-note">Deep dive analysis unavailable. Claude AI did not return a usable response. Top 10 ranking is still based on real data.</p>`;
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // SECTION 5 — FOLLOW-UP CHAT
+  // SECTION 5 - FOLLOW-UP CHAT
   // Embedded form + inline JS that POSTs to /market-chat. Uses
   // data-* attributes to know which city|state to look up.
   // ─────────────────────────────────────────────────────────────────
-  // Audit fix S1 — use the file-wide escapeHtml() helper instead of a
+  // Audit fix S1 - use the file-wide escapeHtml() helper instead of a
   // bespoke replace that only handles `"`. escapeHtml escapes &, <, >,
   // ", and ' so a city containing any HTML-special char (Madison's,
   // O'Brien, "St. John's", an injected `<` etc.) renders into the
   // data-* attributes without closing them. The downstream inline
-  // chat script reads via form.dataset.city / form.dataset.state —
+  // chat script reads via form.dataset.city / form.dataset.state -
   // the browser auto-decodes the HTML entities on read, so the JS
   // sees the same string the user typed.
   const chatHtml = `<h2>Ask a follow-up</h2>
-<p class="meta">Ask anything about this analysis — Claude has the full data above in memory for the next 24 hours.</p>
+<p class="meta">Ask anything about this analysis. Claude has the full data above in memory for the next 24 hours.</p>
 <div id="market-chat-log" style="margin:8px 0"></div>
 <form id="market-chat-form" data-city="${escapeHtml(city)}" data-state="${escapeHtml(state)}" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
 <input id="market-chat-input" type="text" placeholder="e.g. Why is the gap score lower for #5?" style="flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px" required>
@@ -3395,7 +3484,7 @@ ${chatHtml}
 }
 
 // ───────────────────────────────────────────────────────────────────
-// renderMarketCharts — Chart.js v4 visual layer for the report.
+// renderMarketCharts - Chart.js v4 visual layer for the report.
 //
 // Returns a self-contained HTML block: scoped styles, six card
 // wrappers in a responsive grid, and one inline <script> that boots
@@ -3414,7 +3503,7 @@ function renderMarketCharts(data, profile, displayName) {
   const yourRating = (typeof data.google_rating === 'number') ? data.google_rating : null;
   const yourReviews = (typeof data.google_review_count === 'number') ? data.google_review_count : null;
 
-  // Competitor list — prefer the longer top5 when present, fall back to top3.
+  // Competitor list - prefer the longer top5 when present, fall back to top3.
   const rawComps = Array.isArray(data.competitors_top5) && data.competitors_top5.length
     ? data.competitors_top5
     : (Array.isArray(data.competitors_top3) ? data.competitors_top3 : []);
@@ -3439,7 +3528,7 @@ function renderMarketCharts(data, profile, displayName) {
     peakTouristSeason: (typeof data.peak_tourist_season === 'string') ? data.peak_tourist_season : null,
   };
 
-  // PageSpeed — accept either canonical field name.
+  // PageSpeed - accept either canonical field name.
   const pagespeedScore = (typeof data.pagespeed === 'number') ? data.pagespeed
     : (typeof data.website_mobile_score === 'number') ? data.website_mobile_score : null;
   const pagespeed = {
@@ -3618,7 +3707,7 @@ function renderMarketCharts(data, profile, displayName) {
 
   function truncName(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
 
-  // ── CHART 1 — Competitive position matrix ─────────────────────────
+  // ── CHART 1 - Competitive position matrix ─────────────────────────
   (function () {
     var canvas = document.getElementById('chart-matrix');
     if (!canvas) return;
@@ -3689,19 +3778,19 @@ function renderMarketCharts(data, profile, displayName) {
         ctx.stroke(); ctx.setLineDash([]);
 
         ctx.font = '700 11px Inter, sans-serif';
-        // Top-left — Hidden gems (blue)
+        // Top-left - Hidden gems (blue)
         ctx.textBaseline = 'top'; ctx.textAlign = 'left';
         ctx.fillStyle = '#2563EB';
         ctx.fillText('Hidden gems', L + 12, T + 18);
-        // Top-right — Market leaders (emerald)
+        // Top-right - Market leaders (emerald)
         ctx.textAlign = 'right';
         ctx.fillStyle = '#10B981';
         ctx.fillText('Market leaders', R - 12, T + 18);
-        // Bottom-left — Needs work (red)
+        // Bottom-left - Needs work (red)
         ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
         ctx.fillStyle = '#EF4444';
         ctx.fillText('Needs work', L + 12, B - 10);
-        // Bottom-right — High volume (orange)
+        // Bottom-right - High volume (orange)
         ctx.textAlign = 'right';
         ctx.fillStyle = '#F59E0B';
         ctx.fillText('High volume', R - 12, B - 10);
@@ -3709,7 +3798,7 @@ function renderMarketCharts(data, profile, displayName) {
       }
     };
 
-    // Bubble labels — clean cluster mode. YOU always shows its label
+    // Bubble labels - clean cluster mode. YOU always shows its label
     // (white text inside the blue bubble). Competitor labels render
     // ONLY if no other bubble center sits within 40 px of theirs;
     // clustered competitors stay anonymous on the chart and surface
@@ -3723,7 +3812,7 @@ function renderMarketCharts(data, profile, displayName) {
         ctx.save();
         ctx.font = '600 11px Inter, sans-serif';
 
-        // YOU's label — always rendered, never suppressed.
+        // YOU's label - always rendered, never suppressed.
         meta.data.forEach(function (el, i) {
           var p = points[i]; if (!p || !p.isYou) return;
           ctx.fillStyle = '#FFFFFF';
@@ -3732,7 +3821,7 @@ function renderMarketCharts(data, profile, displayName) {
           ctx.fillText(p.label, el.x, el.y);
         });
 
-        // Cluster detection — a competitor is "clustered" if any
+        // Cluster detection - a competitor is "clustered" if any
         // other bubble center is within 40 px of its own.
         var clustered = new Array(meta.data.length);
         for (var i = 0; i < meta.data.length; i++) {
@@ -3803,7 +3892,7 @@ function renderMarketCharts(data, profile, displayName) {
       options: {
         responsive: true, maintainAspectRatio: false,
         // Custom fixed info panel in the top-right of the chart card
-        // replaces the default floating tooltip — it never gets
+        // replaces the default floating tooltip - it never gets
         // covered by neighboring bubbles. onHover fires on every
         // mousemove inside the chart; we update the panel from the
         // hovered point's data. Clustered competitors (whose on-
@@ -3855,7 +3944,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 2 — Rating comparison ──────────────────────────────────
+  // ── CHART 2 - Rating comparison ──────────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-ratings');
     if (!canvas) return;
@@ -3901,7 +3990,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 3 — Review volume ──────────────────────────────────────
+  // ── CHART 3 - Review volume ──────────────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-reviews');
     if (!canvas) return;
@@ -3948,7 +4037,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 4 — Seasonal demand pattern ────────────────────────────
+  // ── CHART 4 - Seasonal demand pattern ────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-seasonal');
     if (!canvas) return;
@@ -4004,7 +4093,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 5 — PageSpeed gauge ────────────────────────────────────
+  // ── CHART 5 - PageSpeed gauge ────────────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-pagespeed');
     if (!canvas) return;
@@ -4027,7 +4116,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 6 — Income distribution ────────────────────────────────
+  // ── CHART 6 - Income distribution ────────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-income');
     if (!canvas) return;
@@ -4038,7 +4127,7 @@ function renderMarketCharts(data, profile, displayName) {
     else if (med < 60000)  brackets = [25, 40, 25, 10];
     else if (med < 90000)  brackets = [15, 35, 35, 15];
     else                   brackets = [8, 25, 42, 25];
-    var labels = ['Under $35K', '$35K–$75K', '$75K–$150K', 'Over $150K'];
+    var labels = ['Under $35K', '$35K-$75K', '$75K-$150K', 'Over $150K'];
     var colors = ['#185FA5', '#378ADD', '#85B7EB', '#B5D4F4'];
     var legend = document.getElementById('chart-income-legend');
     if (legend) {
@@ -4062,7 +4151,7 @@ function renderMarketCharts(data, profile, displayName) {
     });
   })();
 
-  // ── CHART 7 — Building permits trend ─────────────────────────────
+  // ── CHART 7 - Building permits trend ─────────────────────────────
   (function () {
     var canvas = document.getElementById('chart-permits');
     if (!canvas) return;
@@ -4109,7 +4198,7 @@ function renderMarketCharts(data, profile, displayName) {
 function renderReport(ctx) {
   const { input, layer0Result, profile, data, redFlags, strengths, ranked, enriched, studies, velocity, reportId } = ctx;
 
-  // BUG 21 — Null-safe competitor data. Upstream code can set
+  // BUG 21 - Null-safe competitor data. Upstream code can set
   // data.competitors_top5 / competitors_top3 to null when the Nearby
   // Search fetch fails or times out (see server.js ~line 850-854).
   // Normalize to [] up front so downstream code (rating-delta logic,
@@ -4130,7 +4219,7 @@ function renderReport(ctx) {
     : 'needs';
 
   const allCitedIds = new Set();
-  // Audit fix S6 — defensive Array.isArray guard. A profile rec with
+  // Audit fix S6 - defensive Array.isArray guard. A profile rec with
   // a missing/null study_ids array used to crash the whole report
   // render with a TypeError; now it just contributes no citations.
   ranked.allTriggered.forEach((t) => {
@@ -4143,34 +4232,34 @@ function renderReport(ctx) {
   //   1-3 mi   → no callout (healthy local pool, no message needed)
   //   8-15 mi  → "Nearest competitors within X miles" (mild)
   //   30-50 mi → "Limited local competition" (warning)
-  //   75 mi    → "Very limited competition — strong market position" (warning)
-  //   150 mi   → "No nearby competitors — potential monopoly" (positive)
+  //   75 mi    → "Very limited competition - strong market position" (warning)
+  //   150 mi   → "No nearby competitors - potential monopoly" (positive)
   function radiusTierNote() {
     const radiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : null;
     if (radiusMi == null) return '';
 
-    // Step 8 (150 mi) — ladder reached the end. Per spec, surface the
+    // Step 8 (150 mi) - ladder reached the end. Per spec, surface the
     // monopoly note. Note: the message says "No nearby competitors";
     // technically the ladder may have surfaced 1-4 competitors at 150
     // mi, but the spec wording calls this "potential monopoly in your
     // category in this region" regardless. If the rendered count
     // line below shows a non-zero number, the user has the actual count.
     if (radiusMi >= 150) {
-      return `<div class="rec rec-high"><strong>&#9888; No nearby competitors found</strong> &mdash; potential monopoly in your category in this region. Nearest matches found within 150 miles.</div>`;
+      return `<div class="rec rec-high"><strong>&#9888; No nearby competitors found</strong> - potential monopoly in your category in this region. Nearest matches found within 150 miles.</div>`;
     }
     // Step 7 (75 mi).
     if (radiusMi >= 75) {
-      return `<div class="flag">&#9888; Very limited competition &mdash; nearest within ${radiusMi} miles. Strong market position in your area.</div>`;
+      return `<div class="flag">&#9888; Very limited competition - nearest within ${radiusMi} miles. Strong market position in your area.</div>`;
     }
     // Steps 5-6 (30 / 50 mi).
     if (radiusMi >= 30) {
-      return `<div class="flag">&#9888; Limited local competition &mdash; nearest within ${radiusMi} miles.</div>`;
+      return `<div class="flag">&#9888; Limited local competition - nearest within ${radiusMi} miles.</div>`;
     }
-    // Steps 3-4 (8 / 15 mi) — mild informational note, no warning icon.
+    // Steps 3-4 (8 / 15 mi) - mild informational note, no warning icon.
     if (radiusMi >= 8) {
       return `<div class="meta" style="margin:8px 0">Nearest competitors within ${radiusMi} miles.</div>`;
     }
-    // Steps 1-2 (1 / 3 mi) — healthy dense local market, no callout.
+    // Steps 1-2 (1 / 3 mi) - healthy dense local market, no callout.
     return '';
   }
 
@@ -4212,7 +4301,7 @@ function renderReport(ctx) {
 
   // Claude-unavailable banner: shown when enrichWithClaude returned null
   // entirely (no API key / both calls rejected). Distinct from the
-  // partial-report case — the data sections (Census, BLS, competitor
+  // partial-report case - the data sections (Census, BLS, competitor
   // count, etc.) still render, only the AI-enhanced sections are
   // missing. Tells the user clearly what's happening and that retry
   // is free.
@@ -4238,7 +4327,7 @@ function renderReport(ctx) {
   // the recommendation appears both as a banner AND inline in the
   // priority actions list. Empty string when the business has a
   // working website Google can see.
-  // FIX 1 — only fire when we VERIFIED the URL doesn't load (===false).
+  // FIX 1 - only fire when we VERIFIED the URL doesn't load (===false).
   // Previously this used loose-falsy `!data.website_exists`, which also
   // matched `null` (the value when the HEAD check itself timed out or
   // crashed). That misfired for businesses like AmericInn Wyndham where
@@ -4262,7 +4351,7 @@ function renderReport(ctx) {
     <strong>GrowthIM Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
   </div>
   <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-    <a href="mailto:support@growthim.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support — Get Website Help</a>
+    <a href="mailto:support@growthim.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support - Get Website Help</a>
     <span style="font-size:13px;color:#9A3412;">support@growthim.com</span>
   </div>
 </div>`
@@ -4278,7 +4367,7 @@ function renderReport(ctx) {
 </div>`
     : '';
 
-  // CHANGE 1 — AI-corrected warning only (the "✓ AI verified" green
+  // CHANGE 1 - AI-corrected warning only (the "✓ AI verified" green
   // confirmation badge has been removed because it's internal noise
   // for the business owner; they only need to know when Claude
   // actually OVERRODE the original Layer 0 classification). Rendered
@@ -4290,11 +4379,11 @@ function renderReport(ctx) {
     const fixed = escapeHtml(layer0Result.naics6 || '');
     const title = escapeHtml(layer0Result.naics_title || '');
     const reason = escapeHtml((layer0Result.ai_reasoning || '').slice(0, 200));
-    // BUG 24 — when Claude flags ai_corrected=true but ends up with the
+    // BUG 24 - when Claude flags ai_corrected=true but ends up with the
     // SAME NAICS-6 as the original, the "X → X" rendering is confusing.
     // This happens when Claude's override flag fires for profile-level
     // intent (e.g., berry-patch tagged as restaurant routed by Google
-    // types but actually agriculture — same NAICS bucket the
+    // types but actually agriculture - same NAICS bucket the
     // selectBestProfile cascade pulls into a different profile_id).
     // Render a distinct "NAICS confirmed, profile re-selected" message
     // in that case so the user sees the audit trail without the
@@ -4302,7 +4391,7 @@ function renderReport(ctx) {
     let badge;
     if (layer0Result.original_naics && layer0Result.naics6
         && String(layer0Result.original_naics) === String(layer0Result.naics6)) {
-      badge = `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' — ' + title : ''})`;
+      badge = `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' - ' + title : ''})`;
     } else {
       badge = `⚠ AI corrected: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}`;
     }
@@ -4312,7 +4401,7 @@ function renderReport(ctx) {
 </div>`;
   }
 
-  // CHANGE 1 — header simplified. Removed the entire "Layer 0:
+  // CHANGE 1 - header simplified. Removed the entire "Layer 0:
   // <mode> · confidence <X> (places types fallback: ...) (chain: ...)
   // ✓ AI verified" line which exposed internal classification audit
   // detail no business owner cares about. The AI-corrected amber
@@ -4322,13 +4411,13 @@ function renderReport(ctx) {
   // longer surfaced in the header copy.
   const headerHtml = `<h1>${escapeHtml(data.name || input)}</h1>
 <p class="meta">${escapeHtml(data.formatted_address || '')}<br>
-${escapeHtml(profile.name)} — NAICS ${escapeHtml(layer0Result.naics6)}</p>
+${escapeHtml(profile.name)} - NAICS ${escapeHtml(layer0Result.naics6)}</p>
 ${aiCorrectedWarning}`;
 
   const overallHtml = `<div class="status ${statusClass}">${escapeHtml(status.label)}</div>
 ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
 
-  // Phase 5 — LOCAL MARKET CONTEXT callout (when Claude enrichment succeeded)
+  // Phase 5 - LOCAL MARKET CONTEXT callout (when Claude enrichment succeeded)
   // and the "AI insights unavailable" note (when it didn't).
   let localContextHtml = '';
   if (enriched && enriched.local_context) {
@@ -4337,7 +4426,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
 <p>${escapeHtml(enriched.local_context)}</p>
 </div>`;
   } else if (!enriched) {
-    localContextHtml = `<p class="ai-fallback-note"><small>AI insights unavailable — showing research-based recommendations.</small></p>`;
+    localContextHtml = `<p class="ai-fallback-note"><small>AI insights unavailable. Showing research-based recommendations.</small></p>`;
   }
 
   let redFlagsHtml = '';
@@ -4356,7 +4445,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
   }
 
   // ──────────────────────────────────────────────────────────────────
-  // Industry survival outlook — BED2013 cohort survival rates for the
+  // Industry survival outlook - BED2013 cohort survival rates for the
   // business's NAICS-2 sector. Renders only when the sector has a row
   // in BED2013 (every NAICS-2 we currently classify maps to one).
   // ──────────────────────────────────────────────────────────────────
@@ -4378,7 +4467,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
   }
 
   // ──────────────────────────────────────────────────────────────────
-  // Phase 5+ — TripAdvisor Intelligence (rendered only when TA fetch hit)
+  // Phase 5+ - TripAdvisor Intelligence (rendered only when TA fetch hit)
   // Position: after Strengths, before Competitive context.
   // Surfaces: rating + review count, ranking, sub-ratings (with gap
   // detection at ≥0.4 spread), awards, trip-type mix, value-vs-overall
@@ -4386,12 +4475,12 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
   // ──────────────────────────────────────────────────────────────────
   let tripAdvisorHtml = '';
   if (data.tripadvisor && data.ta_rating != null) {
-    const ratingStars = typeof data.ta_rating === 'number' ? data.ta_rating.toFixed(1) : '—';
+    const ratingStars = typeof data.ta_rating === 'number' ? data.ta_rating.toFixed(1) : '-';
     const reviewCt = typeof data.ta_review_count === 'number'
       ? data.ta_review_count.toLocaleString('en-US')
-      : '—';
+      : '-';
 
-    // Ranking line — only when we successfully parsed "#X of Y"
+    // Ranking line - only when we successfully parsed "#X of Y"
     let rankingLine = '';
     if (data.ta_ranking_position && data.ta_ranking_out_of) {
       const pct = (data.ta_ranking_position / data.ta_ranking_out_of);
@@ -4433,9 +4522,9 @@ your strongest dimension (${escapeHtml(highest[0].replace(/_/g, ' '))}: ${highes
     let valueGapHtml = '';
     if (data.ta_value_gap_detected) {
       const v = data.ta_subratings && data.ta_subratings.value;
-      valueGapHtml = `<div class="flag"><strong>Value perception gap:</strong> Your value sub-rating (${typeof v === 'number' ? v.toFixed(1) : '—'})
-trails your overall rating (${ratingStars}) by more than 0.4. Customers like the experience but feel they overpaid —
-look at price-to-perceived-quality (portion size, finish quality, included amenities).</div>`;
+      valueGapHtml = `<div class="flag"><strong>Value perception gap:</strong> Your value sub-rating (${typeof v === 'number' ? v.toFixed(1) : '-'})
+trails your overall rating (${ratingStars}) by more than 0.4. Customers like the experience but feel they overpaid.
+Look at price-to-perceived-quality (portion size, finish quality, included amenities).</div>`;
     }
 
     // Awards list
@@ -4448,7 +4537,7 @@ look at price-to-perceived-quality (portion size, finish quality, included ameni
       awardsHtml = `<p><strong>TripAdvisor awards:</strong></p><ul>${items}</ul>`;
     }
 
-    // Trip types — show top 3 by share so the dominant segments are obvious.
+    // Trip types - show top 3 by share so the dominant segments are obvious.
     let tripTypesHtml = '';
     if (Array.isArray(data.ta_trip_types) && data.ta_trip_types.length) {
       const total = data.ta_trip_types.reduce((s, t) => s + (t.value || 0), 0);
@@ -4459,7 +4548,7 @@ look at price-to-perceived-quality (portion size, finish quality, included ameni
           return `<li>${escapeHtml(t.name)}: ${pct}% (${t.value})</li>`;
         }).join('');
         tripTypesHtml = `<p><strong>Customer trip-type mix:</strong></p><ul>${items}</ul>
-<p class="meta"><small>Use to align messaging — promote the segment you want to grow, defend the one you depend on.</small></p>`;
+<p class="meta"><small>Use to align messaging - promote the segment you want to grow, defend the one you depend on.</small></p>`;
       }
     }
 
@@ -4474,7 +4563,7 @@ ${tripTypesHtml}
   }
 
   // ──────────────────────────────────────────────────────────────────
-  // Phase 5+ — Quality ratings (CMS Hospital Compare)
+  // Phase 5+ - Quality ratings (CMS Hospital Compare)
   // ──────────────────────────────────────────────────────────────────
   // Renders for hospitals / specialty clinics whose facility_name matches
   // a row in CMS's Hospital General Information dataset (xubh-q36u).
@@ -4496,28 +4585,28 @@ ${tripTypesHtml}
       .join('');
     const facility = data.cms.facility_name ? escapeHtml(data.cms.facility_name) : 'This facility';
     qualityRatingsHtml = `<h2>Quality ratings</h2>
-<p><strong>${facility}</strong> — CMS overall rating: <strong>${stars}</strong></p>
+<p><strong>${facility}</strong> - CMS overall rating: <strong>${stars}</strong></p>
 ${rows ? `<table class="coverage">${rows}</table>` : ''}
 <p class="meta"><small>Source: CMS Hospital General Information (national-comparison ratings).</small></p>`;
   }
 
   // ──────────────────────────────────────────────────────────────────
-  // Phase 5+ — Compliance (FMCSA carrier safety)
+  // Phase 5+ - Compliance (FMCSA carrier safety)
   // ──────────────────────────────────────────────────────────────────
   // Renders for transportation/warehousing operators (NAICS-2 = 48-49)
   // when the business name matches a DOT-registered carrier. Surface
   // the safety rating as a flag when it's not "Satisfactory".
   let complianceHtml = '';
   if (data.fmcsa && data.dot_number) {
-    const sr = data.safety_rating || '—';
+    const sr = data.safety_rating || '-';
     const srNotSat = data.safety_rating && !/^satisfactory$/i.test(data.safety_rating);
     const srFlag = srNotSat
       ? ` <span class="extra-tag extra-tag-hidden">NOT SATISFACTORY</span>`
       : '';
-    const allowed = data.allowed_to_operate || '—';
-    const drivers = data.total_drivers != null ? data.total_drivers.toLocaleString('en-US') : '—';
-    const trucks = data.total_trucks != null ? data.total_trucks.toLocaleString('en-US') : '—';
-    const op = data.fmcsa.carrier_operation || '—';
+    const allowed = data.allowed_to_operate || '-';
+    const drivers = data.total_drivers != null ? data.total_drivers.toLocaleString('en-US') : '-';
+    const trucks = data.total_trucks != null ? data.total_trucks.toLocaleString('en-US') : '-';
+    const op = data.fmcsa.carrier_operation || '-';
     complianceHtml = `<h2>Compliance</h2>
 <p><strong>FMCSA Safety Rating:</strong> ${escapeHtml(String(sr))}${srFlag}<br>
 DOT#: <strong>${escapeHtml(String(data.dot_number))}</strong><br>
@@ -4528,10 +4617,10 @@ Total drivers: <strong>${escapeHtml(String(drivers))}</strong> · Total trucks: 
   }
 
   // ──────────────────────────────────────────────────────────────────
-  // BATCH14 — Competitive Context + Location & Market sections
+  // BATCH14 - Competitive Context + Location & Market sections
   // (rendered only when the underlying fetches succeeded)
   // ──────────────────────────────────────────────────────────────────
-  // Phase 5+ — FDIC bank financial summary (banking / finance profiles).
+  // Phase 5+ - FDIC bank financial summary (banking / finance profiles).
   // Built up here so it can be appended to competitiveHtml whether or not
   // Google Nearby Search returned competitor data.
   let fdicBlock = '';
@@ -4539,10 +4628,10 @@ Total drivers: <strong>${escapeHtml(String(drivers))}</strong> · Total trucks: 
     // FDIC reports DEP / ASSET in $thousands. Convert to $M for display.
     const depM = data.fdic_total_deposits != null
       ? '$' + (data.fdic_total_deposits / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'M'
-      : '—';
+      : '-';
     const assetM = data.fdic_total_assets != null
       ? '$' + (data.fdic_total_assets / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'M'
-      : '—';
+      : '-';
     const bn = data.fdic_bank_name ? escapeHtml(data.fdic_bank_name) : 'this institution';
     fdicBlock = `<p><strong>FDIC profile (${bn}):</strong><br>
 Total deposits: <strong>${depM}</strong><br>
@@ -4552,10 +4641,10 @@ Total assets: <strong>${assetM}</strong><br>
 
   let competitiveHtml = '';
   if (typeof data.competitor_count === 'number' && data.competitor_count > 0) {
-    const yourRating = typeof data.google_rating === 'number' ? data.google_rating.toFixed(1) : '—';
-    const medRating = typeof data.competitor_median_rating === 'number' ? data.competitor_median_rating.toFixed(1) : '—';
-    const yourReviews = typeof data.google_review_count === 'number' ? data.google_review_count : '—';
-    const medReviews = typeof data.competitor_median_review_count === 'number' ? data.competitor_median_review_count : '—';
+    const yourRating = typeof data.google_rating === 'number' ? data.google_rating.toFixed(1) : '-';
+    const medRating = typeof data.competitor_median_rating === 'number' ? data.competitor_median_rating.toFixed(1) : '-';
+    const yourReviews = typeof data.google_review_count === 'number' ? data.google_review_count : '-';
+    const medReviews = typeof data.competitor_median_review_count === 'number' ? data.competitor_median_review_count : '-';
     const ratingDelta = (typeof data.google_rating === 'number' && typeof data.competitor_median_rating === 'number')
       ? (data.google_rating - data.competitor_median_rating)
       : null;
@@ -4567,9 +4656,9 @@ Total assets: <strong>${assetM}</strong><br>
 
     // ── Tier classification (per spec 2) ────────────────────────────
     // Each top-5 competitor is bucketed into 'threat' (real competitive
-    // risk — render as a full card), 'winning' (subject is meaningfully
-    // outperforming — render as a muted one-liner), or 'neutral'
-    // (similar level / insufficient signal — silently dropped from both
+    // risk - render as a full card), 'winning' (subject is meaningfully
+    // outperforming - render as a muted one-liner), or 'neutral'
+    // (similar level / insufficient signal - silently dropped from both
     // lists). Logic lives in googlePlaces.classifyCompetitorTier so the
     // rule set can be reused.
     const top5ForTier = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
@@ -4581,10 +4670,10 @@ Total assets: <strong>${assetM}</strong><br>
     const winners = tieredCompetitors.filter((c) => c.tier === 'winning');
     const threatCount = threats.length;
     const winningCount = winners.length;
-    // Neutrals are competitors at a similar level — counted so we can
+    // Neutrals are competitors at a similar level - counted so we can
     // surface a friendly "all peers" message when threat+winning are
     // both zero but there ARE competitors in the pool (otherwise the
-    // section would show "0 real competitors · 0 you're beating" —
+    // section would show "0 real competitors · 0 you're beating" -
     // technically true but discouraging and informationally empty).
     const neutralCount = top5ForTier.length - threatCount - winningCount;
 
@@ -4601,27 +4690,27 @@ Total assets: <strong>${assetM}</strong><br>
       tierSummary = `<p class="meta"><strong>${threatCount}</strong> real competitor${threatCount === 1 ? '' : 's'} to watch &middot; <strong>${winningCount}</strong> competitor${winningCount === 1 ? '' : 's'} you're beating</p>`;
     }
 
-    // Tier 1 list — full info per the existing list-item style.
+    // Tier 1 list - full info per the existing list-item style.
     const threatsHtml = threats.length
       ? `<p class="meta">Real competitors to watch:</p><ul>` + threats.map((c) => {
           const dist = typeof c.distance_meters === 'number'
             ? ` &middot; ${(c.distance_meters / 1609.34).toFixed(1)} mi`
             : (typeof c.distance_miles === 'number' ? ` &middot; ${c.distance_miles.toFixed(1)} mi` : '');
-          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '—';
-          return `<li><strong>${escapeHtml(c.name)}</strong> &mdash; ${rating}&#9733; (${c.review_count || 0} reviews)${dist}</li>`;
+          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '-';
+          return `<li><strong>${escapeHtml(c.name)}</strong> - ${rating}&#9733; (${c.review_count || 0} reviews)${dist}</li>`;
         }).join('') + `</ul>`
       : '';
 
-    // Tier 2 list — muted "you're winning" lines (no detailed card).
+    // Tier 2 list - muted "you're winning" lines (no detailed card).
     const winnersHtml = winners.length
       ? `<div style="margin-top:10px">` + winners.map((c) => {
-          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '—';
-          return `<p class="meta" style="margin:4px 0;color:var(--muted)">&#10003; You're outperforming <strong>${escapeHtml(c.name)}</strong> (${rating}&#9733;, ${c.review_count || 0} reviews) &mdash; no action needed</p>`;
+          const rating = typeof c.rating === 'number' ? c.rating.toFixed(1) : '-';
+          return `<p class="meta" style="margin:4px 0;color:var(--muted)">&#10003; You're outperforming <strong>${escapeHtml(c.name)}</strong> (${rating}&#9733;, ${c.review_count || 0} reviews) - no action needed</p>`;
         }).join('') + `</div>`
       : '';
 
     const reportedRadiusMi = typeof data.search_radius_miles === 'number' ? data.search_radius_miles : 15;
-    // CHANGE 2 — competitive context simplified. Stripped the
+    // CHANGE 2 - competitive context simplified. Stripped the
     // radius-tier note ("Nearest competitors within 8 miles"), the
     // tier summary ("1 real competitor to watch · 1 you're beating"),
     // the threats list ("Real competitors to watch: Silver Star B&B..."),
@@ -4636,7 +4725,7 @@ Your rating: <strong>${yourRating}</strong> vs local median: <strong>${medRating
 Your reviews: <strong>${yourReviews}</strong> vs local median: <strong>${medReviews}</strong>${reviewFlag}</p>
 ${fdicBlock}`;
   } else if (fdicBlock) {
-    // Bank/finance with no Google competitors but FDIC data — still
+    // Bank/finance with no Google competitors but FDIC data - still
     // render the section so the FDIC block has a home.
     competitiveHtml = `<h2 id="competitor-analysis">Competitive context</h2>${fdicBlock}`;
   }
@@ -4644,13 +4733,13 @@ ${fdicBlock}`;
   // Competitor comparison block (formerly Phase 5+) removed entirely
   // from the report per request. The Claude-enriched analysis it
   // produced (what they do better / what you can win / summary)
-  // duplicated content already surfaced — better and more
-  // narratively — in the Competitor Deep Dive section below. The
+  // duplicated content already surfaced - better and more
+  // narratively - in the Competitor Deep Dive section below. The
   // upstream enriched.competitor_analysis field is still generated
   // by claudeEnricher; it's just no longer rendered here.
 
   let marketHtml = '';
-  // Phase 5+ — section also renders if USDA agriculture profile or HUD
+  // Phase 5+ - section also renders if USDA agriculture profile or HUD
   // Fair Market Rents are present (sector-conditional fetchers).
   if (
     typeof data.median_household_income === 'number'
@@ -4669,7 +4758,7 @@ ${fdicBlock}`;
       : null;
     const hhLine = hh ? `<br>Average household size: <strong>${hh}</strong>` : '';
 
-    // Phase 5+ — anchor tenants + transit (Overpass / OpenStreetMap)
+    // Phase 5+ - anchor tenants + transit (Overpass / OpenStreetMap)
     let anchorBlock = '';
     if (Array.isArray(data.anchor_tenants) && data.anchor_tenants.length) {
       anchorBlock = `<p><strong>Anchor tenants nearby:</strong> ${escapeHtml(data.anchor_tenants.join(', '))}<br>
@@ -4680,10 +4769,10 @@ ${fdicBlock}`;
       const mi = (data.nearest_transit_meters / 1609.34).toFixed(2);
       transitBlock = `<p><small>Nearest transit (bus stop / rail station): ${data.nearest_transit_meters}m (${mi} mi). ${data.has_transit_nearby ? 'Transit-served location ✓' : 'Car-dependent'}.</small></p>`;
     } else if (data.has_transit_nearby === false || data.location_signals) {
-      transitBlock = `<p><small>No bus stop or rail station found within 800m — car-dependent location.</small></p>`;
+      transitBlock = `<p><small>No bus stop or rail station found within 800m. Car-dependent location.</small></p>`;
     }
 
-    // Phase 5+ — HUD residential building permits (Census BPS data)
+    // Phase 5+ - HUD residential building permits (Census BPS data)
     let permitsBlock = '';
     if (typeof data.building_permits_total === 'number' && data.building_permits_year) {
       const trendWord = data.building_permits_yoy_change == null
@@ -4697,11 +4786,11 @@ ${fdicBlock}`;
         ? ` (${data.building_permits_single_family} single-family)`
         : '';
       const cty = data.county_name ? `${escapeHtml(data.county_name)} County ` : '';
-      permitsBlock = `<p><strong>${cty}construction activity (${escapeHtml(data.building_permits_year)}):</strong> ${data.building_permits_total} total residential permits${sf} — ${trendWord}<br>
-<small>Source: U.S. Census Building Permits Survey via HUD (county FIPS ${escapeHtml(data.county_fips || '—')}).</small></p>`;
+      permitsBlock = `<p><strong>${cty}construction activity (${escapeHtml(data.building_permits_year)}):</strong> ${data.building_permits_total} total residential permits${sf}, ${trendWord}<br>
+<small>Source: U.S. Census Building Permits Survey via HUD (county FIPS ${escapeHtml(data.county_fips || '-')}).</small></p>`;
     }
 
-    // Phase 5+ — USDA NASS agriculture profile (NAICS-2 = 11 only)
+    // Phase 5+ - USDA NASS agriculture profile (NAICS-2 = 11 only)
     let usdaBlock = '';
     if (data.usda_nass && data.top_commodity) {
       usdaBlock = `<p><strong>Dominant crop:</strong> ${escapeHtml(data.top_commodity)}<br>
@@ -4709,14 +4798,14 @@ ${fdicBlock}`;
 <small>Source: USDA NASS QuickStats (2022, AREA HARVESTED).</small></p>`;
     }
 
-    // Phase 5+ — HUD Fair Market Rents (NAICS-2 = 53 only)
+    // Phase 5+ - HUD Fair Market Rents (NAICS-2 = 53 only)
     let fmrBlock = '';
     if (data.hud_fmr && (data.fmr_studio != null || data.fmr_1br != null || data.fmr_2br != null)) {
-      const studio = data.fmr_studio != null ? '$' + data.fmr_studio.toLocaleString('en-US') : '—';
-      const oneBr = data.fmr_1br != null ? '$' + data.fmr_1br.toLocaleString('en-US') : '—';
-      const twoBr = data.fmr_2br != null ? '$' + data.fmr_2br.toLocaleString('en-US') : '—';
+      const studio = data.fmr_studio != null ? '$' + data.fmr_studio.toLocaleString('en-US') : '-';
+      const oneBr = data.fmr_1br != null ? '$' + data.fmr_1br.toLocaleString('en-US') : '-';
+      const twoBr = data.fmr_2br != null ? '$' + data.fmr_2br.toLocaleString('en-US') : '-';
       const metro = data.fmr_metro_name ? escapeHtml(data.fmr_metro_name) : 'this metro';
-      const yr = data.fmr_year ? escapeHtml(String(data.fmr_year)) : '—';
+      const yr = data.fmr_year ? escapeHtml(String(data.fmr_year)) : '-';
       fmrBlock = `<p><strong>Fair Market Rents (${metro}, ${yr}):</strong><br>
 Studio: <strong>${studio}/mo</strong><br>
 1BR: <strong>${oneBr}/mo</strong><br>
@@ -4727,7 +4816,7 @@ Studio: <strong>${studio}/mo</strong><br>
     marketHtml = `<h2 id="location-market">Location &amp; market</h2>
 <p>Area median household income: <strong>${escapeHtml(income)}</strong><br>
 Local population (ZIP ${escapeHtml(data.census_zip || '')}): <strong>${escapeHtml(pop)}</strong>${hhLine}</p>
-<p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) — study S037.</p>
+<p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) - study S037.</p>
 ${anchorBlock}
 ${transitBlock}
 ${permitsBlock}
@@ -4735,7 +4824,7 @@ ${usdaBlock}
 ${fmrBlock}`;
   }
 
-  // Operations / brand line — quick visibility on the smaller new signals
+  // Operations / brand line - quick visibility on the smaller new signals
   const opsBits = [];
   if (data.hours_complete === true) opsBits.push('hours fully listed (7 days)');
   else if (data.hours_complete === false) opsBits.push('hours incomplete');
@@ -4745,17 +4834,17 @@ ${fmrBlock}`;
   else if (data.website_exists === false) opsBits.push('website returned error');
   else if (data.website_url && data.website_exists == null) opsBits.push('website check inconclusive');
   if (data.website_url == null) opsBits.push('no website on Google Business Profile');
-  // FIX 4 — owner-response rate display logic. Google's legacy Places
+  // FIX 4 - owner-response rate display logic. Google's legacy Places
   // Details API frequently omits the owner-reply field even when the
   // owner DID reply on the live GBP. With a sample of only 5 reviews
   // (the legacy max), a "0%" reading is much more often a measurement
-  // gap than a real signal — show "insufficient data" instead.
+  // gap than a real signal - show "insufficient data" instead.
   if (typeof data.response_rate_estimated === 'number') {
     const sampleSize = typeof data.reviews_sampled === 'number' ? data.reviews_sampled : 0;
     if (data.response_rate_estimated === 0 && sampleSize <= 5) {
       opsBits.push(`owner-response rate: insufficient data (sampled ${sampleSize} review${sampleSize === 1 ? '' : 's'} only)`);
     } else if (data.response_rate_estimated === 0) {
-      opsBits.push(`owner-response rate: 0% — no responses detected (sample: ${sampleSize})`);
+      opsBits.push(`owner-response rate: 0%, no responses detected (sample: ${sampleSize})`);
     } else {
       opsBits.push(`owner-response rate (sample of ${sampleSize}): ${(data.response_rate_estimated * 100).toFixed(0)}%`);
     }
@@ -4766,9 +4855,9 @@ ${fmrBlock}`;
       : '✅ fast';
     opsBits.push(`load time: ${data.load_time_seconds}s ${flag}`);
   }
-  // Phase 5+ — NPI license status (healthcare profiles only).
+  // Phase 5+ - NPI license status (healthcare profiles only).
   if (data.npi) {
-    const status = data.npi_authorized ? 'NPI Active ✅' : `NPI ${data.npi_status || '—'} ⚠️`;
+    const status = data.npi_authorized ? 'NPI Active ✅' : `NPI ${data.npi_status || '-'} ⚠️`;
     const num = data.npi_number ? ` (NPI ${escapeHtml(String(data.npi_number))})` : '';
     const ptype = data.provider_type ? ` · ${escapeHtml(String(data.provider_type))}` : '';
     opsBits.push(`${status}${num}${ptype}`);
@@ -4777,27 +4866,27 @@ ${fmrBlock}`;
     ? `<h2 id="operations-brand">Operations &amp; brand</h2><p>${opsBits.map(escapeHtml).join(' · ')}</p>`
     : '';
 
-  // FIX 3 — PageSpeed full section: warning callout + subject score card + competitor table.
+  // FIX 3 - PageSpeed full section: warning callout + subject score card + competitor table.
   // Structure:
-  //   (1) Yellow 53%-abandonment stat callout — always shown when section renders
+  //   (1) Yellow 53%-abandonment stat callout - always shown when section renders
   //   (2a) Subject has no website → red callout (absorbs old noWebsiteHtml)
   //   (2b) Subject has website + score → large score card
   //   (2c) Subject has website but PSI timed out → skipped (table still shown)
   //   (3) Competitor speed table (shown when competitors_top5_pagespeed is populated)
-  // Score thresholds: ≥90 → green "Fast ✅" | 50–89 → amber "Needs work ⚠️" | <50 → red "Slow ❌"
+  // Score thresholds: ≥90 → green "Fast ✅" | 50-89 → amber "Needs work ⚠️" | <50 → red "Slow ❌"
   let pagespeedDisplayHtml = '';
   {
     const psBgColor = (s) => s >= 90 ? '#16A34A' : s >= 50 ? '#D97706' : '#DC2626';
     const psLabelStr = (s) => s >= 90 ? 'Fast ✅' : s >= 50 ? 'Needs work ⚠️' : 'Slow ❌';
 
     // (1) Warning callout
-    const warningHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:13px;color:#92400E;line-height:1.6;">53% of mobile visitors abandon a website that takes more than 3 seconds to load. They do not come back. Your competitor's website speed is shown below — every second faster than you means customers who found you on Google chose them instead before reading a single word about your business. <span style="font-size:11px;opacity:0.75;">Source: Google/SOASTA Research (S040)</span></div>`;
+    const warningHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:13px;color:#92400E;line-height:1.6;">53% of mobile visitors abandon a website that takes more than 3 seconds to load. They do not come back. Your competitor's website speed is shown below - every second faster than you means customers who found you on Google chose them instead before reading a single word about your business. <span style="font-size:11px;opacity:0.75;">Source: Google/SOASTA Research (S040)</span></div>`;
 
     // (2) Subject section
     let subjectHtml = '';
     if (data.website_url == null) {
-      // No website at all — red callout
-      subjectHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:13px;color:#7F1D1D;line-height:1.6;"><strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from — and customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you — contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
+      // No website at all - red callout
+      subjectHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:13px;color:#7F1D1D;line-height:1.6;"><strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from. Customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
     } else if (typeof data.website_mobile_score === 'number') {
       // Has website + PSI score → large score card
       const sc = data.website_mobile_score;
@@ -4806,8 +4895,8 @@ ${fmrBlock}`;
       const sNote = sc >= 90
         ? 'Real-time data verified by Google PageSpeed Insights.'
         : sc >= 50
-        ? 'Real-time data verified by Google PageSpeed Insights. GrowthIM can help improve your score — contact support@growthim.com'
-        : 'Losing customers. Real-time data verified by Google PageSpeed Insights. GrowthIM can help fix this — contact support@growthim.com';
+        ? 'Real-time data verified by Google PageSpeed Insights. GrowthIM can help improve your score - contact support@growthim.com'
+        : 'Losing customers. Real-time data verified by Google PageSpeed Insights. GrowthIM can help fix this - contact support@growthim.com';
       const loadTimeLine = typeof data.load_time_seconds === 'number'
         ? `<div style="font-size:12px;color:#6B7280;margin-top:3px;">Load time: <strong>${data.load_time_seconds.toFixed(1)}s</strong></div>`
         : '';
@@ -4839,17 +4928,17 @@ ${fmrBlock}`;
     }
   }
 
-  // FIX 2 — Photo count note. Shows whenever photo_count is present on
+  // FIX 2 - Photo count note. Shows whenever photo_count is present on
   // the data object (always fetched via getDetails). The BrightLocal 2023
-  // stat is a proven conversion motivator — surfaces next to the raw count
+  // stat is a proven conversion motivator - surfaces next to the raw count
   // so the user has context, not just a bare number.
   let photoStatHtml = '';
   if (typeof data.photo_count === 'number') {
     const photoMsg = data.photo_count < 10
-      ? `You currently have <strong>${data.photo_count} photo${data.photo_count === 1 ? '' : 's'}</strong> — businesses with 100+ photos receive 520% more calls.`
+      ? `You currently have <strong>${data.photo_count} photo${data.photo_count === 1 ? '' : 's'}</strong>. Businesses with 100+ photos receive 520% more calls.`
       : data.photo_count < 100
       ? `You have <strong>${data.photo_count} photos</strong>. Businesses with 100+ photos receive 520% more calls than those with fewer than 10.`
-      : `You have <strong>${data.photo_count} photos</strong> — well above the 100-photo threshold that drives 520% more calls.`;
+      : `You have <strong>${data.photo_count} photos</strong>, well above the 100-photo threshold that drives 520% more calls.`;
     photoStatHtml = `<div style="margin-top:10px;padding:12px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;display:flex;gap:10px;align-items:flex-start;font-size:13px;">
   <span style="font-size:18px;line-height:1.4;">&#128248;</span>
   <div>
@@ -4859,19 +4948,19 @@ ${fmrBlock}`;
 </div>`;
   }
 
-  // Phase 5+ — Demand & seasonality (Open-Meteo + Ticketmaster + BLS)
+  // Phase 5+ - Demand & seasonality (Open-Meteo + Ticketmaster + BLS)
   let demandHtml = '';
   const seasonalityLines = [];
   if (data.peak_tourist_season) {
     seasonalityLines.push(`<strong>Peak season:</strong> ${escapeHtml(data.peak_tourist_season)}`);
   }
   if (data.has_cold_winter === true) {
-    seasonalityLines.push('<strong>Cold winter market</strong> — plan an off-season strategy (one or more months average below 35°F).');
+    seasonalityLines.push('<strong>Cold winter market</strong> - plan an off-season strategy (one or more months average below 35°F).');
   }
   if (data.has_hot_summer === true) {
-    seasonalityLines.push('<strong>Hot summer market</strong> — peak demand May-September (one or more months average above 85°F).');
+    seasonalityLines.push('<strong>Hot summer market</strong> - peak demand May-September (one or more months average above 85°F).');
   }
-  // Phase 5+ — BLS sector employment level (only fires for the 5 wired
+  // Phase 5+ - BLS sector employment level (only fires for the 5 wired
   // NAICS-2 sectors: 23, 44-45, 54, 61, 62).
   if (typeof data.bls_employment_level === 'number') {
     const periodPart = data.bls_employment_period ? `${escapeHtml(data.bls_employment_period)} ` : '';
@@ -4884,7 +4973,7 @@ ${fmrBlock}`;
     const items = events.map((e) => {
       const venue = e.venue ? ` at ${escapeHtml(e.venue)}` : '';
       const when = e.date ? escapeHtml(e.date.replace('T', ' ').slice(0, 16)) : 'date TBA';
-      return `<li>${escapeHtml(e.name)} — ${when}${venue}</li>`;
+      return `<li>${escapeHtml(e.name)} - ${when}${venue}</li>`;
     }).join('');
     eventsBlock = `<p><strong>Upcoming events within 10km (next 90 days):</strong></p><ul>${items}</ul>
 <p class="meta"><small>Source: Ticketmaster Discovery API v2.</small></p>`;
@@ -4896,7 +4985,7 @@ ${fmrBlock}`;
     demandHtml = `<h2>Demand &amp; seasonality</h2>${seasonalityBlock}${eventsBlock}`;
   }
 
-  // BATCH16 — top-10 ranking with impact labels.
+  // BATCH16 - top-10 ranking with impact labels.
   // ── Priority actions ─────────────────────────────────────────────
   // Two render paths:
   //   (a) Claude returned enriched.priority_actions[] → render new
@@ -4912,23 +5001,23 @@ ${fmrBlock}`;
   const top10 = ranked.top10 || [];
 
   if (claudePriorityActions.length > 0) {
-    // Path (a) — Claude priority_actions present.
+    // Path (a) - Claude priority_actions present.
     const total = claudePriorityActions.length;
     const highCount = claudePriorityActions.filter((a) => String(a.impact || '').toUpperCase() === 'HIGH').length;
     const headerNote = highCount > 0
       ? `Of these ${total} actions, ${highCount} ${highCount === 1 ? 'is' : 'are'} HIGH IMPACT. AI-tagged actions are generated from your real business data.`
-      : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT — focus on the highest-ranked items first.`;
+      : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT. Focus on the highest-ranked items first.`;
     priorityHtml = `<div style="margin-bottom: 16px;">
   <h2 id="priority-actions">Priority actions</h2>
   <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
 </div>`;
-    // FIX 6 — Action cards first (HIGH then MEDIUM then LOW), ROI
+    // FIX 6 - Action cards first (HIGH then MEDIUM then LOW), ROI
     // summary table last so the reader sees the full context before
     // the combined total.
     priorityHtml += claudePriorityActions.map((a) => renderActionCard(a)).join('');
     priorityHtml += renderROISummary(claudePriorityActions);
   } else if (!top10.length) {
-    // Path (b) — empty fallback.
+    // Path (b) - empty fallback.
     priorityHtml = `<h2 id="priority-actions">Priority actions</h2>`;
     priorityHtml += `<p>No recommendations triggered for this business.</p>`;
   } else {
@@ -4937,17 +5026,17 @@ ${fmrBlock}`;
     const high = ranked.highImpactCount || 0;
     const summary = high > 0
       ? `Of these ${total} actions, focus on the ${high} HIGH IMPACT item${high === 1 ? '' : 's'} first. Lower-impact items are worth doing once the high-impact ones are handled.`
-      : `Of these ${total} actions, none are HIGH IMPACT — this business is healthy on the dimensions we measure. Lower-impact polish wins are listed in priority order.`;
+      : `Of these ${total} actions, none are HIGH IMPACT. This business is healthy on the dimensions we measure. Lower-impact polish wins are listed in priority order.`;
     priorityHtml += `<p class="meta">${escapeHtml(summary)}</p>`;
-    // CHANGE 3 — classify each top-10 rec as HIDDEN / KNOWN / normal
+    // CHANGE 3 - classify each top-10 rec as HIDDEN / KNOWN / normal
     // and re-sort: HIDDEN at top regardless of score, KNOWN at bottom
     // with score capped at 0.30.
     classifyKnownHidden(top10, data);
-    // CHANGE 6 — attach money estimate HTML where it qualifies.
+    // CHANGE 6 - attach money estimate HTML where it qualifies.
     for (const t of top10) {
       t.moneyEstimateHtml = buildMoneyEstimate(t, data, profile, studies);
     }
-    // Phase 5 — index Claude's enriched recs by id so the first 3 entries
+    // Phase 5 - index Claude's enriched recs by id so the first 3 entries
     // can use them. Recs 4-10 keep the Phase-4 deterministic format.
     const enrichedById = new Map();
     if (enriched && Array.isArray(enriched.enriched_recommendations)) {
@@ -4958,9 +5047,9 @@ ${fmrBlock}`;
     priorityHtml += top10.map((t, idx) => {
       const tags = [];
       if (t.classification === 'hidden') {
-        tags.push({ cls: 'hidden', label: 'HIDDEN ISSUE — unique to your business' });
+        tags.push({ cls: 'hidden', label: 'HIDDEN ISSUE - unique to your business' });
       } else if (t.classification === 'known') {
-        tags.push({ cls: 'known', label: 'KNOWN ISSUE — common in your market' });
+        tags.push({ cls: 'known', label: 'KNOWN ISSUE - common in your market' });
       }
       // Top 3 only get Claude's enriched layers (when available).
       const claudeRec = idx < 3 ? enrichedById.get(t.rec.id) : null;
@@ -4980,39 +5069,39 @@ ${fmrBlock}`;
   // actions and the 90-day plan): competitor deep-dive, key risks,
   // execution templates. Each helper returns '' when data is missing
   // so the section is silently omitted from the report.
-  // FIX 4 — pass data so renderCompetitorDeepDive can prepend real
+  // FIX 4 - pass data so renderCompetitorDeepDive can prepend real
   // competitor reviews from data.competitors_top5[0].reviews[].
   const competitorDeepDiveHtml = enriched
     ? renderCompetitorDeepDive(enriched.competitor_deep_dive, enriched.outperformed_competitors, data)
     : '';
-  // Anchor Score — Walk-Up Traffic Potential panel based on existing
+  // Anchor Score - Walk-Up Traffic Potential panel based on existing
   // location_signals + nearby_venues data. Always renders (shows a
   // "data not available" notice when location_signals is missing).
   const anchorScoreHtml = renderAnchorScore(data);
-  // Competitive map — Google Maps Embed iframe centered on the business,
+  // Competitive map - Google Maps Embed iframe centered on the business,
   // searching for the same business type nearby. Falls back to '' when
   // lat/lon or API key is absent.
   const mapHtml = renderCompetitiveMap(data, profile);
-  // Trust section — verification-context block shown between the
+  // Trust section - verification-context block shown between the
   // overall status pill and the table of contents. Always renders;
   // no data dependencies.
-  // Review Gap Analysis — 4-part section showing the bar comparison vs.
+  // Review Gap Analysis - 4-part section showing the bar comparison vs.
   // the highest-reviewed competitor, the catch-up calculator table, a
   // realistic target, and (when ctx.velocity is supplied by the route
   // handler) the real velocity vs. the user's previous report. Uses
   // only existing data fields; zero new API calls. Returns '' when
   // google_review_count is missing so the section is silently omitted.
   const reviewGapHtml = renderReviewGap(data, velocity);
-  // Google Ranking Estimate — sorts you + competitors by
+  // Google Ranking Estimate - sorts you + competitors by
   // rating * log10(reviews + 1) and shows where you land in the list.
   // Pure render function over data.competitors_top5; no new API calls.
   const rankingEstimateHtml = renderRankingEstimate(data, profile);
-  // Hours Comparison — your weekday_text vs. each competitor's
+  // Hours Comparison - your weekday_text vs. each competitor's
   // weekday_text (when present). Shows a compact day-by-day table plus
   // gap-analysis insights. Falls back to "competitor hours not
   // available" when competitor weekday_text is absent.
   const hoursComparisonHtml = renderHoursComparison(data);
-  // Seasonal Calendar — 12-month demand bars built from existing
+  // Seasonal Calendar - 12-month demand bars built from existing
   // climate + season signals (peak_month, has_cold_winter,
   // has_hot_summer, peak_tourist_season, upcoming_events). Pure render
   // over data; no new API calls.
@@ -5024,8 +5113,8 @@ ${fmrBlock}`;
     ? renderExecutionTemplates(enriched.execution_templates)
     : '';
 
-  // BATCH16 — Common Problems Detected (review-mined themes)
-  // BUG 20 — Defensive `|| []` at call site. The function already
+  // BATCH16 - Common Problems Detected (review-mined themes)
+  // BUG 20 - Defensive `|| []` at call site. The function already
   // null-guards internally (returns {skip:true, reason:'no-reviews'}
   // for non-array / empty input), but passing `[]` here makes intent
   // explicit and matches the analyzeCommonProblems contract for any
@@ -5033,19 +5122,19 @@ ${fmrBlock}`;
   const cpAnalysis = analyzeCommonProblems(data.sample_reviews || [], profile.id);
   const commonProblemsHtml = renderCommonProblems(cpAnalysis);
 
-  // ── FIX 3 — 90-day action plan ────────────────────────────────────
+  // ── FIX 3 - 90-day action plan ────────────────────────────────────
   // Renders when Claude enrichment returned a ninety_day_plan object.
   // Three cards (month 1 = blue, month 2 = amber, month 3 = green).
   // Month 1 has weekly granularity; months 2-3 have month-level focus.
   // Section is omitted entirely when enriched.ninety_day_plan is missing
-  // — preserves backwards compat with reports that pre-date this fix.
+  // - preserves backwards compat with reports that pre-date this fix.
   let ninetyDayPlanHtml = '';
   if (enriched && enriched.ninety_day_plan && typeof enriched.ninety_day_plan === 'object') {
     const plan = enriched.ninety_day_plan;
     const m1 = plan.month_1 || {};
     const m2 = plan.month_2 || {};
     const m3 = plan.month_3 || {};
-    // Helper — render any month card identically (theme + 4 weeks + goal).
+    // Helper - render any month card identically (theme + 4 weeks + goal).
     // Falls back to the legacy `focus` paragraph only when no week_N
     // fields are present, so old reports persisted before this fix
     // still render gracefully instead of looking empty.
@@ -5061,7 +5150,7 @@ ${fmrBlock}`;
           ].join('')
         : (m.focus ? `<p><strong>Focus:</strong> ${escapeHtml(m.focus)}</p>` : '');
       return `<div class="rec ${cls}">
-<h3>Month ${monthNum}${m.theme ? ` &mdash; ${escapeHtml(m.theme)}` : ''}</h3>
+<h3>Month ${monthNum}${m.theme ? ` - ${escapeHtml(m.theme)}` : ''}</h3>
 ${weeksHtml}
 ${m.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m.goal)}</p>` : ''}
 </div>`;
@@ -5076,7 +5165,7 @@ ${m2Html}
 ${m3Html}`;
   }
 
-  // ── FIX 6 — Seasonal strategy ─────────────────────────────────────
+  // ── FIX 6 - Seasonal strategy ─────────────────────────────────────
   // Four cards (Summer / Fall / Winter / Spring), rendered in order.
   // Winter renders an extra amber off-season-survival callout when
   // present (required for cold-winter markets per SYSTEM_PROMPT).
@@ -5092,7 +5181,7 @@ ${m3Html}`;
         ? `<div class="honesty honesty-customer-must-validate"><strong>Off-season survival:</strong> ${escapeHtml(s.off_season_survival)}</div>`
         : '';
       return `<div class="rec rec-medium">
-<h3>${title}${s.dominant_persona ? ` <span class="meta">&mdash; ${escapeHtml(s.dominant_persona)}</span>` : ''}</h3>
+<h3>${title}${s.dominant_persona ? ` <span class="meta"> ${escapeHtml(s.dominant_persona)}</span>` : ''}</h3>
 ${s.what_to_add ? `<p><strong>What to add:</strong> ${escapeHtml(s.what_to_add)}</p>` : ''}
 ${s.marketing_message ? `<div class="callout"><div class="callout-label">Headline</div><p>"${escapeHtml(s.marketing_message)}"</p></div>` : ''}
 ${s.event_tie_in ? `<p><strong>Event tie-in:</strong> ${escapeHtml(s.event_tie_in)}</p>` : ''}
@@ -5112,12 +5201,12 @@ ${cards}`;
     }
   }
 
-  // Phase 5 — OPPORTUNITIES NOBODY IN YOUR MARKET IS DOING
+  // Phase 5 - OPPORTUNITIES NOBODY IN YOUR MARKET IS DOING
   // (only renders when Claude enrichment succeeded and produced opportunities)
   let opportunitiesHtml = '';
   if (enriched && Array.isArray(enriched.opportunities) && enriched.opportunities.length) {
     opportunitiesHtml = `<h2 id="opportunities">Opportunities nobody in your market is doing</h2>
-<p class="meta">${enriched.opportunities.length} location-specific ideas drawn from 18 opportunity categories. Each names real local entities — events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p>` +
+<p class="meta">${enriched.opportunities.length} location-specific ideas drawn from 18 opportunity categories. Each names real local entities: events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p>` +
     enriched.opportunities.map((o) => {
       const novelty = o.novelty || '';
       const noveltyCls = /zero competitors|0 competitors/i.test(novelty)
@@ -5129,26 +5218,26 @@ ${cards}`;
         ? `<div style="margin-top:10px;padding:10px 14px;background:#EEF2FF;border-left:3px solid #6366F1;border-radius:0 6px 6px 0;"><p style="margin:0;font-size:12.5px;color:#3730A3;line-height:1.6;"><strong style="font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#6366F1;">Why customers say yes</strong><br>${escapeHtml(o.psychology.trim())}</p></div>`
         : '';
       return `<div class="opportunity">
-<div class="op-meta"><span class="op-category">${escapeHtml(o.category || '—')}</span><span class="op-novelty ${noveltyCls}">${escapeHtml(novelty)}</span></div>
+<div class="op-meta"><span class="op-category">${escapeHtml(o.category || '-')}</span><span class="op-novelty ${noveltyCls}">${escapeHtml(novelty)}</span></div>
 <h3>${escapeHtml(o.title || '')}</h3>
 <p>${escapeHtml(o.idea || '')}</p>
 <p class="meta">
-<strong>Cost:</strong> ${escapeHtml(o.cost || '—')} ·
-<strong>Revenue potential:</strong> ${escapeHtml(o.revenue_potential || '—')} ·
-<strong>Review-mention probability:</strong> ${escapeHtml(o.review_mention_probability || '—')}
+<strong>Cost:</strong> ${escapeHtml(o.cost || '-')} ·
+<strong>Revenue potential:</strong> ${escapeHtml(o.revenue_potential || '-')} ·
+<strong>Review-mention probability:</strong> ${escapeHtml(o.review_mention_probability || '-')}
 </p>
 ${psychologyBlock}
 </div>`;
     }).join('');
   }
 
-  // ───── BATCH14 — Category coverage footer (C1-C7 with actual values) ─────
+  // ───── BATCH14 - Category coverage footer (C1-C7 with actual values) ─────
   const fmt = (v) => (v == null || (typeof v === 'number' && Number.isNaN(v))) ? 'unmeasured' : String(v);
   const c1Items = [];
   if (typeof data.google_rating === 'number') c1Items.push(`rating ${data.google_rating.toFixed(1)}`);
   if (typeof data.google_review_count === 'number') c1Items.push(`${data.google_review_count} reviews`);
   if (typeof data.review_recency_days === 'number') c1Items.push(`recency ${data.review_recency_days}d`);
-  // FIX 4 — gate on sample size (same logic as the Ops & brand block).
+  // FIX 4 - gate on sample size (same logic as the Ops & brand block).
   if (typeof data.response_rate_estimated === 'number') {
     const _ss = typeof data.reviews_sampled === 'number' ? data.reviews_sampled : 0;
     if (data.response_rate_estimated === 0 && _ss <= 5) {
@@ -5157,7 +5246,7 @@ ${psychologyBlock}
       c1Items.push(`owner-response ${(data.response_rate_estimated * 100).toFixed(0)}% (sample ${_ss})`);
     }
   }
-  // Phase 5+ — TripAdvisor presence
+  // Phase 5+ - TripAdvisor presence
   if (typeof data.ta_rating === 'number') {
     const reviews = typeof data.ta_review_count === 'number' ? `${data.ta_review_count.toLocaleString('en-US')} reviews` : '';
     const rank = (data.ta_ranking_position && data.ta_ranking_out_of)
@@ -5169,9 +5258,9 @@ ${psychologyBlock}
 
   const c2Items = [];
   if (typeof data.median_household_income === 'number') c2Items.push(`median income $${data.median_household_income.toLocaleString('en-US')}`);
-  if (typeof data.total_population === 'number') c2Items.push(`pop ${data.total_population.toLocaleString('en-US')} (ZIP ${data.census_zip || '—'})`);
+  if (typeof data.total_population === 'number') c2Items.push(`pop ${data.total_population.toLocaleString('en-US')} (ZIP ${data.census_zip || '-'})`);
   if (typeof data.average_household_size === 'number') c2Items.push(`avg household ${data.average_household_size.toFixed(2)}`);
-  // Phase 5+ — anchor tenants + transit (Overpass)
+  // Phase 5+ - anchor tenants + transit (Overpass)
   if (typeof data.anchor_tenant_count === 'number' && data.anchor_tenant_count > 0) {
     c2Items.push(`${data.anchor_tenant_count} anchor tenant${data.anchor_tenant_count === 1 ? '' : 's'} within 500m`);
   } else if (data.anchor_tenant_count === 0) {
@@ -5179,18 +5268,18 @@ ${psychologyBlock}
   }
   if (data.has_transit_nearby === true) c2Items.push('transit ≤400m');
   else if (data.has_transit_nearby === false) c2Items.push('no transit within 800m');
-  // Phase 5+ — county building permits (HUD/Census BPS)
+  // Phase 5+ - county building permits (HUD/Census BPS)
   if (typeof data.building_permits_total === 'number' && data.building_permits_year) {
     const yoy = data.building_permits_yoy_change != null
       ? ` (${data.building_permits_yoy_change >= 0 ? '+' : ''}${data.building_permits_yoy_change}% YoY)`
       : '';
     c2Items.push(`${data.building_permits_total} county permits ${data.building_permits_year}${yoy}`);
   }
-  // Phase 5+ — USDA NASS top crop (agriculture only)
+  // Phase 5+ - USDA NASS top crop (agriculture only)
   if (data.top_commodity) {
     c2Items.push(`top crop: ${data.top_commodity.toLowerCase()}`);
   }
-  // Phase 5+ — HUD Fair Market Rents (real-estate only)
+  // Phase 5+ - HUD Fair Market Rents (real-estate only)
   if (typeof data.fmr_2br === 'number') {
     c2Items.push(`FMR 2BR: $${data.fmr_2br.toLocaleString('en-US')}/mo${data.fmr_metro_name ? ` (${data.fmr_metro_name})` : ''}`);
   }
@@ -5200,26 +5289,26 @@ ${psychologyBlock}
   if (typeof data.competitor_count === 'number') c3Items.push(`${data.competitor_count} competitors within 5 mi`);
   if (typeof data.competitor_median_rating === 'number') c3Items.push(`median ${data.competitor_median_rating.toFixed(1)}★`);
   if (typeof data.competitor_median_review_count === 'number') c3Items.push(`median ${Math.round(data.competitor_median_review_count)} reviews`);
-  // Phase 5+ — FDIC bank deposit ranking (banking / finance only)
+  // Phase 5+ - FDIC bank deposit ranking (banking / finance only)
   if (typeof data.fdic_total_deposits === 'number') {
     const depM = (data.fdic_total_deposits / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 });
     c3Items.push(`FDIC deposits: $${depM}M`);
   }
   const c3Line = c3Items.length ? c3Items.join(', ') : 'data pending';
 
-  // Phase 5+ — Open-Meteo climatology + Ticketmaster + BLS fill C4 Demand
+  // Phase 5+ - Open-Meteo climatology + Ticketmaster + BLS fill C4 Demand
   const c4Items = [];
   if (data.peak_tourist_season) c4Items.push(`peak season ${data.peak_tourist_season}`);
   if (data.has_cold_winter === true) c4Items.push('cold winter');
   if (data.has_hot_summer === true) c4Items.push('hot summer');
   const eventCount = Array.isArray(data.upcoming_events) ? data.upcoming_events.length : 0;
   if (eventCount > 0) c4Items.push(`${eventCount} upcoming event${eventCount === 1 ? '' : 's'} within 10km`);
-  // Phase 5+ — BLS sector-wide employment level (5 sectors only)
+  // Phase 5+ - BLS sector-wide employment level (5 sectors only)
   if (typeof data.bls_employment_level === 'number') {
     c4Items.push(`sector employment ${data.bls_employment_level.toLocaleString('en-US')} (${data.bls_employment_period || ''} ${data.bls_employment_year || ''})`);
   }
   const c4Line = c4Items.length
-    ? c4Items.join(', ') + ' — Open-Meteo climatology + Ticketmaster Discovery v2 + BLS'
+    ? c4Items.join(', ') + ' - Open-Meteo climatology + Ticketmaster Discovery v2 + BLS'
     : 'data pending (Google Trends + local events)';
 
   const c5Items = [];
@@ -5229,13 +5318,13 @@ ${psychologyBlock}
   else if (data.is_open_now === false) c5Items.push('closed now');
   const c5Line = c5Items.join(', ');
 
-  // Phase 5+ — PageSpeed Insights fills C6 Brand
+  // Phase 5+ - PageSpeed Insights fills C6 Brand
   const c6Items = [];
   if (typeof data.website_mobile_score === 'number') c6Items.push(`mobile score ${data.website_mobile_score}/100`);
   if (typeof data.load_time_seconds === 'number') c6Items.push(`load ${data.load_time_seconds}s`);
   if (typeof data.lcp_seconds === 'number') c6Items.push(`LCP ${data.lcp_seconds}s`);
   const c6Line = c6Items.length
-    ? c6Items.join(', ') + ' — Google PageSpeed Insights (mobile)'
+    ? c6Items.join(', ') + ' - Google PageSpeed Insights (mobile)'
     : 'data pending (no website to measure, or PSI failed/timed out)';
 
   const c7Items = [];
@@ -5244,7 +5333,7 @@ ${psychologyBlock}
   }
   if (typeof data.google_review_count === 'number' && data.google_review_count === 0) c7Items.push('zero-reviews flag fires');
   if (data.business_status && data.business_status !== 'OPERATIONAL') c7Items.push(`business_status: ${data.business_status}`);
-  // Phase 5+ — sector compliance signals
+  // Phase 5+ - sector compliance signals
   if (data.npi) {
     c7Items.push(`NPI ${data.npi_authorized ? 'Active' : (data.npi_status || 'unknown')}${data.npi_number ? ` (#${data.npi_number})` : ''}`);
   }
@@ -5304,30 +5393,30 @@ ${psychologyBlock}
     }
     for (const cat of cats) topByCat[cat].push(`#${idx + 1}`);
   });
-  const tagFor = (cat) => topByCat[cat].length ? ` — actions: ${topByCat[cat].join(', ')}` : '';
+  const tagFor = (cat) => topByCat[cat].length ? ` - actions: ${topByCat[cat].join(', ')}` : '';
 
-  // Phase 5+ — dynamic C8-C11 rows. C8/C9/C10 only render when their
-  // data field is populated. C11 always renders — events array may be
+  // Phase 5+ - dynamic C8-C11 rows. C8/C9/C10 only render when their
+  // data field is populated. C11 always renders - events array may be
   // empty and that's still useful information ("no major events").
   const extraRows = [];
   if (data.hud_fmr && data.hud_fmr.fmr_2br != null) {
     const fmr = data.hud_fmr;
-    const metro = fmr.metro_name || '—';
-    const yr = fmr.fmr_year || '—';
+    const metro = fmr.metro_name || '-';
+    const yr = fmr.fmr_year || '-';
     extraRows.push(`<tr><td><strong>C8 Regional Rents</strong></td><td>2BR rent benchmark: $${fmr.fmr_2br.toLocaleString('en-US')}/mo (${escapeHtml(String(metro))}, ${escapeHtml(String(yr))})</td></tr>`);
   }
   if (data.bls_employment && data.bls_employment.employment_level != null) {
     const bls = data.bls_employment;
     const period = bls.employment_period || '';
     const yr = bls.employment_year || '';
-    const periodLabel = (period || yr) ? `${period} ${yr}`.trim() : '—';
+    const periodLabel = (period || yr) ? `${period} ${yr}`.trim() : '-';
     extraRows.push(`<tr><td><strong>C9 Employment Trend</strong></td><td>${bls.employment_level.toLocaleString('en-US')} sector jobs nationally (${escapeHtml(periodLabel)})</td></tr>`);
   }
   if (Array.isArray(data.nearby_venues) && data.nearby_venues.length > 0) {
     const top3 = data.nearby_venues.slice(0, 3).map((v) => v.name).join(', ');
     extraRows.push(`<tr><td><strong>C10 Nearby Venues</strong></td><td>Top nearby: ${escapeHtml(top3)}</td></tr>`);
   }
-  // C11 always renders — the absence of events is itself a signal.
+  // C11 always renders - the absence of events is itself a signal.
   {
     const events = Array.isArray(data.upcoming_events) ? data.upcoming_events : [];
     const content = events.length > 0
@@ -5337,7 +5426,7 @@ ${psychologyBlock}
   }
 
   const totalCategoryCount = 7 + extraRows.length;
-  const categoryCoverageHtml = `<h2>What we analyzed — ${totalCategoryCount} signal categories</h2>
+  const categoryCoverageHtml = `<h2>What we analyzed - ${totalCategoryCount} signal categories</h2>
 <table class="coverage">
   <tr><td><strong>C1 Online Presence</strong></td><td>${escapeHtml(c1Line)}${tagFor('C1')}</td></tr>
   <tr><td><strong>C2 Location &amp; Market</strong></td><td>${escapeHtml(c2Line)}${tagFor('C2')}</td></tr>
@@ -5362,7 +5451,7 @@ ${psychologyBlock}
   }
   footerHtml += `<p class="meta"><small>Generated ${new Date().toISOString()}</small></p>`;
 
-  // Chart.js visual layer — seven charts (matrix, ratings, reviews,
+  // Chart.js visual layer - seven charts (matrix, ratings, reviews,
   // seasonal, pagespeed, income, permits). Rendered right after the
   // priority-actions section. Each chart self-guards on data
   // availability and falls back to a small "Data not available" box,
@@ -5373,7 +5462,7 @@ ${psychologyBlock}
     data && (data.name || data.business_name) || input
   );
 
-  // PDF download button — only rendered when reportId is supplied by
+  // PDF download button - only rendered when reportId is supplied by
   // the route handler (i.e., in /report/:id replay flow, not in the
   // live /classify generation flow where the report ID doesn't exist
   // yet). Also intentionally omitted from the PDF route's own render
@@ -5385,7 +5474,7 @@ ${psychologyBlock}
   // ── Table of Contents ──────────────────────────────────────────────
   // Smart TOC: only show links for sections whose HTML actually has
   // content. The presence/absence is keyed on the same string variables
-  // that get interpolated into the template below — so a section that
+  // that get interpolated into the template below - so a section that
   // skipped rendering (returned '') is also absent from the TOC.
   //
   // 3 sections are visually highlighted in blue as "most important":
@@ -5400,7 +5489,7 @@ ${psychologyBlock}
   function hasContent(html) {
     return typeof html === 'string' && html.trim().length > 0;
   }
-  // CHANGE 2 — TOC reordered to match the new section flow.
+  // CHANGE 2 - TOC reordered to match the new section flow.
   // "Competitor Analysis" entry removed (competitiveHtml still renders
   // but is brief enough not to warrant a TOC link). "Competitor Deep
   // Dive" added as a new entry pointing at the merged comparison +
@@ -5479,14 +5568,14 @@ ${psychologyBlock}
 </script>`;
 
   // Section flow. Notable choices:
-  //   - competitorComparisonHtml fully REMOVED — its content
+  //   - competitorComparisonHtml fully REMOVED - its content
   //     duplicated material already in Competitor Deep Dive.
   //   - conquestPageHtml, chartsHtml, competitorDeepDiveHtml moved
-  //     UP (slots 18-20) — competitor-tactical sections belong near
+  //     UP (slots 18-20) - competitor-tactical sections belong near
   //     priority actions, not buried at the bottom.
-  //   - priorityHtml moved DOWN (slot 21) — sits AFTER the
+  //   - priorityHtml moved DOWN (slot 21) - sits AFTER the
   //     competitor context that motivates each action.
-  // FIX 6 — Dark mode toggle button + on-load restore script.
+  // FIX 6 - Dark mode toggle button + on-load restore script.
   const darkModeHtml = `<script>
 (function(){
   var saved = localStorage.getItem('reportDarkMode');
@@ -5548,7 +5637,7 @@ function citationLine(id, studies) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// BATCH16 — Common Problems Detected (review-mined)
+// BATCH16 - Common Problems Detected (review-mined)
 // ───────────────────────────────────────────────────────────────────
 // 8-step procedure from BATCH16.pdf p.3:
 //   1. fetch reviews (already in data.sample_reviews)
@@ -5644,13 +5733,13 @@ function renderCommonProblems(analysis) {
     }).join('');
   }
 
-  return `<h2>What your customers are saying — common problems detected</h2>${body}`;
+  return `<h2>What your customers are saying - common problems detected</h2>${body}`;
 }
 
 // ───────────────────────────────────────────────────────────────────
-// BATCH14 — Money-estimate methodology (CHANGE 6)
+// BATCH14 - Money-estimate methodology (CHANGE 6)
 // ───────────────────────────────────────────────────────────────────
-// Gates (all must pass — otherwise no money estimate is shown):
+// Gates (all must pass - otherwise no money estimate is shown):
 //   - Impact is HIGH or MEDIUM
 //   - At least one cited study is Tier 1 or Tier 2 (not Tier 3 vendor)
 //   - Recommendation magnitude string contains a parseable numeric % range
@@ -5660,7 +5749,7 @@ function renderCommonProblems(analysis) {
 //   1. Look up the profile's sector revenue baseline range [low, high]
 //   2. Apply size multiplier (review-count-derived: small/med/large/very large)
 //   3. Compute estimated annual revenue baseline = midpoint × multiplier
-//   4. Apply the study % range to that baseline → $X–$Y/year
+//   4. Apply the study % range to that baseline → $X-$Y/year
 //   5. Show one-line math + standard caveat
 
 const SECTOR_BASELINES_USD = {
@@ -5701,7 +5790,7 @@ function sizeLabel(reviewCount) {
 function parsePctMagnitude(magStr) {
   if (!magStr || typeof magStr !== 'string') return null;
   // Match "X-Y%" or "X to Y%" first.
-  let m = magStr.match(/(\d+(?:\.\d+)?)\s*[-–to]+\s*(\d+(?:\.\d+)?)\s*%/i);
+  let m = magStr.match(/(\d+(?:\.\d+)?)\s*[--to]+\s*(\d+(?:\.\d+)?)\s*%/i);
   if (m) {
     const lo = parseFloat(m[1]) / 100;
     const hi = parseFloat(m[2]) / 100;
@@ -5729,18 +5818,18 @@ function pickKpi(profileId) {
 }
 
 function buildMoneyEstimate(t, data, profile, studies) {
-  // Gate 1 — impact tier
+  // Gate 1 - impact tier
   if (t.impact !== 'HIGH' && t.impact !== 'MEDIUM') return '';
-  // Gate 2 — at least one Tier 1 or Tier 2 study
+  // Gate 2 - at least one Tier 1 or Tier 2 study
   const tiers = t.rec.study_ids
     .map((sid) => studies.find((s) => s.id === sid))
     .filter(Boolean)
     .map((s) => s.tier);
   if (!tiers.some((t) => t === 1 || t === 2)) return '';
-  // Gate 3 — parseable % magnitude
+  // Gate 3 - parseable % magnitude
   const pctRange = parsePctMagnitude(t.rec.magnitude);
   if (!pctRange) return '';
-  // Gate 4 — baseline available (always true with default)
+  // Gate 4 - baseline available (always true with default)
   const baselineRange = SECTOR_BASELINES_USD[profile.id] || DEFAULT_BASELINE_USD;
   const reviewCount = typeof data.google_review_count === 'number' ? data.google_review_count : null;
   const mult = sizeMultiplier(reviewCount);
@@ -5753,10 +5842,10 @@ function buildMoneyEstimate(t, data, profile, studies) {
   const fmtUsd = (n) => '$' + n.toLocaleString('en-US');
   const pctLow = (pctRange[0] * 100).toFixed(pctRange[0] < 0.01 ? 2 : 1).replace(/\.0$/, '');
   const pctHigh = (pctRange[1] * 100).toFixed(pctRange[1] < 0.01 ? 2 : 1).replace(/\.0$/, '');
-  const pctDisplay = pctLow === pctHigh ? `${pctLow}%` : `${pctLow}–${pctHigh}%`;
+  const pctDisplay = pctLow === pctHigh ? `${pctLow}%` : `${pctLow}-${pctHigh}%`;
   const moneyDisplay = lowMoney === highMoney
     ? `${fmtUsd(lowMoney)}/year`
-    : `${fmtUsd(lowMoney)}–${fmtUsd(highMoney)}/year`;
+    : `${fmtUsd(lowMoney)}-${fmtUsd(highMoney)}/year`;
   const kpi = pickKpi(profile.id);
   const reviewNote = reviewCount != null
     ? `${reviewCount} review${reviewCount === 1 ? '' : 's'} → ${sizeName} (×${mult})`
@@ -5764,13 +5853,13 @@ function buildMoneyEstimate(t, data, profile, studies) {
 
   return `<div class="money">
 <strong>Money estimate: ${moneyDisplay}</strong><br>
-<span class="meta">Math: ${fmtUsd(baselineRange[0])}–${fmtUsd(baselineRange[1])} sector baseline → midpoint ${fmtUsd((baselineRange[0] + baselineRange[1]) / 2)} × size multiplier (${reviewNote}) = ${fmtUsd(Math.round(midBaseline))} estimated annual revenue. Apply ${pctDisplay} cited study magnitude → ${moneyDisplay}.</span><br>
+<span class="meta">Math: ${fmtUsd(baselineRange[0])}-${fmtUsd(baselineRange[1])} sector baseline, midpoint ${fmtUsd((baselineRange[0] + baselineRange[1]) / 2)} × size multiplier (${reviewNote}) = ${fmtUsd(Math.round(midBaseline))} estimated annual revenue. Apply ${pctDisplay} cited study magnitude to get ${moneyDisplay}.</span><br>
 <em class="meta">Sector averages used. Track ${escapeHtml(kpi)} to measure your actual lift.</em>
 </div>`;
 }
 
 // ───────────────────────────────────────────────────────────────────
-// BATCH16 — KNOWN vs HIDDEN issue classification
+// BATCH16 - KNOWN vs HIDDEN issue classification
 // ───────────────────────────────────────────────────────────────────
 //
 // Compare each triggered rec's gap against competitor medians from the
@@ -5779,7 +5868,7 @@ function buildMoneyEstimate(t, data, profile, studies) {
 // mark HIDDEN (push to top regardless of raw score).
 //
 // Only `google_rating` and `google_review_count` gaps can be classified
-// — those are the fields the Nearby Search returns medians for. Other
+// - those are the fields the Nearby Search returns medians for. Other
 // gaps (response rate, recency, hours, etc.) stay 'normal' since we
 // have no competitor signal for them.
 function classifyKnownHidden(top10, data) {
@@ -5842,7 +5931,7 @@ function classifyKnownHidden(top10, data) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// BATCH14 / BATCH16 — 3-layer recommendation rendering helpers
+// BATCH14 / BATCH16 - 3-layer recommendation rendering helpers
 // ───────────────────────────────────────────────────────────────────
 
 /* Walk a trigger AST and collect all (field, op, threshold) comparisons
@@ -5871,7 +5960,7 @@ function evidenceForRec(rec, data) {
     const ast = triggerDsl.parse(rec.trigger);
     collectTriggerEvidence(ast, ev);
   } catch (e) {
-    // bad trigger — skip evidence extraction
+    // bad trigger - skip evidence extraction
   }
   return ev;
 }
@@ -5911,7 +6000,7 @@ function opPhrase(op) {
    WHY-IT-WORKS / WHY-YOUR-BUSINESS / money_estimate replace the deterministic
    versions. WHAT (rec.claim) stays deterministic. */
 // ─────────────────────────────────────────────────────────────────────
-// renderActionCard — Claude priority_actions card renderer
+// renderActionCard - Claude priority_actions card renderer
 // ─────────────────────────────────────────────────────────────────────
 // Renders one card from the new enriched.priority_actions[] schema
 // (added in claudeEnricher SYSTEM_PROMPT). Each action carries impact
@@ -5926,7 +6015,7 @@ const IMPACT_COLORS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────
-// FIX 1 — renderROISummary
+// FIX 1 - renderROISummary
 // ─────────────────────────────────────────────────────────────────────
 // Parses money_estimate strings (e.g. "$8,000-$18,000/year") from all
 // priority_actions, sums low and high ends, and renders a "Your Revenue
@@ -5942,7 +6031,7 @@ function renderROISummary(actions) {
   for (const a of actions) {
     const est = String(a.money_estimate || '').trim();
     if (!est) continue;
-    // FIX 7 — skip one-time costs; they are not annual revenue.
+    // FIX 7 - skip one-time costs; they are not annual revenue.
     if (/one[- ]?time|build|setup/i.test(est)) continue;
     // Extract ALL numbers and use min/max as the revenue range.
     // This avoids grabbing cost numbers first when Claude writes
@@ -5954,7 +6043,7 @@ function renderROISummary(actions) {
     if (allNums.length === 0) continue;
     let low = Math.min(...allNums);
     let high = Math.max(...allNums);
-    // FIX 7 — normalize /month estimates to annual for a consistent total.
+    // FIX 7 - normalize /month estimates to annual for a consistent total.
     if (/\/month/i.test(est)) {
       low = low * 12;
       high = high * 12;
@@ -5966,7 +6055,7 @@ function renderROISummary(actions) {
 
   if (rows.length === 0) return '';
 
-  // FIX 7 — always display total as /year regardless of individual units.
+  // FIX 7 - always display total as /year regardless of individual units.
   const suffix = '/year';
 
   const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
@@ -6032,7 +6121,7 @@ function renderActionCard(action) {
 // ─────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────
-// calculateAnchorScore — Walk-Up Traffic Potential score (0-100)
+// calculateAnchorScore - Walk-Up Traffic Potential score (0-100)
 // ─────────────────────────────────────────────────────────────────────
 // Uses ONLY existing data fields already in data.location_signals.*
 // and data.nearby_venues[]. No new API calls.
@@ -6124,7 +6213,7 @@ function calculateAnchorScore(data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderAnchorScore — Walk-Up Traffic Potential panel
+// renderAnchorScore - Walk-Up Traffic Potential panel
 // ─────────────────────────────────────────────────────────────────────
 // White card with score display, contributing factors, plain-English
 // "what this means for you" guidance keyed to the score band, and a
@@ -6147,7 +6236,7 @@ function renderAnchorScore(data) {
   const { score, band, bandColor, contributors } = result;
   const { anchors, transit, transitMeters, venueCount } = contributors;
 
-  // "What drives your score" — only show factors that actually contribute
+  // "What drives your score" - only show factors that actually contribute
   const driverLines = [];
   if (anchors.length > 0) {
     const top3 = anchors.slice(0, 3);
@@ -6180,7 +6269,7 @@ function renderAnchorScore(data) {
       </div>`
     : '';
 
-  // "What this means for you" — band-specific guidance
+  // "What this means for you" - band-specific guidance
   const meaningMap = {
     'Anchor Magnet': "Hundreds of potential customers pass within 500 meters of your door every day. Your marketing goal is CAPTURE not DISCOVERY. Use sidewalk signage, window displays, and Google Maps to intercept passing traffic.",
     'Walkable Strip': "Your location gets moderate foot traffic from nearby anchors. Focus on making your storefront visible and inviting to people passing by.",
@@ -6213,7 +6302,7 @@ function renderAnchorScore(data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderCompetitiveMap — Google Maps Embed iframe of local area
+// renderCompetitiveMap - Google Maps Embed iframe of local area
 // ─────────────────────────────────────────────────────────────────────
 // Interactive Google Maps embed centered on the business, searching for
 // the same business type nearby. Falls back to '' when lat/lon or
@@ -6235,7 +6324,7 @@ function renderCompetitiveMap(data, profile) {
   const src = `https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${q}&center=${center}&zoom=13`;
 
   return `<div class="section">
-  <h2 id="competitive-map">Your area &mdash; competitors nearby</h2>
+  <h2 id="competitive-map">Your area - competitors nearby</h2>
   <iframe
     src="${src}"
     style="width:100%;height:400px;border:none;border-radius:8px;"
@@ -6247,7 +6336,7 @@ function renderCompetitiveMap(data, profile) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// fetchReviewVelocity — DB lookup for the user's prior review snapshot
+// fetchReviewVelocity - DB lookup for the user's prior review snapshot
 // ─────────────────────────────────────────────────────────────────────
 // Reads the user's most recent prior report for the same business and
 // extracts data.google_review_count from the saved report_json. Returns
@@ -6304,13 +6393,13 @@ async function fetchReviewVelocity(userId, businessName, beforeDate) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderReviewGap — "Review Gap & Catch-Up Calculator" section
+// renderReviewGap - "Review Gap & Catch-Up Calculator" section
 // ─────────────────────────────────────────────────────────────────────
 // Four parts:
 //   1. Bar comparison (you vs. the highest-reviewed competitor)
 //   2. Catch-up calculator table (months at 5/10/25/50 reviews per month)
-//   3. Realistic target — beat the local median, not the leader
-//   4. Real velocity — diff from the user's previous report (when available)
+//   3. Realistic target - beat the local median, not the leader
+//   4. Real velocity - diff from the user's previous report (when available)
 //
 // Uses ONLY existing data fields. Zero new API calls.
 //
@@ -6343,7 +6432,7 @@ function renderReviewGap(data, velocity) {
     ? Math.max(Math.round(median * 1.5), yourReviews + 50)
     : yourReviews + 50;
 
-  // ── PART 1 + PART 2 — bar comparison + catch-up table ──────────────
+  // ── PART 1 + PART 2 - bar comparison + catch-up table ──────────────
   // Show every competitor that has more reviews than the subject.
   let gapHtml = '';
   let catchUpHtml = '';
@@ -6430,7 +6519,7 @@ function renderReviewGap(data, velocity) {
     gapHtml = `<p style="font-size: 14px; line-height: 1.6; color: #1E293B;">You lead all nearby competitors in review count. Keep collecting reviews to maintain this advantage.</p>`;
   }
 
-  // ── PART 3 — realistic target ──────────────────────────────────────
+  // ── PART 3 - realistic target ──────────────────────────────────────
   let targetHtml = '';
   if (realisticTarget <= yourReviews) {
     targetHtml = `<div style="background: #ECFDF5; border-left: 3px solid #10B981; padding: 14px 18px; border-radius: 0 6px 6px 0; margin-top: 20px;">
@@ -6456,7 +6545,7 @@ function renderReviewGap(data, velocity) {
 </div>`;
   }
 
-  // ── PART 4 — real velocity from prior report ───────────────────────
+  // ── PART 4 - real velocity from prior report ───────────────────────
   let velocityHtml = '';
   if (velocity && typeof velocity.previousCount === 'number' && typeof velocity.daysAgo === 'number' && velocity.daysAgo >= 1) {
     const oldCount = velocity.previousCount;
@@ -6507,7 +6596,7 @@ function renderReviewGap(data, velocity) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderRankingEstimate — estimated Google search position
+// renderRankingEstimate - estimated Google search position
 // ─────────────────────────────────────────────────────────────────────
 // Sorts you + competitors by score = rating * log10(reviews + 1) and
 // shows where you land. Uses ONLY data fields already in the bundle.
@@ -6525,7 +6614,7 @@ function renderRankingEstimate(data, profile) {
   const yourReviews = typeof data.google_review_count === 'number' ? data.google_review_count : 0;
   const competitors = Array.isArray(data.competitors_top5) ? data.competitors_top5 : [];
 
-  // Only bail out when there are no competitors — we can still show a
+  // Only bail out when there are no competitors - we can still show a
   // ranking when the subject has no rating/reviews (they get score 0).
   if (competitors.length === 0) {
     return `<div class="section">
@@ -6538,7 +6627,7 @@ function renderRankingEstimate(data, profile) {
   // they naturally fall to the bottom of the sorted list.
   const noReviewsCase = yourRating == null || yourReviews === 0;
 
-  // CHANGE 3 — business-type label sourced from the profile registry
+  // CHANGE 3 - business-type label sourced from the profile registry
   // (profile.name is the same human label already shown in the report
   // header). Lowercased and trimmed for the inline search-example.
   // City sourced from data.city (set during address parsing); falls
@@ -6551,7 +6640,7 @@ function renderRankingEstimate(data, profile) {
     ? data.city.trim()
     : 'your area';
 
-  // Score function — rating × log10(reviews + 1). Reviews dominate at
+  // Score function - rating × log10(reviews + 1). Reviews dominate at
   // scale, but a higher rating still tips a tie when review counts are
   // close.
   function score(rating, reviews) {
@@ -6578,7 +6667,7 @@ function renderRankingEstimate(data, profile) {
     score: noReviewsCase ? 0 : score(yourRating, yourReviews),
   });
 
-  // Sort by score descending — position 1 is the best score.
+  // Sort by score descending - position 1 is the best score.
   allEntries.sort((a, b) => b.score - a.score);
 
   // 1-indexed position of the user.
@@ -6621,7 +6710,7 @@ function renderRankingEstimate(data, profile) {
     guidance = "Most customers never scroll past position 3 in Google search. Getting more reviews is your single most important action right now.";
   }
 
-  // "How many reviews to move up one position" — uses the user's exact
+  // "How many reviews to move up one position" - uses the user's exact
   // simple formula: next.review_count - your.review_count + 1. We only
   // show the line when that delta is positive (i.e., the competitor
   // above us has more reviews than us). When they're ahead by rating
@@ -6639,13 +6728,13 @@ function renderRankingEstimate(data, profile) {
     }
   }
 
-  // CHANGE 3 — explanation paragraph sits between the navy headline
+  // CHANGE 3 - explanation paragraph sits between the navy headline
   // card and the ranked list, inside the white card. Uses the real
   // business-type label and city from the report data so the example
   // search query reflects what a customer would actually type.
   const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(bizType)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
 
-  // Note shown when the subject has no reviews — explains why they
+  // Note shown when the subject has no reviews - explains why they
   // appear at the bottom and motivates the first review action.
   const noReviewsNoteHtml = noReviewsCase
     ? `<p style="font-size: 13px; line-height: 1.6; color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 12px 14px; margin: 14px 0 0;">You currently have no Google reviews. Businesses with no reviews always appear below competitors in Google search. Every review you collect moves you up.</p>`
@@ -6673,7 +6762,7 @@ function renderRankingEstimate(data, profile) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderHoursComparison — your hours vs. competitor hours
+// renderHoursComparison - your hours vs. competitor hours
 // ─────────────────────────────────────────────────────────────────────
 // Parses Google's weekday_text strings (e.g. "Monday: 9:00 AM, 9:00 PM")
 // and renders a compact day-by-day table. Highlights YOUR row in blue.
@@ -6708,7 +6797,7 @@ function renderHoursComparison(data) {
         result[day] = 'Cls';
         continue;
       }
-      // FIX 2 — recognise 24-hour businesses BEFORE the AM/PM regex,
+      // FIX 2 - recognise 24-hour businesses BEFORE the AM/PM regex,
       // which can't match strings like "Open 24 hours" (no colon-
       // separated times). AmericInn Wyndham's weekday_text was
       // ["Monday: Open 24 hours", ...] and every day fell through to
@@ -6719,9 +6808,9 @@ function renderHoursComparison(data) {
         result[day] = '24h';
         continue;
       }
-      // Match all time ranges in the string — handles split hours like
-      // "11:00 AM – 3:00 PM, 5:00 PM – 9:00 PM" by finding every range.
-      const timeRangeRe = /(\d+):(\d+)\s*(AM|PM)?\s*[–—\-]+\s*(\d+):(\d+)\s*(AM|PM)?/ig;
+      // Match all time ranges in the string - handles split hours like
+      // "11:00 AM - 3:00 PM, 5:00 PM - 9:00 PM" by finding every range.
+      const timeRangeRe = /(\d+):(\d+)\s*(AM|PM)?\s*[--\-]+\s*(\d+):(\d+)\s*(AM|PM)?/ig;
       const allRanges = [];
       let rm;
       while ((rm = timeRangeRe.exec(rest)) !== null) {
@@ -6741,7 +6830,7 @@ function renderHoursComparison(data) {
         result[day] = allRanges.join(', ');
         continue;
       }
-      result[day] = '—';
+      result[day] = '-';
     }
     return result;
   }
@@ -6752,7 +6841,7 @@ function renderHoursComparison(data) {
     const result = {};
     for (const day of DAYS) {
       const val = parsed[day];
-      if (!val || val === 'Cls' || val === '—') {
+      if (!val || val === 'Cls' || val === '-') {
         result[day] = null;
         continue;
       }
@@ -6783,7 +6872,7 @@ function renderHoursComparison(data) {
     const bg = isYour ? '#EFF6FF' : '#FFFFFF';
     const border = isYour ? '1px solid #DBEAFE' : '1px solid #F1F5F9';
     const color = isClosed ? '#DC2626' : '#1E293B';
-    return `<td style="padding: 9px 4px; font-size: 12px; color: ${color}; text-align: center; background: ${bg}; border-bottom: ${border};">${escapeHtml(value || '—')}</td>`;
+    return `<td style="padding: 9px 4px; font-size: 12px; color: ${color}; text-align: center; background: ${bg}; border-bottom: ${border};">${escapeHtml(value || '-')}</td>`;
   }
 
   const headerRow = `<tr style="background: #F8FAFC;">
@@ -6791,25 +6880,25 @@ function renderHoursComparison(data) {
     ${DAY_LABELS.map((d) => `<th style="padding: 9px 4px; font-size: 11px; font-weight: 700; color: #6B7280; text-align: center; border-bottom: 1px solid #E5E7EB;">${d}</th>`).join('')}
   </tr>`;
 
-  // FIX 2 (part 2) — detect a "broken" YOUR row, every day either
+  // FIX 2 (part 2) - detect a "broken" YOUR row, every day either
   // unparsed (em-dash placeholder) or missing. Skip the broken row and
   // surface an info box below the table explaining what the user can
   // do. The 24h special case above means a real 24-hour business
   // shows '24h' across the row instead of falling into this branch.
   const yourHasAnyValid = yourHours.length > 0 && DAYS.some((d) => {
     const v = yourParsed[d];
-    return v && v !== '—';
+    return v && v !== '-';
   });
   let yourRow;
   if (yourHours.length === 0) {
-    // FIX 3 — no hours on GBP: show the YOU row with N/A for all 7 days
+    // FIX 3 - no hours on GBP: show the YOU row with N/A for all 7 days
     // instead of hiding the section entirely.
     yourRow = `<tr>
     <td style="padding: 9px 12px; font-size: 13px; font-weight: 700; color: #2563EB; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">YOU</td>
     ${DAYS.map(() => `<td style="padding: 9px 4px; font-size: 12px; color: #9CA3AF; text-align: center; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">N/A</td>`).join('')}
   </tr>`;
   } else {
-    const yourCells = DAYS.map((d) => cell(yourParsed[d] || '—', true)).join('');
+    const yourCells = DAYS.map((d) => cell(yourParsed[d] || '-', true)).join('');
     yourRow = yourHasAnyValid
       ? `<tr>
     <td style="padding: 9px 12px; font-size: 13px; font-weight: 700; color: #2563EB; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;">YOU</td>
@@ -6826,7 +6915,7 @@ function renderHoursComparison(data) {
       : (Array.isArray(c.hours) && c.hours.length > 0 ? c.hours : null);
     if (!hoursSource) anyCompHasNoHours = true;
     const parsed = hoursSource ? parseHours(hoursSource) : {};
-    const cells = DAYS.map((d) => cell(hoursSource ? (parsed[d] || '—') : 'N/A', false)).join('');
+    const cells = DAYS.map((d) => cell(hoursSource ? (parsed[d] || '-') : 'N/A', false)).join('');
     return `<tr>
       <td style="padding: 9px 12px; font-size: 13px; color: #1E293B; border-bottom: 1px solid #F1F5F9; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${escapeHtml(c.name || '')}">${escapeHtml(c.name || 'Unknown')}</td>
       ${cells}
@@ -6852,7 +6941,7 @@ function renderHoursComparison(data) {
     : (yourHasAnyValid ? '' :
       `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`);
 
-  // Gap analysis — only when we have competitor hours.
+  // Gap analysis - only when we have competitor hours.
   let gapInsightsHtml = '';
   if (hasCompetitorHours) {
     const insights = [];
@@ -6905,17 +6994,17 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
     }
   }
 
-  // FIX 3 — Competitor hours diagnostic note.
+  // FIX 3 - Competitor hours diagnostic note.
   // Root cause: googlePlaces.js fetchNearbyCompetitors calls getDetails()
   // for each top-5 competitor (which DOES return weekday_text) but only
-  // forwards `reviews` and `address` to the competitor object — weekday_text
+  // forwards `reviews` and `address` to the competitor object - weekday_text
   // is not included in the spread. Until that 1-line fix is applied to
   // googlePlaces.js (adding `weekday_text: details.weekday_text || null`),
   // this block will always show the fallback. The table code above already
   // handles weekday_text correctly when it is present.
   const noCompHoursFallback = hasCompetitorHours ? '' :
     `<div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border-left:3px solid #94A3B8;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.6;">
-  Competitor hours not yet available — your hours are shown above. Competitor hours will appear here in a future update.
+  Competitor hours not yet available. Your hours are shown above. Competitor hours will appear here in a future update.
 </div>`;
 
   return `<div class="section">
@@ -6930,7 +7019,7 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderSeasonalCalendar — 12-month demand bars + recommendations
+// renderSeasonalCalendar - 12-month demand bars + recommendations
 // ─────────────────────────────────────────────────────────────────────
 // Builds a 12-month demand array from existing climate + seasonality
 // signals (peak_month, has_cold_winter, has_hot_summer,
@@ -6953,15 +7042,15 @@ function renderSeasonalCalendar(data) {
   // Start every month at Medium (level 2).
   const demand = new Array(12).fill(2);
 
-  // Cold winter market — Jan, Feb, Dec drop to Low.
+  // Cold winter market - Jan, Feb, Dec drop to Low.
   if (data.has_cold_winter === true) {
     demand[0] = 1;
     demand[1] = 1;
     demand[11] = 1;
   }
 
-  // Peak month — either from data.peak_month directly, or derived from
-  // peak_tourist_season as a fallback. FIX 3A — googlePlaces.js emits
+  // Peak month - either from data.peak_month directly, or derived from
+  // peak_tourist_season as a fallback. FIX 3A - googlePlaces.js emits
   // 3-letter month abbreviations like "Jul" via MONTH_NAMES, but this
   // reader was only checking against the FULL_MONTHS array ("July").
   // The format mismatch silently failed every report. Accept BOTH the
@@ -6975,7 +7064,7 @@ function renderSeasonalCalendar(data) {
     }
     if (idx >= 0) peakMonthIdx = idx;
   }
-  // FIX 3B — peak_tourist_season is often a range like "Jun-Aug" or
+  // FIX 3B - peak_tourist_season is often a range like "Jun-Aug" or
   // "Dec-Feb". The prior fallback only matched single season-keyword
   // strings ("summer"/"fall"/"winter"/"spring"), so range formats fell
   // through to null. Parse the range first; if both endpoints resolve
@@ -6991,7 +7080,7 @@ function renderSeasonalCalendar(data) {
       const startIdx = MONTHS.findIndex((m) => m.toLowerCase() === startAbbr);
       const endIdx = MONTHS.findIndex((m) => m.toLowerCase() === endAbbr);
       if (startIdx >= 0 && endIdx >= 0) {
-        // Middle month — handles wrap-around (Dec-Feb → Jan).
+        // Middle month - handles wrap-around (Dec-Feb → Jan).
         let middleIdx;
         if (startIdx <= endIdx) {
           middleIdx = Math.floor((startIdx + endIdx) / 2);
@@ -7028,7 +7117,7 @@ function renderSeasonalCalendar(data) {
     if (demand[after] < 3) demand[after] = 3;
   }
 
-  // Hot summer market — June, July, August at least High (3).
+  // Hot summer market - June, July, August at least High (3).
   if (data.has_hot_summer === true) {
     if (demand[5] < 3) demand[5] = 3;
     if (demand[6] < 3) demand[6] = 3;
@@ -7076,12 +7165,12 @@ function renderSeasonalCalendar(data) {
     return arr.length > 0 ? arr.join(', ') : 'No months identified';
   }
 
-  // FIX 4A — promotion months. Previously this was
+  // FIX 4A - promotion months. Previously this was
   // `[...lowMonths, ...mediumMonths]` which surfaced up to 11 of 12
   // months when peak detection failed and most months stayed at the
   // default "medium" level. Now: prefer the actual slow (low-demand)
   // months. If none exist, walk backwards from the first high/peak
-  // month to find 1-2 "shoulder season" months — the period right
+  // month to find 1-2 "shoulder season" months - the period right
   // before demand spikes is when promotions move the needle most.
   // Cap at 3 either way so the list stays scannable.
   let promoMonths;
@@ -7101,17 +7190,17 @@ function renderSeasonalCalendar(data) {
       }
       promoMonths = shoulder;
     } else {
-      // No signal at all — fall back to first 2 medium months (rare).
+      // No signal at all - fall back to first 2 medium months (rare).
       promoMonths = mediumMonths.slice(0, 2);
     }
   }
 
-  // FIX 4B — "Best months to stock up inventory" removed entirely.
+  // FIX 4B - "Best months to stock up inventory" removed entirely.
   // The metric is meaningless for service businesses (hotels, salons,
   // dental, healthcare) and the underlying `beforePeakMonths` array
   // was already breaking with "No months identified" for any report
   // where the peak detection failed. Not useful enough to keep for any
-  // sector — deleted.
+  // sector - deleted.
   const recommendationsHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 22px 0 12px;">Business recommendations</h3>
 <div style="background: #F8FAFC; border-radius: 8px; padding: 14px 18px;">
   <p style="margin: 0 0 8px; font-size: 14px; color: #1E293B; line-height: 1.6;"><strong>Best months to hire extra staff:</strong> ${escapeHtml(listOrNone([...peakMonths, ...highMonths]))}</p>
@@ -7119,7 +7208,7 @@ function renderSeasonalCalendar(data) {
   <p style="margin: 0; font-size: 14px; color: #1E293B; line-height: 1.6;"><strong>Quietest months for vacation:</strong> ${escapeHtml(listOrNone(lowMonths))}</p>
 </div>`;
 
-  // Upcoming events block — listed at the bottom with their date string.
+  // Upcoming events block - listed at the bottom with their date string.
   const events = Array.isArray(data.upcoming_events) ? data.upcoming_events : [];
   let eventsHtml = '';
   if (events.length > 0) {
@@ -7154,7 +7243,7 @@ function renderSeasonalCalendar(data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderCompetitorDeepDive — Claude competitor_deep_dive renderer
+// renderCompetitorDeepDive - Claude competitor_deep_dive renderer
 // ─────────────────────────────────────────────────────────────────────
 // Renders the "why your top competitor is winning" section. Shows
 // red factor cards (why_they_are_winning), green opportunity cards
@@ -7244,7 +7333,7 @@ function renderCompetitorDeepDive(deepDive, outperformedCompetitors, data) {
           + '<div style="font-weight: 600; color: #065F46; font-size: 14px; margin-bottom: 6px;">&#9989; Competitors you are already beating</div>'
           + '<div style="font-size: 13px; color: #374151;">'
           + outperformed.map((n) => escapeHtml(n)).join(', ')
-          + ' &mdash; you outperform on both rating and review count. Keep doing what you are doing.'
+          + ' - you outperform on both rating and review count. Keep doing what you are doing.'
           + '</div>'
           + '</div>';
   }
@@ -7254,7 +7343,7 @@ function renderCompetitorDeepDive(deepDive, outperformedCompetitors, data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderKeyRisks — Claude key_risks renderer
+// renderKeyRisks - Claude key_risks renderer
 // ─────────────────────────────────────────────────────────────────────
 // Severity-colored risk cards with early-warning, mitigation, and
 // cost-if-ignored boxes. HIGH=red, MEDIUM=amber, LOW=gray.
@@ -7283,18 +7372,18 @@ function renderKeyRisks(risks) {
   }).join('');
 
   return `<div class="section">
-  <h2 id="key-risks">&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
-  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now &mdash; with early warning signs so you can act before they become crises.</p>
+  <h2 id="key-risks">&#9888;&#65039; Key risks - and how to stay ahead</h2>
+  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now, with early warning signs so you can act before they become crises.</p>
   ${cardsHtml}
 </div>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// renderExecutionTemplates — Claude execution_templates renderer
+// renderExecutionTemplates - Claude execution_templates renderer
 // ─────────────────────────────────────────────────────────────────────
 // Each template is a copy-paste-ready card with a clipboard button.
 // The body is JSON-stringified into a data attribute and read back via
-// JSON.parse on click — robust against quotes/newlines/template-literal
+// JSON.parse on click - robust against quotes/newlines/template-literal
 // chars in the body text.
 const TEMPLATE_TYPE_ICONS = {
   email:        '&#128231;',  // 📧
@@ -7304,7 +7393,7 @@ const TEMPLATE_TYPE_ICONS = {
 };
 
 // Encode for safe embedding in an HTML attribute. escapeHtml handles
-// & < > " ' but NOT newlines — browsers preserve attribute newlines
+// & < > " ' but NOT newlines - browsers preserve attribute newlines
 // inconsistently. Encoding LF/CR as numeric character references
 // makes the round-trip predictable: when JS reads element.dataset.body
 // the entities decode back to actual \n characters.
@@ -7327,7 +7416,7 @@ function renderExecutionTemplates(templates) {
 
     // Body div carries id + data-body. The display content is HTML-
     // escaped (visible plaintext, white-space:pre-wrap preserves the
-    // visible newlines). The copy button reads dataset.body — which
+    // visible newlines). The copy button reads dataset.body - which
     // the browser decodes back to original characters including \n.
     return `<div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
     <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
@@ -7357,7 +7446,7 @@ function renderRec3Layer(t, idx, data, studies, extraTags = [], enrichedRec = nu
   const rec = t.rec;
   const impactClass = `impact impact-${t.impact.toLowerCase()}`;
 
-  // Phase 5 — Claude-enriched path
+  // Phase 5 - Claude-enriched path
   if (enrichedRec) {
     const aiBadge = ` <span class="ai-badge" title="Enriched by Claude">AI</span>`;
     const what = enrichedRec.what || rec.claim || '';
@@ -7402,20 +7491,20 @@ ${moneyHtml}
 
   // Phase 4 deterministic path (recs 4-10, or when enrichment unavailable)
 
-  // Layer 2: WHY IT WORKS — pull each cited study's finding_summary.
+  // Layer 2: WHY IT WORKS - pull each cited study's finding_summary.
   const studyBlocks = rec.study_ids.map((sid) => {
     const s = studies.find((x) => x.id === sid);
-    if (!s) return `<div class="why-study"><strong>${escapeHtml(sid)}</strong> — not found in studies registry</div>`;
+    if (!s) return `<div class="why-study"><strong>${escapeHtml(sid)}</strong> - not found in studies registry</div>`;
     const tierTag = s.tier === 3 ? ' <span class="tier3">[TIER-3 VENDOR]</span>' : '';
     const link = `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.id)}</a>`;
     return `<div class="why-study">
 <p>${escapeHtml(s.finding_summary || s.claim || '')}</p>
-<p class="meta"><strong>Magnitude:</strong> ${escapeHtml(rec.magnitude || '—')}<br>
-<strong>Source:</strong> ${link} (Tier ${s.tier})${tierTag} — ${escapeHtml(s.citation)}</p>
+<p class="meta"><strong>Magnitude:</strong> ${escapeHtml(rec.magnitude || '-')}<br>
+<strong>Source:</strong> ${link} (Tier ${s.tier})${tierTag} - ${escapeHtml(s.citation)}</p>
 </div>`;
   }).join('');
 
-  // Layer 3: WHY YOUR BUSINESS — auto-derive from trigger + data fields.
+  // Layer 3: WHY YOUR BUSINESS - auto-derive from trigger + data fields.
   const ev = evidenceForRec(rec, data);
   const layer3Bits = [];
 
@@ -7437,7 +7526,7 @@ ${moneyHtml}
       text: 'Long-term KPI for this sector. Track this metric quarterly to confirm whether your business is on the recommended trajectory.',
     });
   }
-  // Generic inference line (one per rec) — sector pattern.
+  // Generic inference line (one per rec) - sector pattern.
   layer3Bits.push({
     tag: 'REASONABLE INFERENCE',
     text: `This pattern is typical for businesses like yours; the exact lift you'll see depends on execution quality and current baseline.`,
@@ -7451,7 +7540,7 @@ ${moneyHtml}
     ? extraTags.map((t) => `<span class="extra-tag extra-tag-${t.cls}">${escapeHtml(t.label)}</span>`).join(' ')
     : '';
 
-  // Money estimate — wired in CHANGE 6. Reserved slot here.
+  // Money estimate - wired in CHANGE 6. Reserved slot here.
   const moneyHtml = (typeof t.moneyEstimateHtml === 'string' && t.moneyEstimateHtml) ? t.moneyEstimateHtml : '';
 
   return `<div class="rec rec-${t.impact.toLowerCase()}">

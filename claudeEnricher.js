@@ -1,4 +1,4 @@
-/* claudeEnricher.js — Phase 5
+/* claudeEnricher.js - Phase 5
    Sends a deterministic data bundle to Claude after Phase 4's ranker
    produces top-10 recommendations. Claude returns:
      - enriched WHY-IT-WORKS / WHY-YOUR-BUSINESS for the top 3 recs
@@ -9,13 +9,13 @@
 
    Architecture per Phase 5 spec:
      1-5. Deterministic work (Layer 0, Places, Census, triggers, ranker)
-     6.   ⇣ THIS MODULE — Claude enrichment ⇣
+     6.   ⇣ THIS MODULE - Claude enrichment ⇣
      7.   Report renders with enriched content (or falls back if API fails)
 
    Implementation choice: uses the official @anthropic-ai/sdk rather than
    raw fetch because (a) the prompt-caching skill recommends it, (b) it
    gives us typed exceptions + automatic retries on 429/5xx, and (c) it
-   lets us mark the system prompt as cacheable — that single change cuts
+   lets us mark the system prompt as cacheable - that single change cuts
    ~90% of the input-token cost on every call after the first within the
    5-minute cache window. The user's spec showed `fetch()` as a sample
    shape; the SDK call below produces the same wire request. */
@@ -28,10 +28,10 @@ const { LRUCache } = require('lru-cache');
 const MODEL = 'claude-sonnet-4-6';
 // Two parallel Claude calls split the enrichment payload to avoid
 // the previous truncation risk at 16000:
-//   Call A — existing fields + competitor_deep_dive (~14000 ceiling)
-//   Call B — key_risks + execution_templates only   (~8000 ceiling)
+//   Call A - existing fields + competitor_deep_dive (~14000 ceiling)
+//   Call B - key_risks + execution_templates only   (~8000 ceiling)
 // Both run via Promise.allSettled so one inner failure doesn't lose
-// the other call's work. Billed on ACTUAL output tokens — caps are
+// the other call's work. Billed on ACTUAL output tokens - caps are
 // headroom.
 //
 // MAX_TOKENS_A bumped 10000 → 14000 → 18000 after the Wingate Oshkosh
@@ -41,7 +41,7 @@ const MODEL = 'claude-sonnet-4-6';
 // output tokens so 18000 (and the 1.5× = 27000 retry below) are safely
 // within model limits. callClaudeEnrichA retries once at
 // Math.round(MAX_TOKENS_A * 1.5) = 27000 if the first attempt still
-// truncates — a 30-page report needs this headroom.
+// truncates - a 30-page report needs this headroom.
 const MAX_TOKENS_A = 20000;
 const MAX_TOKENS_B = 10000;
 
@@ -1934,7 +1934,7 @@ Example:
 "Customers remember where they took a photo more than what they ate. Every photo shared reaches 5-10 new people for free. Taking a photo creates emotional engagement which makes a review 3 times more likely. You invest once and it keeps working."`;
 
 // ───────────────────────────────────────────────────────────────────
-// Address parsing — extract city/state/zip from Google's formatted_address
+// Address parsing - extract city/state/zip from Google's formatted_address
 // ───────────────────────────────────────────────────────────────────
 function parseAddress(formatted) {
   if (!formatted || typeof formatted !== 'string') {
@@ -1960,9 +1960,9 @@ function parseAddress(formatted) {
 // Set of recommendation IDs that must NEVER reach Claude even when the
 // deterministic ranker fires them. Each one represents a metric we
 // cannot compute reliably from Google's 5-review / 10-photo sample.
-//   rec_review_recency — review_recency_days unreliable (relevance-sorted
+//   rec_review_recency - review_recency_days unreliable (relevance-sorted
 //                        5-review sample, not date-sorted)
-//   rec_response_rate  — response rate from 5 reviews unreliable for any
+//   rec_response_rate  - response rate from 5 reviews unreliable for any
 //                        business with >> 5 total reviews
 const BANNED_REC_IDS = new Set([
   'rec_review_recency',
@@ -1980,7 +1980,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
   const top3 = cleanedTop10.slice(0, 3);
 
   return {
-    // AI classification correction signal — populated when
+    // AI classification correction signal - populated when
     // verifyBusinessClassification overrode the Layer 0 NAICS. Read by
     // buildUserPrompt to render an "AI CLASSIFICATION CORRECTION" block
     // at the top so Claude generates recommendations for the corrected
@@ -2016,7 +2016,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       review_recency_days: typeof data.review_recency_days === 'number' ? data.review_recency_days : null,
       photo_count: typeof data.photo_count === 'number' ? data.photo_count : null,
       responds_to_reviews: data.responds_to_reviews === true,
-      // Numeric response rate (0.0-1.0) — added so priority_actions can
+      // Numeric response rate (0.0-1.0) - added so priority_actions can
       // cite the actual rate (e.g. "0% across 1,392 reviews") instead of
       // just the boolean. Falls back to null when not measured.
       response_rate_estimated: typeof data.response_rate_estimated === 'number'
@@ -2025,7 +2025,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       hours_complete: data.hours_complete === true,
       website_exists: data.website_exists,
       sample_reviews: (data.sample_reviews || []).slice(0, 5).map((r) => ({
-        // Full review text — no truncation. Claude needs the complete
+        // Full review text - no truncation. Claude needs the complete
         // verbatim review to cite specific complaints / praise points
         // in priority_actions and competitor_analysis.
         text: r.text || '',
@@ -2036,10 +2036,10 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       count: typeof data.competitor_count === 'number' ? data.competitor_count : null,
       median_rating: typeof data.competitor_median_rating === 'number' ? data.competitor_median_rating : null,
       median_review_count: typeof data.competitor_median_review_count === 'number' ? data.competitor_median_review_count : null,
-      // Phase 5+ — top5 (with back-compat top3 slice) plus the actual
+      // Phase 5+ - top5 (with back-compat top3 slice) plus the actual
       // search radius the fetcher landed on, so Claude can flag thin
       // local markets in its competitor_analysis.summary.
-      // FIX 1 — top_reviews: real competitor review snippets fetched by
+      // FIX 1 - top_reviews: real competitor review snippets fetched by
       // googlePlaces.fetchNearbyCompetitors (Place Details enrichment).
       // SYSTEM_PROMPT_A's STEAL STRATEGY RULE requires Claude to cite these
       // verbatim in competitor_analysis.what_they_do_better instead of
@@ -2049,11 +2049,11 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
         rating: c.rating,
         review_count: c.review_count,
         distance_miles: typeof c.distance_meters === 'number' ? +(c.distance_meters / 1609.34).toFixed(2) : null,
-        // Full competitor-review text — no truncation. Claude cites
+        // Full competitor-review text - no truncation. Claude cites
         // these verbatim in competitor_analysis.what_they_do_better
         // per the STEAL STRATEGY RULE.
         top_reviews: Array.isArray(c.reviews) ? c.reviews.map((r) =>
-          `[${r.rating != null ? r.rating + '/5' : '—'} ${r.time || 'recent'}]: "${r.text || ''}"`
+          `[${r.rating != null ? r.rating + '/5' : '-'} ${r.time || 'recent'}]: "${r.text || ''}"`
         ) : [],
       })) : [],
       top3: Array.isArray(data.competitors_top3) ? data.competitors_top3.map((c) => ({
@@ -2064,7 +2064,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       })) : [],
       search_radius_miles: typeof data.search_radius_miles === 'number' ? data.search_radius_miles : null,
     },
-    // FIX 4 — review sample size. The number of reviews Google's legacy
+    // FIX 4 - review sample size. The number of reviews Google's legacy
     // Places Details actually returned (max 5). Used by renderReport to
     // suppress the misleading "0% owner-response rate" callout when the
     // sample is too small to draw any conclusion.
@@ -2073,7 +2073,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       median_household_income: typeof data.median_household_income === 'number' ? data.median_household_income : null,
       population: typeof data.total_population === 'number' ? data.total_population : null,
     },
-    // Phase 5+ — three free data sources added to give Claude real
+    // Phase 5+ - three free data sources added to give Claude real
     // seasonal context, website-quality signals, and on-the-ground
     // location detail (anchor proximity, transit). Used in the
     // "opportunities" generation step to make ideas more specific.
@@ -2103,13 +2103,13 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       yoy_change_pct: data.building_permits_yoy_change,
     } : null,
     upcoming_events: Array.isArray(data.upcoming_events) ? data.upcoming_events : [],
-    // Phase 5+ — 3 new keyless data sources, populated by server.js when
+    // Phase 5+ - 3 new keyless data sources, populated by server.js when
     // the NAICS prefix matches the per-source gate. Each is null when
     // the fetcher didn't fire or returned no data.
     cdc_health: data.cdc_health || null,
     hrsa_dental: data.hrsa_dental || null,
     usda_ers: data.usda_ers || null,
-    // Phase 5+ — 5 more sources (FoodData, OFF, Datamuse, NPS, NOAA).
+    // Phase 5+ - 5 more sources (FoodData, OFF, Datamuse, NPS, NOAA).
     // Same null-when-not-fired pattern. food_data + open_food_facts
     // fire only on restaurant / grocery sectors; nearby_nps_parks on
     // hotel / restaurant / retail; related_words + noaa_climate fire
@@ -2119,14 +2119,14 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
     related_words: Array.isArray(data.related_words) ? data.related_words : null,
     nearby_nps_parks: Array.isArray(data.nearby_nps_parks) ? data.nearby_nps_parks : null,
     noaa_climate: data.noaa_climate || null,
-    // Phase 5+ — Census housing extension (always-on; piggybacks on the
+    // Phase 5+ - Census housing extension (always-on; piggybacks on the
     // existing _fetchCensusZipLevel call). Always ZIP-scoped because
     // place-level Census doesn't carry housing variables.
     census_housing: data.census_housing || null,
-    // Phase 5+ — Foursquare nearby venues (food/arts/outdoors). Used by
+    // Phase 5+ - Foursquare nearby venues (food/arts/outdoors). Used by
     // Claude for partnership ideas + walkability framing in opportunities.
     nearby_venues: Array.isArray(data.nearby_venues) ? data.nearby_venues : [],
-    // Phase 5+ — TripAdvisor intelligence. Sub-ratings drive specific
+    // Phase 5+ - TripAdvisor intelligence. Sub-ratings drive specific
     // service-gap recommendations; trip_types drive segment messaging.
     tripadvisor: data.tripadvisor ? {
       rating: data.ta_rating,
@@ -2140,7 +2140,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       recent_reviews: data.ta_recent_reviews,
       value_gap_detected: data.ta_value_gap_detected,
     } : null,
-    // Phase 5+ — sector-conditional sources. Each is null unless the
+    // Phase 5+ - sector-conditional sources. Each is null unless the
     // business's NAICS-2 / profile_id matches the relevant sector.
     bls_employment: data.bls_employment ? {
       employment_level: data.bls_employment_level,
@@ -2189,7 +2189,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
     // ranker.top10. Passed to Call B (key_risks + execution_templates)
     // as priority_action_ids so templates can reference the same ids
     // the user will see in priority_actions. Both calls run in
-    // parallel — neither sees the other's output — so we use the
+    // parallel - neither sees the other's output - so we use the
     // deterministic ranker IDs as the shared key.
     // Same BANNED_REC_IDS filter applied (via cleanedTop10) to Call B's
     // priority_action_ids list so execution_templates never get generated
@@ -2233,7 +2233,7 @@ function buildUserPrompt(bundle) {
     .map((r) => `★${r.stars ?? '?'}: ${r.text}`)
     .join('\n');
 
-  const top3Lines = (c.top3 || []).map((x) => `${x.name} — ${x.rating}★ (${x.review_count} reviews, ${x.distance_miles} mi)`).join('; ');
+  const top3Lines = (c.top3 || []).map((x) => `${x.name} - ${x.rating}★ (${x.review_count} reviews, ${x.distance_miles} mi)`).join('; ');
   // Top 5 competitors as a bulleted block, plus an expansion note if the
   // fetcher had to widen the search beyond 5 miles to find ≥3 results.
   const top5 = Array.isArray(c.top5) ? c.top5 : [];
@@ -2257,7 +2257,7 @@ function buildUserPrompt(bundle) {
     ? `\nSearch radius used: ${radiusUsed} miles (expanded because fewer than 3 competitors found locally)`
     : (radiusUsed != null ? `\nSearch radius used: ${radiusUsed} miles` : '');
 
-  // Phase 5+ — render the three new data sources only when present so
+  // Phase 5+ - render the three new data sources only when present so
   // Claude doesn't burn tokens reading "(unavailable)" placeholders.
   const w = bundle.weather;
   const ps = bundle.pagespeed;
@@ -2265,22 +2265,22 @@ function buildUserPrompt(bundle) {
   let weatherSection = '';
   if (w && (w.peak_tourist_season || w.has_cold_winter || w.has_hot_summer)) {
     weatherSection = `\nWeather / seasonality (Open-Meteo, past 12 months):
-Peak month: ${w.peak_month || '—'}
-Peak tourist season: ${w.peak_tourist_season || '—'}
+Peak month: ${w.peak_month || '-'}
+Peak tourist season: ${w.peak_tourist_season || '-'}
 Cold winter (any month avg < 35°F): ${w.has_cold_winter}
 Hot summer (any month avg > 85°F): ${w.has_hot_summer}`;
   }
   let pagespeedSection = '';
   if (ps && (ps.mobile_score != null || ps.load_time_seconds != null)) {
     pagespeedSection = `\nWebsite mobile quality (Google PageSpeed Insights):
-Mobile score: ${ps.mobile_score ?? '—'}/100 ${ps.is_mobile_friendly ? '(passes mobile-friendly threshold)' : '(below mobile-friendly threshold)'}
-Time-to-interactive: ${ps.load_time_seconds ?? '—'}s${ps.load_time_seconds != null && ps.load_time_seconds > 3 ? ' — above 3-second abandonment threshold (S040)' : ''}`;
+Mobile score: ${ps.mobile_score ?? '-'}/100 ${ps.is_mobile_friendly ? '(passes mobile-friendly threshold)' : '(below mobile-friendly threshold)'}
+Time-to-interactive: ${ps.load_time_seconds ?? '-'}s${ps.load_time_seconds != null && ps.load_time_seconds > 3 ? ' - above 3-second abandonment threshold (S040)' : ''}`;
   }
   let locationSection = '';
   if (ls) {
     const anchorList = (ls.anchor_tenants || []).join(', ') || '(none found within 500m)';
     const transitDesc = ls.nearest_transit_meters != null
-      ? `${ls.nearest_transit_meters}m to nearest bus stop / rail station${ls.has_transit_nearby ? ' — transit-served' : ' — outside walking distance'}`
+      ? `${ls.nearest_transit_meters}m to nearest bus stop / rail station${ls.has_transit_nearby ? ' - transit-served' : ' - outside walking distance'}`
       : '(no transit found within 800m)';
     locationSection = `\nOn-the-ground location signals (OpenStreetMap):
 Anchor tenants within 500m: ${anchorList} (${ls.anchor_tenant_count ?? 0} total)
@@ -2298,7 +2298,7 @@ Transit: ${transitDesc}`;
       : `stable market (${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY)`;
     permitsSection = `\nCounty building permits (${bp.county_name || 'county'}, ${bp.year}, HUD/Census BPS):
 Total residential permits: ${bp.total}
-Single-family: ${bp.single_family ?? '—'}
+Single-family: ${bp.single_family ?? '-'}
 Trend: ${trend}`;
   }
   let eventsSection = '';
@@ -2307,32 +2307,32 @@ Trend: ${trend}`;
     const lines = events.map((e) => {
       const venue = e.venue ? ` at ${e.venue}` : '';
       const when = e.date ? e.date.replace('T', ' ').slice(0, 16) : 'date TBA';
-      return `  • ${e.name} — ${when}${venue}`;
+      return `  • ${e.name} - ${when}${venue}`;
     }).join('\n');
     eventsSection = `\nUpcoming events within 10 miles, next 90 days (Ticketmaster):\n${lines}`;
   }
 
-  // Phase 5+ — Foursquare nearby venues (food/arts/outdoors).
+  // Phase 5+ - Foursquare nearby venues (food/arts/outdoors).
   let venuesSection = '';
   const venues = Array.isArray(bundle.nearby_venues) ? bundle.nearby_venues : [];
   if (venues.length) {
     const lines = venues.slice(0, 10).map((v) => {
-      const dist = typeof v.distance_meters === 'number' ? `${v.distance_meters}m` : '—';
+      const dist = typeof v.distance_meters === 'number' ? `${v.distance_meters}m` : '-';
       const pop = typeof v.popularity === 'number' ? ` · popularity ${v.popularity}` : '';
       return `  • ${v.name} (${v.category}, ${dist}${pop})`;
     }).join('\n');
-    venuesSection = `\nNearby venues within 1km (Foursquare — food, arts, outdoors):\n${lines}`;
+    venuesSection = `\nNearby venues within 1km (Foursquare - food, arts, outdoors):\n${lines}`;
   }
 
-  // Phase 5+ — BLS sector employment level.
+  // Phase 5+ - BLS sector employment level.
   let blsSection = '';
   const bls = bundle.bls_employment;
   if (bls && bls.employment_level != null) {
-    blsSection = `\nLocal sector employment (BLS, NAICS-${bls.naics2 || '—'}):
+    blsSection = `\nLocal sector employment (BLS, NAICS-${bls.naics2 || '-'}):
 ${bls.employment_level.toLocaleString('en-US')} jobs (${bls.employment_period || ''} ${bls.employment_year || ''})`;
   }
 
-  // Phase 5+ — USDA NASS agriculture profile (NAICS-2 = 11).
+  // Phase 5+ - USDA NASS agriculture profile (NAICS-2 = 11).
   let usdaSection = '';
   const usda = bundle.usda_nass;
   if (usda && usda.top_commodity) {
@@ -2344,48 +2344,48 @@ Top commodity: ${usda.top_commodity}
 ${usda.state_ag_profile || ''}${breakdown ? `\nBy commodity: ${breakdown}` : ''}`;
   }
 
-  // Phase 5+ — FMCSA carrier safety (NAICS-2 = 48-49).
+  // Phase 5+ - FMCSA carrier safety (NAICS-2 = 48-49).
   let fmcsaSection = '';
   const fmcsa = bundle.fmcsa;
   if (fmcsa && fmcsa.dot_number) {
     fmcsaSection = `\nFMCSA carrier record:
 DOT#: ${fmcsa.dot_number}
-Safety rating: ${fmcsa.safety_rating || '—'}${fmcsa.safety_rating_date ? ` (${fmcsa.safety_rating_date})` : ''}
-Allowed to operate: ${fmcsa.allowed_to_operate || '—'}
-Carrier operation: ${fmcsa.carrier_operation || '—'}
-Drivers: ${fmcsa.total_drivers ?? '—'} · Trucks: ${fmcsa.total_trucks ?? '—'}`;
+Safety rating: ${fmcsa.safety_rating || '-'}${fmcsa.safety_rating_date ? ` (${fmcsa.safety_rating_date})` : ''}
+Allowed to operate: ${fmcsa.allowed_to_operate || '-'}
+Carrier operation: ${fmcsa.carrier_operation || '-'}
+Drivers: ${fmcsa.total_drivers ?? '-'} · Trucks: ${fmcsa.total_trucks ?? '-'}`;
   }
 
-  // Phase 5+ — NPI Registry (NAICS-2 = 62).
+  // Phase 5+ - NPI Registry (NAICS-2 = 62).
   let npiSection = '';
   const npi = bundle.npi;
   if (npi && npi.npi_number) {
     npiSection = `\nNPI Registry (healthcare provider):
-NPI: ${npi.npi_number} (${npi.provider_type || '—'})
-Status: ${npi.status || '—'}${npi.authorized ? ' — Active' : ' — NOT Active'}
-Credential: ${npi.credential || '—'}`;
+NPI: ${npi.npi_number} (${npi.provider_type || '-'})
+Status: ${npi.status || '-'}${npi.authorized ? ' - Active' : ' - NOT Active'}
+Credential: ${npi.credential || '-'}`;
   }
 
-  // Phase 5+ — HUD Fair Market Rents (NAICS-2 = 53).
+  // Phase 5+ - HUD Fair Market Rents (NAICS-2 = 53).
   let fmrSection = '';
   const fmr = bundle.hud_fmr;
   if (fmr && (fmr.fmr_studio != null || fmr.fmr_1br != null || fmr.fmr_2br != null)) {
-    fmrSection = `\nHUD Fair Market Rents (${fmr.metro_name || 'this metro'}, ${fmr.fmr_year || '—'}):
-Studio: $${fmr.fmr_studio ?? '—'}/mo · 1BR: $${fmr.fmr_1br ?? '—'}/mo · 2BR: $${fmr.fmr_2br ?? '—'}/mo`;
+    fmrSection = `\nHUD Fair Market Rents (${fmr.metro_name || 'this metro'}, ${fmr.fmr_year || '-'}):
+Studio: $${fmr.fmr_studio ?? '-'}/mo · 1BR: $${fmr.fmr_1br ?? '-'}/mo · 2BR: $${fmr.fmr_2br ?? '-'}/mo`;
   }
 
-  // Phase 5+ — FDIC bank data (banking / finance profiles).
+  // Phase 5+ - FDIC bank data (banking / finance profiles).
   let fdicSection = '';
   const fdic = bundle.fdic;
   if (fdic && (fdic.total_deposits != null || fdic.total_assets != null)) {
-    const depM = fdic.total_deposits != null ? (fdic.total_deposits / 1000).toFixed(1) : '—';
-    const assetM = fdic.total_assets != null ? (fdic.total_assets / 1000).toFixed(1) : '—';
-    fdicSection = `\nFDIC institution profile (${fdic.bank_name || 'bank'}, ${fdic.city || '—'}, ${fdic.state || '—'}):
+    const depM = fdic.total_deposits != null ? (fdic.total_deposits / 1000).toFixed(1) : '-';
+    const assetM = fdic.total_assets != null ? (fdic.total_assets / 1000).toFixed(1) : '-';
+    fdicSection = `\nFDIC institution profile (${fdic.bank_name || 'bank'}, ${fdic.city || '-'}, ${fdic.state || '-'}):
 Total deposits: $${depM}M · Total assets: $${assetM}M`;
   }
 
-  // Phase 5+ — CMS hospital quality ratings.
-  // Phase 5+ — TripAdvisor intelligence.
+  // Phase 5+ - CMS hospital quality ratings.
+  // Phase 5+ - TripAdvisor intelligence.
   let tripAdvisorSection = '';
   const ta = bundle.tripadvisor;
   if (ta && ta.rating != null) {
@@ -2401,7 +2401,7 @@ Total deposits: $${depM}M · Total assets: $${assetM}M`;
     const tripTypesLine = Array.isArray(ta.trip_types) && ta.trip_types.length
       ? ta.trip_types.map((t) => `${t.name}=${t.value}`).join(', ')
       : '(none)';
-    // Recent TripAdvisor reviews — full text (no truncation; `snippet`
+    // Recent TripAdvisor reviews - full text (no truncation; `snippet`
     // field now carries the unabridged review body after the
     // fetchTripAdvisor change).
     const reviewLines = Array.isArray(ta.recent_reviews) && ta.recent_reviews.length
@@ -2413,10 +2413,10 @@ Total deposits: $${depM}M · Total assets: $${assetM}M`;
         }).join('\n')
       : '(no recent reviews returned)';
     const valueGapLine = ta.value_gap_detected
-      ? '\nValue-perception gap detected: value sub-rating trails overall rating by ≥0.4 — customers feel they overpaid for the experience.'
+      ? '\nValue-perception gap detected: value sub-rating trails overall rating by ≥0.4 - customers feel they overpaid for the experience.'
       : '';
     tripAdvisorSection = `\nTripAdvisor data (Content API):
-Overall: ${ta.rating}★ across ${ta.review_count ?? '—'} reviews
+Overall: ${ta.rating}★ across ${ta.review_count ?? '-'} reviews
 ${rankPart}
 Sub-ratings:
 ${subLines}
@@ -2426,7 +2426,7 @@ Recent TripAdvisor reviews:
 ${reviewLines}${valueGapLine}`;
   }
 
-  // Phase 5+ — 3 new keyless data sources. Each section is built only
+  // Phase 5+ - 3 new keyless data sources. Each section is built only
   // when the corresponding bundle field is populated, so the user
   // prompt stays lean for sectors that don't trigger these fetchers.
   let cdcSection = '';
@@ -2449,8 +2449,8 @@ ${reviewLines}${valueGapLine}`;
   if (hrsa && hrsa.is_dental_shortage_area) {
     hrsaSection = `\nDental Health Professional Shortage Area (HRSA):
   Designation: ${hrsa.hpsa_name || 'this area'}${hrsa.hpsa_type ? ` (${hrsa.hpsa_type})` : ''}
-  HPSA score: ${hrsa.hpsa_score ?? '—'}
-  NHSC loan-forgiveness eligibility — see nhsc.hrsa.gov.`;
+  HPSA score: ${hrsa.hpsa_score ?? '-'}
+  NHSC loan-forgiveness eligibility - see nhsc.hrsa.gov.`;
   }
 
   let ersSection = '';
@@ -2474,14 +2474,14 @@ ${reviewLines}${valueGapLine}`;
     }
   }
 
-  // Phase 5+ — 5 more sub-sections. Each is built only when the
+  // Phase 5+ - 5 more sub-sections. Each is built only when the
   // corresponding bundle field is populated, so the user prompt stays
   // lean for sectors that don't trigger these fetchers.
   let foodDataSection = '';
   const foodData = Array.isArray(bundle.food_data) ? bundle.food_data : [];
   if (foodData.length) {
     const lines = foodData.map((f) => {
-      const cal = typeof f.calories === 'number' ? ` — ${f.calories} cal` : '';
+      const cal = typeof f.calories === 'number' ? ` - ${f.calories} cal` : '';
       const prot = typeof f.protein === 'number' ? ` · ${f.protein}g protein` : '';
       return `  • ${f.name}${cal}${prot}${f.category ? ` (${f.category})` : ''}`;
     }).join('\n');
@@ -2533,7 +2533,7 @@ ${reviewLines}${valueGapLine}`;
     ? `Generate 10 opportunities drawing from at least 8 of the opportunity categories defined in this profile: ${oppCats.join(', ')}.`
     : `Generate 10 opportunities drawing from at least 8 of the 18 opportunity categories listed in the system prompt (no profile-specific list defined for this sector).`;
 
-  // AI classification correction block — rendered ONLY when Claude
+  // AI classification correction block - rendered ONLY when Claude
   // Haiku overrode the Layer 0 NAICS (e.g. berry patch initially
   // detected as restaurant, corrected to strawberry farm). Goes at the
   // very top of the user prompt so Claude reads the correction before
@@ -2541,10 +2541,10 @@ ${reviewLines}${valueGapLine}`;
   const aiCls = bundle.ai_classification;
   const aiClassificationBlock = aiCls
     ? `AI CLASSIFICATION CORRECTION:
-  Original detected: ${aiCls.original_naics || '—'}
-  Corrected to: ${aiCls.naics6 || '—'}
-  Business type: ${aiCls.naics_title || '—'}
-  Reasoning: ${aiCls.reasoning || '—'}
+  Original detected: ${aiCls.original_naics || '-'}
+  Corrected to: ${aiCls.naics6 || '-'}
+  Business type: ${aiCls.naics_title || '-'}
+  Reasoning: ${aiCls.reasoning || '-'}
 
 IMPORTANT: This business was misclassified by automated detection. Use the CORRECTED classification above. Generate recommendations appropriate for ${aiCls.naics_title || 'the corrected type'} NOT for the original wrong type.
 
@@ -2563,7 +2563,7 @@ Sector: ${b.sector_label} (NAICS ${b.naics6})
 Chain: ${b.is_chain ? 'yes' : 'no'} (${b.chain_name || 'independent'})
 
 Google data:
-Rating: ${g.rating ?? '—'} stars (${g.review_count ?? '—'} reviews)
+Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
 ${g.photo_count !== null ? 'Photo count: ' + g.photo_count : ''}
 Hours complete: ${g.hours_complete}
 Website loads: ${g.website_exists}
@@ -2572,17 +2572,17 @@ Recent reviews (sample):
 ${reviewLines || '(no reviews returned)'}
 
 Competitors:
-Count: ${c.count ?? '—'}
-Local median rating: ${c.median_rating ?? '—'}
-Local median reviews: ${c.median_review_count ?? '—'}
+Count: ${c.count ?? '-'}
+Local median rating: ${c.median_rating ?? '-'}
+Local median reviews: ${c.median_review_count ?? '-'}
 Top 3: ${top3Lines || '(none)'}
 
 Top competitors (by rating):
 ${top5Lines}${radiusLine}
 
-Local demographics (ZIP ${b.zip || '—'}):
-Median household income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '—'}
-Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '—'}
+Local demographics (ZIP ${b.zip || '-'}):
+Median household income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '-'}
+Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '-'}
 ${weatherSection}${pagespeedSection}${locationSection}${permitsSection}${eventsSection}${venuesSection}${tripAdvisorSection}${blsSection}${usdaSection}${fmcsaSection}${npiSection}${fmrSection}${fdicSection}${cdcSection}${hrsaSection}${ersSection}${housingSection}${foodDataSection}${offSection}${datamuseSection}${npsSection}${noaaSection}
 
 Top 3 recommendations to enrich:
@@ -2592,7 +2592,7 @@ Available verified studies (use ONLY these magnitudes and citations):
 ${JSON.stringify(bundle.top3_recommendations.flatMap((r) => r.study_details), null, 2)}
 
 Rules reminder:
-- Generate priority_actions[] (5-7 items) per the PRIORITY ACTIONS — MANDATORY RULES in the system prompt. MAX 1 review-related action; the rest must be operational/partnership/revenue/seasonal/competitive. Order by impact descending; the 1 review action goes LAST.
+- Generate priority_actions[] (5-7 items) per the PRIORITY ACTIONS - MANDATORY RULES in the system prompt. MAX 1 review-related action; the rest must be operational/partnership/revenue/seasonal/competitive. Order by impact descending; the 1 review action goes LAST.
 - Be specific to ${b.city || 'this city'}, ${b.state || 'this state'}
 - Name real local businesses, events, landmarks
 - Never invent statistics
@@ -2602,19 +2602,19 @@ Rules reminder:
   • weather: seasonal off-peak ideas if has_cold_winter, peak-demand pricing ideas if has_hot_summer
   • location_signals: anchor-tenant partnership ideas if anchor_tenants is non-empty
   • building_permits: new-mover-targeting opportunities if trend is growing, contractor-partnership ideas if single-family permits are high
-  • nearby_venues: name actual Foursquare venues from the list above for partnership / cross-traffic / walkability ideas. Don't say "nearby restaurants" — say "Establishment X across the street."
+  • nearby_venues: name actual Foursquare venues from the list above for partnership / cross-traffic / walkability ideas. Don't say "nearby restaurants" - say "Establishment X across the street."
   • tripadvisor: use sub-ratings to identify the SPECIFIC service gap to fix (the lowest sub-rating is the highest-leverage fix; cite the exact sub-rating value). Use trip_types to identify which customer segment dominates and which one is underserved (the smallest non-zero segment is often a growth opportunity). If value_gap_detected is true, the fix is price-to-perceived-quality, not raw quality.
   • bls_employment: reference the actual sector-wide employment level + period for education/professional/healthcare/construction/retail opportunities (talent-pipeline ideas, hiring partnerships with local schools, B2B-to-employer ideas). Cite the exact number.
-  • usda_nass: name the dominant crop explicitly for agriculture-sector opportunities (local-sourcing partnerships, crop-themed events, farm-to-table tie-ins). Don't say "crops" — say "soybeans" or whatever the top_commodity actually is.
-  • fmcsa: surface a safety-rating gap as the top opportunity if safety_rating is anything other than "Satisfactory" — that's a regulatory liability AND a sales-pitch problem. Reference DOT# and the specific rating value.
-  • npi: flag if NPI status is not Active — patients verify NPI before booking; an inactive NPI is a hard stop. Always reference the NPI number.
+  • usda_nass: name the dominant crop explicitly for agriculture-sector opportunities (local-sourcing partnerships, crop-themed events, farm-to-table tie-ins). Don't say "crops" - say "soybeans" or whatever the top_commodity actually is.
+  • fmcsa: surface a safety-rating gap as the top opportunity if safety_rating is anything other than "Satisfactory" - that's a regulatory liability AND a sales-pitch problem. Reference DOT# and the specific rating value.
+  • npi: flag if NPI status is not Active - patients verify NPI before booking; an inactive NPI is a hard stop. Always reference the NPI number.
   • hud_fmr: use the actual rental rates ($studio / $1BR / $2BR) for pricing-strategy opportunities in real-estate / property-management contexts. Compare your pricing to FMR to find positioning gaps.
   • fdic: compare deposit and asset size to the top community banks in the state for community-banking strategy. If deposits are under $100M, target growth-niche ideas; over $1B, target retention.
 - JSON only in response`;
 }
 
 // ───────────────────────────────────────────────────────────────────
-// safeParseJSON — strip ``` fences and parse, return null on failure
+// safeParseJSON - strip ``` fences and parse, return null on failure
 // ───────────────────────────────────────────────────────────────────
 // Centralizes the JSON parse pattern for both Call A and Call B
 // responses. Logs the failure with a label so the two calls are
@@ -2624,12 +2624,12 @@ function safeParseJSON(text, label) {
   // Strip ``` fences first (legacy markdown wrapping).
   const clean = text.replace(/```json|```/g, '').trim();
 
-  // Attempt 1 — strict parse on the whole cleaned response.
+  // Attempt 1 - strict parse on the whole cleaned response.
   try {
     return JSON.parse(clean);
   } catch (_) { /* fall through */ }
 
-  // Attempt 2 — Claude sometimes prefixes prose ("Now I have sufficient
+  // Attempt 2 - Claude sometimes prefixes prose ("Now I have sufficient
   // local data to build a comprehensive, verified JSON response. Let me
   // compile everything.") before emitting JSON, especially after web
   // search round-trips. Locate the first `{` and parse from there.
@@ -2643,7 +2643,7 @@ function safeParseJSON(text, label) {
     return JSON.parse(clean.slice(start));
   } catch (_) { /* fall through */ }
 
-  // Attempt 3 — Claude may also append prose AFTER the JSON (e.g. a
+  // Attempt 3 - Claude may also append prose AFTER the JSON (e.g. a
   // closing comment). Walk back from the last `}` and slice the
   // substring between the first `{` and the last `}` (inclusive).
   const end = clean.lastIndexOf('}');
@@ -2662,7 +2662,7 @@ function safeParseJSON(text, label) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// SYSTEM_PROMPT_B — Call B (key_risks + execution_templates only)
+// SYSTEM_PROMPT_B - Call B (key_risks + execution_templates only)
 // ───────────────────────────────────────────────────────────────────
 // Independent system prompt for the parallel Call B. Smaller than
 // Call A's prompt, focused on just the two sections it owns. Echoes
@@ -2835,9 +2835,9 @@ REQUIREMENTS:
 Return ONLY valid JSON. No text before or after. No markdown. No backticks.`;
 
 // ───────────────────────────────────────────────────────────────────
-// buildUserPromptB — compact prompt for Call B (risks + templates)
+// buildUserPromptB - compact prompt for Call B (risks + templates)
 // ───────────────────────────────────────────────────────────────────
-// Smaller than Call A's prompt — only includes the data Call B needs
+// Smaller than Call A's prompt - only includes the data Call B needs
 // to write specific risks + opportunity-matched templates.
 function buildUserPromptB(bundle, priorityActionIds) {
   const b = bundle.business || {};
@@ -2854,7 +2854,7 @@ function buildUserPromptB(bundle, priorityActionIds) {
   ).join('\n') || '  (none)';
 
   const eventLines = events.slice(0, 6).map((e) =>
-    `  • ${e.name} — ${e.date ? e.date.replace('T', ' ').slice(0, 16) : 'TBA'}${e.venue ? ' at ' + e.venue : ''}`
+    `  • ${e.name} - ${e.date ? e.date.replace('T', ' ').slice(0, 16) : 'TBA'}${e.venue ? ' at ' + e.venue : ''}`
   ).join('\n') || '  (none)';
 
   const venueLines = venues.slice(0, 6).map((v) => `  • ${v.name} (${v.category})`).join('\n') || '  (none)';
@@ -2864,23 +2864,23 @@ function buildUserPromptB(bundle, priorityActionIds) {
     : '(none within 500m)';
 
   const weatherLine = w
-    ? `peak month=${w.peak_month || '—'}, peak season=${w.peak_tourist_season || '—'}, cold winter=${w.has_cold_winter}, hot summer=${w.has_hot_summer}`
+    ? `peak month=${w.peak_month || '-'}, peak season=${w.peak_tourist_season || '-'}, cold winter=${w.has_cold_winter}, hot summer=${w.has_hot_summer}`
     : '(unknown)';
 
   const idsBlock = priorityActionIds.length > 0
     ? priorityActionIds.map((id) => `  • ${id}`).join('\n')
-    : '  (no triggered actions — generate templates for the strongest universal levers: review-ask script, referral-ask script, loyalty enrollment)';
+    : '  (no triggered actions - generate templates for the strongest universal levers: review-ask script, referral-ask script, loyalty enrollment)';
 
   return `Generate key_risks and execution_templates for this business.
 
-Business: <business_name>${sanitizeForPrompt(b.name, 200) || '—'}</business_name>
-Address: <business_address>${sanitizeForPrompt(b.address, 300) || '—'}</business_address>
-City/State: <city>${sanitizeForPrompt(b.city, 80) || '—'}</city>, <state>${sanitizeForPrompt(b.state, 8) || '—'}</state>
-Sector: ${b.sector_label || '—'} (NAICS ${b.naics6 || '—'})
+Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
+Address: <business_address>${sanitizeForPrompt(b.address, 300) || '-'}</business_address>
+City/State: <city>${sanitizeForPrompt(b.city, 80) || '-'}</city>, <state>${sanitizeForPrompt(b.state, 8) || '-'}</state>
+Sector: ${b.sector_label || '-'} (NAICS ${b.naics6 || '-'})
 Chain: ${b.is_chain ? 'yes (' + (b.chain_name || 'detected') + ')' : 'no'}
 
 Google data:
-Rating: ${g.rating ?? '—'} stars (${g.review_count ?? '—'} reviews)
+Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
 ${g.photo_count !== null ? 'Photo count: ' + g.photo_count : ''}
 Hours complete: ${g.hours_complete}
 Website: ${g.website_exists}
@@ -2888,9 +2888,9 @@ Website: ${g.website_exists}
 Top competitors (by threat):
 ${competitorLines}
 
-Local demographics (ZIP ${b.zip || '—'}):
-Median income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '—'}
-Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '—'}
+Local demographics (ZIP ${b.zip || '-'}):
+Median income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '-'}
+Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '-'}
 
 Weather / seasonality: ${weatherLine}
 
@@ -2902,7 +2902,7 @@ ${eventLines}
 Nearby venues (Foursquare):
 ${venueLines}
 
-PRIORITY ACTION IDS — execution_templates.opportunity_id MUST be one of these:
+PRIORITY ACTION IDS - execution_templates.opportunity_id MUST be one of these:
 ${idsBlock}
 
 Generate:
@@ -2913,7 +2913,7 @@ Return ONLY valid JSON. No markdown.`;
 }
 
 // ───────────────────────────────────────────────────────────────────
-// callClaudeEnrichA — existing fields + competitor_deep_dive
+// callClaudeEnrichA - existing fields + competitor_deep_dive
 // ───────────────────────────────────────────────────────────────────
 async function callClaudeEnrichA(bundle) {
   const userPrompt = buildUserPrompt(bundle);
@@ -2923,13 +2923,13 @@ async function callClaudeEnrichA(bundle) {
   const requestParams = {
     model: MODEL,
     max_tokens: MAX_TOKENS_A,
-    // Anthropic-hosted web search — Claude can search the live web
+    // Anthropic-hosted web search - Claude can search the live web
     // during generation. Used to surface real local attractions,
     // visitor counts, and events that aren't in the deterministic
     // bundle. See SYSTEM_PROMPT_A's WEB SEARCH section for usage rules.
-    // Cost: ~$10 per 1,000 searches. Audit fix CE2 — hard cap at 45
+    // Cost: ~$10 per 1,000 searches. Audit fix CE2 - hard cap at 45
     // searches per Call A so a runaway loop can't burn unbounded
-    // budget. Typical Call A uses 3–8 searches; 45 is generous
+    // budget. Typical Call A uses 3-8 searches; 45 is generous
     // headroom for sector-deep reports without uncapped cost.
     tools: [
       {
@@ -2960,7 +2960,7 @@ async function callClaudeEnrichA(bundle) {
     let cacheWriteTokens = 0;
     try {
       console.log('[claude:A] starting Call A');
-      // Audit fix CE3 — real AbortController instead of a Promise.race
+      // Audit fix CE3 - real AbortController instead of a Promise.race
       // wrapper. Promise.race only resolves the JS-side wait; the
       // underlying HTTP request keeps running, burning tokens and
       // holding sockets. Passing { signal } to the SDK tears down
@@ -2997,13 +2997,13 @@ async function callClaudeEnrichA(bundle) {
       console.log('[claude:A] completed');
     } catch (e) {
       if (e.message === 'CALL_A_TIMEOUT') {
-        console.warn('[claude:A] timeout after 20min — retrying with 7-min cap');
+        console.warn('[claude:A] timeout after 20min - retrying with 7-min cap');
         thinkingActive = false;
         const fallbackParams = { ...requestParams };
         delete fallbackParams.thinking;
         const FALLBACK_TIMEOUT_MS = 7 * 60 * 1000;
         try {
-          // Audit fix CE4 (part 1) — same AbortController pattern on
+          // Audit fix CE4 (part 1) - same AbortController pattern on
           // the 7-min fallback path.
           const acFb = new AbortController();
           const timerFb = setTimeout(() => acFb.abort(), FALLBACK_TIMEOUT_MS);
@@ -3018,7 +3018,7 @@ async function callClaudeEnrichA(bundle) {
           console.log('[claude:A] fallback completed without thinking');
         } catch (fallbackErr) {
           if (fallbackErr.message === 'CALL_A_FALLBACK_TIMEOUT') {
-            console.error('[claude:A] fallback also timed out after 7 minutes — returning null for partial report banner');
+            console.error('[claude:A] fallback also timed out after 7 minutes - returning null for partial report banner');
             return null;
           } else {
             throw fallbackErr;
@@ -3038,7 +3038,7 @@ async function callClaudeEnrichA(bundle) {
     // reads the warm cache so the cost-delta is mostly extra output.
     if (response.stop_reason === 'max_tokens') {
       const retryMaxTokens = Math.round(MAX_TOKENS_A * 1.5);
-      console.warn(`[claude:A] hit max_tokens=${MAX_TOKENS_A} — retrying once with max_tokens=${retryMaxTokens}`);
+      console.warn(`[claude:A] hit max_tokens=${MAX_TOKENS_A} - retrying once with max_tokens=${retryMaxTokens}`);
       const t1 = Date.now();
       const retryParams = {
         ...requestParams,
@@ -3047,7 +3047,7 @@ async function callClaudeEnrichA(bundle) {
       if (!thinkingActive) {
         delete retryParams.thinking;
       }
-      // Audit fix CE4 (part 2) — bound the truncation-retry too.
+      // Audit fix CE4 (part 2) - bound the truncation-retry too.
       // Previously this was a bare `await client.messages.create(...)`
       // with no timeout, so a hung retry could pin a worker forever.
       const RETRY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
@@ -3070,12 +3070,12 @@ async function callClaudeEnrichA(bundle) {
       console.log(`[claude:A] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
       console.log(`[claude:A] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
       if (retry.stop_reason === 'max_tokens') {
-        console.error(`[claude:A] retry ALSO truncated at max_tokens=${retryMaxTokens} — accepting truncated text (will likely fail JSON parse)`);
+        console.error(`[claude:A] retry ALSO truncated at max_tokens=${retryMaxTokens} - accepting truncated text (will likely fail JSON parse)`);
       }
       // Extract only the final-answer text blocks. Filters out:
-      //   - thinking blocks (b.type === 'thinking') — added by adaptive
+      //   - thinking blocks (b.type === 'thinking') - added by adaptive
       //     thinking; their text is reasoning, not the JSON answer
-      //   - server_tool_use / web_search_tool_result blocks — added by
+      //   - server_tool_use / web_search_tool_result blocks - added by
       //     the web_search tool; informational, not the answer
       //   - empty text blocks (some streaming variants emit these)
       const retryText = (retry.content || [])
@@ -3099,7 +3099,7 @@ async function callClaudeEnrichA(bundle) {
       (err && err.message &&
        err.message.toLowerCase().includes('timeout'))
     ) {
-      console.log('[claude:A] timeout caught in outer catch — retrying with 7-min cap');
+      console.log('[claude:A] timeout caught in outer catch - retrying with 7-min cap');
       throw new Error('CALL_A_TIMEOUT');
     }
 
@@ -3108,12 +3108,12 @@ async function callClaudeEnrichA(bundle) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// callClaudeEnrichB — key_risks + execution_templates only
+// callClaudeEnrichB - key_risks + execution_templates only
 // ───────────────────────────────────────────────────────────────────
 async function callClaudeEnrichB(bundle, priorityActionIds) {
   const userPrompt = buildUserPromptB(bundle, priorityActionIds);
   const t0 = Date.now();
-  // Audit fix CE5 — Call B has no tools and no web search, but the
+  // Audit fix CE5 - Call B has no tools and no web search, but the
   // SDK call was previously bare `await` with no timeout/signal. A
   // stuck Anthropic socket would pin the worker indefinitely. 10 min
   // ceiling matches Call A's fallback budget.
@@ -3144,13 +3144,13 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 
     // ── Truncation-retry: Claude returns HTTP 200 with truncated
     // output when it hits max_tokens (it's not an exception). Mirrors
-    // Call A's retry pattern — detect stop_reason and retry ONCE with
+    // Call A's retry pattern - detect stop_reason and retry ONCE with
     // 1.5× the cap. The retry reads the warm cache so the cost-delta
     // is mostly extra output tokens. If the retry also truncates we
     // accept whatever came back rather than discarding the whole call.
     if (response.stop_reason === 'max_tokens') {
       const retryMaxTokens = Math.round(MAX_TOKENS_B * 1.5);
-      console.warn(`[claude:B] hit max_tokens=${MAX_TOKENS_B} — retrying once with max_tokens=${retryMaxTokens}`);
+      console.warn(`[claude:B] hit max_tokens=${MAX_TOKENS_B} - retrying once with max_tokens=${retryMaxTokens}`);
       const t1 = Date.now();
       const retryParams = {
         ...requestParams,
@@ -3182,7 +3182,7 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
       console.log(`[claude:B] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
       console.log(`[claude:B] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
       if (retry.stop_reason === 'max_tokens') {
-        console.error(`[claude:B] retry ALSO truncated at max_tokens=${retryMaxTokens} — accepting truncated text`);
+        console.error(`[claude:B] retry ALSO truncated at max_tokens=${retryMaxTokens} - accepting truncated text`);
       }
       const retryText = (retry.content || [])
         .filter((b) => b.type === 'text' && b.text && b.text.trim().length > 0)
@@ -3210,7 +3210,7 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// Main entry — enrichWithClaude (parallel two-call architecture)
+// Main entry - enrichWithClaude (parallel two-call architecture)
 // ───────────────────────────────────────────────────────────────────
 // Calls A and B run in parallel via Promise.allSettled so an unexpected
 // throw in one inner function never discards the other call's work.
@@ -3219,7 +3219,7 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 //
 // PARTIAL ENRICHMENT: when A fails (returned null because the inner
 // function caught an error OR safeParseJSON threw on truncated output)
-// we no longer return null — instead we return a partial object with
+// we no longer return null - instead we return a partial object with
 // B's data preserved + empty placeholders for A's fields. The renderer
 // helpers silently omit empty arrays/null objects, so the user still
 // sees key_risks + execution_templates + the deterministic ranker
@@ -3228,7 +3228,7 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 async function enrichWithClaude(bundle) {
   console.log('[claude] enrichment called (parallel A+B)');
   console.log('[claude] API key present:', !!process.env.ANTHROPIC_API_KEY);
-  // Audit fix CE8 — API key length log removed. Length-leak is a minor
+  // Audit fix CE8 - API key length log removed. Length-leak is a minor
   // info disclosure that helps an attacker validate any future key leak.
 
   if (!client) {
@@ -3246,15 +3246,15 @@ async function enrichWithClaude(bundle) {
   }
 
   // Pull triggered IDs from the bundle (added by buildDataBundle from
-  // ranker.top10). Both calls run in parallel — neither can see the
-  // other — so we use these deterministic IDs as the shared key for
+  // ranker.top10). Both calls run in parallel - neither can see the
+  // other - so we use these deterministic IDs as the shared key for
   // execution_templates.opportunity_id ↔ priority_actions[].id.
   const triggeredIds = Array.isArray(bundle.triggered_rec_ids)
     ? bundle.triggered_rec_ids
     : [];
 
   const t0 = Date.now();
-  // Promise.allSettled — if either inner function throws (rather than
+  // Promise.allSettled - if either inner function throws (rather than
   // returning null per its catch block), the other call's result is
   // still preserved instead of the whole thing rejecting.
   const [resA, resB] = await Promise.allSettled([
@@ -3297,7 +3297,7 @@ async function enrichWithClaude(bundle) {
       _partial: 'A_failed',
     };
     console.warn(
-      `[claude] Call A failed — returning partial enrichment with Call B data only (dt=${dt}ms, `
+      `[claude] Call A failed - returning partial enrichment with Call B data only (dt=${dt}ms, `
       + `${partial.key_risks.length} risks, ${partial.execution_templates.length} templates)`
     );
     // Cache the partial too so we don't refire 200-second Call A's on
@@ -3313,7 +3313,7 @@ async function enrichWithClaude(bundle) {
   };
 
   console.log(
-    `[claude] enrichment ok in ${dt}ms — `
+    `[claude] enrichment ok in ${dt}ms - `
     + `${(merged.priority_actions || []).length} priority_actions, `
     + `${(merged.enriched_recommendations || []).length} recs, `
     + `${(merged.opportunities || []).length} opps, `
@@ -3326,7 +3326,7 @@ async function enrichWithClaude(bundle) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// Phase 5+ — Claude classification fallback
+// Phase 5+ - Claude classification fallback
 // ───────────────────────────────────────────────────────────────────
 // Used when Layer 0 + Phase-3 Places fallback both fail to produce a
 // NAICS-6 that resolves to a profile. We pass the raw user input + the
@@ -3353,7 +3353,7 @@ What type of small business is this?
 Reply with just the NAICS-6 code and nothing else.`;
 
   const t0 = Date.now();
-  // Audit fix CE7 (classifyWithClaude) — 60 s ceiling. This is a tiny
+  // Audit fix CE7 (classifyWithClaude) - 60 s ceiling. This is a tiny
   // call (max_tokens=50, no tools) but the previous bare await had no
   // bound, so a hung Anthropic socket could pin the worker.
   const CLASSIFY_TIMEOUT_MS = 60 * 1000;
@@ -3399,11 +3399,11 @@ Reply with just the NAICS-6 code and nothing else.`;
 }
 
 // ───────────────────────────────────────────────────────────────────
-// verifyBusinessClassification — AI-driven Layer 0 audit
+// verifyBusinessClassification - AI-driven Layer 0 audit
 // ───────────────────────────────────────────────────────────────────
 // Runs AFTER Layer 0 + Phase-3 places fallback have settled on a NAICS
 // code but BEFORE the heavy data-fetcher Promise.allSettled batch. The
-// model is Claude Haiku 4.5 with web_search enabled — it searches the
+// model is Claude Haiku 4.5 with web_search enabled - it searches the
 // live web for the business and returns a JSON verdict on whether the
 // detected NAICS is correct, suggesting an override when it isn't.
 //
@@ -3426,7 +3426,7 @@ async function verifyBusinessClassification(data, layer0Result) {
   );
 
   if (!client) {
-    console.warn('[layer0-ai] no ANTHROPIC_API_KEY — skipping');
+    console.warn('[layer0-ai] no ANTHROPIC_API_KEY - skipping');
     return null;
   }
 
@@ -3517,7 +3517,7 @@ async function verifyBusinessClassification(data, layer0Result) {
       '  "confidence": "HIGH",\n' +
       '  "override_layer0": false,\n' +
       '  "original_naics": "same as input",\n' +
-      '  "reasoning": "Layer 0 correct — web search confirms",\n' +
+      '  "reasoning": "Layer 0 correct - web search confirms",\n' +
       '  "web_search_used": true\n' +
       '}';
 
@@ -3547,19 +3547,19 @@ async function verifyBusinessClassification(data, layer0Result) {
         )
         .join('\n') + '\n\n' +
 
-      'STEP 1 — Search the web NOW:\n' +
+      'STEP 1 - Search the web NOW:\n' +
       '  Search: "' + (data.name || '') + ' ' + (data.city || '') + ' ' + (data.state || '') + '"\n' +
       '  Search: "what is ' + (data.name || '') + '"\n' +
       '  Read the results carefully.\n\n' +
 
-      'STEP 2 — Based on web search:\n' +
+      'STEP 2 - Based on web search:\n' +
       '  Is NAICS ' + (layer0Result.naics6 || '') + ' correct for this business?\n' +
       '  If yes: override_layer0: false\n' +
       '  If no: provide correct NAICS\n\n' +
 
       'Return JSON only.';
 
-    // Audit fix CE6 — 90 s ceiling on the verifier. Previously a bare
+    // Audit fix CE6 - 90 s ceiling on the verifier. Previously a bare
     // `await client.messages.create(...)` with no timeout/signal, so a
     // hung Anthropic socket could pin the worker before the heavy
     // data-fetcher Promise.allSettled even starts.
@@ -3575,8 +3575,8 @@ async function verifyBusinessClassification(data, layer0Result) {
           {
             type: 'web_search_20250305',
             name: 'web_search',
-            // Audit fix CE2 — bound at 7 searches. The verifier system
-            // prompt mandates ~1–2 searches; 7 is generous headroom
+            // Audit fix CE2 - bound at 7 searches. The verifier system
+            // prompt mandates ~1-2 searches; 7 is generous headroom
             // without runaway cost on a noisy business name.
             max_uses: 7,
           },
@@ -3588,7 +3588,7 @@ async function verifyBusinessClassification(data, layer0Result) {
       }, { signal: acVerify.signal });
     } catch (err) {
       if (err && err.name === 'AbortError') {
-        console.warn('[layer0-ai] timed out after 90 s — keeping original Layer 0 classification');
+        console.warn('[layer0-ai] timed out after 90 s - keeping original Layer 0 classification');
         return null;
       }
       throw err;
@@ -3596,16 +3596,16 @@ async function verifyBusinessClassification(data, layer0Result) {
       clearTimeout(timerVerify);
     }
 
-    // Extract text blocks only — skip server_tool_use / web_search_tool_result
+    // Extract text blocks only - skip server_tool_use / web_search_tool_result
     const textBlocks = (response.content || []).filter((b) => b.type === 'text');
     const rawText = textBlocks.map((b) => b.text).join('');
 
     if (!rawText.trim()) {
-      console.log('[layer0-ai] no text response — keeping original');
+      console.log('[layer0-ai] no text response - keeping original');
       return null;
     }
 
-    // Robust JSON parse — strips any preamble before `{`.
+    // Robust JSON parse - strips any preamble before `{`.
     let result = null;
     try {
       result = JSON.parse(rawText.trim());
@@ -3613,14 +3613,14 @@ async function verifyBusinessClassification(data, layer0Result) {
       const start = rawText.indexOf('{');
       const end = rawText.lastIndexOf('}');
       if (start !== -1 && end !== -1 && end > start) {
-        // BUG 30 — Surface a warning when this preamble-strip fallback
+        // BUG 30 - Surface a warning when this preamble-strip fallback
         // fires. The system prompt explicitly forbids preamble/markdown
         // ("No preamble. No markdown."), so repeat hits here mean Claude
-        // is drifting from the contract — surface it in logs so we can
+        // is drifting from the contract - surface it in logs so we can
         // tune the prompt rather than silently slicing forever.
         const preamble = rawText.slice(0, start).trim();
         console.warn(
-          '[layer0-ai] AI JSON had preamble (' + preamble.length + ' chars before {) — ' +
+          '[layer0-ai] AI JSON had preamble (' + preamble.length + ' chars before {) - ' +
           'first 120 chars: ' + JSON.stringify(preamble.slice(0, 120))
         );
         try {
@@ -3644,13 +3644,13 @@ async function verifyBusinessClassification(data, layer0Result) {
 
     return result;
   } catch (e) {
-    console.error('[layer0-ai] error:', e.message, '— keeping original');
+    console.error('[layer0-ai] error:', e.message, '- keeping original');
     return null;
   }
 }
 
 // ───────────────────────────────────────────────────────────────────
-// selectBestProfile — AI-driven profile re-selection
+// selectBestProfile - AI-driven profile re-selection
 // ───────────────────────────────────────────────────────────────────
 // Only fires when verifyBusinessClassification corrected the NAICS.
 // Picks the single best matching profile_id from the full registry
@@ -3661,7 +3661,7 @@ async function verifyBusinessClassification(data, layer0Result) {
 // re-selected to agriculture.crop_farming).
 async function selectBestProfile(naics6, businessName, aiReasoning, allProfiles) {
   if (!client) {
-    console.warn('[profile-selector] no ANTHROPIC_API_KEY — skipping');
+    console.warn('[profile-selector] no ANTHROPIC_API_KEY - skipping');
     return null;
   }
   if (!allProfiles || typeof allProfiles !== 'object') {
@@ -3673,7 +3673,7 @@ async function selectBestProfile(naics6, businessName, aiReasoning, allProfiles)
       .map(([id, profile]) => id + ': ' + ((profile && profile.name) || id))
       .join('\n');
 
-    // Audit fix CE7 (selectBestProfile) — 60 s ceiling, same pattern
+    // Audit fix CE7 (selectBestProfile) - 60 s ceiling, same pattern
     // as classifyWithClaude above. Tiny call (max_tokens 200, no
     // tools) but previously a bare await with no bound.
     const SELECT_TIMEOUT_MS = 60 * 1000;
