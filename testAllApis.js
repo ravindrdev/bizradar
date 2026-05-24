@@ -1,4 +1,4 @@
-/* testAllApis.js — live end-to-end test of every BizRadar data source.
+/* testAllApis.js — live end-to-end test of every GrowthIM data source.
    Calls each fetcher with the test fixtures the user provided, times
    each call, classifies PASS/PARTIAL/FAIL based on whether it returned
    non-null data + non-null expected fields, and writes a JSON report.
@@ -142,7 +142,7 @@ async function runOne(num, name, inputDesc, fn, opts = {}) {
 // ── Main flow ────────────────────────────────────────────────────────
 (async function main() {
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('BizRadar live API test — every fetcher, real data');
+  console.log('GrowthIM live API test — every fetcher, real data');
   console.log('═══════════════════════════════════════════════════════════');
 
   // 1. Google Places Text Search

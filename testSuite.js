@@ -18,7 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Expected-profile mapping. These are best-fit per the BizRadar profile
+// Expected-profile mapping. These are best-fit per the GrowthIM profile
 // registry (88 filled profiles + 2 OOS markers). When the actual route
 // differs, the entry is flagged as `mis_routed=true` (unless it's UNSUPPORTED
 // or OOS_waitlist, which are tracked separately).

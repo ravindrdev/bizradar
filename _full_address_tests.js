@@ -45,7 +45,7 @@ const TESTS = [
         const mm = html.match(/Missing required fields from Google Places: ([^<]+)/);
         branch = `missing:${mm ? mm[1].trim() : '?'}`;
       } else if (/Critical issue blocks/i.test(html)) branch = 'blocked';
-      else if (/<title>BizRadar Audit/i.test(html) || /<h1[^>]*>/i.test(html)) branch = 'report';
+      else if (/<title>GrowthIM Audit/i.test(html) || /<h1[^>]*>/i.test(html)) branch = 'report';
 
       const ok = got === t.expectProfile;
       const tag = ok ? 'PASS' : 'FAIL';

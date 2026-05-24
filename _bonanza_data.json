@@ -1,0 +1,627 @@
+{
+  "place_id": "ChIJ665bT3B6m4ARVYe274YFo-I",
+  "name": "Bonanza Market",
+  "formatted_address": "321 Broad St, Nevada City, CA 95959, USA",
+  "google_rating": 4.1,
+  "google_review_count": 127,
+  "business_status": "OPERATIONAL",
+  "photo_count": null,
+  "review_recency_days": null,
+  "responds_to_reviews": null,
+  "response_rate_estimated": null,
+  "reviews_sampled": 5,
+  "hours_complete": true,
+  "hours_has_special": false,
+  "is_open_now": true,
+  "weekday_text": [
+    "Monday: 6:00 AM – 10:00 PM",
+    "Tuesday: 6:00 AM – 10:00 PM",
+    "Wednesday: 6:00 AM – 10:00 PM",
+    "Thursday: 6:00 AM – 10:00 PM",
+    "Friday: 6:00 AM – 12:00 AM",
+    "Saturday: 7:00 AM – 12:00 AM",
+    "Sunday: 8:00 AM – 10:00 PM"
+  ],
+  "latitude": 39.2627404,
+  "longitude": -121.0197986,
+  "years_in_business": null,
+  "competitor_density_5mi": null,
+  "website": null,
+  "google_maps_url": "https://maps.google.com/?cid=16330902750881023829",
+  "google_types": [
+    "establishment",
+    "food",
+    "grocery_or_supermarket",
+    "point_of_interest",
+    "store"
+  ],
+  "business_name": "Bonanza Market",
+  "profile_id": "retail.grocery",
+  "is_chain": false,
+  "chain_name": null,
+  "sector_naics2": "44",
+  "county_fips": "06057",
+  "county_name": "Nevada County",
+  "city": "Nevada City",
+  "state": "CA",
+  "competitor_count": 6,
+  "competitor_median_rating": 4.6,
+  "competitor_median_review_count": 104.5,
+  "competitors_top3": [
+    {
+      "place_id": "ChIJB99Z-_N7m4AR3YUbLKE_liA",
+      "name": "Garnish Nevada City",
+      "rating": 5,
+      "review_count": 8,
+      "distance_meters": 143,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Go here for lunch! And gifts! Always a great selection of sandwiches, salads, creative specials (soups, hand pies, chili, etc). Also here…good non-coffee drinks like: chai, refreshing summer fruit-y drinks, iced tea, a small pastry case with bread, muffins, cookies, etc. and a cheese fridge with som",
+          "rating": 5,
+          "time": "2 months ago"
+        },
+        {
+          "text": "Loved this little shop! Tried the most delicious peach muffin with the tastiest glaze and hint of coconut. Not overly sweet. The owner makes everything fresh! Also tried the hibiscus strawberry lemonade tea…delicious!!! We stopped in to check out the kitchen gadgets and then discovered the treats! W",
+          "rating": 5,
+          "time": "9 months ago"
+        },
+        {
+          "text": "I had an incredibly delicious Mediterranean sandwich from Garnish that I am already telling others about. I look forward to my next one!",
+          "rating": 5,
+          "time": "2 months ago"
+        }
+      ],
+      "address": "220 Broad St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJpY29fBB7m4ARKB0gSwYKYEs",
+      "name": "Winnie Superette",
+      "rating": 4.9,
+      "review_count": 43,
+      "distance_meters": 58,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Winnie Superette is such a fun, well-curated spot to explore. Browsing the shelves feels like a treasure hunt, with snacks and pantry staples you won’t find in a typical grocery store. I especially love the selection of unique housewares, like beautiful Japanese ceramics. It’s also a fantastic place",
+          "rating": 5,
+          "time": "8 months ago"
+        },
+        {
+          "text": "My favorite place for stocking stuffers around the holidays and really great packaged coffee you can't get anywhere else. Winnie's Superette has been such a wonderful addition to our town. The entire staff is super friendly and the owner is always collaborating with local artists, chefs, and other b",
+          "rating": 5,
+          "time": "5 months ago"
+        },
+        {
+          "text": "Winnie Superette is a perfect example of why our little town is beloved around the region, state and beyond. The owner and is kind, generous and cares deeply about the community. Anyone that says otherwise might literally be crazy! 😁 The rest of the staff are wonderful as well. Not to mention, the ",
+          "rating": 5,
+          "time": "5 months ago"
+        }
+      ],
+      "address": "315 Commercial St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJjw7ag3h6m4ARcThCjW23Vvk",
+      "name": "SPD MARKETS",
+      "rating": 4.6,
+      "review_count": 859,
+      "distance_meters": 1167,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Always love to stop in and grab some garlic cheese bagels to go along with whatever else I'm cooking. Great selection of butcher meats and a variety of homemade salads. Never allow anyone or anything to steal your Joy life's way too long. Godspeed 🙏.",
+          "rating": 5,
+          "time": "4 months ago"
+        },
+        {
+          "text": "This place takes their sandwiches seriously. They have different levels of sandwiches, with store-made meats in their deluxe sandwiches. They have a wide range of mustards and toppings. The woman who served me took the time to explain all the options. I ended up with a beautiful sandwich that exceed",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "This is a locally owned market. They have top quality fresh meat, fish, and seafood markets and the produce is the best you can find anywhere, including an organic section. You will also find occasional exotic fruits & vegetables, not typically found anywhere else locally. The deli is superb as well",
+          "rating": 5,
+          "time": "7 months ago"
+        }
+      ],
+      "address": "735 Zion St, Nevada City, CA 95959, USA"
+    }
+  ],
+  "competitors_top5": [
+    {
+      "place_id": "ChIJB99Z-_N7m4AR3YUbLKE_liA",
+      "name": "Garnish Nevada City",
+      "rating": 5,
+      "review_count": 8,
+      "distance_meters": 143,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Go here for lunch! And gifts! Always a great selection of sandwiches, salads, creative specials (soups, hand pies, chili, etc). Also here…good non-coffee drinks like: chai, refreshing summer fruit-y drinks, iced tea, a small pastry case with bread, muffins, cookies, etc. and a cheese fridge with som",
+          "rating": 5,
+          "time": "2 months ago"
+        },
+        {
+          "text": "Loved this little shop! Tried the most delicious peach muffin with the tastiest glaze and hint of coconut. Not overly sweet. The owner makes everything fresh! Also tried the hibiscus strawberry lemonade tea…delicious!!! We stopped in to check out the kitchen gadgets and then discovered the treats! W",
+          "rating": 5,
+          "time": "9 months ago"
+        },
+        {
+          "text": "I had an incredibly delicious Mediterranean sandwich from Garnish that I am already telling others about. I look forward to my next one!",
+          "rating": 5,
+          "time": "2 months ago"
+        }
+      ],
+      "address": "220 Broad St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJpY29fBB7m4ARKB0gSwYKYEs",
+      "name": "Winnie Superette",
+      "rating": 4.9,
+      "review_count": 43,
+      "distance_meters": 58,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Winnie Superette is such a fun, well-curated spot to explore. Browsing the shelves feels like a treasure hunt, with snacks and pantry staples you won’t find in a typical grocery store. I especially love the selection of unique housewares, like beautiful Japanese ceramics. It’s also a fantastic place",
+          "rating": 5,
+          "time": "8 months ago"
+        },
+        {
+          "text": "My favorite place for stocking stuffers around the holidays and really great packaged coffee you can't get anywhere else. Winnie's Superette has been such a wonderful addition to our town. The entire staff is super friendly and the owner is always collaborating with local artists, chefs, and other b",
+          "rating": 5,
+          "time": "5 months ago"
+        },
+        {
+          "text": "Winnie Superette is a perfect example of why our little town is beloved around the region, state and beyond. The owner and is kind, generous and cares deeply about the community. Anyone that says otherwise might literally be crazy! 😁 The rest of the staff are wonderful as well. Not to mention, the ",
+          "rating": 5,
+          "time": "5 months ago"
+        }
+      ],
+      "address": "315 Commercial St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJjw7ag3h6m4ARcThCjW23Vvk",
+      "name": "SPD MARKETS",
+      "rating": 4.6,
+      "review_count": 859,
+      "distance_meters": 1167,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Always love to stop in and grab some garlic cheese bagels to go along with whatever else I'm cooking. Great selection of butcher meats and a variety of homemade salads. Never allow anyone or anything to steal your Joy life's way too long. Godspeed 🙏.",
+          "rating": 5,
+          "time": "4 months ago"
+        },
+        {
+          "text": "This place takes their sandwiches seriously. They have different levels of sandwiches, with store-made meats in their deluxe sandwiches. They have a wide range of mustards and toppings. The woman who served me took the time to explain all the options. I ended up with a beautiful sandwich that exceed",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "This is a locally owned market. They have top quality fresh meat, fish, and seafood markets and the produce is the best you can find anywhere, including an organic section. You will also find occasional exotic fruits & vegetables, not typically found anywhere else locally. The deli is superb as well",
+          "rating": 5,
+          "time": "7 months ago"
+        }
+      ],
+      "address": "735 Zion St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJy1CKEppxm4ARlq-ERc-GXSA",
+      "name": "The Ham Stand",
+      "rating": 4.6,
+      "review_count": 166,
+      "distance_meters": 1510,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "So, my wife and I have driven by this place hundreds of times, going back and forth to town and home. We have commented to each other, wondering what the Ham Stand was all about. Finally, just a couple of days ago, we drove by and Googled the Ham Stand. Today, on my way home, I was driving by and de",
+          "rating": 5,
+          "time": "3 months ago"
+        },
+        {
+          "text": "BEST SANDWICH EVER!!!! The meat and bread was TOP NOTCH! I got the ham standard and it did not disappoint. I also got a snack stick and the flavor was delightful. I will go again",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "Overpriced. The sandwiches are good, not super big, but quality meats. Atmosphere...not the best. Sort of a counter culture grunge hangout for local drifters kinda vibe. To be clear, it's just a shack with no seating inside. Some picnic tables outside. The issue is the price. It's just a deli. Not a",
+          "rating": 3,
+          "time": "3 months ago"
+        }
+      ],
+      "address": "821 Zion St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJs6adEAt7m4ARqm9J5IBVUU4",
+      "name": "Dedrick's Cheese",
+      "rating": 4.6,
+      "review_count": 20,
+      "distance_meters": 166,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "One of my favorite places in the whole world right here. The people are always friendly and willing to help you find what you're looking for. They have so many good options and many imported cheeses I've not seen outside of Europe. What a fantastic little shop. I much prefer the Nevada City location",
+          "rating": 5,
+          "time": "9 months ago"
+        },
+        {
+          "text": "It’s become a tradition for us to drive up to Nevada City with a baguette and sample the cheese “orphans” at this delightful shop. Would recommend it to anyone.",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "We had about 7 people in our party alone in this little shop and the employees were amazing. I left to make room but not before buying bread, cheese and jam. It was all so yummy! The rest of the birthday party stayed and sampled some really delicious cheese. I will be going back to sample and buy mo",
+          "rating": 5,
+          "time": "2 years ago"
+        }
+      ],
+      "address": "209 Commercial St, Nevada City, CA 95959, USA"
+    }
+  ],
+  "competitors_top7": [
+    {
+      "place_id": "ChIJB99Z-_N7m4AR3YUbLKE_liA",
+      "name": "Garnish Nevada City",
+      "rating": 5,
+      "review_count": 8,
+      "distance_meters": 143,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Go here for lunch! And gifts! Always a great selection of sandwiches, salads, creative specials (soups, hand pies, chili, etc). Also here…good non-coffee drinks like: chai, refreshing summer fruit-y drinks, iced tea, a small pastry case with bread, muffins, cookies, etc. and a cheese fridge with som",
+          "rating": 5,
+          "time": "2 months ago"
+        },
+        {
+          "text": "Loved this little shop! Tried the most delicious peach muffin with the tastiest glaze and hint of coconut. Not overly sweet. The owner makes everything fresh! Also tried the hibiscus strawberry lemonade tea…delicious!!! We stopped in to check out the kitchen gadgets and then discovered the treats! W",
+          "rating": 5,
+          "time": "9 months ago"
+        },
+        {
+          "text": "I had an incredibly delicious Mediterranean sandwich from Garnish that I am already telling others about. I look forward to my next one!",
+          "rating": 5,
+          "time": "2 months ago"
+        }
+      ],
+      "address": "220 Broad St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJpY29fBB7m4ARKB0gSwYKYEs",
+      "name": "Winnie Superette",
+      "rating": 4.9,
+      "review_count": 43,
+      "distance_meters": 58,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Winnie Superette is such a fun, well-curated spot to explore. Browsing the shelves feels like a treasure hunt, with snacks and pantry staples you won’t find in a typical grocery store. I especially love the selection of unique housewares, like beautiful Japanese ceramics. It’s also a fantastic place",
+          "rating": 5,
+          "time": "8 months ago"
+        },
+        {
+          "text": "My favorite place for stocking stuffers around the holidays and really great packaged coffee you can't get anywhere else. Winnie's Superette has been such a wonderful addition to our town. The entire staff is super friendly and the owner is always collaborating with local artists, chefs, and other b",
+          "rating": 5,
+          "time": "5 months ago"
+        },
+        {
+          "text": "Winnie Superette is a perfect example of why our little town is beloved around the region, state and beyond. The owner and is kind, generous and cares deeply about the community. Anyone that says otherwise might literally be crazy! 😁 The rest of the staff are wonderful as well. Not to mention, the ",
+          "rating": 5,
+          "time": "5 months ago"
+        }
+      ],
+      "address": "315 Commercial St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJjw7ag3h6m4ARcThCjW23Vvk",
+      "name": "SPD MARKETS",
+      "rating": 4.6,
+      "review_count": 859,
+      "distance_meters": 1167,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "Always love to stop in and grab some garlic cheese bagels to go along with whatever else I'm cooking. Great selection of butcher meats and a variety of homemade salads. Never allow anyone or anything to steal your Joy life's way too long. Godspeed 🙏.",
+          "rating": 5,
+          "time": "4 months ago"
+        },
+        {
+          "text": "This place takes their sandwiches seriously. They have different levels of sandwiches, with store-made meats in their deluxe sandwiches. They have a wide range of mustards and toppings. The woman who served me took the time to explain all the options. I ended up with a beautiful sandwich that exceed",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "This is a locally owned market. They have top quality fresh meat, fish, and seafood markets and the produce is the best you can find anywhere, including an organic section. You will also find occasional exotic fruits & vegetables, not typically found anywhere else locally. The deli is superb as well",
+          "rating": 5,
+          "time": "7 months ago"
+        }
+      ],
+      "address": "735 Zion St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJy1CKEppxm4ARlq-ERc-GXSA",
+      "name": "The Ham Stand",
+      "rating": 4.6,
+      "review_count": 166,
+      "distance_meters": 1510,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "So, my wife and I have driven by this place hundreds of times, going back and forth to town and home. We have commented to each other, wondering what the Ham Stand was all about. Finally, just a couple of days ago, we drove by and Googled the Ham Stand. Today, on my way home, I was driving by and de",
+          "rating": 5,
+          "time": "3 months ago"
+        },
+        {
+          "text": "BEST SANDWICH EVER!!!! The meat and bread was TOP NOTCH! I got the ham standard and it did not disappoint. I also got a snack stick and the flavor was delightful. I will go again",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "Overpriced. The sandwiches are good, not super big, but quality meats. Atmosphere...not the best. Sort of a counter culture grunge hangout for local drifters kinda vibe. To be clear, it's just a shack with no seating inside. Some picnic tables outside. The issue is the price. It's just a deli. Not a",
+          "rating": 3,
+          "time": "3 months ago"
+        }
+      ],
+      "address": "821 Zion St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJs6adEAt7m4ARqm9J5IBVUU4",
+      "name": "Dedrick's Cheese",
+      "rating": 4.6,
+      "review_count": 20,
+      "distance_meters": 166,
+      "source": "google_text",
+      "reviews": [
+        {
+          "text": "One of my favorite places in the whole world right here. The people are always friendly and willing to help you find what you're looking for. They have so many good options and many imported cheeses I've not seen outside of Europe. What a fantastic little shop. I much prefer the Nevada City location",
+          "rating": 5,
+          "time": "9 months ago"
+        },
+        {
+          "text": "It’s become a tradition for us to drive up to Nevada City with a baguette and sample the cheese “orphans” at this delightful shop. Would recommend it to anyone.",
+          "rating": 5,
+          "time": "a year ago"
+        },
+        {
+          "text": "We had about 7 people in our party alone in this little shop and the employees were amazing. I left to make room but not before buying bread, cheese and jam. It was all so yummy! The rest of the birthday party stayed and sampled some really delicious cheese. I will be going back to sample and buy mo",
+          "rating": 5,
+          "time": "2 years ago"
+        }
+      ],
+      "address": "209 Commercial St, Nevada City, CA 95959, USA"
+    },
+    {
+      "place_id": "ChIJWxOLYYJwm4ARXy3iAMOIOxs",
+      "name": "California Organics",
+      "rating": 4.4,
+      "review_count": 445,
+      "distance_meters": 1248,
+      "source": "google_text"
+    }
+  ],
+  "search_radius_miles": 1,
+  "median_household_income": 75792,
+  "total_population": 3172,
+  "average_household_size": 2.33,
+  "census_housing": {
+    "housing_units": 8815,
+    "vacancy_rate": 15.6,
+    "homeownership_rate": 80.5,
+    "median_home_value": 627100,
+    "median_gross_rent": 1675
+  },
+  "website_exists": null,
+  "peak_month": "Aug",
+  "peak_month_avg_f": 89.2,
+  "has_cold_winter": false,
+  "has_hot_summer": true,
+  "peak_tourist_season": "Jul-Sep",
+  "anchor_tenants": [],
+  "anchor_tenant_count": 0,
+  "has_transit_nearby": false,
+  "nearest_transit_meters": null,
+  "building_permits": {
+    "county_fips": "06057",
+    "county_name": "Nevada",
+    "state_abbr": "CA",
+    "state_name": "California",
+    "building_permits_total": 367,
+    "building_permits_single_family": 365,
+    "building_permits_multifamily": 2,
+    "building_permits_year": "2022",
+    "building_permits_prior_year": "2021",
+    "building_permits_prior_year_total": 443,
+    "building_permits_yoy_change": -17.2
+  },
+  "building_permits_total": 367,
+  "building_permits_year": "2022",
+  "building_permits_prior_year": "2021",
+  "building_permits_prior_year_total": 443,
+  "building_permits_yoy_change": -17.2,
+  "upcoming_events": [],
+  "nearby_venues": [
+    {
+      "name": "National Hotel",
+      "category": "Hotel",
+      "distance_meters": 161,
+      "popularity": null
+    },
+    {
+      "name": "Dakan",
+      "category": "food_and_drink",
+      "distance_meters": 108,
+      "popularity": null
+    },
+    {
+      "name": "Nevada Theatre",
+      "category": "Theater",
+      "distance_meters": 62,
+      "popularity": null
+    },
+    {
+      "name": "Friar Tuck's Restaurant & Bar",
+      "category": "American Restaurant",
+      "distance_meters": 88,
+      "popularity": null
+    },
+    {
+      "name": "Stonehouse Restaurant",
+      "category": "American Restaurant",
+      "distance_meters": 341,
+      "popularity": null
+    },
+    {
+      "name": "Crazy Horse Saloon & Grill",
+      "category": "Bar",
+      "distance_meters": 166,
+      "popularity": null
+    },
+    {
+      "name": "Lika's Quarter Cafe",
+      "category": "Cajun and Creole Restaurant",
+      "distance_meters": 49,
+      "popularity": null
+    },
+    {
+      "name": "Sopa Thai Cuisine",
+      "category": "Thai Restaurant",
+      "distance_meters": 88,
+      "popularity": null
+    },
+    {
+      "name": "El Loco Taco",
+      "category": "Taco Restaurant",
+      "distance_meters": 248,
+      "popularity": null
+    }
+  ],
+  "fooddata": [
+    {
+      "name": "Infant formula, store brand, soy",
+      "calories": 66,
+      "protein": 1.61,
+      "category": "Formula, prepared from powder"
+    },
+    {
+      "name": "Infant formula, store brand, added rice",
+      "calories": 65,
+      "protein": 1.49,
+      "category": "Formula, prepared from powder"
+    },
+    {
+      "name": "Infant formula, store brand, gentle or sensitivity",
+      "calories": 66,
+      "protein": 1.46,
+      "category": "Formula, prepared from powder"
+    },
+    {
+      "name": "Toddler formula, store brand, pediatric shake",
+      "calories": 99,
+      "protein": 2.86,
+      "category": "Formula, prepared from powder"
+    },
+    {
+      "name": "Infant formula, PBM PRODUCTS, store brand, powder",
+      "calories": 524,
+      "protein": 12,
+      "category": "Baby Foods"
+    }
+  ],
+  "openfoodfacts": null,
+  "datamuse_words": [
+    "hit",
+    "adam",
+    "bonus",
+    "eldorado",
+    "goldmine",
+    "jackpot",
+    "lode",
+    "melon",
+    "mine",
+    "ore"
+  ],
+  "nearby_parks": [
+    {
+      "name": "Alcatraz Island",
+      "designation": "",
+      "description": "Alcatraz reveals stories of American incarceration, justice, and our common humanity. This small island was once a fort, a military prison, and a maximum security federal penitentiary. In 1969, the Indians of All Tribes occupied Alcatraz for 19 months in the name of freedom and Native American civil",
+      "url": "https://www.nps.gov/alca/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Butterfield Overland National Historic Trail",
+      "designation": "National Historic Trail",
+      "description": "In 1857, businessman and transportation entrepreneur John Butterfield was awarded a contract to establish an overland mail route between the eastern United States and growing populations in the Far West. What became known as the Butterfield Overland Trail made an arcing sweep across the southern rim",
+      "url": "https://www.nps.gov/buov/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Cabrillo National Monument",
+      "designation": "National Monument",
+      "description": "In 1542, Juan Rodriguez Cabrillo climbed out of his boat and onto shore, becoming the first European to set foot on what is now the West Coast of the United States. Cabrillo National Monument not only tells the story of this 16th-century exploration but also houses a wealth of cultural and natural r",
+      "url": "https://www.nps.gov/cabr/index.htm",
+      "entrance_fee": "20.00",
+      "visitors": null
+    },
+    {
+      "name": "California National Historic Trail",
+      "designation": "National Historic Trail",
+      "description": "Follow in the footsteps of over 250,000 emigrants who traveled to the gold fields and rich farmlands of California during the 1840s and 1850s: the greatest mass migration in American history. The California National Historic Trail is over 5,000 miles long and covers portions of 10 states. Step into ",
+      "url": "https://www.nps.gov/cali/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Castle Mountains National Monument",
+      "designation": "National Monument",
+      "description": "Castle Mountains represents some of the most unique elements of the Mojave Desert. Nestled between the Nevada state line and Mojave National Preserve, the nearly 21,000 acres of Castle Mountains boasts Joshua tree forests, unbroken natural landscapes, rare desert grasslands, and rich human history. ",
+      "url": "https://www.nps.gov/camo/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Channel Islands National Park",
+      "designation": "National Park",
+      "description": "Channel Islands National Park encompasses five remarkable islands and their ocean environment, preserving and protecting a wealth of natural and cultural resources. Isolation over thousands of years has created unique animals, plants, and archeological resources found nowhere else on Earth and helpe",
+      "url": "https://www.nps.gov/chis/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "César E. Chávez National Monument",
+      "designation": "National Monument",
+      "description": "Yes, we can! Widely recognized as the most important Latino leader in the United States during the twentieth century, Cesar Chavez led farm workers and supporters in the establishment of the country's first permanent agricultural union. His leadership brought sustained international attention to the",
+      "url": "https://www.nps.gov/cech/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Death Valley National Park",
+      "designation": "National Park",
+      "description": "In this below-sea-level basin, steady drought and record summer heat make Death Valley a land of extremes. Yet, each extreme has a striking contrast. Towering peaks are frosted with winter snow. Rare rainstorms bring vast fields of wildflowers. Lush oases harbor tiny fish and refuge for wildlife and",
+      "url": "https://www.nps.gov/deva/index.htm",
+      "entrance_fee": "30.00",
+      "visitors": null
+    },
+    {
+      "name": "Devils Postpile National Monument",
+      "designation": "National Monument",
+      "description": "Established in 1911 by presidential proclamation, Devils Postpile National Monument protects and preserves the Devils Postpile formation, the 101-foot high Rainbow Falls, and pristine mountain scenery. The formation is a rare sight in the geologic world and ranks as one of the world's finest example",
+      "url": "https://www.nps.gov/depo/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    },
+    {
+      "name": "Eugene O'Neill National Historic Site",
+      "designation": "National Historic Site",
+      "description": "America's only Nobel Prize-winning playwright, Eugene O'Neill, chose Northern California as his sanctuary at the pinnacle of his writing career. Secluded from the outside world within the serene walls of his Tao House, O'Neill crafted his final and most memorable masterpieces: The Iceman Cometh, Lon",
+      "url": "https://www.nps.gov/euon/index.htm",
+      "entrance_fee": "0.00",
+      "visitors": null
+    }
+  ],
+  "noaa_station": "OROVILLE 2.7 ENE, CA US",
+  "noaa_normals": []
+}

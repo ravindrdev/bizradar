@@ -1,7 +1,7 @@
 {
   "version": "12.0",
   "generated": "2026-05-05",
-  "spec_source": "BizRadar v4 Universal Algorithm Spec — Batches 1-12",
+  "spec_source": "GrowthIM v4 Universal Algorithm Spec — Batches 1-12",
   "tier_definitions": {
     "1": "Peer-reviewed — academic publications in indexed journals",
     "2": "Institutional / industry-association — government, trade bodies, large vendor research with disclosed methodology",
@@ -9,7 +9,7 @@
     "4": "Consultancy — McKinsey, Bain, BCG industry reports"
   },
   "citation_policy": {
-    "rule": "Every customer-facing claim in a BizRadar report MUST reference at least one study.id in this registry.",
+    "rule": "Every customer-facing claim in a GrowthIM report MUST reference at least one study.id in this registry.",
     "tier_3_disclosure": "Tier-3 studies must include a vendor disclosure in the customer report.",
     "supersession": "When a Batch-11 sector-specific study supersedes a Batch-9 cross-industry study for the same NAICS-2, the sector-specific study takes precedence."
   },
@@ -96,7 +96,7 @@
       "finding_summary": "Regression-discontinuity design exploiting Yelp's rating-rounding rule. 1-star rating increase → 5-9% revenue lift at INDEPENDENT restaurants. Chain restaurants show no significant effect — chain brand-equity dominates Yelp signal.",
       "methodology": "Regression-discontinuity using Yelp's half-star rounding as the cutoff.",
       "sample": "Several thousand Seattle restaurants over multi-year window.",
-      "limitations": "Single-market study (Seattle). Effect sizes likely vary by market, cuisine type. Chain finding is critical for BizRadar's chain-detection logic."
+      "limitations": "Single-market study (Seattle). Effect sizes likely vary by market, cuisine type. Chain finding is critical for GrowthIM's chain-detection logic."
     },
     {
       "id": "S007",

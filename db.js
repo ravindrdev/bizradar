@@ -1,4 +1,4 @@
-/* db.js — PostgreSQL connection pool for BizRadar.
+/* db.js — PostgreSQL connection pool for GrowthIM.
 
    Single shared pg.Pool keyed off process.env.DATABASE_URL. Consumers
    require this module and call pool.query(...) / pool.connect() — no

@@ -435,7 +435,7 @@ async function checkWebsiteExists(url) {
         redirect: 'follow',
         signal: ac.signal,
         headers: {
-          'User-Agent': 'BizRadar/0.1 (+audit-only; HEAD probe)',
+          'User-Agent': 'GrowthIM/0.1 (+audit-only; HEAD probe)',
         },
       });
       // 2xx/3xx → exists. 4xx/5xx → not exists for our purposes.
@@ -746,7 +746,7 @@ async function callOverpass(endpoint, body, timeoutMs) {
         // Phase 5+ hardening: some Overpass mirrors / front-ends 406 on
         // requests without an explicit Accept or with a non-branded UA.
         'Accept': 'application/json',
-        'User-Agent': 'BizRadar/1.0 (business audit tool)',
+        'User-Agent': 'GrowthIM/1.0 (business audit tool)',
       },
       body,
       signal: ac.signal,
@@ -897,7 +897,7 @@ async function fetchCountyFIPS(street, city, state) {
   const timer = setTimeout(() => ac.abort(), 5000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) throw new Error(`Census geocoder HTTP ${res.status}`);
@@ -1097,7 +1097,7 @@ async function fetchUpcomingEvents(city, state) {
   const timer = setTimeout(() => ac.abort(), 8000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -1404,7 +1404,7 @@ const TRIPADVISOR_CACHE = new LRUCache({ max: 1000, ttl: TRIPADVISOR_TTL_MS });
 const TA_BASE = 'https://api.content.tripadvisor.com/api/v1';
 // TripAdvisor's gateway requires a Referer (or X-TripAdvisor-API-Key-…)
 // header on every Content API call. Bare requests are rejected as 403.
-const TA_HEADERS = { 'Accept': 'application/json', 'Referer': 'https://bizradar.local' };
+const TA_HEADERS = { 'Accept': 'application/json', 'Referer': 'https://GrowthIM.local' };
 
 async function fetchTripAdvisor(businessName, formattedAddress) {
   if (!businessName) return null;
@@ -1700,7 +1700,7 @@ async function _usdaFetchOne(state, commodity, apiKey) {
   const timer = setTimeout(() => ac.abort(), 8000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -1797,7 +1797,7 @@ async function fetchFMCSA(businessName) {
   const timer = setTimeout(() => ac.abort(), 8000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -1865,7 +1865,7 @@ async function fetchNPIRegistry(businessName, city, state) {
   const timer = setTimeout(() => ac.abort(), 5000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -1927,7 +1927,7 @@ async function _hudGet(url) {
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'BizRadar/1.0',
+        'User-Agent': 'GrowthIM/1.0',
         'Authorization': `Bearer ${apiKey}`,
       },
       signal: ac.signal,
@@ -2052,7 +2052,7 @@ async function fetchFDICData(businessName, state) {
   const timer = setTimeout(() => ac.abort(), 5000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -2233,7 +2233,7 @@ async function fetchCountyFIPSByCity(city, state, lat, lon) {
   const timer = setTimeout(() => ac.abort(), 5000);
   try {
     const r = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!r.ok) {
@@ -2297,7 +2297,7 @@ async function fetchZipByCity(city, state) {
   const timer = setTimeout(() => ac.abort(), 5000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -2362,7 +2362,7 @@ async function _cbpCallOne(stateFIPS, countyCode, naicsCode) {
   const timer = setTimeout(() => ac.abort(), 8000);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'BizRadar/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'GrowthIM/1.0' },
       signal: ac.signal,
     });
     if (!res.ok) {
@@ -2624,7 +2624,7 @@ async function fetchOpenFoodFacts(query) {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 5000);
     const r = await fetch(url, {
-      headers: { 'User-Agent': 'BizRadar/1.0 (business intelligence tool)' },
+      headers: { 'User-Agent': 'GrowthIM/1.0 (business intelligence tool)' },
       signal: ac.signal,
     });
     clearTimeout(timer);

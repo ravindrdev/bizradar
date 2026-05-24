@@ -23,7 +23,7 @@ async function probe(url) {
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'BizRadar/1.0 (business audit tool)',
+        'User-Agent': 'GrowthIM/1.0 (business audit tool)',
       },
     });
     const dt = Date.now() - t0;

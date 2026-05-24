@@ -781,7 +781,7 @@ goes LAST" ordering for this specific case):
        paraphrase statistics. If web_search returns no usable
        stat, write a generic sentence about online discovery
        being important — do NOT make up a number.
-  action: 'Contact GrowthIM Support at support@bizradar.com to
+  action: 'Contact GrowthIM Support at support@growthim.com to
            get help building a professional business website at
            reasonable prices or to fix your existing website so
            Google can find it.'
@@ -2668,7 +2668,7 @@ function safeParseJSON(text, label) {
 // Call A's prompt, focused on just the two sections it owns. Echoes
 // the same FORBIDDEN-generic-risk rules and template length caps so
 // quality is comparable to the previous single-call output.
-const SYSTEM_PROMPT_B = `You are BizRadar — a business intelligence engine. You are generating two sections of a business analysis report.
+const SYSTEM_PROMPT_B = `You are GrowthIM — a business intelligence engine. You are generating two sections of a business analysis report.
 
 The business data bundle and the priority_action_ids from the main analysis are provided in the user prompt below.
 
@@ -3432,7 +3432,7 @@ async function verifyBusinessClassification(data, layer0Result) {
 
   try {
     const systemPrompt =
-      'You are a business classification expert for BizRadar.' +
+      'You are a business classification expert for GrowthIM.' +
       ' Your job is to verify whether the detected NAICS code is correct' +
       ' for this business.\n\n' +
 

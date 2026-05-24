@@ -93,7 +93,7 @@ async function checkBusiness(b) {
   const totalReviews =
     det?.user_ratings_total || 0
 
-  // Calculate what BizRadar stores
+  // Calculate what GROWTHIM stores
   const photoCount = photos.length >= 10
     ? null
     : photos.length
@@ -157,7 +157,7 @@ async function checkBusiness(b) {
   }
 
   console.log('')
-  console.log('WHAT BIZRADAR STORES:')
+  console.log('WHAT GROWTHIM STORES:')
   console.log('  photo_count:', photoCount)
   console.log('  review_recency_days: null')
   console.log('  (always null — unreliable)')

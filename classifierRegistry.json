@@ -1,32 +1,32 @@
 {
   "version": "12.0",
   "generated": "2026-05-05",
-  "spec_source": "BizRadar v4 Universal Algorithm Spec \u2014 Batches 10-12",
+  "spec_source": "GrowthIM v4 Universal Algorithm Spec \u2014 Batches 10-12",
   "outOfScope": {
     "naics2": [
       {
         "naics2": "21",
         "label": "Mining, Quarrying, Oil & Gas Extraction",
         "reason": "B2B/heavy-industry; no local-discovery surface.",
-        "user_message": "BizRadar is designed for consumer-facing local businesses. Mining and extraction operations don't fit that pattern."
+        "user_message": "GrowthIM is designed for consumer-facing local businesses. Mining and extraction operations don't fit that pattern."
       },
       {
         "naics2": "22",
         "label": "Utilities (regulated)",
-        "reason": "Regulated utilities; not BizRadar's customer base.",
-        "user_message": "BizRadar serves consumer-facing businesses. Regulated utilities have different industry dynamics."
+        "reason": "Regulated utilities; not GrowthIM's customer base.",
+        "user_message": "GrowthIM serves consumer-facing businesses. Regulated utilities have different industry dynamics."
       },
       {
         "naics2": "55",
         "label": "Management of Companies & Enterprises",
         "reason": "Holding companies, regional HQs; not consumer-facing.",
-        "user_message": "BizRadar is built for businesses with customer touchpoints. Holding companies and corporate offices don't fit."
+        "user_message": "GrowthIM is built for businesses with customer touchpoints. Holding companies and corporate offices don't fit."
       },
       {
         "naics2": "92",
         "label": "Public Administration",
-        "reason": "Government agencies; not BizRadar customers by design.",
-        "user_message": "BizRadar serves private-sector businesses. Government agencies have different operational frameworks."
+        "reason": "Government agencies; not GrowthIM customers by design.",
+        "user_message": "GrowthIM serves private-sector businesses. Government agencies have different operational frameworks."
       }
     ],
     "naics6Patterns": [
@@ -54,7 +54,7 @@
       {
         "pattern": "521*-525*",
         "label": "Banks, securities, funds",
-        "reason": "Regulated finance; not BizRadar fit."
+        "reason": "Regulated finance; not GrowthIM fit."
       },
       {
         "pattern": "531110, 531120, 531190",

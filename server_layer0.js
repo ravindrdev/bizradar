@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────────
-   BizRadar v4 — Batch 12 reference Layer 0 implementation
+   GrowthIM v4 — Batch 12 reference Layer 0 implementation
    Replaces the v3 6-mode regex chain with the 10-mode pipeline that
    consumes classifierRegistry.json and verifiedStudies.json.
 

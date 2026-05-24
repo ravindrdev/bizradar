@@ -71,7 +71,7 @@ async function callOverpass(endpoint, body) {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
-      'User-Agent': 'BizRadar/1.0 (business audit tool)',
+      'User-Agent': 'GrowthIM/1.0 (business audit tool)',
     },
     body,
   });

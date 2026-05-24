@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BizRadar — Know your market. Own your city.</title>
+  <title>GrowthIM — Know your market. Own your city.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -418,7 +418,7 @@
       <line x1="12" y1="2" x2="12" y2="22"></line>
       <line x1="2" y1="12" x2="22" y2="12"></line>
     </svg>
-    BizRadar
+    GrowthIM
   </div>
 </nav>
 
@@ -427,7 +427,7 @@
   <div class="lp-hero">
     <h1>Know your market. <span class="accent">Own your city.</span></h1>
     <p class="tagline">Real data → ranked actions.</p>
-    <p class="body">BizRadar analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next — or what business to start.</p>
+    <p class="body">GrowthIM analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next — or what business to start.</p>
   </div>
 
   <div class="lp-modes" role="tablist" aria-label="Mode">
@@ -490,7 +490,7 @@
          pipeline phase the server just entered. -->
     <div class="lp-terminal" id="lp-terminal" role="status" aria-live="polite" hidden>
       <div class="lp-term-header">
-        <span>⚡ BizRadar Intelligence Engine</span>
+        <span>⚡ GrowthIM Intelligence Engine</span>
         <span class="lp-term-cursor">▋</span>
       </div>
       <div class="lp-term-progress">
@@ -560,13 +560,13 @@
   </div>
 </section>
 
-<footer class="lp-footer">© 2026 BizRadar · Real data, ranked actions.</footer>
+<footer class="lp-footer">© 2026 GrowthIM · Real data, ranked actions.</footer>
 
 <script>
   // ── Mode selector ────────────────────────────────────────────────
   const TITLES = {
-    rate:   'BizRadar — Rate your business',
-    market: 'BizRadar — Find your best business',
+    rate:   'GrowthIM — Rate your business',
+    market: 'GrowthIM — Find your best business',
   };
   const cards       = document.querySelectorAll('.lp-card');
   const panelRate   = document.getElementById('form-rate');
@@ -580,7 +580,7 @@
     });
     panelRate.hidden   = mode !== 'rate';
     panelMarket.hidden = mode !== 'market';
-    document.title     = TITLES[mode] || 'BizRadar';
+    document.title     = TITLES[mode] || 'GrowthIM';
     // Clear stale errors when switching modes (don't touch result, the
     // user might want to keep the previous report visible behind the form).
     document.getElementById('err-rate').hidden   = true;
@@ -895,7 +895,7 @@
     // When present, server.js will skip its 7-step findPlace resolver
     // and use this place_id directly — guarantees the exact business
     // Google's autocomplete showed in the dropdown.
-    const placeIdInput = document.getElementById('bizradar-place-id');
+    const placeIdInput = document.getElementById('GrowthIM-place-id');
     const placeId = placeIdInput ? placeIdInput.value : '';
     submitForm({
       mode: 'rate',
@@ -961,11 +961,11 @@ function initAutocomplete() {
     input.value = fullInput;
     console.log('[autocomplete] selected:', fullInput);
     console.log('[autocomplete] place_id:', place.place_id);
-    let hidden = document.getElementById('bizradar-place-id');
+    let hidden = document.getElementById('GrowthIM-place-id');
     if (!hidden) {
       hidden = document.createElement('input');
       hidden.type = 'hidden';
-      hidden.id = 'bizradar-place-id';
+      hidden.id = 'GrowthIM-place-id';
       hidden.name = 'place_id';
       input.parentNode.appendChild(hidden);
     }

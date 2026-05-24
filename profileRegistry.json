@@ -112,10 +112,10 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Crop farming is largely independent (family farms, regional cooperatives). Large agribusiness (Cargill, ADM, Monsanto/Bayer) operates B2B at scale outside this profile's BizRadar customer base. Consumer-facing operators (farmers-market vendors, u-pick orchards, CSAs, agritourism) benefit fully from review-amplification."
+      "note": "Crop farming is largely independent (family farms, regional cooperatives). Large agribusiness (Cargill, ADM, Monsanto/Bayer) operates B2B at scale outside this profile's GrowthIM customer base. Consumer-facing operators (farmers-market vendors, u-pick orchards, CSAs, agritourism) benefit fully from review-amplification."
     },
     "compliance_notes": [
-      "Profile covers 30 NAICS-6 codes spanning ALL of crop farming: oilseed (111110-111120), grain (111130-111199), vegetable/melon (111211-111219), fruit/tree-nut (111310-111339), greenhouse/nursery (111411-111422), and other crops (111910-111998). The vast majority of these are B2B commodity-farming operations with no local-discovery surface. Recommendations above target consumer-facing operators only (agritourism, u-pick, CSA, farmers-market vendors); B2B commodity farms are effectively out-of-scope at the BizRadar layer though they technically route here.",
+      "Profile covers 30 NAICS-6 codes spanning ALL of crop farming: oilseed (111110-111120), grain (111130-111199), vegetable/melon (111211-111219), fruit/tree-nut (111310-111339), greenhouse/nursery (111411-111422), and other crops (111910-111998). The vast majority of these are B2B commodity-farming operations with no local-discovery surface. Recommendations above target consumer-facing operators only (agritourism, u-pick, CSA, farmers-market vendors); B2B commodity farms are effectively out-of-scope at the GrowthIM layer though they technically route here.",
       "B2B commodity farming codes (111110-111199 grain/oilseed, much of 111900s) likely candidates for OUT_OF_SCOPE_NICHE re-route in a future phase — they have no local-discovery surface.",
       "Pesticide-applicator certification: state-mandated for restricted-use pesticide application; private vs commercial applicator licenses vary.",
       "USDA Organic certification: voluntary federal scheme for organic-marketed produce.",
@@ -239,7 +239,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Livestock is overwhelmingly independent. Industrial CAFOs (Smithfield, Tyson, JBS, Cargill) operate B2B at scale outside this profile's BizRadar customer base."
+      "note": "Livestock is overwhelmingly independent. Industrial CAFOs (Smithfield, Tyson, JBS, Cargill) operate B2B at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Profile covers 19 NAICS-6 codes spanning beef cattle (112111-112112), dairy cattle (112120), cattle feedlots (112130), hogs (112210), poultry (112310-112340), sheep/goats (112390-112420), aquaculture (112511-112519), and other animals (apiculture 112910, horses 112920, fur-bearing 112930, all other 112990). Vast majority are B2B commodity ops with no local-discovery surface — recommendations target consumer-facing slice only.",
@@ -464,7 +464,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "OSHA logging standards (29 CFR 1910.266); state forestry-practice rules (Oregon FPA, California FPA, Washington FPA); SFI/FSC voluntary chain-of-custody; federal Endangered Species Act (Section 7 + 9).",
@@ -561,7 +561,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Sector 21 OOS-by-spec; profile orphaned after Phase-2.5 OOS reroute (no NAICS-6 codes route here). Schema-only fill for completeness.",
@@ -658,7 +658,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Sector 21 OOS-by-spec; profile orphaned after Phase-2.5 OOS reroute. Schema-only fill for completeness.",
@@ -761,7 +761,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "MSHA mine safety regulation (30 CFR); state environmental permits; specialty drilling/blasting licensing. Sector 21 — primarily B2B service to mining operators.",
@@ -858,7 +858,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Sector 22 OOS-by-spec; profile orphaned after Phase-2.5 OOS reroute. Schema-only fill for completeness.",
@@ -955,7 +955,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Sector 22 OOS-by-spec; profile orphaned after Phase-2.5 OOS reroute. Schema-only fill for completeness.",
@@ -1052,7 +1052,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Sector 22 OOS-by-spec; profile orphaned after Phase-2.5 OOS reroute. Schema-only fill for completeness.",
@@ -1405,10 +1405,10 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Large national civil/heavy contractors (Kiewit, Granite, Flatiron, Tutor Perini, Skanska USA Civil) operate at scale outside this profile's BizRadar customer base. Mid-sized regional firms and specialty sub-contractors benefit modestly from review-amplification."
+      "note": "Large national civil/heavy contractors (Kiewit, Granite, Flatiron, Tutor Perini, Skanska USA Civil) operate at scale outside this profile's GrowthIM customer base. Mid-sized regional firms and specialty sub-contractors benefit modestly from review-amplification."
     },
     "compliance_notes": [
-      "Profile covers 6 NAICS-6 codes: water/sewer (237110), oil/gas pipeline (237120), power/comm-line (237130), land subdivision (237210), highway/street/bridge (237310), and other heavy/civil (237990). Heavily B2B/government — most operations effectively out-of-scope for BizRadar's consumer-facing focus.",
+      "Profile covers 6 NAICS-6 codes: water/sewer (237110), oil/gas pipeline (237120), power/comm-line (237130), land subdivision (237210), highway/street/bridge (237310), and other heavy/civil (237990). Heavily B2B/government — most operations effectively out-of-scope for GrowthIM's consumer-facing focus.",
       "Federal contracting: SAM.gov registration; FAR/DFARS compliance; SBA size standards for small-business set-asides.",
       "State DOT prequalification: most state DOTs require contractor prequalification; classifications and bonding capacity governed.",
       "Prevailing wage: Davis-Bacon (federal), state prevailing-wage laws.",
@@ -1550,7 +1550,7 @@
       "magnitude_scaling": {
         "S010": 0.5
       },
-      "note": "Multinational alcohol/food producers (Anheuser-Busch InBev, Constellation Brands, Diageo, PepsiCo, Nestlé, Mondelēz) operate at scale outside this profile's BizRadar customer base — they compete on shelf placement and ad spend, not review-amplification. Craft brewery/winery/distillery operators, retail bakeries, and small specialty-food producers (the actual BizRadar segment) benefit fully from review-amplification."
+      "note": "Multinational alcohol/food producers (Anheuser-Busch InBev, Constellation Brands, Diageo, PepsiCo, Nestlé, Mondelēz) operate at scale outside this profile's GrowthIM customer base — they compete on shelf placement and ad spend, not review-amplification. Craft brewery/winery/distillery operators, retail bakeries, and small specialty-food producers (the actual GrowthIM segment) benefit fully from review-amplification."
     },
     "compliance_notes": [
       "TTB (Alcohol and Tobacco Tax and Trade Bureau): federal alcohol-producer licensing — Brewer's Notice (312120 breweries), Wine Bond/Basic Permit (312130 wineries), Distilled Spirits Plant (312140 distilleries). Label approval (COLA) required for interstate distribution.",
@@ -1805,7 +1805,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "OSHA process safety, EPA RCRA hazardous waste, state air-quality permits; product-liability and supply-chain compliance. Industrial B2B production with negligible consumer-facing surface.",
@@ -1950,7 +1950,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Heavily regulated: FDA (pharma 325411-325413, medical device 334510-334516); DOD/AS9100 (aerospace 336411-336419); DOE export controls (semiconductors 334411-334419). ISO 9001/13485/14001 quality systems standard.",
@@ -2067,7 +2067,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FTC textile-labeling rules, CPSC flammability standards, OSHA, Country of Origin (COO) labeling. Largely offshored; remaining U.S. production faces these regulations.",
@@ -2191,7 +2191,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "OSHA wood-dust standards, EPA NESHAP for paper mills, FSC/SFI chain-of-custody for paper, FTC environmental marketing claims for printers.",
@@ -2320,7 +2320,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "EPA TSCA chemicals, RCRA hazardous waste, CAA/CWA permits; OSHA Process Safety Management (PSM) for above-threshold facilities; DOT hazmat transport.",
@@ -2440,7 +2440,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "CPSC flammability standards (TB 117 / 16 CFR 1633), EPA formaldehyde emissions (TSCA Title VI for composite wood), California Prop 65 / similar state warning rules.",
@@ -2576,7 +2576,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "B2B distribution. Firearms wholesalers under ATF FFL; auto-parts wholesalers under EPA emissions-tampering rules; medical-device distributors under FDA UDI.",
@@ -2705,7 +2705,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FDA FSMA + USDA food-safety obligations; federal cold-chain requirements; state-level alcohol/tobacco wholesale licensing; agricultural-commodity disclosures.",
@@ -3634,7 +3634,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "DOT/FMCSA for commercial vehicle operators; USPS exclusivity for letter mail (Private Express Statutes); state PUC for some intrastate ops; OSHA for facility operations.",
@@ -3736,7 +3736,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "OSHA warehousing standards; FDA registered facilities for food storage; DEA controlled-substance warehouses for pharma 3PL; cold-chain Good Distribution Practice (GDP) for pharma.",
@@ -3963,7 +3963,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Pipeline (PHMSA), water transport (USCG). Profile orphaned after Phase-2.5/Session-6 OOS reroute. Schema-only fill.",
@@ -4073,7 +4073,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FAA, FRA, FMCSA, MARAD oversight depending on sub-mode (air/rail/road/water support).",
@@ -4172,7 +4172,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "B2B-dominant. Privacy regs (CCPA/CPRA, VCDPA, CTDPA, GDPR for international); SOC 2 / ISO 27001 / FedRAMP common voluntary signals; HIPAA BAA for health-data SaaS; FERPA for ed-tech.",
@@ -4278,7 +4278,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FTC endorsement guidelines; UDAP rules; First Amendment + libel/defamation considerations; COPPA for kids-directed content; state-level publication-related laws.",
@@ -4382,7 +4382,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FCC regulation (Title I/II varies); state PUC for residential ILECs/CLECs in some states; CALEA wiretap support; CPNI customer-info privacy; state video-franchise authority for cable.",
@@ -4483,7 +4483,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "FCC license (terrestrial broadcast); FAA tower marking; state-level film-incentive program compliance for production. EAS (Emergency Alert System) participation.",
@@ -4589,7 +4589,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "MPAA voluntary rating system; collective-bargaining agreements (DGA, WGA, SAG-AFTRA, IATSE); state film-incentive compliance; copyright/IP enforcement.",
@@ -4688,7 +4688,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Data-center physical security; SOC 2 / ISO 27001 / SOC 1 audits common; FedRAMP for federal customers; HIPAA / FERPA / GLBA depending on customer mix.",
@@ -5946,7 +5946,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "AEC firms are mostly independents or partnerships. Some national engineering chains (Jacobs, AECOM, Stantec, HDR) operate at a scale outside this profile's BizRadar customer base. Interior-design and graphic-design have more chains (Havenly, Modsy historically) — these route here too."
+      "note": "AEC firms are mostly independents or partnerships. Some national engineering chains (Jacobs, AECOM, Stantec, HDR) operate at a scale outside this profile's GrowthIM customer base. Interior-design and graphic-design have more chains (Havenly, Modsy historically) — these route here too."
     },
     "compliance_notes": [
       "State licensing required for licensed professionals: PE (Professional Engineer), RA (Registered Architect), Landscape Architect (LA), surveyors (PLS). Advertising must comply with state board rules — most state boards prohibit unlicensed practice claims.",
@@ -6081,7 +6081,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Consulting and creative-services chains rare; mostly independents and partnerships. Big-4 / MBB consulting operate at a scale outside this profile's BizRadar customer base. Photography studio chains exist (Lifetouch, JCPenney Portraits) but operate on different review dynamics than independents."
+      "note": "Consulting and creative-services chains rare; mostly independents and partnerships. Big-4 / MBB consulting operate at a scale outside this profile's GrowthIM customer base. Photography studio chains exist (Lifetouch, JCPenney Portraits) but operate on different review dynamics than independents."
     },
     "compliance_notes": [
       "Profile spans 28 NAICS-6 codes including IT consulting (541511-541519), all management consulting (541611-541618), R&D (541713-541720), advertising agencies (541810-541890), marketing research (541910), commercial/portrait photography (541921-541922), translation (541930), and other PSTS (541990). Sub-profiles for each sub-sector are needed in later phases — operational dynamics differ substantially.",
@@ -6675,7 +6675,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "EPA RCRA Subtitle C (hazardous) and D (solid waste); state solid-waste permitting; DOT hazmat transport; CERCLA Superfund liability; OSHA HAZWOPER for hazardous-waste workers.",
@@ -6791,7 +6791,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Travel agencies (561510): DOT 49 CFR Part 399 + state seller-of-travel registration (CA, FL, IA, IL, NV, WA). Collection agencies (561440): FDCPA + state licensing. Document-prep services (561410) often unregulated.",
@@ -8539,7 +8539,7 @@
       "Childcare (624410): state licensing required; child-staff ratios, background checks, facility safety, square-footage minimums, and indoor/outdoor space requirements vary by state. Many states require CPR and pediatric first-aid certification for all staff.",
       "Background checks: federal Adam Walsh Child Protection Act + state-level CCDBG fingerprint requirements; vary by state. FBI and state child-abuse registry checks typically required.",
       "ADA accessibility requirements apply to childcare facilities; some states have additional inclusion mandates for special-needs children (IDEA Part C early intervention coordination).",
-      "Per naicsRouter.csv, this profile receives 9 NAICS-6 codes spanning individual/family services (624110-624190), community food services (624210 — food banks, soup kitchens), temporary shelters (624221, 624229), emergency relief (624230), and vocational rehabilitation (624310). Most of these (624110-624310) are nonprofit/aid organizations and may be out-of-scope for BizRadar's consumer-facing focus — recommendations above target for-profit childcare (624410). A re-route of 624110-624310 to OUT_OF_SCOPE_NICHE in naicsRouter.csv is recommended in a future phase.",
+      "Per naicsRouter.csv, this profile receives 9 NAICS-6 codes spanning individual/family services (624110-624190), community food services (624210 — food banks, soup kitchens), temporary shelters (624221, 624229), emergency relief (624230), and vocational rehabilitation (624310). Most of these (624110-624310) are nonprofit/aid organizations and may be out-of-scope for GrowthIM's consumer-facing focus — recommendations above target for-profit childcare (624410). A re-route of 624110-624310 to OUT_OF_SCOPE_NICHE in naicsRouter.csv is recommended in a future phase.",
       "Some states require additional disclosures for sliding-scale-fee or subsidized childcare programs (CCDF/state subsidy)."
     ],
     "report_sections": [
@@ -10569,7 +10569,7 @@
       "magnitude_scaling": {
         "S010": 0.5
       },
-      "note": "Large institutional caterers (Aramark, Sodexo, Compass Group) operate at scale outside this profile's BizRadar customer base. Local caterers (event/wedding/corporate-event specialists) operate independently and benefit fully from review-amplification."
+      "note": "Large institutional caterers (Aramark, Sodexo, Compass Group) operate at scale outside this profile's GrowthIM customer base. Local caterers (event/wedding/corporate-event specialists) operate independently and benefit fully from review-amplification."
     },
     "compliance_notes": [
       "Food service licensing: state and local health-department permits required; food-handler certifications (ServSafe or state equivalent) vary by jurisdiction.",
@@ -11337,7 +11337,7 @@
     "chain_handling": {
       "detect_via": "layer0_brand_chain",
       "magnitude_scaling": {},
-      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's BizRadar customer base."
+      "note": "Sector-specific national operators carry brand-equity at scale outside this profile's GrowthIM customer base."
     },
     "compliance_notes": [
       "Profile orphaned (NAICS 813* re-routed OUT_OF_SCOPE in Session 6 — not commercial businesses per classifier OOS pattern). Schema-only fill. 501(c)(3)/(4)/(6) tax-exempt obligations; charity-solicitation registration in many states.",
@@ -11422,7 +11422,7 @@
         "id": "rf_zero_reviews",
         "trigger": "google_review_count == 0",
         "severity": "info",
-        "message": "0 Google reviews. NAICS 814110 is unusual — most BizRadar customers in this category are placement agencies that more naturally fit admin.staffing_agency.",
+        "message": "0 Google reviews. NAICS 814110 is unusual — most GrowthIM customers in this category are placement agencies that more naturally fit admin.staffing_agency.",
         "blocks_report": false
       },
       {
@@ -11444,7 +11444,7 @@
       "Tax obligations: household employers must pay employer FICA, file Schedule H; some jurisdictions require workers' comp.",
       "Background checks for in-home staff: encouraged; FCRA rules apply if a CRA performs check.",
       "Live-in workers: room-and-board valuation rules under FLSA.",
-      "Recommendation: this profile has low BizRadar applicability. Most apparent matches likely belong in admin.staffing_agency (561311) or other_services.personal_care."
+      "Recommendation: this profile has low GrowthIM applicability. Most apparent matches likely belong in admin.staffing_agency (561311) or other_services.personal_care."
     ],
     "report_sections": [
       "header",

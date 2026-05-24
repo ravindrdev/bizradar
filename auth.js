@@ -1,4 +1,4 @@
-/* auth.js — email/password auth core for BizRadar.
+/* auth.js — email/password auth core for GrowthIM.
 
    Pure logic — no Express, no HTTP. Used by authRoutes.js.
 

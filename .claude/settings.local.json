@@ -367,7 +367,12 @@
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\ravin\\\\Documents\\\\bizradar\" -Name | Where-Object { $_ -match \"naics|router|profile\" })",
       "Bash(node -e \"const { lookupProfileId } = require\\('./naicsRouter'\\); console.log\\(lookupProfileId\\('522910'\\)\\);\")",
       "Bash(pm2 restart *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -v \"^[[:space:]]*//\")",
+      "Bash(cat \"C:\\\\Users\\\\ravin\\\\.pm2\\\\logs\\\\bizradar-error.log\" 2>/dev/null | grep -i \"pdf\\\\|chromium\\\\|puppeteer\\\\|executablePath\\\\|sparticuz\" | tail -30)",
+      "Bash(ls \"C:\\\\Users\\\\ravin\\\\AppData\\\\Local\\\\Temp\\\\chromium\" 2>/dev/null && echo \"EXISTS\" || echo \"NOT FOUND\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./node_modules/@sparticuz/chromium/package.json'\\), null, 2\\)\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/puppeteer-core/package.json'\\); console.log\\('puppeteer-core version:', p.version\\);\")"
     ]
   }
 }

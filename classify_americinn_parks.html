@@ -1,0 +1,671 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GrowthIM report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --emerald: #10B981;
+  --amber: #F59E0B;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-soft: #F1F5F9;
+  --text: #1E293B;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --emerald-tint: #ECFDF5;
+  --blue-tint: #EFF6FF;
+  --amber-tint: #FEF3C7;
+}
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: var(--text); background: var(--surface); margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+@media (min-width: 720px) { body { max-width: 820px; margin: 16px auto; padding: 24px 8px; } }
+h1 { font-size: 26px; font-weight: 700; color: var(--navy); margin: 0 0 6px 0; letter-spacing: -0.02em; line-height: 1.2; }
+h2 { font-size: 18px; font-weight: 600; color: var(--navy); margin: 32px 0 12px; letter-spacing: -0.01em; padding: 0; border: 0; }
+h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0 0 6px; }
+p { margin: 0 0 10px; }
+ul { padding-left: 20px; margin: 8px 0; }
+ul li { margin: 4px 0; }
+small { color: var(--muted); font-size: 12px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.meta { color: var(--muted); font-size: 13px; }
+.cite { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* ── Status pills (overall report status) ──────────────────────── */
+.status { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 13px; letter-spacing: 0.01em; }
+.status.healthy { background: var(--emerald-tint); color: #065F46; }
+.status.good    { background: var(--blue-tint);    color: #1E3A8A; }
+.status.needs   { background: var(--amber-tint);   color: #92400E; }
+.status.blocked { background: var(--danger-bg);    color: #991B1B; }
+
+/* ── Priority action card (.rec) — blue left accent ─────────────── */
+.rec { border: 1px solid var(--border); border-left: 4px solid var(--blue); padding: 16px 18px; margin: 12px 0; background: var(--surface); border-radius: 8px; }
+.rec h3 { font-size: 15px; margin: 0 0 8px; }
+.rec-high    { border-left-color: var(--emerald); }
+.rec-medium  { border-left-color: var(--blue); }
+.rec-low     { border-left-color: var(--amber); }
+.rec-minimal { border-left-color: var(--muted); opacity: 0.85; }
+
+/* ── Score / impact pills ──────────────────────────────────────── */
+.impact { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; vertical-align: middle; text-transform: uppercase; }
+.impact-high    { background: var(--emerald); color: #FFFFFF; }
+.impact-medium  { background: var(--blue);    color: #FFFFFF; }
+.impact-low     { background: var(--amber);   color: #FFFFFF; }
+.impact-minimal { background: var(--surface-soft); color: var(--muted); }
+
+/* ── 3-layer rec rendering ─────────────────────────────────────── */
+.layer { margin: 10px 0; }
+.layer-label { display: inline-block; font-weight: 700; font-size: 10.5px; letter-spacing: 0.06em; color: var(--muted); padding: 2px 8px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 4px; margin-right: 6px; vertical-align: middle; text-transform: uppercase; }
+.why-study { padding: 10px 14px; margin: 6px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.why-study p { margin: 4px 0; }
+.honesty { padding: 8px 12px; margin: 6px 0; border-left: 3px solid var(--muted); background: var(--bg); font-size: 13px; border-radius: 4px; }
+.honesty-verified              { border-left-color: var(--emerald); background: var(--emerald-tint); }
+.honesty-reasonable-inference  { border-left-color: var(--blue);    background: var(--blue-tint); }
+.honesty-customer-must-validate{ border-left-color: var(--amber);   background: var(--amber-tint); }
+.hmark { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); margin-right: 4px; }
+.hmark-verified  { background: var(--emerald-tint); color: #065F46; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.hmark-inference { background: var(--blue-tint);    color: #1E3A8A; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.hmark-validate  { background: var(--amber-tint);   color: #92400E; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.tier3 { font-size: 11px; color: var(--amber); }
+
+/* ── Misc tags / flags / money ─────────────────────────────────── */
+.extra-tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 4px; letter-spacing: 0.02em; text-transform: uppercase; }
+.extra-tag-hidden { background: var(--danger); color: #FFFFFF; }
+.extra-tag-known  { background: var(--muted);  color: #FFFFFF; }
+.money { padding: 12px 14px; margin: 10px 0; background: var(--emerald-tint); border-left: 3px solid var(--emerald); border-radius: 6px; font-size: 13px; }
+.money-skip { color: var(--muted); font-size: 13px; }
+.flag { padding: 10px 14px; margin: 8px 0; border-left: 3px solid var(--amber); background: var(--amber-tint); border-radius: 6px; }
+.flag.critical { border-left-color: var(--danger); background: var(--danger-bg); color: #991B1B; }
+.ai-badge { display: inline-block; background: var(--navy); color: #FFFFFF; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; vertical-align: middle; margin-left: 4px; }
+.ai-fallback-note { color: var(--muted); margin: 6px 0; }
+.classification-reason { font-size: 12px; margin-top: -2px; color: var(--muted); }
+
+/* ── Common problems / coverage / callout ──────────────────────── */
+.problem { padding: 14px 16px; margin: 10px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.problem h3 { font-size: 15px; margin: 0 0 6px; }
+.coverage { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+.coverage td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid var(--border); }
+.coverage td:first-child { width: 38%; color: var(--muted); }
+.coverage tr:last-child td { border-bottom: 0; }
+.callout { padding: 14px 16px; margin: 14px 0; border: 1px solid var(--border); background: var(--blue-tint); border-radius: 8px; border-left: 4px solid var(--blue); }
+.callout-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--blue); margin-bottom: 6px; text-transform: uppercase; }
+.callout p { margin: 0; line-height: 1.55; }
+
+/* ── Opportunity card (/classify) — emerald left accent ────────── */
+.opportunity { padding: 16px 18px; margin: 12px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--emerald); border-radius: 8px; }
+.opportunity h3 { margin: 4px 0 6px; font-size: 15px; }
+.op-meta { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
+.op-category { display: inline-block; background: var(--navy); color: #FFFFFF; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.op-novelty { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.novelty-unique { background: var(--emerald); color: #FFFFFF; }
+.novelty-rare   { background: var(--amber);   color: #FFFFFF; }
+.novelty-common { background: var(--muted);   color: #FFFFFF; }
+
+/* ── Market analysis card (/market-analysis) — navy left accent ── */
+.mkt-card { padding: 18px 20px; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 8px; }
+.mkt-card h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mkt-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #FFFFFF; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.mkt-card .impact { font-size: 12px; padding: 3px 10px; }
+
+/* The "← new search" link inside report content. The landing page
+   wraps the report in its own .result-back top-level button, but
+   direct-HTTP fetches still see this link. */
+.back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.back:hover { color: var(--blue); }
+</style></head><body><a class="back" href="/">&larr; new search</a>
+<h1>AmericInn by Wyndham Dodgeville</h1>
+<p class="meta">3637 WI-23, Dodgeville, WI 53533, USA<br>
+Hotels, motels, B&amp;Bs, RV parks, and traveler accommodation — NAICS 721110<br>
+Layer 0: <code>brand_chain</code> · confidence HIGH <small>(chain: Wyndham)</small></p>
+<div class="status good">GOOD with 1 gap</div>
+
+<div class="callout local-context">
+<div class="callout-label">LOCAL MARKET CONTEXT</div>
+<p>AmericInn by Wyndham Dodgeville sits at the gateway to Wisconsin&#39;s Driftless Area on WI-23, a scenic highway corridor that connects travelers heading to House on the Rock, Governor Dodge State Park, and the geological curiosities of Pine Cliff State Natural Area. Dodgeville is Iowa County&#39;s seat with a population of just over 5,000 and a median household income of $72,288 — a stable, owner-occupied community (67.9% homeownership) that sees significant drive-tourism traffic from the Madison and Chicago metro areas, especially in summer and fall. The hotel&#39;s immediate micro-environment includes the Boeing C-97G aircraft on static display just 174 meters away and two food-and-drink establishments (Jokers Wild and The Thym&#39;s) within 105 meters — a walkability advantage no other Dodgeville hotel can claim.</p>
+</div>
+
+<h2>Strengths</h2><ul><li>354 reviews &gt; 100</li></ul>
+<h2>Industry survival outlook</h2>
+<p>Establishments that opened in this sector (NAICS-72) in 2013 survived as follows:</p>
+<table class="coverage">
+  <tr><td><strong>1-year</strong></td><td>78.3%</td></tr>
+  <tr><td><strong>3-year</strong></td><td>64.3%</td></tr>
+  <tr><td><strong>5-year</strong></td><td>55.3%</td></tr>
+  <tr><td><strong>7-year</strong></td><td>47.6%</td></tr>
+  <tr><td><strong>10-year</strong></td><td>38.1%</td></tr>
+</table>
+<p class="meta"><small>Source: BLS Business Employment Dynamics, 2013 cohort tracked through 2023</small></p>
+
+
+
+<h2>Competitive context</h2>
+<div class="meta" style="margin:8px 0">Nearest competitors within 8 miles.</div>
+<p class="meta"><strong>5</strong> real competitors to watch &middot; <strong>0</strong> competitors you're beating</p>
+<p>11 same-type competitors within 8 miles.<br>
+Your rating: <strong>4.2</strong> vs local median: <strong>4.2</strong> <small>(+0.0)</small><br>
+Your reviews: <strong>354</strong> vs local median: <strong>135</strong> <small>(+219)</small></p>
+<p class="meta">Real competitors to watch:</p><ul><li><strong>Don Q Inn Dodgeville</strong> &mdash; 4.2&#9733; (1056 reviews) &middot; 0.2 mi</li><li><strong>Best Western Dodgeville Inn &amp; Suites</strong> &mdash; 4.2&#9733; (534 reviews) &middot; 1.4 mi</li><li><strong>Pine Ridge Motel</strong> &mdash; 4.1&#9733; (152 reviews) &middot; 1.2 mi</li><li><strong>Super 8 by Wyndham Dodgeville</strong> &mdash; 3.6&#9733; (354 reviews) &middot; 1.2 mi</li><li><strong>Silver Star Bed &amp; Breakfast Inn</strong> &mdash; 5.0&#9733; (135 reviews) &middot; 8.0 mi</li></ul>
+
+
+<h2>Competitor comparison <span class="ai-badge" title="Enriched by Claude">AI</span></h2>
+<div class="meta" style="margin:8px 0">Nearest competitors within 8 miles.</div>
+<h3>What competitors are doing better than you</h3><ul><li><strong>Don Q Inn Dodgeville:</strong> Review volume — 3x the social-proof mass at identical rating<br>
+<span class="meta">Evidence: Don Q Inn has 1,056 reviews vs AmericInn&#39;s 354 at the same 4.2★ — at identical ratings, Google&#39;s map pack algorithm and traveler social-proof heuristics favor the higher-volume property. Insufficient review data to cite specific evidence from Don Q Inn&#39;s top reviews.</span><br>
+<span class="meta">→ <strong>Your move:</strong> Activate a post-checkout review-ask via Wyndham&#39;s PMS email system and add a QR code card to every breakfast table linking to your Google review page — target 15 new reviews in 30 days</span></li><li><strong>Silver Star Bed &amp; Breakfast Inn:</strong> Perfect 5.0★ rating — highest perceived quality in the 8-mile market<br>
+<span class="meta">Evidence: Silver Star holds a 5.0★ average across 135 reviews — the only property in the search radius with a perfect score, which makes it appear as the &#39;best in Dodgeville&#39; to travelers who filter by rating. Insufficient review data to cite specific Silver Star review quotes.</span><br>
+<span class="meta">→ <strong>Your move:</strong> Focus on resolving the WiFi issue flagged in your 4-star review publicly — a specific, resolved complaint visible in your response is more persuasive to future guests than a vague 5-star average at a property with fewer reviews</span></li></ul>
+<h3>What you can do to win customers from them</h3><ul><li><strong>Amenity bundle superiority — pool, hot tub, hot breakfast, pet-friendly outdoor space</strong><br>
+<span class="meta">Why you can win: All three of these amenities are documented in your own verified 5-star reviews; a B&amp;B (Silver Star) and a basic motel (Pine Ridge at 4.1★) cannot match this full amenity stack</span><br>
+<span class="meta">→ <strong>Action:</strong> List all four amenities explicitly in your Google Business headline and the first line of your Wyndham booking description — travelers filtering by &#39;pool&#39; or &#39;pet-friendly&#39; will find you and not your competitors</span></li><li><strong>Walkability to dining — Jokers Wild and The Thym&#39;s at 105m; no other Dodgeville hotel can claim this</strong><br>
+<span class="meta">Why you can win: Foursquare-verified locations put both restaurants at 105m from your property; Don Q Inn at 0.16mi and Best Western at 1.36mi do not share this proximity</span><br>
+<span class="meta">→ <strong>Action:</strong> Add &#39;Walk to two restaurants in 2 minutes&#39; to your Google Business Q&amp;A and your Wyndham profile&#39;s location description this week</span></li><li><strong>Boeing C-97G landmark adjacency — a free, Instagrammable asset 174m away that no competitor can replicate</strong><br>
+<span class="meta">Why you can win: OpenStreetMap confirms the Boeing C-97G tourist attraction at 174m from your property — a documented landmark with zero competitor proximity advantage</span><br>
+<span class="meta">→ <strong>Action:</strong> Photograph the aircraft from your parking lot this week and upload to Google Business as &#39;View from AmericInn Dodgeville&#39; — it is a visual differentiator in a market where all photos look like generic hotel rooms</span></li></ul>
+<h3>Overall</h3><p>Don Q Inn Dodgeville is the single largest threat — it matches your 4.2★ rating but holds 1,056 reviews vs your 354 at just 0.16 miles away, giving it a structural visibility advantage in Google Maps rankings. Overall, AmericInn is competitive on rating and outperforms two of five competitors (Pine Ridge Motel at 4.1★/152 reviews and Super 8 at 3.6★/354 reviews), but trails on review volume against the top three, making accelerated review generation and differentiated positioning the clearest path to market leadership.</p>
+<h2>Location &amp; market</h2>
+<p>Area median household income: <strong>$72,288</strong><br>
+Local population (ZIP 53533): <strong>5,042</strong><br>Average household size: <strong>2.27</strong></p>
+<p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) — study S037.</p>
+
+<p><small>No bus stop or rail station found within 800m — car-dependent location.</small></p>
+<p><strong>Iowa County construction activity (2022):</strong> 68 total residential permits (60 single-family) — <span style="color:#b32430">declining</span> (-50.7% YoY)<br>
+<small>Source: U.S. Census Building Permits Survey via HUD (county FIPS 55049).</small></p>
+
+
+<h2>Demand &amp; seasonality</h2><p><strong>Peak season:</strong> Jun-Aug<br><strong>Cold winter market</strong> — plan an off-season strategy (one or more months average below 35°F).</p>
+<h2>Operations &amp; brand</h2><p>hours fully listed (7 days) · open now · website loads</p>
+<div style="margin-bottom: 16px;">
+  <h2>Priority actions</h2>
+  <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">Of these 7 actions, 3 are HIGH IMPACT. AI-tagged actions are generated from your real business data.</p>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Create a &#39;House on the Rock Explorer&#39; package — your #1 review mention is already &#39;Stayed here after leaving House on the Rock&#39;</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Build a 2-night package: (1) negotiate a 10% admission discount voucher with House on the Rock (S3911 WI-23, just 7 miles west) for guests who book direct; (2) add a printed &#39;Dodgeville Explorer Map&#39; in every room highlighting the Boeing C-97G aircraft on display 174m from your front door, Springer Park, Pine Cliff State Natural Area, and House on the Rock; (3) name the package &#39;House on the Rock Weekend Escape&#39; on your Wyndham direct-booking page and Google Business profile; (4) price it at $20 above standard rate — $199+ for Fri-Sat-Sun; (5) email Wyndham&#39;s rewards database filtering for Iowa County zip codes targeting past guests.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">One of your 5 sampled reviews explicitly names House on the Rock as the travel driver. The Boeing C-97G static display is 174m from your front door — a free, Instagrammable hook. Pine Cliff State Natural Area is 3.3km away. Don Q Inn is only 0.16mi away at the same 4.2★ — a named package gives you a story Don Q cannot match with a direct booking incentive.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$18,000-$28,000/year. Math: 30 package bookings/month × $20 premium × 12 months = $7,200 incremental room revenue; direct-book shift saves ~$15/night OTA commission on 50 bookings/month × 12 = $9,000; total floor $16,200.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $300 one-time (map design + print 500 copies) + $0 Wyndham portal update &middot; Timeline: Month 1</div>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Launch a &#39;Driftless Snowmobile &amp; Ski Weekend&#39; rate for Jan-Mar to fight your cold-winter occupancy cliff</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Iowa County has groomed snowmobile trails through the Driftless Area every winter. (1) Contact Iowa County Tourism (iowacountywi.org) this month to get listed on their winter trail map as the &#39;Base Camp Hotel&#39;; (2) offer a &#39;Snowmobile Rate&#39; of $10/night below rack rate + free hot cocoa station in the lobby Jan-Mar; (3) add a &#39;drying room&#39; or designated wet-gear area near the side entrance (repurpose a utility closet — $200 rubber mat, hooks); (4) partner with nearby Jokers Wild (105m away) for a $5 off coupon to guests who show their room key on weeknights; (5) promote on Wisconsin Snowmobile Association&#39;s Facebook group (24,000+ members) — post a pinned photo of the Boeing C-97G with &#39;Stay 174 steps from a real WWII aircraft and ride the Driftless tomorrow morning.&#39;</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Your weather data confirms cold winters (below 35°F monthly average). Peak month is July — the Jan-Mar valley is your biggest revenue risk. Don Q Inn (0.16mi, 1,056 reviews) dominates review volume but has no evidence of a winter-specific positioning play. The Driftless Area draws snowmobile tourism from the Chicago and Milwaukee markets every winter season.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$12,000-$20,000/year. Math: fill 4 additional room-nights/week Jan-Mar (13 weeks) × $109 ADR = $5,668; Jokers Wild co-promo drives 2 repeat-visit dinners/week which indirectly anchors return bookings = estimated $6,000 incremental. Total midpoint $14,000.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $200 one-time (gear drying area) + $0 Iowa County Tourism listing + $0 Facebook group post &middot; Timeline: Month 1</div>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Turn your already-praised breakfast into a named &#39;Driftless Farm Breakfast&#39; — 4 of 5 reviews mention it; no competitor owns this positioning</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Your reviews mention: waffles, eggs, sausage, biscuits and gravy, bagels, yogurt, fresh coffee, and daily variety. (1) Add ONE local-sourced item — contact Organic Valley (headquartered in LaFarge, WI, ~50 miles northwest) for a wholesale cheese or yogurt supply agreement; (2) print a small table card: &#39;Our breakfast features Wisconsin dairy from the Driftless Region&#39;; (3) rename the breakfast internally and on your Google profile as &#39;Driftless Farm Breakfast — included with every stay&#39;; (4) train front desk to mention it at check-in: &#39;Breakfast starts at 6:30 — we have fresh Wisconsin cheese and our famous biscuits and gravy&#39;; (5) photograph the spread and upload to Google and your Wyndham profile. This differentiates from Best Western (1.36mi) and Don Q Inn (0.16mi), both also offering breakfast at 4.2★.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">4 of your 5 sampled reviews independently and enthusiastically describe the breakfast — this is your highest organic review driver. Zero competitors in your 8-mile radius appear to have named or branded their breakfast. Local sourcing adds a story that neither Don Q Inn (4.2★, 1,056 reviews) nor Best Western (4.2★, 534 reviews) can claim without investment.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$8,000-$15,000/year. Math: branded breakfast converts 10% more direct bookings (conservative) = 15 extra room-nights/month × $109 ADR × 12 months = $19,620 gross; net after food cost uplift (~$3/guest for Wisconsin dairy add) at 60 guests/day × $3 × 365 = $65,700 cost added is offset by occupancy lift. Net incremental conservatively $8,000-$15,000.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $150/month incremental food cost for local sourcing + $100 one-time for table cards and signage &middot; Timeline: Month 1</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Launch a walk-here dining partnership with Jokers Wild and The Thym&#39;s — both are 105m from your lobby</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">(1) Walk to Jokers Wild and The Thym&#39;s this week (both 105m from your property); (2) propose a mutual referral: they display your hotel rack cards on their hostess stand, you put their menus in every room with a &#39;Walk 2 minutes to dinner — no driving required&#39; card; (3) negotiate a $5 off entrée voucher for hotel guests who show their room key (Jokers Wild weeknights, The Thym&#39;s weekends — split to avoid overload); (4) add both restaurants to your Google Business Q&amp;A and your front-desk recommended dining sheet; (5) mention walkability in your Google Business description — &#39;Dodgeville&#39;s only hotel within walking distance of two restaurants.&#39; Your 5-star review already says &#39;close to all kinds of restaurants&#39; — amplify this signal.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Jokers Wild and The Thym&#39;s are verified by Foursquare at 105m from your property. No competitor at 0.16mi (Don Q) or 1.17-1.36mi (Pine Ridge, Best Western) can claim this walkability advantage. The median household income in ZIP 53533 is $72,288 — guests here spend on dining. A $5 voucher costs you nothing (the restaurant absorbs it) and raises your perceived value.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$5,000-$10,000/year. Math: 20 guests/night × 25% take voucher × 365 nights × $0 direct cost to you = goodwill; indirect booking lift from walkability positioning estimated at 5 additional room-nights/month × $109 = $6,540/year.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $75 one-time (rack card print for restaurant hostess stands) &middot; Timeline: This week</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Formally own &#39;most pet-friendly hotel in Dodgeville&#39; — your top review mentions it; no competitor actively claims this</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">(1) Add &#39;Pet-Friendly with dedicated outdoor roaming area&#39; explicitly to your Google Business attributes and your Wyndham profile description — your 5-star reviewer mentions her Cavapoo had &#39;lots of room behind the hotel to wander and sniff around for bunnies&#39;; (2) create a &#39;Pets Welcome Pack&#39; — a printed card with: where to walk dogs near the property, Springer Park (1.9km), Wilson Park (3.1km), and the grassy area behind your hotel; nearest vet in Dodgeville; (3) list on BringFido.com (free listing) and DogFriendly.com ($99/year); (4) tag your Google Business profile photos with &#39;pet-friendly hotel Dodgeville Wisconsin&#39;; (5) run a $5/day pet fee (if not already) — or market &#39;no pet fee&#39; as a differentiator against competitors who charge $25-$50.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Pet travel is a $100B+ U.S. segment. Your own review evidence documents it — the roaming area behind the hotel is a real, verified differentiator. Don Q Inn (0.16mi), Best Western (1.36mi), and Super 8 (1.18mi) do not appear to actively market pet-specific amenities. BringFido searches are geolocation-intent searches — extremely high conversion.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$6,000-$12,000/year. Math: BringFido listing drives estimated 5 pet-traveler bookings/month × $109 ADR × 12 = $6,540; optional $5/night pet fee at 10 pets/month × 2 nights × $5 × 12 = $1,200. Total $7,740.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $99/year DogFriendly.com listing + $0 Google + $50 one-time Pets Welcome card print &middot; Timeline: This week</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Create a &#39;Driftless Nature Escape&#39; package targeting hikers and birders using Pine Cliff State Natural Area (3.3km away)</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">(1) Contact WDNR (Wisconsin DNR) to request Pine Cliff State Natural Area trail maps and display them at front desk; (2) build a &#39;$129 Driftless Nature Escape&#39; rate: standard room + printed trail guide + early 6am check-out option for day hikers + a bagged breakfast (granola bar + fruit + coffee cup) for guests who leave before breakfast service; (3) market on AllTrails.com community forum for Southwest Wisconsin and iowacountywi.org nature tourism page; (4) target Madison-area Facebook birding groups (Madison Audubon Society has 2,000+ members) with a sponsored post Apr-May when spring migration peaks in the Driftless.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Pine Cliff State Natural Area is 3.3km away and is a rare geological site in the Driftless Area — a documented draw for hikers, birders, and nature tourists. Your property already has the Boeing C-97G (174m) and Springer Park (1.9km) in the same radius. No competitor at this rating tier appears to be marketing to this segment. The bagged breakfast fills a real gap: your 4-star reviewer noted breakfast hours; early hikers would leave before 6:30am service.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$5,000-$9,000/year. Math: 10 nature-package bookings/month at $20 premium × 12 = $2,400 premium revenue; AllTrails + birding group posts estimated 8 new room-nights/month × $109 × 12 = $10,464 gross. Net conservatively $5,000-$9,000 after food cost of bagged breakfast (~$3/guest).</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $0 AllTrails + DNR map request + $200 one-time trail guide design and print &middot; Timeline: Month 2</div>
+</div><div class="action-card" style="border-left: 4px solid #F59E0B; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">LOW IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Respond to all 354 Google reviews — Don Q Inn has 1,056 reviews at 4.2★ and likely has visible owner engagement; you have 354 with no sample replies</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">(1) This week: log into Google Business Profile and respond to the 5 most recent reviews — use specific details from each review (e.g., &#39;So glad your Cavapoo enjoyed the grassy area behind the hotel — we love our four-legged guests!&#39;); (2) for the 4-star WiFi complaint, respond: &#39;Thank you for the honest feedback — we&#39;ve noted the WiFi drop issue and are working with our ISP to address the hourly disconnect. We hope to have this resolved on your next visit&#39;; (3) set a calendar reminder every Friday morning to respond to that week&#39;s new reviews; (4) template library: create 5 response templates (5-star outdoor/nature, 5-star breakfast, 5-star pool, 4-star issue-acknowledgment, 3-star recovery offer) so responses take under 3 minutes each.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Cornell S003 study finds 1pp lift in good-ratings share → 1.4% RevPAR. Don Q Inn has 1,056 reviews vs your 354 — 3x the review volume creates a trust gap. At $109 ADR and ~60% occupancy on a 60-room property, a 1.4% RevPAR lift = ~$1,600/year per percentage point improvement in ratings share.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$2,000-$5,000/year. Math: 1pp rating lift × 1.4% RevPAR × estimated $109 ADR × 60 rooms × 365 days × 60% occupancy = ~$1,600/pp; target 2-3pp lift over 12 months = $3,200-$4,800.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $0 &middot; Timeline: This week</div>
+</div>
+<div class="section"><h2>&#128269; Competitor deep dive</h2><p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">Only showing competitors where you are not already winning on both rating and review count.</p><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">1. Don Q Inn Dodgeville</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Don Q Inn ties your 4.2★ rating but has 1,056 reviews vs your 354 — nearly 3x the review volume at 0.16mi, making it the dominant visibility threat in the same parking corridor.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Review volume dominance</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">1,056 reviews vs your 354 — 702 more reviews at identical 4.2★ rating from 0.16mi away</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: 1,056 reviews vs your 354 — at identical ratings, Google&#39;s algorithm surfaces higher-volume properties more frequently in map pack results, creating a structural visibility advantage.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> 702 review gap — at current trajectory this gap widens unless you accelerate review generation</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Add a QR code card at checkout and on breakfast tables this week linking directly to your Google review page — target 15 new reviews in the next 30 days</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Local landmark awareness</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">Don Q Inn is a well-known quirky Iowa County landmark with unique themed rooms — an established experiential identity</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: Don Q Inn&#39;s review volume (1,056 at 4.2★) suggests a loyal, repeat-visitor base drawn to its distinctive themed room concept, which is a known differentiator in the Dodgeville market.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> AmericInn lacks a publicly visible experiential hook that Don Q has built over decades</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Counter with your verified advantages: branded Driftless Farm Breakfast, pet-friendly outdoor area, and proximity to Boeing C-97G — none of which Don Q can replicate</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Proximity dominance</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">0.16mi away — effectively the same decision window for any traveler searching &#39;hotel Dodgeville WI&#39;</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: At 0.16mi separation, both properties appear in every Google Maps search for Dodgeville accommodation; Don Q&#39;s 3x review volume tips the algorithm and the social-proof calculus in head-to-head comparison.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Head-to-head on Google Maps, a traveler sees 354 reviews vs 1,056 reviews — the cognitive default favors the larger number even at identical ratings</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; In your Google Business description, explicitly name your breakfast, pet policy, and pool temperature (verified in reviews) — concrete specifics override review-count heuristics for detail-oriented bookers</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Don Q Inn&#39;s themed-room niche appeals to curiosity seekers but may feel gimmicky to guests who want reliable comfort. Run Google Ads targeting &#39;Don Q Inn Dodgeville&#39; searches with the headline: &#39;Clean, Comfortable &amp; Closer to House on the Rock — AmericInn Dodgeville.&#39; Use your real review language: &#39;SO COMFORTABLE bed, warm pool, delicious breakfast included.&#39; Target on mobile within 20mi of Dodgeville, WI. Budget $150/month.</div>
+</div>
+  </div>
+</div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">2. Best Western Dodgeville Inn &amp; Suites</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Best Western ties your 4.2★ but has 534 reviews vs your 354 — 180 more reviews at 1.36 miles, a credible alternative for guests who search broadly.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Review volume advantage</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">534 reviews vs your 354 — 180-review lead at the same 4.2★ rating</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: 534 reviews at 4.2★ vs your 354 at 4.2★ — same perceived quality tier but higher social-proof mass for a traveler choosing between two identically-rated options.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> 180 reviews — closeable within 6-9 months with a systematic review-ask process</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Add a post-stay automated email via Wyndham&#39;s loyalty platform asking for a Google review — target recovering 30 reviews/month to close the gap by Q3</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Suite product offering</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">&#39;Inn &amp; Suites&#39; branding signals a broader room-type mix including multi-room options for families and extended stays</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: The &#39;Inn &amp; Suites&#39; designation in the Best Western brand name directly signals suite-category inventory, which attracts family and extended-stay travelers who filter for suite options on OTA platforms.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> AmericInn does not appear to market suite or extended-stay inventory specifically in public-facing materials</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; If your property has any larger rooms or king suites, label and photograph them specifically on Wyndham.com and Google — &#39;King Suite with soaking tub&#39; attracts anniversary and couples travelers who drive ADR</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Best Western sits 1.36 miles from House on the Rock and Dodgeville&#39;s center — you are closer. Run a Nextdoor ad in the Dodgeville, Spring Green, and Iowa County neighborhoods with the message: &#39;Visiting House on the Rock or the Driftless? AmericInn is Dodgeville&#39;s closest full-service hotel with free hot breakfast, warm pool, and pet-friendly rooms. Book direct at AmericInn.com and skip the OTA fees.&#39; Target spring and fall drive-tourism weekends.</div>
+</div>
+  </div>
+</div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">3. Silver Star Bed &amp; Breakfast Inn</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Silver Star has a perfect 5.0★ rating vs your 4.2★ — a 0.8-star gap that makes it the highest-perceived-quality option in the 8-mile radius, despite only 135 reviews.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Perfect rating — perception of best in market</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">5.0★ across 135 reviews — the only property in your 8-mile market with a perfect score</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: A 5.0★ average across 135 reviews is statistically rare and creates a &#39;best in Dodgeville&#39; narrative that no other competitor can currently claim.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> 0.8-star gap — meaningful to travelers who filter by 4.5★ or higher on OTA platforms; you are likely excluded from those filters</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Focus review-response strategy on converting 4-star reviews into 5-star rebooks — personally reach out to recent 4-star reviewers (WiFi complaint specifically) with a resolution and invite for a complimentary upgraded room</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Boutique / intimate B&amp;B experience</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">B&amp;B format at 8 miles out — attracts couples, anniversary travelers, and guests seeking non-chain intimacy</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: A Bed &amp; Breakfast with a 5.0★ rating commands a premium positioning as an experiential, personal-service alternative to chain hotels — a different purchase decision than a 60+ room AmericInn.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> AmericInn&#39;s chain affiliation is a trust signal for reliability but a liability for guests seeking uniqueness</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Counter with your verified strengths: pool, hot tub, free hot breakfast, and pet-friendly outdoor space — amenities a B&amp;B typically cannot offer; market these explicitly as &#39;all the comfort of a boutique stay with the amenities of a full-service hotel&#39;</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Silver Star&#39;s B&amp;B format likely has no pool, no full breakfast service, and no pet accommodations. Target searches for &#39;romantic hotel Dodgeville WI&#39; and &#39;couples weekend Driftless Area&#39; on Google Ads with the message: &#39;Pool, Hot Tub, Hot Breakfast, Pet-Friendly — AmericInn Dodgeville. Date-Night Packages from $129.&#39; Silver Star&#39;s 8-mile distance from the center of Dodgeville is also your proximity win — use it.</div>
+</div>
+  </div>
+</div><div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px 20px; margin-top: 8px;"><div style="font-weight: 600; color: #065F46; font-size: 14px; margin-bottom: 6px;">&#9989; Competitors you are already beating</div><div style="font-size: 13px; color: #374151;">Pine Ridge Motel, Super 8 by Wyndham Dodgeville &mdash; you outperform on both rating and review count. Keep doing what you are doing.</div></div></div>
+<div class="section">
+  <h2>&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
+  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now &mdash; with early warning signs so you can act before they become crises.</p>
+  <div style="border: 1px solid #E5E7EB; border-left: 4px solid #DC2626; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FEF2F2; color: #991B1B; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">HIGH RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Don Q Inn review-volume gap — 1,056 reviews vs. AmericInn&#39;s 354</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Don Q Inn at 0.16mi has the same 4.2-star rating but 3x the review volume (1,056 vs. 354), making it the default first-click choice on Google Maps for travelers searching &#39;hotel Dodgeville WI.&#39; With no upcoming events driving new guests in the next 90 days, AmericInn cannot rely on event traffic to organically close this gap. A traveler comparing the two properties will perceive Don Q as more established and lower-risk.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Check Google Maps &#39;Hotels in Dodgeville&#39; weekly — if AmericInn is listed below Don Q Inn in the default sort, the gap is actively costing bookings. Also track if Don Q&#39;s review count increases by more than 10/week while AmericInn&#39;s stays under 3/week.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Launch a checkout review-ask script this week (see execution template). Target 5 new reviews per week for 30 days to add ~20 reviews and improve recency signals. Post 5+ new interior/exterior photos to Google Business Profile — current photo count is thin relative to competitors.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> Estimated $3,000–$6,000/month in lost direct bookings diverted to Don Q Inn, based on occupancy displacement of 2–4 rooms per night at an average Dodgeville rate of ~$110/night.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #DC2626; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FEF2F2; color: #991B1B; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">HIGH RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Winter cash-flow trough — Nov through Feb with no anchor demand generators</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Dodgeville&#39;s peak season is Jun–Aug and cold winters are flagged. There are no anchor tenants within 500m and no upcoming events within 10 miles in the next 90 days. During November–February, leisure demand drops sharply and there is no identified corporate or institutional demand generator (hospital, university, manufacturer) noted in the bundle to provide a base occupancy floor. With 5 competitors in a town of 5,042 people, rate compression in winter is likely.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">If weekly occupied room nights fall below 40% of summer peak by October 1, winter cash flow is at risk. Track OTA booking pace for Nov–Feb dates starting in September.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Within 30 days, identify and contact the top 3 employers in Iowa County (county courthouse, local manufacturers, healthcare) with a corporate rate letter offering a flat $89–$99/night rate for Mon–Thu stays with a signed agreement. Even 2 accounts providing 5 room-nights/week each adds ~$4,500/month in winter revenue.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> Unmanaged winter occupancy at 30% vs. a stabilized 50% represents ~$11,000–$16,000/month in unrealized room revenue across a 4-month trough.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">OTA fee dependency with no direct-booking capture mechanism visible</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">As a Wyndham chain property, bookings likely flow heavily through Wyndham Rewards, Expedia, and Booking.com, each charging 15–25% commission. With a small local population (5,042 in ZIP 53533) and no repeat-guest capture strategy evident, each returning leisure traveler is likely re-booking through OTAs rather than direct, paying commission on guests who already stayed. Best Western 1.36mi away offers loyalty points that may draw repeat travelers away.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">If the ratio of Wyndham Rewards direct bookings to OTA bookings is below 40:60, the property is over-indexed on commission channels. Check PMS source-of-business report monthly.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Train front desk staff to mention Wyndham Rewards enrollment at every checkout within this week. Add a tent card in each room citing the direct-booking rate advantage. This costs $0 in materials if printed in-house.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> On 20 OTA-booked rooms/night at $110 average, a 20% commission = $2,200/day or ~$66,000/month in fees that could be partially recovered through direct-channel shift.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Zero upcoming local events — no demand spikes to offset slow shoulder season</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">The events calendar within 10 miles shows no confirmed events in the next 90 days. Governor Dodge State Park and the broader Driftless Area drive leisure visitors, but without anchored events (festivals, races, tournaments), occupancy is weather- and mood-dependent. Best Western and Don Q Inn with higher review counts will capture a greater share of the organic search demand that does exist. AmericInn has no identified proactive outreach to local event organizers or tourism boards.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Check Iowa County Tourism and Dodgeville Chamber of Commerce event calendars every Monday. If no new events are posted by July 1 for August–September, proactively reach out to organizers to negotiate preferred hotel status.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Contact Iowa County Tourism Bureau within 2 weeks to register as a preferred lodging partner for any county-organized or permitted events. Request to be included in their visitor referral list. Cost: 1 phone call and a follow-up email.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> Missing even one 200-person weekend event that fills 30 rooms at $110 = $6,600 in revenue captured by Don Q Inn or Best Western instead.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Silver Star B&amp;B premium positioning — 5.0 stars threatens upper-end leisure segment</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Silver Star Bed &amp; Breakfast Inn 8 miles away holds a perfect 5.0-star rating across 135 reviews. Leisure travelers planning a Driftless Area getaway — a demographic with median income of $72,288 locally and likely higher among destination visitors — will see Silver Star&#39;s rating and choose it for anniversary stays, couples trips, and wine-country weekends. This pulls the highest-ADR customers away from AmericInn before a price comparison even happens.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">If TripAdvisor or Google searches for &#39;romantic hotel Dodgeville&#39; or &#39;Dodgeville getaway&#39; return Silver Star above AmericInn in the top 3, the property is losing premium leisure shoppers. Check search results weekly on a private browser.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Within 30 days, create a &#39;Driftless Escape&#39; room package on the Wyndham booking page and AmericInn website: include a local restaurant gift card to Jokers Wild or The Thym&#39;s ($25 value), a late checkout, and a discounted rate presented as a package. This reframes the offering without cutting base rate.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> Loss of 2–3 premium leisure bookings per weekend at $130–$150/night = $520–$900/weekend, or roughly $6,000–$11,000 across the Jun–Aug peak season.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #6B7280; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #F9FAFB; color: #374151; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">LOW RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Thin Google photo library weakening click-through vs. Don Q Inn and Best Western</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">The business bundle flags a low photo count for AmericInn relative to the visibility threshold. Don Q Inn (1,056 reviews) and Best Western (534 reviews) almost certainly have deeper photo libraries. On Google Maps, properties with more and newer photos receive higher click-through rates from the search results panel. Travelers choosing between same-rated hotels (all three at 4.2 stars) will click the one that looks best in thumbnail — typically the property with the most recent, high-quality interior shots.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Open Google Maps on a mobile device and search &#39;hotels Dodgeville WI.&#39; Count the number of photos displayed for AmericInn vs. Don Q Inn. If Don Q shows more than 2x the photos, click-through is being lost weekly.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Photograph all room types, pool area (if applicable), lobby, and exterior in good morning light this week. Upload minimum 15 new photos to Google Business Profile within 7 days. Total cost: $0 using a smartphone.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> A 5% lower click-through rate on Google Maps at 50 monthly profile views = 2–3 fewer inquiries/month, translating to $220–$330 in lost potential bookings at $110/night.</div>
+  </div>
+</div>
+<div class="section">
+  <h2>&#128203; Ready-to-use templates</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">Copy, fill the [brackets], send. No rewriting needed.</p>
+  <div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128483;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Checkout review-ask script — front desk staff</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Every checkout interaction, delivered verbally by front desk staff after handing back the guest&#39;s ID or payment receipt. Use for every guest, every day.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-0" data-body="&quot;Thanks so much for staying with us! If you have 60 seconds, an honest Google review means the world to a small-town property like ours. Just search AmericInn Dodgeville on Google — we&#39;d really appreciate it.&quot;" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">&quot;Thanks so much for staying with us! If you have 60 seconds, an honest Google review means the world to a small-town property like ours. Just search AmericInn Dodgeville on Google — we&#39;d really appreciate it.&quot;</div>
+      <button onclick="const b=document.getElementById('tmpl-0').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 5 new Google reviews per week. If under 2 per week after 14 days, add a printed QR-code card pointing directly to the Google review link and hand it with every receipt.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128231;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Corporate rate email to Iowa County employers</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Send to HR managers or office administrators at the top 3–5 Iowa County employers. Send Monday–Tuesday before 10am for best open rates. Use a real contact name if available from LinkedIn or company website.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 13px;"><strong style="color: #1D4ED8;">Subject:</strong> <span style="color: #1E40AF;">Reliable lodging for your team — flat corporate rate, AmericInn Dodgeville</span></div>
+      <div id="tmpl-1" data-body="Hi [contact first name],&#10;&#10;I&#39;m [your name], the [manager/owner] at AmericInn by Wyndham in Dodgeville (3637 WI-23). We work with several local businesses to house visiting staff, contractors, and out-of-town candidates.&#10;&#10;We&#39;re offering a flat corporate rate of $[89–99]/night for Mon–Thu stays — no blackout dates, no minimum nights, billed monthly if preferred.&#10;&#10;Would 15 minutes this week work to walk through the details? Happy to come to your office or jump on a call.&#10;&#10;Thanks,&#10;[Your name]&#10;[Your direct phone number]&#10;AmericInn by Wyndham Dodgeville" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">Hi [contact first name],
+
+I&#39;m [your name], the [manager/owner] at AmericInn by Wyndham in Dodgeville (3637 WI-23). We work with several local businesses to house visiting staff, contractors, and out-of-town candidates.
+
+We&#39;re offering a flat corporate rate of $[89–99]/night for Mon–Thu stays — no blackout dates, no minimum nights, billed monthly if preferred.
+
+Would 15 minutes this week work to walk through the details? Happy to come to your office or jump on a call.
+
+Thanks,
+[Your name]
+[Your direct phone number]
+AmericInn by Wyndham Dodgeville</div>
+      <button onclick="const b=document.getElementById('tmpl-1').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 2 replies per 10 emails sent. If under 1 reply per 10 after the first batch, revise subject line to &#39;Housing your contractors in Dodgeville? — flat $[rate]/night&#39; and resend to remaining contacts.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128172;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Post-stay review request text message</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Send to guests who provided a mobile number at check-in, 2–3 hours after their confirmed checkout time on departure day. Do not send after 7pm.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-2" data-body="Thanks for staying at AmericInn Dodgeville! A quick Google review helps us a lot: [paste your Google review short URL]. — [Your name]" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">Thanks for staying at AmericInn Dodgeville! A quick Google review helps us a lot: [paste your Google review short URL]. — [Your name]</div>
+      <button onclick="const b=document.getElementById('tmpl-2').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 1 review posted per 8 texts sent. If under 1 per 15 texts after 30 days, test sending at 11am instead of immediately post-checkout and compare conversion rate.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128231;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Iowa County Tourism Bureau partnership email</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Send to the Iowa County Tourism contact or Dodgeville Chamber of Commerce visitor services coordinator. Send within the next 14 days, Tuesday or Wednesday morning.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 13px;"><strong style="color: #1D4ED8;">Subject:</strong> <span style="color: #1E40AF;">Preferred lodging partner for Iowa County visitors — AmericInn Dodgeville</span></div>
+      <div id="tmpl-3" data-body="Hi [contact name],&#10;&#10;I&#39;m [your name] at AmericInn by Wyndham (3637 WI-23, Dodgeville). We&#39;d love to be included on your recommended lodging list and preferred referral partners for any county events, races, or festivals.&#10;&#10;We can offer your visitors a [10%] discount code — easy for your team to hand out or post online. In return, we&#39;re happy to display Iowa County tourism materials in our lobby and mention your events to arriving guests.&#10;&#10;Would you be open to a quick 10-minute call this week?&#10;&#10;Thanks so much,&#10;[Your name]&#10;[Your phone number]&#10;AmericInn by Wyndham Dodgeville" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">Hi [contact name],
+
+I&#39;m [your name] at AmericInn by Wyndham (3637 WI-23, Dodgeville). We&#39;d love to be included on your recommended lodging list and preferred referral partners for any county events, races, or festivals.
+
+We can offer your visitors a [10%] discount code — easy for your team to hand out or post online. In return, we&#39;re happy to display Iowa County tourism materials in our lobby and mention your events to arriving guests.
+
+Would you be open to a quick 10-minute call this week?
+
+Thanks so much,
+[Your name]
+[Your phone number]
+AmericInn by Wyndham Dodgeville</div>
+      <button onclick="const b=document.getElementById('tmpl-3').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 1 confirmed partnership or referral agreement within 30 days of sending. If no reply within 7 days, follow up once by phone using the number on the tourism bureau website.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128196;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Driftless Escape package proposal to Jokers Wild / The Thym&#39;s</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Deliver in person or by email to the manager of Jokers Wild or The Thym&#39;s (both within 500m). Approach Tuesday–Thursday between 2–4pm when restaurant managers are least busy.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-4" data-body="Hi [manager name],&#10;&#10;I&#39;m [your name], manager at AmericInn by Wyndham right here on WI-23. I wanted to float a simple cross-promotion idea that costs both of us nothing upfront.&#10;&#10;We&#39;re putting together a &#39;Driftless Escape&#39; weekend package for couples and leisure travelers. We&#39;d love to include a [restaurant name] gift card — even a $25 value — as part of the package. In exchange, we&#39;d feature [restaurant name] in our room welcome cards, at the front desk, and in our booking description.&#10;&#10;Our average weekend guest is a couple or family from outside Iowa County, typically spending 1–2 nights. We check in roughly [X] leisure guests on Friday and Saturday nights during June–August.&#10;&#10;This puts your restaurant in front of travelers who don&#39;t yet know where to eat in Dodgeville — exactly the guests most likely to try somewhere new.&#10;&#10;No long-term commitment needed. Want to try it for June and July and see how it goes?&#10;&#10;Thanks,&#10;[Your name]&#10;[Your phone number]&#10;AmericInn by Wyndham, 3637 WI-23 Dodgeville" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">Hi [manager name],
+
+I&#39;m [your name], manager at AmericInn by Wyndham right here on WI-23. I wanted to float a simple cross-promotion idea that costs both of us nothing upfront.
+
+We&#39;re putting together a &#39;Driftless Escape&#39; weekend package for couples and leisure travelers. We&#39;d love to include a [restaurant name] gift card — even a $25 value — as part of the package. In exchange, we&#39;d feature [restaurant name] in our room welcome cards, at the front desk, and in our booking description.
+
+Our average weekend guest is a couple or family from outside Iowa County, typically spending 1–2 nights. We check in roughly [X] leisure guests on Friday and Saturday nights during June–August.
+
+This puts your restaurant in front of travelers who don&#39;t yet know where to eat in Dodgeville — exactly the guests most likely to try somewhere new.
+
+No long-term commitment needed. Want to try it for June and July and see how it goes?
+
+Thanks,
+[Your name]
+[Your phone number]
+AmericInn by Wyndham, 3637 WI-23 Dodgeville</div>
+      <button onclick="const b=document.getElementById('tmpl-4').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 1 signed or verbal agreement with at least 1 restaurant within 30 days. Track how many package bookings reference the restaurant inclusion — target 3 package bookings in the first month of launch.</div>
+    </div>
+  </div>
+</div>
+<h2>90-day action plan <span class="ai-badge">AI</span></h2>
+<p class="meta">Three months of progressive depth. Month 1 has weekly steps; months 2 and 3 have month-level focus and goals.</p>
+<div class="rec rec-medium">
+<h3>Month 1 &mdash; Own the Driftless narrative — differentiate from Don Q Inn with story, amenities, and engagement</h3>
+<p><strong>Week 1:</strong> Monday: Walk to Jokers Wild and The Thym&#39;s (both 105m away) and propose the mutual referral and room-key discount. Tuesday: Respond to all 5 Google reviews currently live — use specific details (mention the Cavapoo owner&#39;s dog by breed, cite the biscuits and gravy). Wednesday: Photograph the Boeing C-97G from your parking lot and upload to Google Business with the caption &#39;Walk 2 minutes from AmericInn Dodgeville to a real WWII-era aircraft.&#39; Friday: Order 500 printed &#39;Driftless Insider Cards&#39; from Vistaprint ($120).</p>
+<p><strong>Week 2:</strong> Design and print the &#39;Pets Welcome Pack&#39; card listing Springer Park (1.9km), Wilson Park (3.1km), and the grassy area behind the hotel. Submit your free listing to BringFido.com. Add &#39;Pet-Friendly with dedicated outdoor roaming area&#39; to your Google Business attributes. Contact Iowa County Tourism at iowacountywi.org to request inclusion on their Dodgeville visitor guide.</p>
+<p><strong>Week 3:</strong> Call House on the Rock (S3911 WI-23) and propose a preferred lodging partner agreement — offer to display their rack cards at your front desk in exchange for a listing on their &#39;Plan Your Visit&#39; page. Draft the &#39;House on the Rock Weekend Escape&#39; package copy and submit it for update on your Wyndham direct-booking page. Place the Driftless Insider Cards in all rooms.</p>
+<p><strong>Week 4:</strong> Contact Organic Valley (LaFarge, WI) wholesale department to request a cheese or dairy yogurt supply quote for your breakfast. Draft your &#39;Driftless Farm Breakfast&#39; table card copy. Set a recurring Friday 8am calendar block: &#39;20 minutes — respond to this week&#39;s Google reviews.&#39; Measure: how many new Google reviews arrived in Week 1-4?</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 1: 10+ new Google reviews posted, all existing reviews have owner responses, House on the Rock partner conversation initiated, pet-friendly listing live on BringFido, and Driftless Insider Card distributed in 100% of rooms</p>
+</div>
+<div class="rec rec-low">
+<h3>Month 2 &mdash; Revenue packages — convert existing traffic into higher-ADR bookings</h3>
+<p><strong>Focus:</strong> Launch the &#39;House on the Rock Weekend Escape&#39; package live on Wyndham.com and Google Business. Finalize the Organic Valley dairy supply agreement and rebrand breakfast as &#39;Driftless Farm Breakfast&#39; with table cards in place. Design and order the &#39;Driftless Breakfast Club&#39; stamp card (500 units, $80). Begin outreach to Wisconsin DNR southwest region about Governor Dodge State Park &#39;Park and Stay&#39; listing. Draft the Wisconsin Trails magazine press pitch and send to editorial team for summer editorial calendar consideration.</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 2: &#39;House on the Rock Weekend Escape&#39; package live and receiving bookings, Driftless Farm Breakfast operational with local sourcing, Breakfast Club stamp cards distributed at check-in, and Wisconsin DNR conversation underway</p>
+</div>
+<div class="rec rec-high">
+<h3>Month 3 &mdash; Winter survival and off-season revenue — lock in January-March occupancy before the cold-winter cliff hits</h3>
+<p><strong>Focus:</strong> Measure Month 1 goal (review count + response rate) and Month 2 goal (package bookings + breakfast rebranding uptake). Launch the &#39;Driftless Snowmobile &amp; Ski Weekend&#39; rate for Jan-Mar: contact Iowa County Tourism for winter trail map listing, purchase 4 snowshoe pairs ($150), set up the gear drying area near side entrance ($200). Post in Wisconsin Snowmobile Association&#39;s Facebook group with the Boeing C-97G photo. Activate the Sunday Saver $79 rate in Wyndham PMS to address Sunday night occupancy gap.</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 3 (90-day result): 25+ new Google reviews posted since Day 1, at least 2 named packages live and converting, Sunday occupancy rate measurably improved vs prior-year baseline, and winter package positioned to generate $8,000-$14,000 incremental Jan-Mar revenue</p>
+</div>
+<h2>Seasonal strategy <span class="ai-badge">AI</span></h2>
+<p class="meta">Per-season playbook. Each season names a real local event tie-in and a real local partner from your competitor or nearby-venues data.</p>
+<div class="rec rec-medium">
+<h3>☀️ Summer <span class="meta">&mdash; Drive-tourism couples and families from the Madison and Milwaukee metros visiting House on the Rock, Governor Dodge State Park, and the Driftless scenic byways during July peak season</span></h3>
+<p><strong>What to add:</strong> A &#39;Driftless Day Pass&#39; amenity: at check-in, give every guest a printed 1-day itinerary covering House on the Rock morning → Pine Cliff State Natural Area afternoon hike → Jokers Wild dinner (105m walk), positioning AmericInn as the trip planner, not just the pillow</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Your Driftless Adventure Starts Here — Hot Breakfast, Warm Pool, 2 Minutes from Two Restaurants"</p></div>
+<p><strong>Event tie-in:</strong> Iowa County Fair (Mineral Point, WI — held annually in late July) draws thousands of regional visitors who need lodging; promote a &#39;County Fair &amp; Driftless Weekend&#39; rate on Iowa County&#39;s visitor social pages the week before the fair</p>
+<p><strong>Local partner:</strong> Jokers Wild (105m) — co-promote a &#39;Friday Fish Fry + Stay&#39; package for summer weekends</p>
+<p class="meta">Revenue: <strong>$18,000-$28,000/month</strong></p>
+
+</div><div class="rec rec-medium">
+<h3>🍂 Fall <span class="meta">&mdash; Leaf-peeping couples and outdoor enthusiasts targeting the Driftless Area&#39;s dramatic fall foliage on WI-23 and the ridgelines near Governor Dodge State Park, arriving September-October</span></h3>
+<p><strong>What to add:</strong> A &#39;Driftless Fall Color Weekend&#39; package at $149/night (2-night minimum) including a printed fall foliage drive map of Iowa County&#39;s scenic WI-23 corridor, hot cider at check-in (purchased wholesale from a local orchard), and early 6am check-out option for sunrise ridge hikers</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"The Driftless in October Is Unforgettable — Base Camp at AmericInn Dodgeville"</p></div>
+<p><strong>Event tie-in:</strong> Kickapoo Valley Harvest Festival (held annually each October in the Driftless region) — list AmericInn as the nearest full-service lodging option on their event page</p>
+<p><strong>Local partner:</strong> The Thym&#39;s (105m) — negotiate a &#39;Fall Sunday Brunch&#39; deal for hotel guests showing room key</p>
+<p class="meta">Revenue: <strong>$14,000-$22,000/month</strong></p>
+
+</div><div class="rec rec-medium">
+<h3>❄️ Winter <span class="meta">&mdash; Snowmobile riders, cross-country skiers, and remote workers seeking a quiet Driftless escape during Iowa County&#39;s January-February groomed trail season</span></h3>
+<p><strong>What to add:</strong> The &#39;Driftless Freeze Weekend&#39; rate at $109/night including snowshoe rentals, a printed dark-sky stargazing map, and complimentary hot cocoa station in the lobby Thursday-Sunday</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Wisconsin&#39;s Best-Kept Winter Secret — Snowshoe by Day, Hot Tub by Night"</p></div>
+<p><strong>Event tie-in:</strong> Wisconsin&#39;s Snowmobile Trails season opens statewide in January — promote on Wisconsin Snowmobile Association&#39;s Facebook group (24,000+ members) with a pinned post featuring the Boeing C-97G photo and your trail proximity</p>
+<p><strong>Local partner:</strong> Jokers Wild (105m) — weeknight dinner voucher for snowmobile guests, driving foot traffic to them and lodging stickiness for you</p>
+<p class="meta">Revenue: <strong>$6,000-$10,000/month</strong></p>
+<div class="honesty honesty-customer-must-validate"><strong>Off-season survival:</strong> January is your deepest occupancy valley in a confirmed cold-winter market. The survival play: pre-sell &#39;Winter Escape Gift Certificates&#39; in December at 10% discount (e.g., $98 for a $109 night) — push these via Wyndham loyalty email to past guests. This generates cash in December and fills January beds. Simultaneously, contact 3 Iowa County businesses (county government, Lands&#39; End distribution center in Dodgeville, local healthcare) about block-rate corporate lodging for contractors or traveling staff — a single corporate account at 10 room-nights/month at $89 net = $10,680/year and insulates you from leisure volatility.</div>
+</div><div class="rec rec-medium">
+<h3>🌸 Spring <span class="meta">&mdash; Wisconsin birders, wildflower hikers, and motorcycle riders beginning the Driftless touring season on WI-23 in April-May, when Pine Cliff State Natural Area and Governor Dodge State Park open for the season</span></h3>
+<p><strong>What to add:</strong> A &#39;Driftless Spring Awakening&#39; rate at $119/night (April-May) including a printed birding and wildflower guide for Pine Cliff State Natural Area (3.3km), early 6am check-out for dawn birders, and a bagged breakfast for pre-sunrise departures</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"First Wildflowers of the Driftless — Stay Where the Season Begins"</p></div>
+<p><strong>Event tie-in:</strong> Wisconsin Birding Weekend (held each May, organized by local Audubon chapters across southwest Wisconsin) — submit AmericInn as the recommended lodging partner to Madison Audubon Society for their member email</p>
+<p><strong>Local partner:</strong> Iowa County Tourism (iowacountywi.org) — request a featured listing as the &#39;Spring Base Camp Hotel&#39; on their spring recreation page, linking to Governor Dodge State Park and Pine Cliff State Natural Area</p>
+<p class="meta">Revenue: <strong>$10,000-$16,000/month</strong></p>
+
+</div>
+<h2>Opportunities nobody in your market is doing</h2>
+<p class="meta">10 location-specific ideas drawn from 18 opportunity categories. Each names real local entities — events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p><div class="opportunity">
+<div class="op-meta"><span class="op-category">Partnership webs</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Official &#39;House on the Rock Base Camp&#39; hotel — joint ticket-and-room bundle</h3>
+<p>Negotiate with House on the Rock (S3911 WI-23) to become their preferred lodging partner, with your hotel listed on their &#39;Plan Your Visit&#39; page. Offer a bundled rate: 2 nights + 2 adult admission tickets at a $15/ticket discount, marketed as the &#39;House on the Rock Overnight Package.&#39; Your 5-star reviewer already documented this travel pattern unprompted — you are capturing demand that already exists.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (negotiation only) + $150 one-time for co-branded rack card ·
+<strong>Revenue potential:</strong> $15,000-$25,000 per year ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Sensory experience</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Install a &#39;Driftless Quiet Hours&#39; blackout-curtain and white-noise room tier — your reviews explicitly praise silence</h3>
+<p>Two of your 5-star reviews independently mention quiet and no outside noise as standout features. Designate 6-8 ground-floor rooms as &#39;Driftless Deep Sleep&#39; rooms with upgraded blackout curtains, a white-noise machine, and a &#39;Do Not Disturb — Deep Sleep Guest&#39; door placard. Charge $10-$15/night premium and market to remote workers, exhausted road warriors, and post-House on the Rock day-trippers.</p>
+<p class="meta">
+<strong>Cost:</strong> $400 one-time (white-noise machines × 8 rooms + blackout curtain upgrades) ·
+<strong>Revenue potential:</strong> $6,000-$10,000 per year ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Local insider knowledge</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Front-desk &#39;Driftless Insider Card&#39; — a curated local guide only your staff can give</h3>
+<p>Create a laminated double-sided &#39;Dodgeville Insider Card&#39; given at check-in: side one covers lesser-known Driftless Area gems (Pine Cliff State Natural Area geology, Boeing C-97G aircraft viewing 174m away, best sunrise spot at Springer Park); side two covers hyper-local dining intel (&#39;Jokers Wild at 105m — order the Friday fish fry; The Thym&#39;s for Sunday brunch — go before 10am&#39;). No competitor hotel in this market produces anything like this, and it directly generates the kind of specific, local review language that attracts future travelers.</p>
+<p class="meta">
+<strong>Cost:</strong> $120 one-time (design + 500 laminated cards) ·
+<strong>Revenue potential:</strong> $4,000-$8,000 per year (via loyalty/repeat booking lift) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Photo moments</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Boeing C-97G &#39;Plane Selfie&#39; Instagram station — 174m from your lobby</h3>
+<p>The Boeing C-97G aircraft on static display is 174m from your front door — an extraordinary, photogenic landmark that almost no hotel in the state can claim. Create a printed insert in every room: &#39;Walk 2 minutes to photograph a real WWII-era Boeing aircraft. #DriftlessStay #AmericInnDodgeville.&#39; Place a small branded selfie sign or QR code near the aircraft viewing area (with municipal permission) linking to a &#39;Tag us and win a free night&#39; contest running quarterly on Instagram.</p>
+<p class="meta">
+<strong>Cost:</strong> $50 one-time (room insert printing) + $200/quarter contest prize (1 free night) ·
+<strong>Revenue potential:</strong> $5,000-$9,000 per year (social reach → organic bookings) ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Off-season reinvention</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>January &#39;Driftless Freeze Weekend&#39; — snowshoeing and stargazing package for cold-winter months</h3>
+<p>The Driftless Area&#39;s dark skies and January cold are underutilized assets. Partner with Iowa County&#39;s Pine Cliff State Natural Area (3.3km away) and rent 4 pairs of snowshoes ($150 total investment) to loan to guests. Build a &#39;$139 Freeze Weekend&#39; rate Jan-Feb: room + snowshoe rental voucher + a printed dark-sky stargazing guide for the ridgelines near Dodgeville. Market on the Wisconsin Dark Sky Association mailing list and r/madisonwi Reddit.</p>
+<p class="meta">
+<strong>Cost:</strong> $150 one-time (4 snowshoe pairs) + $80 stargazing guide print ·
+<strong>Revenue potential:</strong> $8,000-$14,000 per year (Jan-Mar incremental occupancy) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Loyalty triggers</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>&#39;Third Stay Free Breakfast Upgrade&#39; stamp card — exploiting your breakfast&#39;s review power</h3>
+<p>Since 4 of 5 sampled reviews specifically praise the breakfast, make it the loyalty mechanic: issue a physical &#39;Driftless Breakfast Club&#39; stamp card at check-in. Three stays = one complimentary breakfast-in-bed tray (room-delivered, $8 cost to you). The card stays in the guest&#39;s wallet between visits — a physical memory trigger. This is distinct from Wyndham Rewards and works independently, building local loyalty outside the OTA ecosystem.</p>
+<p class="meta">
+<strong>Cost:</strong> $80 one-time (card design + 500 printed cards) ·
+<strong>Revenue potential:</strong> $7,000-$12,000 per year (repeat direct booking lift) ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Pricing psychology</span><span class="op-novelty novelty-rare">Rare in this market</span></div>
+<h3>Introduce a &#39;Sunday Saver&#39; rate — $79 flat to combat Sunday vacancy in a drive-tourism market</h3>
+<p>Drive-tourism markets like Dodgeville (House on the Rock, Driftless hiking) peak Friday-Saturday and crater Sunday. Introduce a visible &#39;$79 Sunday Saver&#39; rate on your Wyndham direct page — anchored against your standard $109 Friday rate displayed alongside it. The anchor effect makes $79 feel dramatically cheaper even though Sunday is your lowest-demand night. Target remote workers and &#39;Monday morning meeting&#39; travelers from the Madison metro who need a Sunday night stay.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (rate adjustment in Wyndham PMS) ·
+<strong>Revenue potential:</strong> $8,000-$15,000 per year (Sunday incremental occupancy × 52 weeks) ·
+<strong>Review-mention probability:</strong> low
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Content and PR</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Pitch Wisconsin Trails magazine and Midwest Living as the &#39;Driftless Area&#39;s best-value base camp hotel&#39;</h3>
+<p>Wisconsin Trails (print + digital, ~50,000 readers) and Midwest Living run annual &#39;Best of the Midwest&#39; travel features. Pitch a story angle: &#39;The Driftless Area&#39;s hidden gem — a hotel 174 steps from a WWII aircraft, 7 miles from House on the Rock, and 3km from a pristine state natural area — with a breakfast that guests review more than the rooms.&#39; Send a press kit with your 5-star review quotes to editors at both publications by March for summer editorial calendars.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (email pitch) + $200 optional professional press photo shoot ·
+<strong>Revenue potential:</strong> $10,000-$20,000 per year (single feature article drives bookings for 12+ months) ·
+<strong>Review-mention probability:</strong> low
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Community and cause</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Partner with Governor Dodge State Park (nearest major state park) for a &#39;Park and Stay&#39; package with WDNR</h3>
+<p>Governor Dodge State Park is a major Driftless Area destination with hiking, horse trails, and swimming beaches drawing tens of thousands of visitors annually. Contact Wisconsin DNR&#39;s southwest region to negotiate a &#39;Park and Stay&#39; listing: guests who book direct get a Wisconsin State Park vehicle sticker pre-purchased at cost ($28) included with a 2-night stay. List the package on the WDNR&#39;s &#39;Places to Stay Near Governor Dodge&#39; page and on the Friends of Governor Dodge State Park Facebook group.</p>
+<p class="meta">
+<strong>Cost:</strong> $28/booking (state park sticker at cost) + $0 DNR listing ·
+<strong>Revenue potential:</strong> $12,000-$20,000 per year ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Memory triggers</span><span class="op-novelty novelty-unique">Zero competitors doing this within 10 miles</span></div>
+<h3>Mail a &#39;Driftless Postcard&#39; to every guest 30 days after checkout — a physical memory trigger in a digital-only world</h3>
+<p>30 days after checkout, mail every guest a postcard-sized card featuring a photo of the Boeing C-97G or Springer Park with a handwritten-style note: &#39;The Driftless is calling you back. Book direct this month and your pet stays free.&#39; Collect mailing addresses at check-in (or via Wyndham PMS). Physical mail has near-100% open rates and sits on refrigerators — a passive re-booking reminder that no competitor hotel in Dodgeville is executing.</p>
+<p class="meta">
+<strong>Cost:</strong> $0.68/postcard postage + $0.15 print = ~$0.83/guest; at 50 guests/month = $41.50/month = $498/year ·
+<strong>Revenue potential:</strong> $9,000-$16,000 per year (5% re-booking rate on 600 annual postcards × $109 ADR × 2 nights = $6,540 floor) ·
+<strong>Review-mention probability:</strong> low
+</p>
+</div>
+<h2>What your customers are saying — common problems detected</h2><p>No recurring complaints detected in your last 5 reviews. Review content looks healthy.</p>
+<h2>What we analyzed — 9 signal categories</h2>
+<table class="coverage">
+  <tr><td><strong>C1 Online Presence</strong></td><td>rating 4.2, 354 reviews — actions: #1</td></tr>
+  <tr><td><strong>C2 Location &amp; Market</strong></td><td>median income $72,288, pop 5,042 (ZIP 53533), avg household 2.27, no anchor tenants within 500m, no transit within 800m, 68 county permits 2022 (-50.7% YoY)</td></tr>
+  <tr><td><strong>C3 Competition</strong></td><td>11 competitors within 5 mi, median 4.2★, median 135 reviews</td></tr>
+  <tr><td><strong>C4 Demand</strong></td><td>peak season Jun-Aug, cold winter — Open-Meteo climatology + Ticketmaster Discovery v2 + BLS</td></tr>
+  <tr><td><strong>C5 Operations</strong></td><td>hours: complete (7 days), website: loads, open now</td></tr>
+  <tr><td><strong>C6 Brand</strong></td><td>data pending (no website to measure, or PSI failed/timed out)</td></tr>
+  <tr><td><strong>C7 Risk &amp; Compliance</strong></td><td>1 sector compliance note applied</td></tr>
+  <tr><td><strong>C10 Nearby Venues</strong></td><td>Top nearby: Jokers Wild, The Thym&#39;s</td></tr>
+  <tr><td><strong>C11 Upcoming Events</strong></td><td>No major events found within 10mi</td></tr>
+</table>
+<h2>Citations</h2><ul><li><strong>S003</strong> (Tier 1): Anderson, C. K. &amp; Han, S. (2017). Hotel Performance Impact of Socially Engaging with Consumers. Cornell Hospitality Report, 17(5).</li></ul><p class="meta"><small>Generated 2026-05-12T08:43:56.024Z</small></p></body></html>

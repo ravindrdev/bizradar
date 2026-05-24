@@ -1,4 +1,4 @@
-/* db_setup.js — one-shot schema bootstrap for BizRadar.
+/* db_setup.js — one-shot schema bootstrap for GrowthIM.
 
    Creates the three core tables (users, reports, payments) with
    IF NOT EXISTS so the script is idempotent and safe to re-run on

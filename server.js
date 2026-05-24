@@ -425,7 +425,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// GET /app — the actual BizRadar report-generation UI (index.html).
+// GET /app — the actual GrowthIM report-generation UI (index.html).
 // Audit fix S8 — soft auth check: if there's no JWT cookie, bounce to
 // /login.html so users don't fill out the form only to hit a 401 on
 // /classify submit. requireAuth would 401 (no UX redirect) so we
@@ -2295,7 +2295,7 @@ app.post('/market-chat', requireAuth, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`BizRadar listening on http://localhost:${PORT}`);
+  console.log(`GrowthIM listening on http://localhost:${PORT}`);
 });
 
 // BLS Business Employment Dynamics — survival rates for the 2013
@@ -2537,7 +2537,7 @@ function deepCleanDashes(value) {
 //      report classes are unique (.rec, .status, .impact, etc.) and
 //      don't collide with the landing page's .lp-* / .result-* names.
 //
-// All colors mapped to the BizRadar brand tokens. Inter font from
+// All colors mapped to the GrowthIM brand tokens. Inter font from
 // Google Fonts. Card chrome (white surface + subtle border + blue
 // left-accent on .rec / emerald on .opportunity / navy on .mkt-card).
 const PAGE_OPEN = `<!doctype html>

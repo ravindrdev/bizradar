@@ -1,0 +1,844 @@
+═══════════════════════════════════════════════════════════════════════════════
+GROWTHIM API DATA FLOW — All 27 external APIs
+═══════════════════════════════════════════════════════════════════════════════
+Sources: dataFetchers.js (fetcher functions), googlePlaces.js (Places client),
+         server.js (result-block assignments → data.*),
+         claudeEnricher.js (buildDataBundle + buildUserPrompt)
+Examples use the AmericInn Dodgeville WI test case throughout.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+1. Google Places Text Search
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES
+- name
+- formatted_address
+- rating
+- user_ratings_total
+- types[]
+- business_status
+- place_id
+- geometry.location.lat / lng
+- photos[] (max 10)
+- price_level
+|
+WHAT GROWTHIM TAKES
+- name → data.name
+- formatted_address → data.formatted_address
+- rating → data.google_rating
+- user_ratings_total → data.google_review_count
+- types → data.google_types (NAICS routing only)
+- business_status → data.business_status
+- place_id → data.place_id
+- geometry.location → data.latitude, data.longitude
+- photos.length → data.photo_count (NULL when length >= 10)
+- IGNORES: price_level (never stored)
+- IGNORES: photo URLs/widths
+|
+WHAT CLAUDE RECEIVES
+- "Business: AmericInn by Wyndham Dodgeville"
+- "Address: 3637 WI-23, Dodgeville, WI 53533, USA"
+- "Rating: 4.2 stars (354 reviews)"
+- Photo count line OMITTED entirely when null (>=10 photos)
+- business_status / types / place_id used internally; never in prompt
+
+
+═══════════════════════════════════════════════════════════════════════════════
+2. Google Place Details
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES
+- reviews[] (max 5, sorted by relevance — NOT date)
+  - author_name, rating, text, time, language
+- website
+- opening_hours.weekday_text[] (7-day array)
+- opening_hours.open_now
+- formatted_phone_number
+- photos[] (max 10)
+- name (override of search)
+|
+WHAT GROWTHIM TAKES
+- reviews → data.sample_reviews (sliced to 5, { text, stars })
+- reviews.length → data.reviews_sampled
+- reviews owner-replies → respondsToReviews (FORCED NULL — disabled)
+- reviews[0].time → reviewRecencyDays (FORCED NULL — disabled)
+- website → data.website_url (then HEAD-checked → data.website_exists)
+- opening_hours.weekday_text.length===7 → data.hours_complete
+- opening_hours.open_now → data.is_open_now
+- photos.length → data.photo_count (same cap rule as #1)
+- IGNORES: formatted_phone_number
+- IGNORES: photo URLs
+- IGNORES: review author_name + language
+|
+WHAT CLAUDE RECEIVES
+- "Hours complete: true"
+- "Website loads: true"
+- "Recent reviews (sample):"
+- "★5: Stayed for the weekend for some peace and quiet..."
+- "★5: This is a wonderful hotel..."
+- "★3: Room was okay. AC was loud..."
+- Response rate line REMOVED entirely (banned metric)
+- Review recency line REMOVED entirely (banned topic)
+- Photo count line OMITTED when null
+
+
+═══════════════════════════════════════════════════════════════════════════════
+3. Google Nearby Search (competitors)
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES
+- results[].name
+- results[].place_id
+- results[].rating
+- results[].user_ratings_total
+- results[].geometry.location.{lat,lng} (for distance calc)
+- results[].types[]
+- results[].business_status
+- For top 5 — second-pass Place Details fetches reviews[] per competitor
+|
+WHAT GROWTHIM TAKES (via places.fetchNearbyCompetitors)
+- competitor_count → data.competitor_count
+- competitor_median_rating → data.competitor_median_rating
+- competitor_median_review_count → data.competitor_median_review_count
+- competitors_top5[] (top 5 by threat_score, with reviews[]) → data.competitors_top5
+- competitors_top3[] (back-compat slice) → data.competitors_top3
+- search_radius_miles → data.search_radius_miles
+- Each top5 entry: { name, rating, review_count, distance_meters, reviews[] }
+- IGNORES: place_id of competitors
+- IGNORES: business_status of competitors (already filtered out CLOSED_*)
+- IGNORES: photos of competitors
+|
+WHAT CLAUDE RECEIVES
+- "Competitors:"
+- "Count: 11"
+- "Local median rating: 4.2"
+- "Local median reviews: 215"
+- "Top 3: Don Q Inn — 4.2★ (1055 reviews, 0.1 mi); Mineral Point Inn — 4.4★..."
+- "Top competitors (by rating):"
+- "  • Don Q Inn Dodgeville | 4.2★ | 1055 reviews | 0.1 mi"
+- "  • Mineral Point Inn | 4.4★ | 188 reviews | 7.8 mi"
+- "  • Spring Valley Inn | 4.0★ | 215 reviews | 4.2 mi"
+- "  • Wisconsin Hotel & Suites | 3.9★ | 142 reviews | 7.1 mi"
+- "  • Cobblestone Inn Mt Horeb | 4.5★ | 312 reviews | 6.4 mi"
+- "Search radius used: 8 miles (expanded because fewer than 3 competitors found locally)"
+- Plus per-competitor top_reviews quotes for verbatim citation
+
+
+═══════════════════════════════════════════════════════════════════════════════
+4. Google PageSpeed Insights
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES
+- lighthouseResult.categories.performance.score (0-1)
+- lighthouseResult.audits.interactive.numericValue (ms)
+- lighthouseResult.audits.largest-contentful-paint.numericValue (ms)
+- lighthouseResult.audits.total-blocking-time.numericValue (ms)
+- Plus full audits tree (90+ audits), accessibility/best-practices/SEO scores
+|
+WHAT GROWTHIM TAKES (fetchPageSpeed)
+- perfScore × 100 (rounded) → data.website_mobile_score, data.pagespeed.mobile_score
+- interactive / 1000 (1dp) → data.load_time_seconds, data.pagespeed.load_time_seconds
+- LCP / 1000 (1dp) → data.pagespeed.lcp_seconds
+- perfScore >= 50 → data.is_mobile_friendly, data.pagespeed.is_mobile_friendly
+- Whole pagespeed object → data.pagespeed
+- IGNORES: accessibility/best-practices/SEO categories
+- IGNORES: TBT (computed but not stored)
+- IGNORES: every other lighthouse audit (TTFB, CLS, FCP, etc.)
+|
+WHAT CLAUDE RECEIVES
+- "Website mobile quality (Google PageSpeed Insights):"
+- "Mobile score: 25/100 (below mobile-friendly threshold)"
+- "Time-to-interactive: 15.2s — above 3-second abandonment threshold (S040)"
+- Section OMITTED entirely when pagespeed null (e.g. 15s timeout)
+- Section OMITTED when website_exists is false (PSI never fires)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+5. Google Geocoding
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES
+- results[].geometry.location.{lat,lng}
+- results[].formatted_address
+- results[].place_id
+- results[].address_components[]
+- results[].types[]
+|
+WHAT GROWTHIM TAKES
+- Used INTERNALLY by googlePlaces.findPlace as a fallback path when
+  Text Search returns low-confidence (<120) results
+- lat/lng → seeds findPlace's nearby radius search to disambiguate
+- formatted_address → passed back as candidate (toResult)
+- Result merges back into the same Place Details flow as #1
+- IGNORES: address_components (never parsed for components)
+- IGNORES: place_id, types (Text Search already provided these)
+|
+WHAT CLAUDE RECEIVES
+- NOTHING DIRECTLY
+- Geocoding is internal disambiguation only — its output is consumed
+  by findPlace and never exposed to the user prompt
+
+
+═══════════════════════════════════════════════════════════════════════════════
+6. US Census ACS (income / population)
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (URL: /data/2024/acs/acs5)
+- B19013_001E — median household income (dollars)
+- B01001_001E — total population (sex-by-age table sum)
+- B25010_001E — average household size (persons)
+- Also: place-level call returns NAME, plus same fields scoped to a place
+- Sentinel value -666666666 = data not available
+|
+WHAT GROWTHIM TAKES (fetchCensusByZip)
+- B19013_001E → data.median_household_income
+  (city place-level if matched, else ZCTA, else county for big cities)
+- B01001_001E → data.total_population (city place-level preferred)
+- B25010_001E → data.average_household_size
+- zip → data.census_zip
+- Resolution provenance → census.population_source ('city'|'zip'),
+  income_source ('city'|'county'|'zip')
+- IGNORES: -666666666 sentinel (filtered to null)
+- IGNORES: place NAME beyond the match step
+|
+WHAT CLAUDE RECEIVES
+- "Local demographics (ZIP 53533):"
+- "Median household income: $72,288"
+- "Population: 5,042"
+- (Average household size is in the bundle but not rendered to the prompt)
+- (population_source / income_source flags not rendered)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+7. Census Housing (piggybacks on call #6)
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (same /2024/acs/acs5 call, additional fields)
+- B25001_001E — total housing units
+- B25002_003E — vacant housing units
+- B25003_002E — owner-occupied units
+- B25003_003E — renter-occupied units
+- B25077_001E — median home value (dollars)
+- B25064_001E — median gross rent (dollars/month)
+|
+WHAT GROWTHIM TAKES (derived inside _fetchCensusZipLevel)
+- totalUnits → data.census_housing.housing_units
+- (vacant/total) × 100, 1dp → data.census_housing.vacancy_rate
+- (owner/(owner+renter)) × 100, 1dp → data.census_housing.homeownership_rate
+- B25077_001E → data.census_housing.median_home_value
+- B25064_001E → data.census_housing.median_gross_rent
+- IGNORES: raw owner/renter counts (only the ratio is exposed)
+- IGNORES: vacant count (only the ratio is exposed)
+|
+WHAT CLAUDE RECEIVES
+- "Local housing market (Census ACS, ZIP-level):"
+- "  Housing units: 4,521 · Vacancy rate: 8.2% · Homeownership rate: 68.4% · Median home value: $187,000 · Median gross rent: $842/mo"
+- Section OMITTED when census_housing null
+
+
+═══════════════════════════════════════════════════════════════════════════════
+8. Open-Meteo Weather
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (archive-api.open-meteo.com/v1/archive)
+- daily.time[] (past 12 months of dates)
+- daily.temperature_2m_max[] (daily highs)
+- daily.precipitation_sum[]
+- Plus timezone, hourly arrays (not used)
+|
+WHAT GROWTHIM TAKES (fetchWeather)
+- Computes monthly avgs from daily highs
+- Peak month (highest avg temp) → data.peak_month + data.weather.peak_month
+- Jun/Jul/Aug presence → data.peak_tourist_season ('Jun-Aug' etc.)
+- Any month avg < 35°F → data.has_cold_winter (boolean)
+- Any month avg > 85°F → data.has_hot_summer (boolean)
+- Whole weather object → data.weather
+- IGNORES: daily precipitation arrays (computed but not exposed)
+- IGNORES: timezone, hourly resolution
+|
+WHAT CLAUDE RECEIVES
+- "Weather / seasonality (Open-Meteo, past 12 months):"
+- "Peak month: July"
+- "Peak tourist season: Jun-Aug"
+- "Cold winter (any month avg < 35°F): true"
+- "Hot summer (any month avg > 85°F): false"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+9. Ticketmaster Discovery
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (/discovery/v2/events.json, 50mi radius)
+- _embedded.events[].name
+- _embedded.events[].dates.start.localDate
+- _embedded.events[].dates.start.localTime
+- _embedded.events[]._embedded.venues[0].name
+- _embedded.events[].classifications[0].segment.name (category)
+- _embedded.events[].url, images[], priceRanges[]
+|
+WHAT GROWTHIM TAKES (fetchUpcomingEvents)
+- name → upcoming_events[].name
+- localDate (+optional time) → upcoming_events[].date
+- venues[0].name → upcoming_events[].venue
+- Trimmed to 5 events → data.upcoming_events
+- data.upcoming_events.length → data.upcoming_events_count (in diag only)
+- IGNORES: event URL, images, priceRanges
+- IGNORES: classifications/segment (category not stored)
+- IGNORES: events past index 5
+|
+WHAT CLAUDE RECEIVES
+- "Upcoming events within 10 miles, next 90 days (Ticketmaster):"
+  (Header says 10mi but the fetcher actually uses 50mi — stale comment)
+- "  • Phish — 2026-07-07 19:00 at Kohl Center"
+- "  • Phish — 2026-07-08 19:00 at Kohl Center"
+- "  • TRAIN - Drops of Jupiter: 25 Years in the Atmosphere — 2026-08-08 at Breese Stevens Field"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+10. Foursquare Places
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (places-api.foursquare.com/places/search)
+- results[].name
+- results[].categories[0].fsq_category_id + .name
+- results[].distance (meters)
+- results[].location.address
+- results[].hours (open_now, display)
+- results[].fsq_id, geocode, related_places, etc.
+|
+WHAT GROWTHIM TAKES (fetchNearbyVenues)
+- Each result passes through TWO filters before keep:
+  - STEP 1: closed_bucket filter (currently dead — field not returned by /search)
+  - STEP 2: Google Text Search cross-check via isVenueOpen
+    (drops if Google says CLOSED_PERMANENTLY/CLOSED_TEMPORARILY)
+- name → nearby_venues[].name
+- categories[0].name (mapped via FSQ_TOP_CATEGORY_LABEL) → nearby_venues[].category
+- distance → nearby_venues[].distance_meters
+- null (popularity unsupported on new API) → nearby_venues[].popularity
+- venuesRes.value → data.nearby_venues
+- venuesRes.value.length → data.nearby_venue_count
+- IGNORES: fsq_id, hours, location.address (used only for cross-check)
+- IGNORES: closed_bucket value (field absent on /search responses)
+|
+WHAT CLAUDE RECEIVES
+- "Nearby venues within 1km (Foursquare — food, arts, outdoors):"
+- "  • Jokers Wild (arts_and_entertainment, 105m)"
+- "  • The Thym's (food_and_drink, 105m)"
+- (Hills Pub & Banquet Hall is DROPPED — Google reports CLOSED_PERMANENTLY)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+11. OpenStreetMap Overpass
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (Overpass QL POST)
+- elements[].tags.{name, shop, amenity, highway, railway, ...}
+- elements[].lat, lon (nodes)
+- elements[].center.{lat,lon} (ways/relations via `out center tags`)
+- elements[].type (node|way|relation), id
+|
+WHAT GROWTHIM TAKES (fetchLocationSignals)
+- ANCHORS (within 500m):
+  - tags.shop ∈ {supermarket, department_store, mall} OR
+    name matches big-box regex (Walmart/Target/...)
+  - → location_signals.anchor_tenants[] (string array, max 10)
+  - .length → location_signals.anchor_tenant_count
+- TRANSIT (within 800m):
+  - tags.highway === 'bus_stop' OR tags.railway === 'station'
+  - min(distance) → location_signals.nearest_transit_meters
+  - distance ≤ 400m → location_signals.has_transit_nearby (boolean)
+- Result also written top-level: data.anchor_tenants, data.anchor_tenant_count,
+  data.nearest_transit_meters, data.has_transit_nearby
+- IGNORES: all other tags (cuisine, opening_hours, etc.)
+- IGNORES: parks (parks code was reverted — anchors + transit only)
+|
+WHAT CLAUDE RECEIVES
+- "On-the-ground location signals (OpenStreetMap):"
+- "Anchor tenants within 500m: (none found within 500m) (0 total)"
+- "Transit: (no transit found within 800m)"
+- OR when populated:
+- "Anchor tenants within 500m: Target, Aldi (2 total)"
+- "Transit: 177m to nearest bus stop / rail station — transit-served"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+12. HUD Building Permits
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (TWO-STEP)
+- Step 1 — Census geocoder: county FIPS-5 from street/city/state address
+- Step 2 — HUD ArcGIS FeatureServer (Residential_Construction_Permits...):
+  - features[0].attributes.cnty_name (county name)
+  - features[0].attributes.year
+  - features[0].attributes.total_units
+  - features[0].attributes.single_family
+  - features[0].attributes.{year-1}.total_units (for YoY)
+|
+WHAT GROWTHIM TAKES (fetchBuildingPermitsByAddress)
+- countyFIPS → data.county_fips
+- county_name → data.county_name
+- year → data.building_permits_year + building_permits.year
+- total_units → data.building_permits_total + building_permits.total
+- single_family → data.building_permits_single_family + building_permits.single_family
+- ((this_year - last_year) / last_year × 100, 1dp) → data.building_permits_yoy_change
+- Whole object → data.building_permits
+- IGNORES: multi-family-only counts
+- IGNORES: years older than year-1
+- IGNORES: ArcGIS geometry/object IDs
+|
+WHAT CLAUDE RECEIVES
+- "County building permits (Iowa County, 2022, HUD/Census BPS):"
+- "Total residential permits: 68"
+- "Single-family: 51"
+- "Trend: declining market (-50.7% YoY)"
+- (Trend classification: >+5% growing, <-5% declining, between = stable)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+13. HUD Fair Market Rents
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (huduser.gov/hudapi/public/fmr/statedata/{STATE})
+- data.basicdata[].{fmr_studio, fmr_0, fmr_1, fmr_2, fmr_3, fmr_4}
+- data.basicdata[].metro_name, year, county_name
+- data.smallarea[] (sub-metro details — not used)
+|
+WHAT GROWTHIM TAKES (fetchFairMarketRents)
+- fmr_studio → data.fmr_studio + hud_fmr.fmr_studio
+- fmr_1 → hud_fmr.fmr_1br
+- fmr_2 → hud_fmr.fmr_2br
+- metro_name → data.fmr_metro_name + hud_fmr.metro_name
+- year → data.fmr_year + hud_fmr.fmr_year
+- IGNORES: fmr_0 (studio also exists), fmr_3, fmr_4 (3BR/4BR)
+- IGNORES: smallarea (sub-metro FMRs)
+|
+WHAT CLAUDE RECEIVES
+- "HUD Fair Market Rents (Madison MSA, 2024):"
+- "Studio: $650/mo · 1BR: $780/mo · 2BR: $980/mo"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+14. BLS Employment
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (api.bls.gov/publicAPI/v2/timeseries/data/)
+- Results.series[0].seriesID
+- Results.series[0].data[].{year, period, periodName, value, footnotes[]}
+- Series-ID is built per NAICS-2 sector (different IDs for hotel vs. retail etc.)
+|
+WHAT GROWTHIM TAKES (fetchBLSEmployment)
+- data[0].value (most recent) → data.bls_employment_level
+- data[0].year → data.bls_employment_year
+- data[0].period (e.g. 'M03') → data.bls_employment_period
+- naics2 input → bls_employment.naics2
+- Whole object → data.bls_employment
+- IGNORES: footnotes, latest=true flag
+- IGNORES: historical data points (only the latest is stored)
+|
+WHAT CLAUDE RECEIVES
+- "Local sector employment (BLS, NAICS-72):"
+- "2,134 jobs (M03 2024)"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+15. TripAdvisor Content API
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (3 chained calls)
+- /location/search: data[0].{location_id, name, address_obj}
+- /location/{id}/details:
+  - rating, num_reviews
+  - ranking_data.{ranking_position, ranking_out_of, ranking_string}
+  - subratings[].{name, value}
+  - awards[].{award_type, year}
+  - trip_types[].{name, value}
+- /location/{id}/reviews:
+  - data[].{rating, title, text, trip_type, published_date}
+|
+WHAT GROWTHIM TAKES (fetchTripAdvisor)
+- rating → data.ta_rating + tripadvisor.rating
+- num_reviews → data.ta_review_count
+- ranking_position, ranking_out_of → data.ta_ranking_position, data.ta_ranking_out_of
+- subratings → data.ta_subratings + tripadvisor.subratings
+- awards (first 5, {type, year}) → data.ta_awards + tripadvisor.awards
+- trip_types → data.ta_trip_types + tripadvisor.trip_types
+- reviews (first 3) → data.ta_recent_reviews (rating/title/snippet/trip_type)
+- value subrating < overall - 0.4 → data.ta_value_gap_detected (boolean)
+- Whole object → data.tripadvisor
+- IGNORES: review published_date, full review text (snippet only)
+- IGNORES: awards past index 5
+- IGNORES: address_obj (already have it from Google)
+|
+WHAT CLAUDE RECEIVES
+- "TripAdvisor data (Content API):"
+- "Overall: 4.0★ across 89 reviews"
+- "Ranked #3 of 12 locally"
+- "Sub-ratings:"
+- "    service: 4.5"
+- "    value: 4.0"
+- "    cleanliness: 4.5"
+- "Awards: Travelers' Choice (2024)"
+- "Trip-type mix (counts): families=24, couples=31, solo=8, business=2, friends=12"
+- "Recent reviews:"
+- "    [5★ · couples] Great stay: clean rooms, friendly staff..."
+- Plus optional line when applicable:
+- "Value-perception gap detected: value sub-rating trails overall rating by ≥0.4..."
+
+
+═══════════════════════════════════════════════════════════════════════════════
+16. NPI Registry
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (npiregistry.cms.hhs.gov/api/)
+- results[].number (NPI)
+- results[].basic.{status, credential, authorized_official_first/last_name}
+- results[].taxonomies[].{desc, primary, state, license}
+- results[].addresses[].{address_1, city, state, postal_code, address_purpose}
+- results[].other_names[]
+|
+WHAT GROWTHIM TAKES (fetchNPIRegistry)
+- number → data.npi_number + npi.npi_number
+- basic.status → data.npi_status + npi.status
+- basic.status === 'A' → data.npi_authorized (boolean) + npi.authorized
+- taxonomies[0].desc → data.provider_type + npi.provider_type
+- basic.credential → npi.credential
+- Whole object → data.npi
+- IGNORES: authorized_official_first/last_name
+- IGNORES: addresses (already have from Google)
+- IGNORES: other_names, license numbers
+|
+WHAT CLAUDE RECEIVES
+- "NPI Registry (healthcare provider):"
+- "NPI: 1234567890 (Dentist)"
+- "Status: A — Active"
+- "Credential: DDS"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+17. USDA NASS
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (quickstats.nass.usda.gov/api/api_GET/)
+- data[].{commodity_desc, Value, year, statisticcat_desc, state_alpha,
+          short_desc, unit_desc, agg_level_desc}
+|
+WHAT GROWTHIM TAKES (fetchUSDANASS)
+- Top commodity (most acres harvested) → data.top_commodity + usda_nass.top_commodity
+- Total farm count → data.farm_count + usda_nass.farm_count
+- State agriculture profile narrative → data.state_ag_profile + usda_nass.state_ag_profile
+- Per-commodity breakdown (commodity + acres) → usda_nass.commodities[]
+- Whole object → data.usda_nass
+- IGNORES: unit_desc, short_desc (formatting only)
+- IGNORES: years before 2022
+- IGNORES: county-level rows (state-level only)
+|
+WHAT CLAUDE RECEIVES
+- "USDA NASS agriculture profile (2022, AREA HARVESTED):"
+- "Top commodity: CORN"
+- "Wisconsin is the #1 milk producer..."
+- "By commodity: CORN 4,250,000 ac, SOYBEANS 2,140,000 ac, ALFALFA 1,150,000 ac"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+18. USDA ERS
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (api.ers.usda.gov/data/arms/farmeconomics)
+- data[].{Value, year, state, variable, ...}
+- Many ARMS variables available (NETSALES, OPEXP, NETINCOME, etc.)
+|
+WHAT GROWTHIM TAKES (fetchUSDAERS)
+- ONLY queries variable=NETSALES
+- data[0].Value → usda_ers.net_farm_sales
+- 2023 → usda_ers.year (hardcoded)
+- state input → usda_ers.state
+- Whole object → data.usda_ers
+- IGNORES: All other ARMS variables (operating expenses, net income, etc.)
+- IGNORES: Years other than 2023
+- CURRENTLY RETURNS NULL: requires USDA_ERS_API_KEY (placeholder empty)
+|
+WHAT CLAUDE RECEIVES
+- "Farm economics (USDA ERS ARMS, 2023):"
+- "  WI net farm sales: $2,340,000,000"
+- (Empty until USDA_ERS_API_KEY is set)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+19. CDC Places
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (Socrata datasets)
+- County endpoint (swc5-untb.json): data[].{measureid, data_value, stateabbr, countyname}
+- City endpoint (cwsq-ngmh.json): data[].{measureid, data_value, stateabbr, cityname}
+- Measure IDs include: ACCESS2 (dental), OBESITY, LPA (physical inactivity),
+  CSMOKING, DIABETES, DEPRESSION, BPHIGH, COLON_SCREEN, ...
+|
+WHAT GROWTHIM TAKES (fetchCDCPlaces)
+- Substring-match on measureid (case-insensitive):
+  - includes 'dental'     → cdc_health.dental_visit_rate
+  - includes 'obesity'    → cdc_health.obesity_rate
+  - includes 'physical'   → cdc_health.physical_inactivity
+  - includes 'smoking'    → cdc_health.smoking_rate
+  - includes 'diabetes'   → cdc_health.diabetes_rate
+  - includes 'depression' → cdc_health.depression_rate
+- Whole object → data.cdc_health
+- IGNORES: All other CDC PLACES measures (mammogram, colon screen,
+  blood pressure, sleep, mental health, etc.)
+|
+WHAT CLAUDE RECEIVES
+- "Local health metrics (CDC PLACES, city-level):"
+- "  Dental visit rate: 65.2%"
+- "  Obesity rate: 31.4%"
+- "  Physical inactivity: 28.1%"
+- "  Smoking rate: 14.2%"
+- "  Diabetes rate: 9.8%"
+- "  Depression rate: 18.3%"
+- (Currently returns null for small cities — county-level fallback requires
+  data.county_name which isn't resolved before the Promise.allSettled batch)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+20. HRSA Dental HPSA
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (services2.arcgis.com/.../HPSA_Dental/FeatureServer/0/query)
+- features[].attributes.{HPSAScore, HPSAName, HPSAShortage, PCTofNeedMet,
+                         HPSAFormalRatio, HPSAStatus, StateAbbr, CountyName}
+- features[].geometry (not used — returnGeometry=false)
+- Empty features[] means county is NOT a designated dental HPSA
+|
+WHAT GROWTHIM TAKES (fetchHRSADental)
+- features.length > 0:
+  - HPSAScore → hrsa_dental.hpsa_score
+  - HPSAName → hrsa_dental.hpsa_name
+  - 'Geographic' (hardcoded) → hrsa_dental.hpsa_type
+  - PCTofNeedMet → hrsa_dental.pct_need_met
+  - HPSAFormalRatio → hrsa_dental.formal_ratio
+  - true → hrsa_dental.is_dental_shortage_area
+- features.length === 0:
+  - false → hrsa_dental.is_dental_shortage_area (negative-confirmation)
+- Whole object → data.hrsa_dental
+- IGNORES: HPSAStatus, HPSAShortage (designation type detail)
+- IGNORES: geometry
+|
+WHAT CLAUDE RECEIVES (only when is_dental_shortage_area === true)
+- "Dental Health Professional Shortage Area (HRSA):"
+- "  Designation: Iowa County Dental HPSA (Geographic)"
+- "  HPSA score: 18"
+- "  NHSC loan-forgiveness eligibility — see nhsc.hrsa.gov."
+- (Currently always returns null — county_name unavailable at call time)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+21. FoodData Central
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (api.nal.usda.gov/fdc/v1/foods/search)
+- foods[].{description, foodCategory, dataType, fdcId}
+- foods[].foodNutrients[].{nutrientName, value, unitName}
+- Common nutrients: 'Energy' (kcal), 'Protein', 'Carbohydrate, by difference',
+  'Total lipid (fat)', 'Sodium, Na', etc.
+|
+WHAT GROWTHIM TAKES (fetchFoodData)
+- description → food_data[].name
+- foodCategory → food_data[].category
+- foodNutrients where nutrientName === 'Energy' → food_data[].calories
+- foodNutrients where nutrientName === 'Protein' → food_data[].protein
+- Whole array → data.food_data
+- IGNORES: All other nutrients (carbs, fat, sodium, fiber, sugar, etc.)
+- IGNORES: dataType, fdcId, brandOwner
+- IGNORES: foods past the first page_size results
+|
+WHAT CLAUDE RECEIVES
+- "Food ingredient data (USDA FoodData Central):"
+- "  • CHICKEN — 165 cal · 31g protein (Poultry Products)"
+- "  • LAMB ROGAN JOSH — 220 cal · 24g protein"
+- "  • GARLIC NAAN — 320 cal · 9g protein"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+22. Open Food Facts
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (world.openfoodfacts.org/api/v2/search)
+- products[].{product_name, nutriscore_grade, categories, ingredients_text,
+              brands, code, image_url, ecoscore_grade, nova_group, ...}
+|
+WHAT GROWTHIM TAKES (fetchOpenFoodFacts)
+- product_name → open_food_facts[].name
+- nutriscore_grade (lowercased a-e) → open_food_facts[].nutriscore
+- categories → open_food_facts[].categories
+- ingredients_text (truncated 200ch) → open_food_facts[].ingredients
+- Whole array → data.open_food_facts
+- IGNORES: brands, code (barcode), image_url
+- IGNORES: ecoscore_grade (environmental score)
+- IGNORES: nova_group (food processing classification)
+|
+WHAT CLAUDE RECEIVES
+- "Popular food products (Open Food Facts):"
+- "  • Organic Chicken Broth (Nutri-Score A)"
+- "  • Whole Milk (Nutri-Score C)"
+- "  • White Bread (Nutri-Score D)"
+- (categories and ingredients fields in bundle but NOT rendered)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+23. Datamuse
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (api.datamuse.com/words?ml={word})
+- Array of { word: string, score: number, tags: string[] }
+- "Means-like" semantic relatedness — synonyms, related concepts
+|
+WHAT GROWTHIM TAKES (fetchDatamuse)
+- Top 10 .word strings → data.related_words (array of strings)
+- IGNORES: score (relevance ranking lost)
+- IGNORES: tags (POS, definition links, etc.)
+- IGNORES: words past index 10
+|
+WHAT CLAUDE RECEIVES
+- "Related words for naming / marketing (Datamuse): villa, guesthouse, inn, motel, lodge, hostel, hospice, accommodation, hotelier, innkeeper"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+24. National Park Service
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (developer.nps.gov/api/v1/parks)
+- data[].{fullName, name, designation, description, url, states,
+          parkCode, latLong, addresses[]}
+- data[].entranceFees[].{cost, title, description}
+- data[].operatingHours[].{name, description, standardHours{...}}
+- Plus contacts, activities, topics, images
+|
+WHAT GROWTHIM TAKES (fetchNearbyParks)
+- fullName → nearby_nps_parks[].name
+- designation → nearby_nps_parks[].designation
+- description (truncated 200ch) → nearby_nps_parks[].description
+- url → nearby_nps_parks[].url
+- states → nearby_nps_parks[].state
+- entranceFees[0].cost → nearby_nps_parks[].entrance_fee
+- Whole array → data.nearby_nps_parks
+- IGNORES: latLong (no distance calc — state-level scope)
+- IGNORES: operatingHours, activities, topics, images, contacts
+- IGNORES: parks past the first `limit` results (5 by default)
+|
+WHAT CLAUDE RECEIVES
+- "Nearby NPS national parks / monuments:"
+- "  • Apostle Islands National Lakeshore (National Lakeshore)"
+- "  • Ice Age National Scenic Trail (National Scenic Trail)"
+- "  • Saint Croix National Scenic Riverway (National Scenic Riverway)"
+- "  • North Country National Scenic Trail (National Scenic Trail)"
+- (Entrance fee rendered when present: " · entrance fee $25")
+
+
+═══════════════════════════════════════════════════════════════════════════════
+25. NOAA Climate
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (ncdc.noaa.gov/cdo-web/api/v2/stations + /data)
+- /stations: results[].{name, id, datacoverage, mindate, maxdate, elevation}
+- /data: results[].{date, datatype, station, value, attributes}
+  - Climate normals: monthly average temps, precipitation, snowfall, etc.
+|
+WHAT GROWTHIM TAKES (fetchNOAAClimate)
+- station results[0].name → noaa_climate.station_name
+- station results[0].id → noaa_climate.station_id
+- Monthly normals array → noaa_climate.normals[] (avg_temp, precip per month)
+- Whole object → data.noaa_climate
+- IGNORES: elevation, datacoverage, mindate/maxdate
+- IGNORES: Daily data (only normals)
+- IGNORES: Stations past index 0
+|
+WHAT CLAUDE RECEIVES
+- "Historical climate normals (NOAA CDO, station: EAST DUBUQUE 1.7 ENE, IL US) · annual avg temp 50.4°F"
+- Section OMITTED when no station found OR no normals (e.g. last run: "found 0 climate records")
+- (Monthly normals available in bundle but only annual avg rendered)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+26. FMCSA
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (mobile.fmcsa.dot.gov/qc/services/carriers/name/{name})
+- content[].{dotNumber, legalName, dbaName, carrierOperation, allowedToOperate,
+             safetyRating, safetyRatingDate, outOfServiceDate,
+             totalDrivers, totalTrucks, mcs150Date, ...}
+|
+WHAT GROWTHIM TAKES (fetchFMCSA)
+- dotNumber → data.dot_number + fmcsa.dot_number
+- safetyRating → data.safety_rating + fmcsa.safety_rating
+- safetyRatingDate → fmcsa.safety_rating_date
+- allowedToOperate → data.allowed_to_operate + fmcsa.allowed_to_operate
+- carrierOperation → fmcsa.carrier_operation (Interstate/Intrastate)
+- totalDrivers → data.total_drivers + fmcsa.total_drivers
+- totalTrucks → data.total_trucks + fmcsa.total_trucks
+- outOfServiceDate → fmcsa.out_of_service_date
+- Whole object → data.fmcsa
+- IGNORES: legalName/dbaName (already have name from Google)
+- IGNORES: mcs150Date, hazmat indicators, address fields
+|
+WHAT CLAUDE RECEIVES
+- "FMCSA carrier record:"
+- "DOT#: 1234567"
+- "Safety rating: Satisfactory (2024-03-15)"
+- "Allowed to operate: Y"
+- "Carrier operation: Interstate"
+- "Drivers: 24 · Trucks: 18"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+27. FDIC
+═══════════════════════════════════════════════════════════════════════════════
+WHAT API GIVES (banks.data.fdic.gov/api/institutions)
+- data[].data.{NAME, DEP (deposits, thousands), ASSET (assets, thousands),
+               CITY, STALP (state), CERT, ZIP, OFFICES, ...}
+|
+WHAT GROWTHIM TAKES (fetchFDICData)
+- NAME → data.fdic_bank_name + fdic.bank_name
+- DEP → data.fdic_total_deposits + fdic.total_deposits (in thousands $)
+- ASSET → data.fdic_total_assets + fdic.total_assets (in thousands $)
+- CITY → fdic.city
+- STALP → fdic.state
+- Whole object → data.fdic
+- IGNORES: CERT (FDIC certificate number)
+- IGNORES: OFFICES count, branches data
+- IGNORES: ZIP (already have from Census flow)
+- IGNORES: charter type, regulatory class
+|
+WHAT CLAUDE RECEIVES
+- "FDIC institution profile (First Citizens State Bank, Madison, WI):"
+- "Total deposits: $214.7M · Total assets: $245.3M"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMMARY MATRIX — Fires-for + Cardinality
+═══════════════════════════════════════════════════════════════════════════════
+ALWAYS-ON for every /classify:
+  1. Google Places Text Search        — subject lookup
+  2. Google Place Details             — subject details
+  3. Google Nearby Search             — competitor pool
+  4. Google PageSpeed                 — gated on website_exists
+  5. Google Geocoding                 — internal fallback only
+  6. Census ACS                       — income + pop
+  7. Census Housing                   — piggybacks on Census ACS
+  8. Open-Meteo                       — weather
+  9. Ticketmaster                     — events
+ 10. Foursquare                       — nearby venues
+ 11. Overpass OSM                     — anchors + transit
+ 12. HUD Building Permits             — county permits
+ 15. TripAdvisor                      — when name matches
+ 23. Datamuse                         — naming context
+ 25. NOAA Climate                     — climate normals
+
+SECTOR-GATED (only fires for specific NAICS):
+ 13. HUD FMR                          — NAICS-2 = 53
+ 14. BLS                              — NAICS-2 ∈ {54,61,62,23,44-45}
+ 16. NPI Registry                     — NAICS-2 = 62
+ 17. USDA NASS                        — NAICS-2 = 11
+ 18. USDA ERS                         — NAICS-2 = 11 OR NAICS-3 ∈ {722,445}
+                                         + REQUIRES USDA_ERS_API_KEY (empty)
+ 19. CDC Places                       — NAICS-3 ∈ {621,713,722}
+ 20. HRSA Dental                      — NAICS-4 = 6212
+ 21. FoodData Central                 — NAICS-3 ∈ {722,445}
+ 22. Open Food Facts                  — NAICS-3 ∈ {722,445}
+ 24. NPS Parks                        — NAICS-3 ∈ {721,722} OR NAICS-2 ∈ {44,45}
+ 26. FMCSA                            — NAICS-2 = 48-49
+ 27. FDIC                             — profile_id contains 'bank' or 'finance'
+
+KNOWN GAPS (data fetched but doesn't reach Claude reliably):
+  - USDA ERS — no API key set (placeholder empty)
+  - CDC Places — county fallback dead (county_name unresolved when promise built)
+  - HRSA Dental — same county race condition; returns null on every /classify
+  - NOAA Climate — returned 0 records in last run
+  - Foursquare — periodically out of API credits
+
+BANNED METRICS (forced null at source — never in bundle):
+  - review_recency_days        (5-review sample is relevance-sorted not date-sorted)
+  - responds_to_reviews        (5-review sample unreliable for response rate)
+  - response_rate_estimated    (same reason)
+  - photo_count when >= 10     (Google caps the array at 10 regardless of true count)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+End of document.  Source files traced:
+  dataFetchers.js   — fetcher implementations + caching
+  googlePlaces.js   — Places client + isOperationalOrUnknown + toInputFields
+  server.js         — Promise.allSettled wiring + result-block assignments
+  claudeEnricher.js — buildDataBundle (bundle shape) + buildUserPrompt (prompt text)
+═══════════════════════════════════════════════════════════════════════════════

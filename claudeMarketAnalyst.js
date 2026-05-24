@@ -231,7 +231,7 @@ async function generateWhyThisCity(city, state, scored, market, demographics) {
     `${i + 1}. ${s.business_type} (final ${s.final_score}) — gap ${s.score_breakdown.gap_score}, feasibility ${s.score_breakdown.feasibility_score}, growth ${s.score_breakdown.growth_score} | ${s.competitor_count == null ? '?' : s.competitor_count} competitors, novelty ${s.novelty_score}/10 | ${s.startup_cost_range} | survival y5: ${s.survival_y5 || '—'}`
   ).join('\n');
 
-  const prompt = `You are BizRadar. Write per-card "why this city" prose for the top 10 ranked business opportunities.
+  const prompt = `You are GROWTHIM. Write per-card "why this city" prose for the top 10 ranked business opportunities.
 
 CITY: ${city}, ${state}
 
@@ -725,7 +725,7 @@ ${rs || '    (no review text)'}`;
     ? market.events.map((e) => `• ${e.name} | ${e.date || 'TBD'} | ${e.venue || 'TBD'}`).join('\n')
     : '(no events found — real-world knowledge of named annual events for this city is acceptable in seasonal_strategy)';
 
-  return `=== BIZRADAR DEEP DIVE — ${top1.business_type} in ${city}, ${state} ===
+  return `=== GROWTHIM DEEP DIVE — ${top1.business_type} in ${city}, ${state} ===
 
 --- TOP RANKED BUSINESS ---
 Type: ${top1.business_type}
@@ -800,7 +800,7 @@ function buildPromptA(city, state, top10, market, demographics, competition) {
     .map((c) => `#${c.rank}: ${c.business_type}`)
     .join(' · ') || '(none)';
 
-  return `You are BizRadar — a city market intelligence engine. Generate market intelligence for ALL 10 ranked business opportunities, with TIERED depth.
+  return `You are GROWTHIM — a city market intelligence engine. Generate market intelligence for ALL 10 ranked business opportunities, with TIERED depth.
 
 ═══════════════════════════════════════════════════
 TIERING — MANDATORY
@@ -839,7 +839,7 @@ function buildPromptB(city, state, top10, market, demographics, competition) {
   // hyper-local for the #1 business. We just accept top10 to keep the
   // signatures consistent with buildPromptA.
   const ctx = buildDeepDiveContext(city, state, top1, market, demographics, competition);
-  return `You are BizRadar — customer intelligence engine for city market analysis. Generate the PERSONAS + SEASONAL + HYPER-LOCAL portion of a deep-dive report.
+  return `You are GROWTHIM — customer intelligence engine for city market analysis. Generate the PERSONAS + SEASONAL + HYPER-LOCAL portion of a deep-dive report.
 
 ${SHARED_RULES}
 

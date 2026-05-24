@@ -1,4 +1,4 @@
-/* testAllApis_v2.js — multi-business live test for every BizRadar fetcher.
+/* testAllApis_v2.js — multi-business live test for every GrowthIM fetcher.
    Runs 3 real businesses (rural hotel / large hospital / urban restaurant)
    through every API in dataFetchers.js + googlePlaces.js so we can confirm
    each fetcher works across location, sector, and edge-case dimensions.
@@ -191,7 +191,7 @@ const pad = (s, n) => String(s == null ? '—' : s).padEnd(n);
 // ── Main ─────────────────────────────────────────────────────────────
 (async function main() {
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('BizRadar API Health Check v2');
+  console.log('GrowthIM API Health Check v2');
   console.log('Run at:   ' + new Date().toISOString());
   console.log('Test env: ' + (process.env.NODE_ENV || 'development'));
   const setKeys = ENV_KEYS.filter((k) => !!process.env[k]);
@@ -430,7 +430,7 @@ const pad = (s, n) => String(s == null ? '—' : s).padEnd(n);
 
   console.log('\n');
   console.log('╔══════════════════════════════════════════════════════════════════╗');
-  console.log('║  BizRadar API Health Check v2 — Full Results                     ║');
+  console.log('║  GrowthIM API Health Check v2 — Full Results                     ║');
   console.log('╠══════════════════════════════════════════════════════════════════╣');
   console.log('║  API                          A           B           C          ║');
   console.log('╠══════════════════════════════════════════════════════════════════╣');

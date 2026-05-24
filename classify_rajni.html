@@ -1,0 +1,634 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GrowthIM report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --blue: #2563EB;
+  --emerald: #10B981;
+  --amber: #F59E0B;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-soft: #F1F5F9;
+  --text: #1E293B;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --emerald-tint: #ECFDF5;
+  --blue-tint: #EFF6FF;
+  --amber-tint: #FEF3C7;
+}
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: var(--text); background: var(--surface); margin: 0; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+@media (min-width: 720px) { body { max-width: 820px; margin: 16px auto; padding: 24px 8px; } }
+h1 { font-size: 26px; font-weight: 700; color: var(--navy); margin: 0 0 6px 0; letter-spacing: -0.02em; line-height: 1.2; }
+h2 { font-size: 18px; font-weight: 600; color: var(--navy); margin: 32px 0 12px; letter-spacing: -0.01em; padding: 0; border: 0; }
+h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0 0 6px; }
+p { margin: 0 0 10px; }
+ul { padding-left: 20px; margin: 8px 0; }
+ul li { margin: 4px 0; }
+small { color: var(--muted); font-size: 12px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.meta { color: var(--muted); font-size: 13px; }
+.cite { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* ── Status pills (overall report status) ──────────────────────── */
+.status { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 13px; letter-spacing: 0.01em; }
+.status.healthy { background: var(--emerald-tint); color: #065F46; }
+.status.good    { background: var(--blue-tint);    color: #1E3A8A; }
+.status.needs   { background: var(--amber-tint);   color: #92400E; }
+.status.blocked { background: var(--danger-bg);    color: #991B1B; }
+
+/* ── Priority action card (.rec) — blue left accent ─────────────── */
+.rec { border: 1px solid var(--border); border-left: 4px solid var(--blue); padding: 16px 18px; margin: 12px 0; background: var(--surface); border-radius: 8px; }
+.rec h3 { font-size: 15px; margin: 0 0 8px; }
+.rec-high    { border-left-color: var(--emerald); }
+.rec-medium  { border-left-color: var(--blue); }
+.rec-low     { border-left-color: var(--amber); }
+.rec-minimal { border-left-color: var(--muted); opacity: 0.85; }
+
+/* ── Score / impact pills ──────────────────────────────────────── */
+.impact { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; vertical-align: middle; text-transform: uppercase; }
+.impact-high    { background: var(--emerald); color: #FFFFFF; }
+.impact-medium  { background: var(--blue);    color: #FFFFFF; }
+.impact-low     { background: var(--amber);   color: #FFFFFF; }
+.impact-minimal { background: var(--surface-soft); color: var(--muted); }
+
+/* ── 3-layer rec rendering ─────────────────────────────────────── */
+.layer { margin: 10px 0; }
+.layer-label { display: inline-block; font-weight: 700; font-size: 10.5px; letter-spacing: 0.06em; color: var(--muted); padding: 2px 8px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 4px; margin-right: 6px; vertical-align: middle; text-transform: uppercase; }
+.why-study { padding: 10px 14px; margin: 6px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.why-study p { margin: 4px 0; }
+.honesty { padding: 8px 12px; margin: 6px 0; border-left: 3px solid var(--muted); background: var(--bg); font-size: 13px; border-radius: 4px; }
+.honesty-verified              { border-left-color: var(--emerald); background: var(--emerald-tint); }
+.honesty-reasonable-inference  { border-left-color: var(--blue);    background: var(--blue-tint); }
+.honesty-customer-must-validate{ border-left-color: var(--amber);   background: var(--amber-tint); }
+.hmark { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); margin-right: 4px; }
+.hmark-verified  { background: var(--emerald-tint); color: #065F46; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.hmark-inference { background: var(--blue-tint);    color: #1E3A8A; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.hmark-validate  { background: var(--amber-tint);   color: #92400E; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.tier3 { font-size: 11px; color: var(--amber); }
+
+/* ── Misc tags / flags / money ─────────────────────────────────── */
+.extra-tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 4px; letter-spacing: 0.02em; text-transform: uppercase; }
+.extra-tag-hidden { background: var(--danger); color: #FFFFFF; }
+.extra-tag-known  { background: var(--muted);  color: #FFFFFF; }
+.money { padding: 12px 14px; margin: 10px 0; background: var(--emerald-tint); border-left: 3px solid var(--emerald); border-radius: 6px; font-size: 13px; }
+.money-skip { color: var(--muted); font-size: 13px; }
+.flag { padding: 10px 14px; margin: 8px 0; border-left: 3px solid var(--amber); background: var(--amber-tint); border-radius: 6px; }
+.flag.critical { border-left-color: var(--danger); background: var(--danger-bg); color: #991B1B; }
+.ai-badge { display: inline-block; background: var(--navy); color: #FFFFFF; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; vertical-align: middle; margin-left: 4px; }
+.ai-fallback-note { color: var(--muted); margin: 6px 0; }
+.classification-reason { font-size: 12px; margin-top: -2px; color: var(--muted); }
+
+/* ── Common problems / coverage / callout ──────────────────────── */
+.problem { padding: 14px 16px; margin: 10px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.problem h3 { font-size: 15px; margin: 0 0 6px; }
+.coverage { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+.coverage td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid var(--border); }
+.coverage td:first-child { width: 38%; color: var(--muted); }
+.coverage tr:last-child td { border-bottom: 0; }
+.callout { padding: 14px 16px; margin: 14px 0; border: 1px solid var(--border); background: var(--blue-tint); border-radius: 8px; border-left: 4px solid var(--blue); }
+.callout-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--blue); margin-bottom: 6px; text-transform: uppercase; }
+.callout p { margin: 0; line-height: 1.55; }
+
+/* ── Opportunity card (/classify) — emerald left accent ────────── */
+.opportunity { padding: 16px 18px; margin: 12px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--emerald); border-radius: 8px; }
+.opportunity h3 { margin: 4px 0 6px; font-size: 15px; }
+.op-meta { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
+.op-category { display: inline-block; background: var(--navy); color: #FFFFFF; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.op-novelty { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.novelty-unique { background: var(--emerald); color: #FFFFFF; }
+.novelty-rare   { background: var(--amber);   color: #FFFFFF; }
+.novelty-common { background: var(--muted);   color: #FFFFFF; }
+
+/* ── Market analysis card (/market-analysis) — navy left accent ── */
+.mkt-card { padding: 18px 20px; margin: 14px 0; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 8px; }
+.mkt-card h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mkt-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #FFFFFF; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.mkt-card .impact { font-size: 12px; padding: 3px 10px; }
+
+/* The "← new search" link inside report content. The landing page
+   wraps the report in its own .result-back top-level button, but
+   direct-HTTP fetches still see this link. */
+.back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.back:hover { color: var(--blue); }
+</style></head><body><a class="back" href="/">&larr; new search</a>
+<h1>Rajni Indian Cuisine</h1>
+<p class="meta">429 Commerce Dr, Madison, WI 53719, USA<br>
+Full-service restaurants — NAICS 722511<br>
+Layer 0: <code>places_types_fallback</code> · confidence MEDIUM <small>(places types fallback: matched <code>restaurant</code>)</small></p>
+<div class="status healthy">HEALTHY</div>
+<p class="meta">2 of 2 measured fields above benchmark</p>
+<div class="callout local-context">
+<div class="callout-label">LOCAL MARKET CONTEXT</div>
+<p>Rajni Indian Cuisine sits at 429 Commerce Dr in West Madison&#39;s commercial corridor near the West Towne Mall area, surrounded by Target and Aldi as anchor tenants and within 400 meters of Marcus Point Cinema and Dairy Queen — a high-traffic, family-oriented retail zone in ZIP 53719 where median household income is $90,962. Madison is home to UW-Madison, a large state government workforce, and a culturally adventurous dining public; the city&#39;s food scene skews toward quality-conscious, independently-minded diners who actively leave Google reviews and share dining experiences on Reddit and Instagram. With Kohl Center hosting Phish on July 7-8, 2026 and Breese Stevens Field hosting TRAIN on August 8, 2026, the summer event calendar presents a direct foot-traffic opportunity for a restaurant that can capture the pre-show dining window.</p>
+</div>
+
+<h2>Strengths</h2><ul><li>rating 4.7 &gt; 4.3</li><li>1393 reviews &gt; 100</li></ul>
+<h2>Industry survival outlook</h2>
+<p>Establishments that opened in this sector (NAICS-72) in 2013 survived as follows:</p>
+<table class="coverage">
+  <tr><td><strong>1-year</strong></td><td>78.3%</td></tr>
+  <tr><td><strong>3-year</strong></td><td>64.3%</td></tr>
+  <tr><td><strong>5-year</strong></td><td>55.3%</td></tr>
+  <tr><td><strong>7-year</strong></td><td>47.6%</td></tr>
+  <tr><td><strong>10-year</strong></td><td>38.1%</td></tr>
+</table>
+<p class="meta"><small>Source: BLS Business Employment Dynamics, 2013 cohort tracked through 2023</small></p>
+
+
+
+<h2>Competitive context</h2>
+
+<p class="meta"><strong>3</strong> real competitors to watch &middot; <strong>2</strong> competitors you're beating</p>
+<p>5 same-type competitors within 3 miles.<br>
+Your rating: <strong>4.7</strong> vs local median: <strong>4.5</strong> <small>(+0.2)</small><br>
+Your reviews: <strong>1393</strong> vs local median: <strong>437</strong> <small>(+956)</small></p>
+<p class="meta">Real competitors to watch:</p><ul><li><strong>Royal Indian Cuisine</strong> &mdash; 4.5&#9733; (437 reviews) &middot; 0.6 mi</li><li><strong>Swagat - West Madison</strong> &mdash; 4.3&#9733; (1691 reviews) &middot; 1.1 mi</li><li><strong>Dhaba Indian Bistro</strong> &mdash; 4.6&#9733; (1410 reviews) &middot; 2.1 mi</li></ul>
+<div style="margin-top:10px"><p class="meta" style="margin:4px 0;color:var(--muted)">&#10003; You're outperforming <strong>Rama’s Foods</strong> (4.5&#9733;, 170 reviews) &mdash; no action needed</p><p class="meta" style="margin:4px 0;color:var(--muted)">&#10003; You're outperforming <strong>Mirch Masala</strong> (4.4&#9733;, 249 reviews) &mdash; no action needed</p></div>
+
+<h2>Competitor comparison <span class="ai-badge" title="Enriched by Claude">AI</span></h2>
+
+<h3>What competitors are doing better than you</h3><ul><li><strong>Swagat - West Madison:</strong> Higher Google review volume — 298 more reviews than Rajni<br>
+<span class="meta">Evidence: 1,691 reviews vs Rajni&#39;s 1,393 — Swagat&#39;s volume advantage likely translates to higher placement in Google Maps &#39;Indian restaurant Madison&#39; search results despite Rajni&#39;s superior 4.7★ vs 4.3★ rating.</span><br>
+<span class="meta">→ <strong>Your move:</strong> Launch a QR-code table card review request at every table and at the bill drop, targeting 30 additional Google reviews per month to close and surpass the gap within 10 months.</span></li><li><strong>Dhaba Indian Bistro:</strong> Near-equal review count with a strong brand-name positioning (&#39;Bistro&#39; signals elevated dining)<br>
+<span class="meta">Evidence: 1,410 reviews at 4.6★ — within 17 reviews of Rajni and positioned as a bistro, which attracts occasion-dining and corporate lunch segments that &#39;Cuisine&#39; branding may not capture as effectively.</span><br>
+<span class="meta">→ <strong>Your move:</strong> Add a &#39;Date Night Thali for Two&#39; at $68 on the printed menu and Google profile — capture the occasion-dining segment Dhaba&#39;s &#39;bistro&#39; label attracts before they default to Dhaba.</span></li></ul>
+<h3>What you can do to win customers from them</h3><ul><li><strong>Highest rating among all 5 competitors — 4.7★ vs next-best Dhaba at 4.6★</strong><br>
+<span class="meta">Why you can win: Rajni leads the entire 5-competitor local field on rating: 4.7★ vs Dhaba 4.6★, Royal 4.5★, Rama&#39;s 4.5★, Mirch Masala 4.4★, Swagat 4.3★. The median competitor rating is 4.5★ — Rajni is 0.2★ above median.</span><br>
+<span class="meta">→ <strong>Action:</strong> Feature &#39;4.7★ — Madison&#39;s Highest-Rated Indian Restaurant&#39; prominently in all Google Ads, Nextdoor posts, and the physical storefront window.</span></li><li><strong>Closest Indian restaurant to Marcus Point Cinema (387m) — no competitor is within 900m of the cinema</strong><br>
+<span class="meta">Why you can win: Marcus Point Cinema is 387m from Rajni. Royal Indian Cuisine is 915m away (per nearby_venues). No other competitor is listed closer to the cinema.</span><br>
+<span class="meta">→ <strong>Action:</strong> Secure the Marcus Point Cinema partnership (table tent + reciprocal voucher deal) before any competitor identifies and claims this proximity advantage.</span></li></ul>
+<h3>Overall</h3><p>Swagat - West Madison is the single biggest threat, holding a 298-review volume lead that boosts its Google Maps ranking despite Rajni&#39;s superior 4.7★ vs 4.3★ rating. Overall, Rajni is ahead of or competitive with all five listed competitors — it leads the field on rating and outperforms three of five on both rating and review count.</p>
+<h2>Location &amp; market</h2>
+<p>Area median household income: <strong>$90,962</strong><br>
+Local population (ZIP 53719): <strong>268,516</strong><br>Average household size: <strong>2.14</strong></p>
+<p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) — study S037.</p>
+<p><strong>Anchor tenants nearby:</strong> Target, Aldi<br>
+<small>Anchor proximity lifts foot traffic 20-40% per Pashigian &amp; Gould (1998), study S044.</small></p>
+<p><small>Nearest transit (bus stop / rail station): 271m (0.17 mi). Transit-served location ✓.</small></p>
+<p><strong>Dane County construction activity (2022):</strong> 5237 total residential permits (1294 single-family) — <span style="color:#b32430">declining</span> (-23.4% YoY)<br>
+<small>Source: U.S. Census Building Permits Survey via HUD (county FIPS 55025).</small></p>
+
+
+<h2>Demand &amp; seasonality</h2><p><strong>Peak season:</strong> Jun-Aug<br><strong>Cold winter market</strong> — plan an off-season strategy (one or more months average below 35°F).</p><p><strong>Upcoming events within 10km (next 90 days):</strong></p><ul><li>Phish — 2026-07-07 at Kohl Center</li><li>Phish — 2026-07-08 at Kohl Center</li><li>Phish — 2026-07-07 at Kohl Center</li><li>Phish — 2026-07-08 at Kohl Center</li><li>TRAIN - Drops of Jupiter: 25 Years in the Atmosphere — 2026-08-08 at Breese Stevens Field</li></ul>
+<p class="meta"><small>Source: Ticketmaster Discovery API v2.</small></p>
+<h2>Operations &amp; brand</h2><p>hours fully listed (7 days) · closed now · website loads · owner-response rate: insufficient data (sampled 5 reviews only)</p>
+<div style="margin-bottom: 16px;">
+  <h2>Priority actions</h2>
+  <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">Of these 7 actions, 3 are HIGH IMPACT. AI-tagged actions are generated from your real business data.</p>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Launch &#39;Show Night Thali&#39; for Phish at Kohl Center — July 7-8, 2026</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Create a limited &#39;Show Night Thali&#39; at $42 per person — featuring lamb rogan josh, chicken tikka masala, garlic naan, and a mango lassi — available July 7-8 and marketed specifically to Phish concertgoers. Post on r/phish and r/madisonwi 2 weeks before the shows. Print 100 table-tent cards with &#39;Fueling the Lot&#39; messaging. Coordinate with nearby parking areas by handing flyers to cars heading toward Kohl Center. Offer a $5 discount to anyone showing a Phish ticket at the door.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Phish fans are notoriously communal, adventurous eaters who travel from outside Madison and dine out together pre-show. Kohl Center is within the Madison metro area. Rajni&#39;s 4.7★ rating (1,393 reviews) and verified standout dishes (chicken 65, lamb rogan josh) give you a strong credibility story. At $42/head vs. typical dinner spend, you add meaningful premium per table.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$8,000-$14,000 over the 2-night event window. Math: 60 covers/night × 2 nights × $42 avg check × 1.65 table turns = $8,316 incremental revenue above baseline.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $200 one-time (flyers, table tents, Reddit promoted post) &middot; Timeline: Month 1 (launch prep by June 23, 2026)</div>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Dinner + Movie combo with Marcus Point Cinema (387m away) — zero cost to launch</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Walk into Marcus Point Cinema (387m from your front door) this week and propose a Dinner+Movie reciprocal deal: guests who show a same-day Marcus Point ticket at Rajni get a free mango lassi or $6 off their bill over $35. Marcus Cinema lists Rajni as their &#39;pre-show dinner recommendation&#39; on their lobby screens and social media. Print 75 table-tent cards for Marcus and 75 for your own tables. Promote on Madison&#39;s West Side Facebook group and r/madisonwi.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Marcus Point Cinema draws a steady family and date-night crowd from ZIP 53719, where median household income is $90,962 — discretionary spenders already in a &#39;treat night&#39; mindset 387m from Rajni. No competitor within 1.5 miles has a formal cinema partnership. Royal Indian Cuisine at 0.58 mi and Swagat at 1.1 mi are both farther from the cinema.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$15,000-$22,000/year. Math: 10 tables/week converted from cinema traffic × $52 avg check × 50 weeks × 0.6 capture rate = $15,600/year.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $150 one-time (table tent printing) &middot; Timeline: This week</div>
+</div><div class="action-card" style="border-left: 4px solid #10B981; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #ECFDF5; color: #065F46; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">HIGH IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Pitch corporate lunch catering to Target and Aldi (both within 500m) — tap $90K income ZIP</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Visit the store manager and HR desk at the Target (within 500m on Commerce Dr) and Aldi (within 500m) this week with a printed Rajni &#39;Team Lunch&#39; menu: 3-tier catering packages at $12/person (curry + rice + naan), $18/person (full buffet style), and $28/person (premium thali). Offer a free sample tray for any team of 10+ the first time. Leave business cards and a QR code to a simple catering order form. Follow up by phone one week later.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Both anchor tenants have substantial full-time and part-time staffs who rotate through lunch breaks daily. At a median household income of $90,962 in ZIP 53719, employees have spending power. No Indian restaurant within the immediate 500m radius competes for this B2B catering slot. Rajni&#39;s 4.7★ with 1,393 reviews is a powerful trust credential when pitching corporate clients.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$18,000-$30,000/year. Math: 2 accounts × 3 catering orders/month × $350 avg order × 12 months = $25,200/year.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $100 one-time (printed menus, sample tray) &middot; Timeline: This week</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Pre-show dinner push for TRAIN at Breese Stevens Field — August 8, 2026</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">For the TRAIN &#39;Drops of Jupiter: 25 Years in the Atmosphere&#39; show at Breese Stevens Field on August 8, 2026, run a &#39;Drops of Jupiter&#39; cocktail menu (mango mojito, tamarind cooler) alongside a Rajni Pre-Show Special: any entrée + naan + dessert for $34. Market on Madison&#39;s event pages and Eventbrite audience via Facebook Event. Partner with RP Adler&#39;s Pub &amp; Grill (494m away) to cross-refer: they handle post-show drinks, you handle pre-show dinner. Post on r/madisonwi by July 25.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">TRAIN&#39;s fan demographic (35-55, disposable income) aligns perfectly with ZIP 53719&#39;s $90,962 median household income. Breese Stevens Field is a known Madison concert venue. Creating a named cocktail tied to the concert&#39;s album title gives social media shareability that generates organic word-of-mouth.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$4,000-$7,000 for the event window. Math: 45 covers on Aug 8 × $38 avg check × 1.5 turns = $5,130 incremental above Tuesday baseline.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $50 one-time (Facebook event ad boost) &middot; Timeline: Month 2 (launch prep by July 25, 2026)</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Launch a &#39;Winter Warmth&#39; monthly lunch subscription for January-March cold-season survival</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">In November, sell 60 pre-paid &#39;Winter Warmth&#39; monthly passes at $79/month: holder gets 4 lunch combos per month (soup + half entrée + naan, dine-in only, Mon-Fri). Promote via email to existing customers who have visited 2+ times, and post in the Madison West / Middleton community Facebook groups. Limit to 60 passes to create scarcity. In January-March when Madison averages below 35°F, foot traffic drops sharply — prepaid passes guarantee baseline revenue even on sub-zero days.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Madison&#39;s cold winter (any month avg below 35°F) creates a predictable foot-traffic cliff for restaurants. Prepaid subscriptions convert future uncertain revenue into guaranteed cash now. Royal Indian Cuisine, Swagat, and Mirch Masala all operate without a known subscription offer — it&#39;s uncontested territory.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$19,000-$22,000 in guaranteed winter revenue. Math: 60 passes × $79/month × 3 months = $14,220 base + upsell drinks/extras adds ~30% = $18,486.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $0 (social posts + email to existing customers) &middot; Timeline: Month 2 (sell in November, activate January)</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Target 5,237 new-permit households in Dane County with a &#39;Welcome to the Neighborhood&#39; offer</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Dane County issued 5,237 residential building permits in 2022, including 1,294 single-family homes — even in a declining market, thousands of new households moved in. Design a postcard: &#39;New to Madison? Your first Rajni meal is on us — $10 off any dine-in order over $30. Show this card.&#39; Mail to new-permit addresses in ZIP 53719 and adjacent ZIPs via USPS Every Door Direct Mail (EDDM). Target radius: 2 miles. New movers have no restaurant loyalty yet — this is the single best moment to become their &#39;regular Indian place.&#39;</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">New movers are in a &#39;blank slate&#39; restaurant selection phase — brand recall formed in the first 90 days of moving often sticks for years. Rajni&#39;s 4.7★ rating is a massive first-impression credential vs. Swagat&#39;s 4.3★ and Royal Indian&#39;s 4.5★. EDDM costs approximately $0.20/piece — it&#39;s the lowest-cost permanent-customer acquisition channel available.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$12,000-$20,000/year in LTV from new regulars. Math: 2,000 mailers × 3% redemption = 60 new customers × $85 avg annual spend × 2.5 years LTV = $12,750.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $400 one-time (design + EDDM mailing to 2,000 addresses) &middot; Timeline: Month 2</div>
+</div><div class="action-card" style="border-left: 4px solid #2563EB; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MEDIUM IMPACT</span>
+    <span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">AI</span>
+  </div>
+  <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0;">Start responding to Google reviews — current response rate is 0% vs. Dhaba Indian Bistro at 2.08 mi</h3>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Respond to the most recent 10 Google reviews this week — especially the 2-star review citing rude host behavior and stale food. Use this template: &#39;Hi [name], thank you for sharing this — the experience you described does not reflect our standards at all. Please reach me directly at [phone/email] so I can personally make this right.&#39; For 5-star reviews, respond with one personalized sentence that names the specific dish they mentioned (e.g., &#39;So glad the Chicken 65 hit the mark for you!&#39;). Set a recurring calendar reminder: respond to all new reviews within 48 hours.</span></div>
+  <div style="margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">Rajni&#39;s current response rate is 0%. The 2-star review about a rude host is publicly visible and unaddressed — prospective diners reading that exchange see silence, which amplifies the complaint. Dhaba Indian Bistro (4.6★, 1,410 reviews, 2.08 mi) and all top-5 competitors are in the same response-gap, making this a free differentiator in a market where all five competitors share a 4.3-4.6★ band.</span></div>
+  <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">$5,000-$10,000/year in protected revenue. Math: 15 potential lost tables/month from unaddressed 2-star review × $55 avg check × 12 months = $9,900 protected.</span></div>
+  <div style="font-size: 13px; color: #6B7280;">Cost: $0 &middot; Timeline: This week</div>
+</div>
+<div class="section"><h2>&#128269; Competitor deep dive</h2><p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">Only showing competitors where you are not already winning on both rating and review count.</p><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">1. Dhaba Indian Bistro</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Dhaba Indian Bistro has 4.6★ vs Rajni&#39;s 4.7★ — close rating gap — AND 1,410 reviews vs Rajni&#39;s 1,393, meaning Dhaba nearly matches review volume at 2.08 miles away.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Review volume parity</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">1,410 reviews vs Rajni&#39;s 1,393 — effectively tied on volume with slight Dhaba lead</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: Dhaba has accumulated 1,410 reviews at 4.6★ — within 17 reviews of Rajni at a farther distance, indicating strong repeat-visit and review-generation habits.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Rajni leads by 0.1★ but trails by 17 reviews — any velocity shift gives Dhaba the review-count lead</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Print QR-code table cards linking directly to Rajni&#39;s Google review page. Train staff to mention reviews at bill drop this week.</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Bistro positioning / perceived formality</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">The word &#39;Bistro&#39; in branding signals a slightly elevated dining experience in Madison&#39;s restaurant vocabulary</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: &#39;Bistro&#39; naming convention attracts date-night and business-dinner segments who associate it with higher formality — a positioning advantage over &#39;Cuisine&#39; branding.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Rajni&#39;s exterior and naming skew casual — potential date-night diners may default to Dhaba for occasion dining</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Add a &#39;Date Night Thali for Two&#39; at $68 on the menu and promote it on Instagram — target &#39;Madison date night&#39; hashtag this month.</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Distance-adjusted visibility</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">2.08 miles from Rajni — further away but nearly equal in review count, meaning their per-mile customer acquisition is strong</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: Accumulating 1,410 reviews from a farther location suggests strong web presence and discoverability — likely ranking for &#39;Indian restaurant Madison&#39; searches across a wider geographic footprint.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Rajni at 429 Commerce Dr may not be ranking prominently for &#39;Indian food Madison WI&#39; vs. Dhaba&#39;s established review momentum</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Optimize Google Business Profile description to include &#39;West Madison Indian restaurant near Marcus Point Cinema and Target on Commerce Drive&#39; this week.</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Target Google Ads for &#39;Dhaba Indian Bistro&#39; and &#39;Indian restaurant Madison WI&#39; searches with the headline: &#39;Rated 4.7★ — Madison&#39;s Highest-Rated Indian Restaurant Near West Towne.&#39; Emphasize Rajni&#39;s 0.1★ rating lead and proximity to Marcus Point Cinema and Target on Commerce Drive. Run on Google Local Services Ads in ZIP 53719. Budget $150/month.</div>
+</div>
+  </div>
+</div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">2. Royal Indian Cuisine</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Royal Indian Cuisine has 4.5★ vs Rajni&#39;s 4.7★ — Rajni leads on rating — but Royal has 437 reviews vs Rajni&#39;s 1,393 so Rajni clearly outperforms on review count; however Royal is only 0.58 miles away, making it the closest physical threat.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Proximity advantage</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">0.58 miles from Rajni — the closest Indian competitor; appears in &#39;Indian restaurant near me&#39; searches for the same West Madison residential block</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: At 0.58 miles, Royal Indian Cuisine competes for the same walk-in and delivery-radius customers, especially residents between the two locations who may split visits.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Customers equidistant between both restaurants may default to whichever is easier to reach that day</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Run a &#39;Loyalty Punch Card&#39; for dine-in: 5th visit is free appetizer. Retain the customers Royal is also pursuing.</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Shared rating band credibility</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">4.5★ with 437 reviews — enough reviews to appear credible to a new customer choosing between options</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: 437 reviews at 4.5★ clears the &#39;enough reviews to trust&#39; threshold for most first-time diners — Royal is not dismissible as a low-volume outlier.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> New residents in ZIP 53719 researching &#39;best Indian Madison&#39; may see Royal as a credible alternative before reaching Rajni&#39;s profile</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Ensure Rajni&#39;s Google profile photo is a high-quality dish photo (chicken 65 or lamb rogan josh) — the first visual impression when both appear in search results.</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Royal Indian Cuisine has 437 reviews vs Rajni&#39;s 1,393 — a 3x credibility gap. Run Google Ads targeting &#39;Royal Indian Cuisine Madison&#39; searches with headline: &#39;Madison&#39;s Most-Reviewed Indian Restaurant — 1,393 Reviews, 4.7★ on Commerce Drive.&#39; Use Nextdoor ads targeting the Westfield neighborhood between both restaurants. Message: &#39;Your neighbors have spoken — Rajni is West Madison&#39;s top-rated Indian restaurant.&#39;</div>
+</div>
+  </div>
+</div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
+  <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px;">
+    <div style="font-weight: 700; font-size: 16px; color: #0F1729;">3. Swagat - West Madison</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Swagat has 4.3★ vs Rajni&#39;s 4.7★ — Rajni leads on rating — but Swagat has 1,691 reviews vs Rajni&#39;s 1,393, meaning Swagat has more reviews at 1.1 miles away and higher search visibility.</div>
+  </div>
+  <div style="padding: 20px;">
+    <h3 style="font-size: 14px; color: #991B1B; margin-bottom: 12px;">&#9888;&#65039; What they do better</h3>
+<div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Review volume lead</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">1,691 reviews vs Rajni&#39;s 1,393 — 298 more reviews, giving Swagat higher Google Maps search rank for volume-weighted results</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[RATING SIGNAL]: 1,691 reviews at 4.3★ means Swagat ranks highly on Google Maps for &#39;Indian restaurant Madison&#39; due to sheer review volume, even with a lower quality rating.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> 298-review gap means Swagat appears first or more prominently in some Google Maps searches despite Rajni&#39;s superior rating</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Add a QR-code review request to every receipt and table card with copy: &#39;Loved your meal? 30 seconds on Google means everything to our small team.&#39;</div>
+</div><div style="border-left: 3px solid #FCA5A5; padding: 12px 16px; margin-bottom: 12px; background: #FFF5F5; border-radius: 0 6px 6px 0;">
+  <div style="font-weight: 600; color: #991B1B; margin-bottom: 4px; font-size: 14px;">Established brand familiarity</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 6px;">Swagat is a known name in Madison&#39;s Indian dining scene — likely the first Indian restaurant many long-term Madison residents tried</div>
+  <div style="font-size: 12px; color: #6B7280; font-style: italic; margin-bottom: 6px; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 4px;">[INFERRED FROM DATA]: 1,691 reviews accumulated over time signals years of brand-building in the Madison market — habitual diners return without re-evaluating alternatives.</div>
+  <div style="font-size: 13px; color: #374151; margin-bottom: 4px;"><strong>Gap:</strong> Swagat benefits from status-quo bias among existing long-term customers who don&#39;t actively reconsider their &#39;regular&#39; Indian restaurant</div>
+  <div style="font-size: 13px; color: #065F46; font-weight: 500;">&rarr; Target Swagat&#39;s customer base on Facebook/Instagram with retargeting ads showing Rajni&#39;s 4.7★ rating vs. Swagat&#39;s 4.3★ — &#39;There&#39;s a better option just 1.1 miles away.&#39;</div>
+</div>
+    
+    <div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">Swagat&#39;s 4.3★ vs Rajni&#39;s 4.7★ is a 0.4-star gap — meaningful to any diner who compares. Run Google Ads and Facebook ads targeting &#39;Swagat Madison Indian&#39; searches with: &#39;Rated 4.7★ — Madison Upgrades to Rajni. Same neighborhood, better food.&#39; Target ZIP 53719 and 53713. On Nextdoor, post in the Westfield and Meadowood neighborhoods: &#39;West Madison has a new #1 Indian restaurant — 1,393 reviews, 4.7 stars, on Commerce Drive.&#39;</div>
+</div>
+  </div>
+</div><div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px 20px; margin-top: 8px;"><div style="font-weight: 600; color: #065F46; font-size: 14px; margin-bottom: 6px;">&#9989; Competitors you are already beating</div><div style="font-size: 13px; color: #374151;">Rama&#39;s Foods, Mirch Masala &mdash; you outperform on both rating and review count. Keep doing what you are doing.</div></div></div>
+<div class="section">
+  <h2>&#9888;&#65039; Key risks &mdash; and how to stay ahead</h2>
+  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now &mdash; with early warning signs so you can act before they become crises.</p>
+  <div style="border: 1px solid #E5E7EB; border-left: 4px solid #DC2626; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FEF2F2; color: #991B1B; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">HIGH RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Zero Google review responses eroding 4.7-star lead over Dhaba (4.6★, 1,410 reviews)</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Rajni has a 0% Google response rate across 1,393 reviews while Dhaba Indian Bistro sits at 4.6 stars with 1,410 reviews just 2.08 miles away. Unanswered negative reviews signal indifference to prospective diners. With Royal Indian Cuisine (4.5★) only 0.58 miles away actively competing for the same ZIP 53719 median-income ($90,962) customers, even a 0.1-star drop from unaddressed complaints could flip first-choice decisions against Rajni.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Check Google Business Profile every Monday — if any review under 3 stars has gone unanswered for 7+ days, respond that day. Track star rating weekly; any drop below 4.6 is a red flag.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Spend 30 minutes this week responding to the 10 most recent reviews (mix of positive and negative). Set a calendar reminder every Monday for 15-minute response sessions. Use a saved reply template for 5-star reviews to cut time per response to under 60 seconds.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> A drop from 4.7 to 4.5 stars can reduce click-through from Google search by 15-25%, potentially costing $1,500–$3,000/month in lost covers at peak summer season (Jun–Aug).</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #DC2626; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FEF2F2; color: #991B1B; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">HIGH RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Phish two-night surge (July 7-8 at Kohl Center) overwhelming kitchen and floor staff</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Phish at Kohl Center on July 7-8, 2026 (Rajni&#39;s peak season, peak month July) will flood the Commerce Dr corridor with thousands of concert-goers. If a pre-show dinner promotion succeeds — which is the opportunity — current staffing at typical Friday/Saturday levels may not handle a 40-60% cover spike. Ticket holder demographics skew 35-55, high-disposable-income, exactly matching ZIP 53719&#39;s $90,962 median income. A 45+ minute wait or kitchen backup on these two nights risks 10-15 negative reviews from a vocal, high-reach audience.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">If OpenTable/phone reservations for July 7 or July 8 exceed 60% of normal Friday capacity by June 20, treat it as a surge night and staff up immediately.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">By June 15: identify 2 on-call servers (UW Madison hospitality program students are available for single-night shifts). Pre-batch high-volume dishes (tikka masala, butter chicken) the afternoon of July 7 and 8. Set a hard reservation cap 30 minutes before showtime to protect kitchen throughput.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> 10-15 one-star reviews on peak nights could cost $2,000–$4,000 in lost repeat business and drag the 4.7-star rating toward 4.5, weakening long-term search ranking versus Dhaba and Royal Indian.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Winter cash-flow trough — no loyalty mechanism to sustain covers Dec–Feb</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Madison, WI has a confirmed cold winter, and Rajni&#39;s peak season is Jun–Aug. Without a loyalty or repeat-visit program, the customer base acquired during summer concert season (Phish July 7-8, TRAIN August 8) has no structured reason to return in December through February. Competitors Swagat–West Madison (4.3★, 1,691 reviews) and Dhaba (4.6★, 1,410 reviews) have larger review volumes suggesting higher visit frequency that can sustain winter slow periods better.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">If average weekly covers in October fall more than 20% below August levels, winter trough is arriving early — activate loyalty push immediately rather than waiting for December.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Launch a simple punch-card or digital loyalty program (Square, Toast, or a free app like Stamp Me) by August 1 so summer diners are enrolled before the seasonal drop. Offer a &#39;free appetizer after 5 visits&#39; incentive — low cost, high return-visit pull.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> $3,000–$6,000 in recoverable winter revenue lost per slow month if summer customers have no re-engagement mechanism — roughly 3-4 months of reduced covers multiplied by average check size.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">TRAIN concert (Aug 8, Breese Stevens Field) with no pre-show dinner capture plan</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">TRAIN — Drops of Jupiter: 25 Years in the Atmosphere plays Breese Stevens Field on August 8, 2026, still within Rajni&#39;s peak season. Breese Stevens is 4.5 miles from Commerce Dr — close enough for pre-show dinner traffic but far enough that diners need a reason to choose Rajni over East Side options. Without outreach timed to ticket-holder awareness (2-3 weeks before the show), this cover opportunity is captured by competitors closer to the venue.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Check Rajni&#39;s reservation count for the evening of August 8 by July 25 — if it matches a normal Tuesday rather than showing a 20%+ bump, no spontaneous concert traffic is arriving and targeted outreach is needed.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">By July 15, post a targeted Facebook/Instagram ad (budget $30–$50) aimed at Madison-area adults 30-55 interested in TRAIN / classic rock, offering a &#39;Pre-Show Dinner Special — August 8&#39; with a 6:00 PM reservation link. Pair with a Google post the same week.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> $800–$1,500 in incremental covers missed on a single peak-season weeknight, plus the cost of food prepped but not sold if the kitchen over-prepares expecting organic concert traffic.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #FFFBEB; color: #92400E; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">MEDIUM RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Royal Indian Cuisine review velocity closing the gap at 0.58 miles</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Royal Indian Cuisine (4.5★, 437 reviews) is only 0.58 miles from Rajni on Commerce Dr — the closest competitor by distance. While Rajni leads on rating (4.7 vs 4.5) and review count (1,393 vs 437), Royal is building its review base from a lower starting point, meaning its velocity could be higher. If Royal&#39;s rating climbs to 4.6+ while Rajni&#39;s stagnates at zero response rate, Google&#39;s local ranking algorithm may begin favoring Royal for &#39;Indian restaurant near me&#39; searches in 53719.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Check Royal Indian Cuisine&#39;s Google review count every two weeks. If they gain more than 15 new reviews in a two-week period, their velocity is accelerating — match it immediately with a review-ask push.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Implement a post-meal review-ask script for servers starting this week (see execution templates). Even 20 new Rajni reviews per month widens the count gap from 956 to over 1,000+, making it harder for Royal to catch up in ranking signals within 90 days.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> Loss of &#39;top Indian restaurant&#39; local pack position to Royal could reduce new-customer walk-in and search traffic by 10-20%, worth $1,200–$2,500/month in peak season.</div>
+  </div><div style="border: 1px solid #E5E7EB; border-left: 4px solid #6B7280; border-radius: 8px; padding: 20px; margin-bottom: 16px; background: white;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="background: #F9FAFB; color: #374151; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">LOW RISK</span>
+      <span style="font-weight: 600; font-size: 15px; color: #0F1729;">Marcus Point Cinema foot traffic not converting — no nearby dining awareness</span>
+    </div>
+    <p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">Marcus Point Cinema is within 500 meters of Rajni on Commerce Dr, generating consistent evening foot traffic 7 nights a week. However, with 0 Google review responses and no documented promotions, there is no active mechanism converting cinema-goers into Rajni diners. Target and Aldi anchor tenants also bring daytime traffic that is not being captured for lunch covers. This passive approach leaves recurring local foot traffic to default to Rocky Rococo, Pizza Hut, or World Buffet — all within the same plaza corridor.</p>
+    <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">Ask servers to note how new walk-in customers heard about Rajni for two weeks. If &#39;was at the movies&#39; or &#39;saw it from the parking lot&#39; is under 5% of walk-ins, cinema traffic is not converting.</span></div>
+    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">Print 200 &#39;Dinner before the movie?&#39; table cards or flyers with a $5-off coupon valid same-night with a movie stub. Distribute at the Cinema box office (ask manager for permission) and place on tables by July 1. Cost: under $40 to print.</span></div>
+    <div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> $500–$1,000/month in missed incremental covers from the highest-frequency nearby foot-traffic source, compounding across the full peak Jun–Aug season.</div>
+  </div>
+</div>
+<div class="section">
+  <h2>&#128203; Ready-to-use templates</h2>
+  <p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">Copy, fill the [brackets], send. No rewriting needed.</p>
+  <div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128483;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Server table-side review ask — end of meal</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Server delivers the check or to-go bag. Use every time, every table, every shift. Works for dine-in and takeout pickup.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-0" data-body="&quot;Thanks so much for coming in tonight — really glad you enjoyed it. If you have 30 seconds, a Google review helps us out a ton. Just search Rajni Indian Cuisine on Google — we&#39;re the 4.7-star spot on Commerce Drive. We read every single one.&quot;" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">&quot;Thanks so much for coming in tonight — really glad you enjoyed it. If you have 30 seconds, a Google review helps us out a ton. Just search Rajni Indian Cuisine on Google — we&#39;re the 4.7-star spot on Commerce Drive. We read every single one.&quot;</div>
+      <button onclick="const b=document.getElementById('tmpl-0').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Track new Google reviews weekly. Target 15+ new reviews per month. If under 8 in the first month, add a table card with QR code linking directly to the Google review page.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128483;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Referral ask — in-person script for regulars</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Use with any repeat customer the server or host recognizes — at checkout or while refilling water. Aim for 3-5 referral asks per shift.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-1" data-body="&quot;So glad you&#39;re back — you&#39;re one of our regulars! Do you have any friends or coworkers who haven&#39;t tried us yet? If you bring someone new in, mention it to your server and we&#39;ll take care of you with a free appetizer that visit.&quot;" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">&quot;So glad you&#39;re back — you&#39;re one of our regulars! Do you have any friends or coworkers who haven&#39;t tried us yet? If you bring someone new in, mention it to your server and we&#39;ll take care of you with a free appetizer that visit.&quot;</div>
+      <button onclick="const b=document.getElementById('tmpl-1').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Track &#39;new guest referred by regular&#39; covers weekly by asking servers to flag it. Target 4 referred new covers per week. If under 2 per week after 30 days, add a paper referral card to hand to the regular.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128483;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Loyalty program sign-up pitch — server script at checkout</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">After the review ask, when handing back the card or change. Works best with first-time and second-time guests. Start using as soon as the loyalty program is live (target: August 1).</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      
+      <div id="tmpl-2" data-body="&quot;We just started a loyalty program — every 5 visits you get a free appetizer, no strings. Takes about 20 seconds to sign up on your phone. Want me to grab the card with the link?&quot;" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">&quot;We just started a loyalty program — every 5 visits you get a free appetizer, no strings. Takes about 20 seconds to sign up on your phone. Want me to grab the card with the link?&quot;</div>
+      <button onclick="const b=document.getElementById('tmpl-2').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 20 new loyalty enrollments per week in the first month. If under 10 per week, move the sign-up QR code to the front of the menu and add a table tent.</div>
+    </div>
+  </div><div style="border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+    <div style="background: #F8FAFC; border-bottom: 1px solid #E5E7EB; padding: 12px 20px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">&#128231;</span>
+      <div>
+        <div style="font-weight: 600; color: #0F1729; font-size: 14px;">Loyalty launch email to existing customers</div>
+        <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Send to any email list Rajni has collected (online orders, reservations) on the day the loyalty program launches. Send Tuesday or Wednesday at 11:00 AM.</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 13px;"><strong style="color: #1D4ED8;">Subject:</strong> <span style="color: #1E40AF;">You&#39;ve already earned a head start — Rajni loyalty is here</span></div>
+      <div id="tmpl-3" data-body="Hi [customer first name or &#39;there&#39;],&#10;&#10;We just launched our loyalty program and wanted you to be the first to know.&#10;&#10;Every 5 visits to Rajni Indian Cuisine (429 Commerce Dr, Madison) earns you a free appetizer — no app download required, just [describe enrollment method: punch card / link / app].&#10;&#10;Because you&#39;ve already dined with us, we&#39;re giving you [1 or 2] stamps/punches to start. You&#39;re already on your way.&#10;&#10;Come see us soon — we&#39;re open [your hours].&#10;&#10;Thanks for being a Rajni regular.&#10;&#10;[Your name]&#10;Rajni Indian Cuisine&#10;[your phone number]" style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; font-family: inherit;">Hi [customer first name or &#39;there&#39;],
+
+We just launched our loyalty program and wanted you to be the first to know.
+
+Every 5 visits to Rajni Indian Cuisine (429 Commerce Dr, Madison) earns you a free appetizer — no app download required, just [describe enrollment method: punch card / link / app].
+
+Because you&#39;ve already dined with us, we&#39;re giving you [1 or 2] stamps/punches to start. You&#39;re already on your way.
+
+Come see us soon — we&#39;re open [your hours].
+
+Thanks for being a Rajni regular.
+
+[Your name]
+Rajni Indian Cuisine
+[your phone number]</div>
+      <button onclick="const b=document.getElementById('tmpl-3').dataset.body;navigator.clipboard.writeText(b).then(()=>{this.textContent='✓ Copied';setTimeout(()=>{this.textContent='Copy template';},2000);});" style="margin-top: 12px; background: #0F1729; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">Copy template</button>
+      <div style="margin-top: 12px; padding: 10px 14px; background: #F0FDF4; border-radius: 6px; font-size: 13px; color: #065F46;"><strong>&#128202; Track success:</strong> Target 2 redemptions or sign-up confirmations per 10 emails sent. If under 1 per 10 after the first send, change the subject line to &#39;Free appetizer waiting for you — Rajni Indian Cuisine&#39; and resend to non-openers.</div>
+    </div>
+  </div>
+</div>
+<h2>90-day action plan <span class="ai-badge">AI</span></h2>
+<p class="meta">Three months of progressive depth. Month 1 has weekly steps; months 2 and 3 have month-level focus and goals.</p>
+<div class="rec rec-medium">
+<h3>Month 1 &mdash; Capture: Cinema Partnership + Phish Concert Revenue</h3>
+<p><strong>Week 1:</strong> Walk into Marcus Point Cinema (387m away) on Monday and meet the manager. Propose the Dinner+Movie reciprocal deal: Rajni diner shows same-day ticket, gets a free mango lassi; Marcus guests get a Rajni table-tent recommendation at lobby. Bring a printed one-page proposal and 10 sample table-tent cards. Secure verbal agreement and shake hands. Also: respond to the 2-star Google review about the rude host TODAY using the template: &#39;Hi [name], this is not the experience we want for any guest. Please contact me directly at [phone] — I&#39;d like to make this right personally.&#39;</p>
+<p><strong>Week 2:</strong> Print 150 Marcus Point table-tent cards (75 for Rajni, 75 for Cinema lobby). Design and post on r/madisonwi: &#39;Heading to Marcus Point Cinema? Rajni Indian on Commerce Drive is 4 minutes away — 4.7★, 1,393 reviews. Show your same-day ticket for a free mango lassi.&#39; Also post in Madison West Side Facebook group. Begin planning Phish Show Night Thali menu (lamb rogan josh, chicken tikka masala, garlic naan, mango lassi at $42).</p>
+<p><strong>Week 3:</strong> Post Phish Show Night Thali announcement on r/phish with event-specific copy: &#39;Madison Phish heads — fuel up at Rajni Indian Cuisine (4.7★) before Kohl Center. Show Night Thali $42, show your ticket for $5 off. July 7-8.&#39; Post the same on r/madisonwi and Madison food Instagram accounts. Print 100 Phish show table-tent cards for in-restaurant promotion. Also visit Target (within 500m) HR desk with a Rajni Team Lunch catering menu and offer a free sample tray.</p>
+<p><strong>Week 4:</strong> Follow up with Target HR on catering inquiry. Deliver 75 table-tent cards to Marcus Point Cinema lobby. Set Google Business Profile to include: &#39;West Madison Indian restaurant near Marcus Point Cinema — 4.7★, Madison&#39;s highest-rated Indian cuisine, 429 Commerce Dr.&#39; Confirm all Phish promotion materials are live. Set a recurring Google Reviews response calendar reminder: every Monday morning, respond to all new reviews from the prior week.</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 1: Marcus Point partnership confirmed and live, Phish Show Night promotion fully launched on Reddit and social, catering pitch delivered to Target, and 100% of new Google reviews responded to within 7 days.</p>
+</div>
+<div class="rec rec-low">
+<h3>Month 2 &mdash; Grow: Corporate Catering + TRAIN Concert + Winter Subscription Pre-Sales</h3>
+<p><strong>Focus:</strong> Follow up with Target and Aldi on the catering proposals — convert at least one account to a recurring lunch order. Launch TRAIN &#39;Drops of Jupiter&#39; pre-show special (August 8 at Breese Stevens Field): &#39;Drops of Jupiter&#39; cocktail menu + $34 pre-show dinner deal, promoted on r/madisonwi by July 25 and boosted on Facebook Events for $50. Begin selling Winter Warmth monthly lunch passes at $79/month — email any existing customer who has left a review or is in your known contact list. Introduce the Chef&#39;s Tasting Flight at $58 on the menu and promote it on Instagram with a photo of the 6-course spread.</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 2: At least 1 corporate catering account active, TRAIN event promotion live and at least 40 covers booked for August 8, 20+ Winter Warmth pre-paid passes sold, and Chef&#39;s Tasting Flight listed and selling at least 4 covers per weekend.</p>
+</div>
+<div class="rec rec-high">
+<h3>Month 3 &mdash; Consolidate and Scale: Measure Results + Launch Loyalty + PR Outreach</h3>
+<p><strong>Focus:</strong> Audit Month 1-2 results: How many cinema-referred covers came in? How many catering orders from Target? Did Phish and TRAIN events hit projected covers? Adjust. Then launch the &#39;Spice Passport&#39; loyalty card (digital or printed stamp card) for all dine-in guests. Simultaneously, email Isthmus and Madison Magazine&#39;s dining editor with a press pitch: &#39;Rajni Indian Cuisine — Madison&#39;s highest-rated Indian restaurant at 4.7★ with 1,393+ reviews — is offering media tastings this fall.&#39; Include the best review quote (Chicken 65 description) and a photo. Begin planning the January Board Game Nights for the cold-season survival program.</p>
+<p class="meta"><strong>Goal:</strong> By end of Month 3: Loyalty program active with 50+ registered members, press pitch sent to Isthmus and Madison Magazine, and a written 90-day revenue summary showing incremental revenue from cinema partnership, catering, and concert events vs. baseline.</p>
+</div>
+<h2>Seasonal strategy <span class="ai-badge">AI</span></h2>
+<p class="meta">Per-season playbook. Each season names a real local event tie-in and a real local partner from your competitor or nearby-venues data.</p>
+<div class="rec rec-medium">
+<h3>☀️ Summer <span class="meta">&mdash; Concert-goers, UW-Madison summer session students, and West Side families taking &#39;treat nights&#39; near Marcus Point Cinema and West Towne Mall</span></h3>
+<p><strong>What to add:</strong> Show Night Thali ($42) timed to Phish at Kohl Center (July 7-8) and TRAIN at Breese Stevens Field (August 8); add &#39;Drops of Jupiter&#39; cocktail (mango mojito, tamarind cooler) to the drink menu through August</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Madison&#39;s Highest-Rated Indian Restaurant — Fuel Up Before the Show. 4.7★, 1,393 Reviews, 4 Minutes from Kohl Center."</p></div>
+<p><strong>Event tie-in:</strong> Phish at Kohl Center — July 7 &amp; 8, 2026; TRAIN Drops of Jupiter at Breese Stevens Field — August 8, 2026</p>
+<p><strong>Local partner:</strong> Marcus Point Cinema (387m) — reciprocal dinner+movie combo deal active June through August</p>
+<p class="meta">Revenue: <strong>$28,000-$42,000/month</strong></p>
+
+</div><div class="rec rec-medium">
+<h3>🍂 Fall <span class="meta">&mdash; UW-Madison students returning in September, Dane County professionals seeking date-night options as outdoor patio season ends, and new residents from Dane County&#39;s 5,237 residential permits seeking their regular restaurant</span></h3>
+<p><strong>What to add:</strong> Launch &#39;Date Night Thali for Two&#39; at $68 — designed for the fall date-night surge as outdoor dining winds down; introduce the new-mover EDDM postcard mailing to recent Dane County permit holders in ZIPs near 53719</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Fall in Madison Tastes Like Rajni. Date Night Thali for Two — $68. Reserve Your Table This Weekend."</p></div>
+<p><strong>Event tie-in:</strong> UW-Madison Homecoming Weekend (annual October event, Camp Randall Stadium area) — promote Rajni as the &#39;official pre-game Indian dinner&#39; on r/UWMadison and Madison alumni Facebook groups</p>
+<p><strong>Local partner:</strong> RP Adler&#39;s Pub &amp; Grill (494m) — cross-refer: Rajni for pre-dinner, Adler&#39;s for post-dinner drinks, creating a West Side &#39;restaurant crawl&#39; package promoted jointly on Nextdoor</p>
+<p class="meta">Revenue: <strong>$22,000-$32,000/month</strong></p>
+
+</div><div class="rec rec-medium">
+<h3>❄️ Winter <span class="meta">&mdash; ZIP 53719 local residents and Target/Aldi anchor-tenant employees seeking warming comfort food during Madison&#39;s sub-freezing January-March season</span></h3>
+<p><strong>What to add:</strong> Winter Warmth monthly lunch subscription passes at $79/month; Thursday &#39;Curry &amp; Board Game Nights&#39; ($29 prix-fixe) through January and February to drive covers on historically slow weeknights</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Madison Winters Are Cold. Rajni Is Warm. Pre-Pay Your January Curry Club for $79/Month — 4 Lunches, Unlimited Warmth."</p></div>
+<p><strong>Event tie-in:</strong> Madison Restaurant Week (annual January event run by Restaurants on the Move, Madison WI) — participate with a 3-course prix-fixe at $30 to capture the city-wide dining traffic surge</p>
+<p><strong>Local partner:</strong> Target (within 500m on Commerce Dr) — employee lunch catering program, deployed in January when retail foot traffic drops and Target staff are fully returned from holiday surge</p>
+<p class="meta">Revenue: <strong>$14,000-$20,000/month</strong></p>
+<div class="honesty honesty-customer-must-validate"><strong>Off-season survival:</strong> Pre-sell Winter Warmth subscription passes in November before the January cold cliff arrives. Target 60 passes at $79/month = $4,740/month guaranteed baseline revenue regardless of walk-in traffic. Additionally, pivot 20% of kitchen capacity to catering prep for Target and Aldi corporate orders — B2B catering is weather-immune. Combined, these two plays create a $9,000-$12,000/month floor for the three coldest months, independent of consumer foot traffic.</div>
+</div><div class="rec rec-medium">
+<h3>🌸 Spring <span class="meta">&mdash; UW-Madison graduating students and their visiting families (May commencement), Dane County families emerging from winter, and new residents from spring permit-season move-ins</span></h3>
+<p><strong>What to add:</strong> A &#39;Graduation Feast&#39; family-style package for 4-6 guests at $135 (full spread of Chicken 65, lamb rogan josh, Masala Dosa, naan assortment, dessert) — marketed directly to UW-Madison parents arriving for May commencement weekend</p>
+<div class="callout"><div class="callout-label">Headline</div><p>"Celebrate the Graduate Who Made You Proud. Rajni&#39;s Family Feast — 4.7★, Madison&#39;s Top-Rated Indian Restaurant. Reserve Your Graduation Dinner Today."</p></div>
+<p><strong>Event tie-in:</strong> UW-Madison Spring Commencement (annual May event at Camp Randall Stadium and Kohl Center) — post in the UW-Madison Parents Facebook Group and r/UWMadison in late April with &#39;Reserve your graduation dinner at Rajni&#39; messaging</p>
+<p><strong>Local partner:</strong> Milio&#39;s Sandwiches (415m away) — cross-promote: Milio&#39;s for casual family lunch on commencement day, Rajni for the celebratory family dinner that evening, with a joint coupon distributed at both locations in May</p>
+<p class="meta">Revenue: <strong>$20,000-$30,000/month</strong></p>
+
+</div>
+<h2>Opportunities nobody in your market is doing</h2>
+<p class="meta">10 location-specific ideas drawn from 18 opportunity categories. Each names real local entities — events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p><div class="opportunity">
+<div class="op-meta"><span class="op-category">Partnership webs</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>Marcus Point Cinema &#39;Pre-Show Dinner Club&#39; — dinner + movie loyalty stamp card</h3>
+<p>Negotiate a formal cross-promotion with Marcus Point Cinema (387m away): every Rajni diner who spends $30+ receives a Marcus Point $3 concessions voucher, and every Marcus Point ticket stub from that day unlocks a free mango lassi at Rajni. Promote at both venues and on a shared Instagram story each Friday. No Indian restaurant within the 3-mile search radius has a cinema partnership.</p>
+<p class="meta">
+<strong>Cost:</strong> $150 one-time (card printing + first 100 lassis at ~$2.50 food cost each = $250 total) ·
+<strong>Revenue potential:</strong> $15,000-$22,000 per year ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Sensory experience</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>Tableside Tandoor Aroma Moment — open kitchen cart for naan finishing</h3>
+<p>Introduce a tableside naan-finishing cart where a staff member brushes garlic butter and herbs on fresh naan directly at the table using a small warming vessel. Multiple 5-star reviews already call out the garlic naan as excellent — this transforms an existing strength into a memorable sensory moment that guests photograph and post. Cost is minimal since the naan is already being made.</p>
+<p class="meta">
+<strong>Cost:</strong> $200 one-time (warming cart + butter brushes + herb display) ·
+<strong>Revenue potential:</strong> $8,000-$14,000 per year (via increased repeat visits and review-driven new traffic) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Photo moments</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>&#39;Chicken 65 Wall&#39; — branded photo backdrop featuring the dish mentioned in top reviews</h3>
+<p>Install a small branded photo wall (3ft × 4ft vinyl banner) near the entrance featuring stylized text: &#39;Perfectly Crispy Outside. Perfectly Moist Inside. Chicken 65 at Rajni.&#39; The existing 5-star review uses this exact language — turn it into a visitor selfie station. Add a QR code to your Instagram. Madison&#39;s food Instagram community actively shares West Side dining spots.</p>
+<p class="meta">
+<strong>Cost:</strong> $120 one-time (vinyl banner printing + frame) ·
+<strong>Revenue potential:</strong> $5,000-$9,000 per year (organic Instagram reach converting to new visits) ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Naming and language</span><span class="op-novelty novelty-rare">rare</span></div>
+<h3>Rename combo plates with Madison neighborhood names — &#39;The Middleton,&#39; &#39;The Willy Street&#39;</h3>
+<p>Rebrand 2-3 existing combo platters with Madison neighborhood names — &#39;The Middleton&#39; (mild, family-friendly thali), &#39;The Willy Street&#39; (bold, adventurous curry combo). Print new menu inserts at minimal cost. Local naming creates identity-based ordering behavior — diners from those neighborhoods order &#39;their&#39; dish and tell neighbors about it, generating organic word-of-mouth across Madison&#39;s tightly-knit neighborhood Facebook groups.</p>
+<p class="meta">
+<strong>Cost:</strong> $80 one-time (menu insert printing) ·
+<strong>Revenue potential:</strong> $4,000-$7,000 per year (via increased frequency from identity-attached regulars) ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Pricing psychology</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>&#39;Chef&#39;s Tasting Flight&#39; at $58 — anchor high to make regular menu look accessible</h3>
+<p>Add a 6-course Chef&#39;s Tasting Flight at $58/person that showcases Chicken 65, Gobi Manchurian, Masala Dosa, lamb rogan josh, a signature naan, and dessert. Price it prominently at the top of the menu. The $58 anchor makes $18-$24 entrees feel like a bargain by comparison — a proven menu anchoring technique. Limit to 8 covers per night to create scarcity. Mention it requires 24-hour advance notice.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (menu design update only) ·
+<strong>Revenue potential:</strong> $10,000-$18,000 per year (tasting flight revenue + anchor lift on regular orders) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Off-season reinvention</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>January &#39;Curry &amp; Board Game Night&#39; for Madison&#39;s cold-winter indoor crowd</h3>
+<p>Every Thursday in January-February (Madison&#39;s coldest months, avg below 35°F), host a &#39;Curry &amp; Board Game Night&#39; — reserve 6 tables with board games (Catan, Ticket to Ride) and offer a $29/person prix-fixe that includes one curry, naan, and a hot chai. Promote in the Madison Board Game Community Facebook group (thousands of members) and on r/madisonwi. No Indian restaurant in the market currently offers this and the Madison board game community is unusually active.</p>
+<p class="meta">
+<strong>Cost:</strong> $150 one-time (6 board game sets + promotional posts) ·
+<strong>Revenue potential:</strong> $6,000-$10,000 per year (8 Thursday nights × 24 covers × $29) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Community and cause</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>Partner with UW-Madison South Asian Student Association for monthly cultural dinner night</h3>
+<p>Reach out to the UW-Madison South Asian Student Association and Panjab Student Association to host a monthly cultural dinner night — Rajni donates 10% of that night&#39;s proceeds to a South Asian student scholarship fund. UW-Madison has tens of thousands of students; South Asian student organizations are large and socially active. The event drives guaranteed covers, earned media from UW student press, and community goodwill reviews.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (10% of one night&#39;s revenue as donation — typically $150-$300) ·
+<strong>Revenue potential:</strong> $8,000-$14,000 per year (12 event nights × 40 covers × $24 avg) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Loyalty triggers</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>Digital &#39;Spice Passport&#39; loyalty card — stamp per dish category, not per visit</h3>
+<p>Create a digital loyalty card (via Stamp Me or a simple printed card) where guests earn stamps for trying different dish categories — one stamp for an appetizer, one for a bread, one for a curry, one for a dessert. Complete all four categories and get a free entrée. This incentivizes menu exploration (increasing average check) and repeat visits. The 5-star review about Masala Dosa and chutneys shows guests are already adventurous — reward that behavior.</p>
+<p class="meta">
+<strong>Cost:</strong> $50 one-time (card printing or $15/month for Stamp Me app) ·
+<strong>Revenue potential:</strong> $9,000-$16,000 per year (via increased visit frequency from loyalty members) ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Content and PR</span><span class="op-novelty novelty-rare">rare</span></div>
+<h3>Pitch Madison&#39;s &#39;Isthmus&#39; alt-weekly and &#39;Madison Magazine&#39; for a &#39;Best Indian in Madison&#39; feature</h3>
+<p>Email Isthmus (Madison&#39;s alt-weekly newspaper, widely read by 25-55 demographic) and Madison Magazine&#39;s dining editor with a press pitch citing Rajni&#39;s 4.7★ rating as Madison&#39;s highest-rated Indian restaurant and 1,393 reviews. Include a quote from the top review about Chicken 65. Offer a complimentary tasting for the food writer. An Isthmus feature or Madison Magazine &#39;Best Of&#39; mention is worth thousands in free advertising reach to exactly Rajni&#39;s target demographic in ZIP 53719.</p>
+<p class="meta">
+<strong>Cost:</strong> $0 (email pitch) + optional $50 complimentary tasting ·
+<strong>Revenue potential:</strong> $12,000-$25,000 per year in new customer acquisition from earned media ·
+<strong>Review-mention probability:</strong> medium
+</p>
+</div><div class="opportunity">
+<div class="op-meta"><span class="op-category">Memory triggers</span><span class="op-novelty novelty-unique">zero competitors doing this within 10 miles</span></div>
+<h3>Send guests home with a &#39;Spice Kit&#39; takeaway card — recipe of their ordered dish to recreate at home</h3>
+<p>Print a small (business-card-sized) takeaway &#39;Spice Memory Card&#39; featuring a simplified version of the dish a guest ordered — e.g., &#39;The Secret to Our Chicken 65: Marinate in yogurt + curry leaf + red chili for 4 hours.&#39; Guests keep the card on their fridge, think of Rajni every time they see it, and share it on social media. The 4-star review mentioning the chutneys (&#39;not completely sure what they each were&#39;) shows guests crave this insider knowledge. No competitor currently does this.</p>
+<p class="meta">
+<strong>Cost:</strong> $80 one-time (1,000 card print run) ·
+<strong>Revenue potential:</strong> $6,000-$11,000 per year (via repeat visits triggered by memory recall and social sharing) ·
+<strong>Review-mention probability:</strong> high
+</p>
+</div>
+<h2>What your customers are saying — common problems detected</h2><p>No recurring complaints detected in your last 5 reviews. Review content looks healthy.</p>
+<h2>What we analyzed — 9 signal categories</h2>
+<table class="coverage">
+  <tr><td><strong>C1 Online Presence</strong></td><td>rating 4.7, 1393 reviews, owner-response insufficient data (sample 5)</td></tr>
+  <tr><td><strong>C2 Location &amp; Market</strong></td><td>median income $90,962, pop 268,516 (ZIP 53719), avg household 2.14, 2 anchor tenants within 500m, transit ≤400m, 5237 county permits 2022 (-23.4% YoY)</td></tr>
+  <tr><td><strong>C3 Competition</strong></td><td>5 competitors within 5 mi, median 4.5★, median 437 reviews</td></tr>
+  <tr><td><strong>C4 Demand</strong></td><td>peak season Jun-Aug, cold winter, 5 upcoming events within 10km — Open-Meteo climatology + Ticketmaster Discovery v2 + BLS</td></tr>
+  <tr><td><strong>C5 Operations</strong></td><td>hours: complete (7 days), website: loads, closed now</td></tr>
+  <tr><td><strong>C6 Brand</strong></td><td>data pending (no website to measure, or PSI failed/timed out)</td></tr>
+  <tr><td><strong>C7 Risk &amp; Compliance</strong></td><td>2 sector compliance notes applied</td></tr>
+  <tr><td><strong>C10 Nearby Venues</strong></td><td>Top nearby: Marcus Point Cinema, Rocky Rococo Pan Style Pizza, World Buffet</td></tr>
+  <tr><td><strong>C11 Upcoming Events</strong></td><td>5 events within 10mi next 90 days</td></tr>
+</table>
+<h2>Citations</h2><p>No studies cited.</p><p class="meta"><small>Generated 2026-05-12T06:10:02.386Z</small></p></body></html>

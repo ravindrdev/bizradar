@@ -1,7 +1,7 @@
 {
   "name": "bizradar",
   "version": "0.1.0",
-  "description": "BizRadar — small business audit tool",
+  "description": "GrowthIM — small business audit tool",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,4 +1,4 @@
-# BizRadar
+# GrowthIM
 
 Small-business audit tool. **Phase 1**: hotels only.
 

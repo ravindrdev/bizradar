@@ -82,7 +82,7 @@ async function fetchWikipediaSummary(city, state) {
       const res = await fetch(url, {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'BizRadar/1.0 (market-analysis)',
+          'User-Agent': 'GrowthIM/1.0 (market-analysis)',
         },
         signal: ac.signal,
       });

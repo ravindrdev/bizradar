@@ -43,7 +43,7 @@ async function test(name, fn) {
 async function main() {
 
   console.log('════════════════════════════════')
-  console.log('BIZRADAR FULL API HEALTH CHECK')
+  console.log('GROWTHIM FULL API HEALTH CHECK')
   console.log('Business: AmericInn Dodgeville WI')
   console.log('════════════════════════════════')
 
