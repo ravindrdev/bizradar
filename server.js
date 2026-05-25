@@ -4883,24 +4883,48 @@ ${fmrBlock}`;
     const warningHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:13px;color:#92400E;line-height:1.6;">53% of mobile visitors abandon a website that takes more than 3 seconds to load. They do not come back. Your competitor's website speed is shown below - every second faster than you means customers who found you on Google chose them instead before reading a single word about your business. <span style="font-size:11px;opacity:0.75;">Source: Google/SOASTA Research (S040)</span></div>`;
 
     // (2) Subject section
+    const bizName = escapeHtml(data.name || data.business_name || 'Your Business');
     let subjectHtml = '';
     if (data.website_url == null) {
-      // No website at all - red callout
-      subjectHtml = `<div style="margin-bottom:16px;padding:12px 16px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:13px;color:#7F1D1D;line-height:1.6;"><strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from. Customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
+      // No website at all - card with psychology line + existing callout
+      subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;">` +
+        `<div style="font-size:14px;font-weight:700;color:#991B1B;margin-bottom:10px;">${bizName}</div>` +
+        `<div style="font-size:13px;color:#7F1D1D;line-height:1.6;margin-bottom:10px;">Most customers decide whether to visit a business within 3 seconds of landing on their website. Without a website ${bizName} has zero seconds to make that impression - the decision is made before they even see you.</div>` +
+        `<strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>` +
+        `<div style="font-size:13px;color:#7F1D1D;line-height:1.6;">There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from. Customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>` +
+        `</div>`;
     } else if (typeof data.website_mobile_score === 'number') {
-      // Has website + PSI score → large score card
+      // Has website + PSI score → large score card with business name
       const sc = data.website_mobile_score;
       const sColor = psBgColor(sc);
       const sLabel = psLabelStr(sc);
-      const sNote = sc >= 90
-        ? 'Real-time data verified by Google PageSpeed Insights.'
-        : sc >= 50
-        ? 'Real-time data verified by Google PageSpeed Insights. GrowthIM can help improve your score - contact support@growthim.com'
-        : 'Losing customers. Real-time data verified by Google PageSpeed Insights. GrowthIM can help fix this - contact support@growthim.com';
       const loadTimeLine = typeof data.load_time_seconds === 'number'
         ? `<div style="font-size:12px;color:#6B7280;margin-top:3px;">Load time: <strong>${data.load_time_seconds.toFixed(1)}s</strong></div>`
         : '';
-      subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;"><div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your website speed</div><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><div style="font-size:48px;font-weight:800;color:${sColor};line-height:1;">${sc}</div><div><div style="font-size:16px;font-weight:700;color:${sColor};">${escapeHtml(sLabel)}</div><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile PageSpeed Score</div>${loadTimeLine}</div><div style="flex:1;min-width:180px;font-size:12.5px;color:#6B7280;line-height:1.5;">${escapeHtml(sNote)}</div></div></div>`;
+      let warningMsg = '';
+      if (sc < 50) {
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business. A 1-second improvement increases conversions by 27% on average. GrowthIM can fix this fast - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
+      } else if (sc < 90) {
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:12.5px;color:#92400E;line-height:1.6;">Your website loads in the amber zone. More than half your mobile visitors are likely leaving before reading a single word. Every second faster doubles your chance of keeping them. GrowthIM can help improve your score - contact <a href="mailto:support@growthim.com" style="color:#92400E;">support@growthim.com</a></div>`;
+      }
+      subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;">` +
+        `<div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:10px;">${bizName}</div>` +
+        `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">` +
+        `<div style="font-size:48px;font-weight:800;color:${sColor};line-height:1;">${sc}<span style="font-size:18px;font-weight:600;color:#9CA3AF;">/100</span></div>` +
+        `<div><div style="font-size:16px;font-weight:700;color:${sColor};">${escapeHtml(sLabel)}</div>` +
+        `<div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile PageSpeed Score</div>` +
+        `${loadTimeLine}</div>` +
+        `<div style="flex:1;min-width:180px;font-size:12px;color:#9CA3AF;line-height:1.5;">Real-time data verified by Google PageSpeed Insights.</div>` +
+        `</div>${warningMsg}</div>`;
+    } else {
+      // Has website but PSI timed out or returned no score — show a neutral fallback card
+      subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;">` +
+        `<div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:10px;">${bizName}</div>` +
+        `<div style="display:flex;align-items:center;gap:12px;">` +
+        `<div style="font-size:13px;color:#6B7280;line-height:1.6;">` +
+        `Website speed score unavailable — Google's scoring service timed out while measuring your site. ` +
+        `This sometimes happens with large or complex websites. Your competitors' scores are shown below for comparison.` +
+        `</div></div></div>`;
     }
 
     // (3) Competitor speed table
@@ -4908,19 +4932,23 @@ ${fmrBlock}`;
     let compTableHtml = '';
     if (compPsList.length > 0) {
       const rows = compPsList.map((c) => {
+        // FIX 3: score number + color + source note only — no warning label
         let scoreCell;
         if (typeof c.mobile_score === 'number') {
           const cc = psBgColor(c.mobile_score);
-          const cl = psLabelStr(c.mobile_score);
-          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:10px;font-weight:600;color:${cc};">${escapeHtml(cl)}</span><br><span style="font-size:10px;color:#9CA3AF;">Real-time · Google PageSpeed</span></td>`;
+          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:10px;color:#9CA3AF;">Real-time · Google PageSpeed</span></td>`;
         } else if (c.website) {
           scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">Unavailable</td>`;
         } else {
           scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">No website</td>`;
         }
-        return `<tr style="border-top:1px solid #F3F4F6;"><td style="padding:8px 12px;font-size:13px;color:#374151;vertical-align:middle;">${escapeHtml(c.name || '')}</td>${scoreCell}</tr>`;
+        // FIX 2: load time column
+        const loadTimeCell = typeof c.load_time_seconds === 'number'
+          ? `<td style="padding:8px 12px;text-align:center;font-size:13px;color:#374151;vertical-align:middle;">${c.load_time_seconds.toFixed(1)}s</td>`
+          : `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">-</td>`;
+        return `<tr style="border-top:1px solid #F3F4F6;"><td style="padding:8px 12px;font-size:13px;color:#374151;vertical-align:middle;">${escapeHtml(c.name || '')}</td>${scoreCell}${loadTimeCell}</tr>`;
       }).join('');
-      compTableHtml = `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#F9FAFB;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Competitor</th><th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile Speed</th></tr></thead><tbody>${rows}</tbody></table>`;
+      compTableHtml = `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#F9FAFB;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Business</th><th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Mobile Speed</th><th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Load Time</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     if (subjectHtml || compTableHtml) {
@@ -6810,13 +6838,19 @@ function renderHoursComparison(data) {
       }
       // Match all time ranges in the string - handles split hours like
       // "11:00 AM - 3:00 PM, 5:00 PM - 9:00 PM" by finding every range.
-      const timeRangeRe = /(\d+):(\d+)\s*(AM|PM)?\s*[--\-]+\s*(\d+):(\d+)\s*(AM|PM)?/ig;
+      // Minutes are optional so "10 AM-4 PM" and "10:00 AM - 5:00 PM"
+      // both parse correctly. [-–—] covers hyphen, en-dash, and em-dash.
+      // AM/PM is required on both sides so 12h conversion is unambiguous.
+      // Groups: 1=open_h, 2=open_min?, 3=open_ampm, 4=close_h, 5=close_min?, 6=close_ampm
+      const timeRangeRe = /(\d+)(?::(\d+))?\s*(AM|PM)\s*[-–—]+\s*(\d+)(?::(\d+))?\s*(AM|PM)/ig;
       const allRanges = [];
       let rm;
       while ((rm = timeRangeRe.exec(rest)) !== null) {
-        const openH = parseInt(rm[1], 10);
-        const closeH = parseInt(rm[4], 10);
-        const openAmPm = (rm[3] || '').toUpperCase();
+        const openH    = parseInt(rm[1], 10);
+        const openMins = rm[2] ? parseInt(rm[2], 10) : 0;
+        const closeH    = parseInt(rm[4], 10);
+        const closeMins = rm[5] ? parseInt(rm[5], 10) : 0;
+        const openAmPm  = (rm[3] || '').toUpperCase();
         const closeAmPm = (rm[6] || '').toUpperCase();
         let open24 = openH;
         if (openAmPm === 'PM' && openH < 12) open24 += 12;
@@ -6942,48 +6976,68 @@ function renderHoursComparison(data) {
       `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`);
 
   // Gap analysis - only when we have competitor hours.
+  // Checks every day individually so no gap is missed.
   let gapInsightsHtml = '';
   if (hasCompetitorHours) {
     const insights = [];
+
+    // Convert 24-hour integer to readable AM/PM string.
+    function fmt24(h) {
+      if (h === 0)  return '12 AM';
+      if (h === 12) return '12 PM';
+      if (h < 12)  return h + ' AM';
+      return (h - 12) + ' PM';
+    }
+
     for (const comp of compsWithHours) {
-      const compNumeric = parseHoursNumeric(comp.weekday_text);
-      const compName = comp.name || 'A nearby competitor';
-      let earlierOpenDays = 0;
-      let earlierOpenGap = 0;
-      let laterCloseDays = 0;
-      let laterCloseGap = 0;
-      const daysYouOpenCompClosed = [];
+      const hoursSource = (Array.isArray(comp.weekday_text) && comp.weekday_text.length > 0)
+        ? comp.weekday_text
+        : (Array.isArray(comp.hours) && comp.hours.length > 0 ? comp.hours : null);
+      const compNumeric = parseHoursNumeric(hoursSource);
+      const compName = escapeHtml(comp.name || 'A nearby competitor');
+      const compInsights = [];
 
       for (const day of DAYS) {
-        const y = yourNumeric[day];
-        const c = compNumeric[day];
+        const y = yourNumeric[day];        // { open, close } or null
+        const c = compNumeric[day];        // { open, close } or null
+        const yVal = yourParsed[day];      // 'Cls' | '-' | '10-17' | etc.
+        const cVal = (hoursSource ? parseHours(hoursSource)[day] : null);
+
+        // Case 1: You are closed, competitor is open — they capture all your customers.
+        if (yVal === 'Cls' && c) {
+          compInsights.push(`You are closed on ${day}. ${compName} is open ${fmt24(c.open)} to ${fmt24(c.close)} and capturing all ${day} customers.`);
+          continue;
+        }
+
         if (y && c) {
-          if (c.open < y.open) {
-            earlierOpenDays++;
-            const gap = y.open - c.open;
-            if (gap > earlierOpenGap && gap <= 6) earlierOpenGap = gap;
-          }
+          // Case 2: Competitor closes later than you.
           if (c.close > y.close) {
-            laterCloseDays++;
             const gap = c.close - y.close;
-            if (gap > laterCloseGap && gap <= 6) laterCloseGap = gap;
+            if (gap > 0 && gap <= 6) {
+              compInsights.push(`${compName} closes ${gap} hour${gap === 1 ? '' : 's'} later on ${day}.`);
+            }
+          }
+          // Case 3: Competitor opens earlier than you.
+          if (c.open < y.open) {
+            const gap = y.open - c.open;
+            if (gap > 0 && gap <= 6) {
+              compInsights.push(`${compName} opens ${gap} hour${gap === 1 ? '' : 's'} earlier on ${day}.`);
+            }
+          }
+          // Case 4: You have an advantage — open earlier or close later.
+          if (y.open < c.open || y.close > c.close) {
+            compInsights.push(`You are open longer on ${day}. Promote this advantage.`);
           }
         }
-        if (y && !c) daysYouOpenCompClosed.push(day);
+
+        // Case 5: You are open, competitor is closed — your advantage.
+        if (y && cVal === 'Cls') {
+          compInsights.push(`You are open on ${day} while ${compName} is closed. Promote this on Google and social media.`);
+        }
       }
 
-      const compInsights = [];
-      if (earlierOpenDays >= 3 && earlierOpenGap > 0) {
-        compInsights.push(`${escapeHtml(compName)} opens ${earlierOpenGap} hour${earlierOpenGap === 1 ? '' : 's'} earlier than you. They capture morning customers you currently miss.`);
-      }
-      if (laterCloseDays >= 3 && laterCloseGap > 0) {
-        compInsights.push(`${escapeHtml(compName)} closes ${laterCloseGap} hour${laterCloseGap === 1 ? '' : 's'} later. They serve evening customers you currently miss.`);
-      }
-      if (daysYouOpenCompClosed.length > 0) {
-        compInsights.push(`You are open on ${daysYouOpenCompClosed.join(', ')} but ${escapeHtml(compName)} is closed. Promote this on Google and social media as your advantage.`);
-      }
       if (compInsights.length === 0) {
-        compInsights.push(`Your hours match or exceed ${escapeHtml(compName)}'s. This is not a gap you need to worry about for this competitor.`);
+        compInsights.push(`Your hours match ${compName}'s across all 7 days. No gaps found for this competitor.`);
       }
       insights.push(...compInsights);
     }
