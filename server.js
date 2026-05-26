@@ -1065,10 +1065,20 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data._low_confidence = true;
     data._user_input = placeStub._user_input || input;
   }
-  // BATCH16 - pass the raw review array through for the Common Problems
-  // section's keyword-mining pass. Google's legacy Places Details API
-  // returns up to 5 reviews; ample for a v1 keyword scan.
-  data.sample_reviews = Array.isArray(detail.reviews) ? detail.reviews : [];
+  // Multi-sort review fetch: pull newest, lowest-rated, highest-rated,
+  // and relevant reviews in parallel so Claude gets a balanced cross-
+  // section of customer experience. Number of sorts scales with review
+  // count (0 sorts for 0 reviews; 4 sorts for 20+ reviews).
+  // Each review carries a _sort tag so claudeEnricher can label it.
+  {
+    const reviewFetch = await places.fetchAllSortedReviews(
+      placeStub.place_id,
+      data.google_review_count,
+      API_KEY
+    );
+    data.sample_reviews = reviewFetch.reviews;
+    console.log(`[reviews] subject: ${reviewFetch.reviews.length} unique reviews from ${reviewFetch.callCount} API calls`);
+  }
 
   // ════════════════════════════════════════════════════════════════════
   // BATCH14 - 360° signal expansion. Run all enrichment fetches in
@@ -1515,6 +1525,29 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     if (competitorRes.status === 'rejected') {
       console.warn('[fetch1] nearby-search failed:', competitorRes.reason && competitorRes.reason.message);
     }
+  }
+
+  // Multi-sort competitor review fetch: replace the single-sort reviews
+  // already on each top-5 competitor (from fetchNearbyCompetitors'
+  // getDetails enrichment) with a richer multi-sort set so Claude sees
+  // critical, recent, and highlighted reviews for each competitor.
+  // Runs in parallel across all 5 competitors; each call is independently
+  // guarded so one failure doesn't block the others.
+  if (Array.isArray(data.competitors_top5) && data.competitors_top5.length > 0) {
+    await Promise.all(data.competitors_top5.map(async (comp) => {
+      if (!comp.place_id) return;
+      try {
+        const reviewFetch = await places.fetchAllSortedReviews(
+          comp.place_id,
+          typeof comp.review_count === 'number' ? comp.review_count : 0,
+          API_KEY
+        );
+        comp.reviews = reviewFetch.reviews;
+        console.log(`[reviews] ${comp.name}: ${reviewFetch.reviews.length} unique reviews from ${reviewFetch.callCount} API calls`);
+      } catch (err) {
+        console.warn(`[reviews] competitor review fetch failed for ${comp.name}:`, err.message);
+      }
+    }));
   }
 
   // FETCH 2 - Census ACS (or null on failure)

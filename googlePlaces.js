@@ -654,7 +654,7 @@ async function getDetails(placeId, apiKey) {
     return cached.value;
   }
 
-  const url = `${DETAILS_URL}?place_id=${encodeURIComponent(placeId)}&fields=${DETAIL_FIELDS}&key=${apiKey}`;
+  const url = `${DETAILS_URL}?place_id=${encodeURIComponent(placeId)}&fields=${DETAIL_FIELDS}&reviews_sort=newest&key=${apiKey}`;
   const res = await fetchWithTimeout(url, { timeoutMs: 8000 });
   if (!res.ok) throw new Error(`Places Details HTTP ${res.status}`);
   const json = await res.json();
@@ -2940,6 +2940,89 @@ async function fetchBusinessTypeCompetitors(businessType, lat, lon, radiusMiles,
   }
 }
 
+// ── fetchReviewsBySort ───────────────────────────────────────────────
+// Fetches ONLY the reviews field for a place_id with a specific sort.
+// Intentionally bypasses DETAILS_CACHE (cache is keyed by place_id
+// only and would return the cached "newest" response regardless of the
+// sort parameter). Timeout: 5s per spec. Never throws — returns [] on
+// any error so callers don't need try/catch.
+//
+// Valid sort values: "newest" | "lowest_rating" | "highest_rating" | "relevant"
+async function fetchReviewsBySort(placeId, sort, apiKey) {
+  if (!placeId || !apiKey) return [];
+  const url = `${DETAILS_URL}?place_id=${encodeURIComponent(placeId)}&fields=reviews&reviews_sort=${encodeURIComponent(sort)}&key=${apiKey}`;
+  try {
+    const res = await fetchWithTimeout(url, { timeoutMs: 5000 });
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (json.status !== 'OK') return [];
+    return Array.isArray(json.result && json.result.reviews)
+      ? json.result.reviews
+      : [];
+  } catch (err) {
+    console.warn(`[reviews] fetchReviewsBySort(${sort}) failed for ${placeId}: ${err.message}`);
+    return [];
+  }
+}
+
+// ── fetchAllSortedReviews ────────────────────────────────────────────
+// Smart multi-sort review fetch. Decides which sorts to call based on
+// the business's total review count, fires them in parallel, then
+// merges and deduplicates the results.
+//
+// Dedup key: author_name + time (both present on every Google review).
+// Each returned review gets a _sort field so downstream callers (Claude
+// prompt, report render) know which pool it came from.
+//
+// Review count thresholds:
+//   0         - skip all calls; return []
+//   1-5       - "relevant" only (Google returns the same 5 reviews for
+//               any sort when total count <= 5)
+//   6-10      - "newest" + "lowest_rating"
+//   11-19     - "newest" + "lowest_rating" + "relevant"
+//   >= 20     - all 4: "newest" + "lowest_rating" + "highest_rating" + "relevant"
+//
+// Returns: { reviews: Array, callCount: number }
+async function fetchAllSortedReviews(placeId, reviewCount, apiKey) {
+  const count = typeof reviewCount === 'number' ? reviewCount : 0;
+
+  let sorts;
+  if (count === 0) {
+    return { reviews: [], callCount: 0 };
+  } else if (count <= 5) {
+    sorts = ['relevant'];
+  } else if (count <= 10) {
+    sorts = ['newest', 'lowest_rating'];
+  } else if (count <= 19) {
+    sorts = ['newest', 'lowest_rating', 'relevant'];
+  } else {
+    sorts = ['newest', 'lowest_rating', 'highest_rating', 'relevant'];
+  }
+
+  const batches = await Promise.all(
+    sorts.map((sort) =>
+      fetchReviewsBySort(placeId, sort, apiKey).then((reviews) =>
+        reviews.map((r) => ({ ...r, _sort: sort }))
+      )
+    )
+  );
+
+  // Flatten and deduplicate by author_name + time.
+  const seen = new Set();
+  const merged = [];
+  for (const batch of batches) {
+    for (const r of batch) {
+      const key = `${r.author_name || ''}|${r.time || ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(r);
+      }
+    }
+  }
+
+  return { reviews: merged, callCount: sorts.length };
+}
+
 module.exports = {
   findPlace,
   getDetails,
@@ -2950,4 +3033,6 @@ module.exports = {
   classifyCompetitorTier,
   buildCompetitorQuery,
   isOperationalOrUnknown,
+  fetchReviewsBySort,
+  fetchAllSortedReviews,
 };

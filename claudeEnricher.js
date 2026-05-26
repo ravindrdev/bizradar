@@ -397,6 +397,36 @@ Reason: Google Places API only returns 5 reviews. Response rate calculated from 
 
 Exception: If a review in the sample has an owner_reply — this is a POSITIVE signal. You may note: "Owner actively responds to reviews" as a strength. But never flag 0 replies in the sample as a problem.
 
+REVIEW SORT GROUPS — MANDATORY READING RULES:
+
+Reviews are now provided in up to 4 labeled groups via the source field:
+  - newest:         most recent customer experiences
+  - lowest_rating:  most critical reviews (1-2 star complaints)
+  - highest_rating: best experiences (4-5 star praise)
+  - relevant:       Google-highlighted reviews (mixed, high engagement)
+
+Rules for using each group:
+
+1. USE lowest_rating reviews when identifying problems to fix and competitor
+   weaknesses. A 1-star complaint is stronger evidence than a rating number
+   alone. Quote verbatim from these reviews in priority_actions.
+
+2. USE newest reviews when assessing current reputation and recent trends.
+   A newest review from last week carries more weight than a highest_rating
+   review from 3 years ago for describing the business's current state.
+
+3. USE highest_rating reviews to identify genuine strengths worth promoting.
+
+4. NEVER use an old review to describe current business state if a newer
+   review contradicts it. The newest group always wins on recency.
+
+5. When citing a review in an action item, prefer to note its group:
+   "A recent customer wrote..." (newest) or "A 1-star complaint notes..."
+   (lowest_rating). Do not mention the word "source" or "_sort" to the reader.
+
+6. If lowest_rating reviews are empty for a competitor, say so rather than
+   inventing weaknesses. Do not cite highest_rating reviews as problems.
+
 CDC HEALTH DATA:
 If cdc_health is in the bundle:
   dental_visit_rate < 70%:
@@ -2024,12 +2054,18 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
         : null,
       hours_complete: data.hours_complete === true,
       website_exists: data.website_exists,
-      sample_reviews: (data.sample_reviews || []).slice(0, 5).map((r) => ({
-        // Full review text - no truncation. Claude needs the complete
-        // verbatim review to cite specific complaints / praise points
-        // in priority_actions and competitor_analysis.
-        text: r.text || '',
+      sample_reviews: (data.sample_reviews || []).map((r) => ({
+        // All fields sent in full — no truncation, no slicing.
+        // Claude needs complete verbatim text to cite specific complaints
+        // and praise in priority_actions and competitor_analysis.
+        // author_name and when give Claude temporal and attribution context.
+        // source tells Claude which sort pool this review came from
+        // (see REVIEW SORT GROUPS in SYSTEM_PROMPT_A).
+        author_name: r.author_name || '',
         stars: typeof r.rating === 'number' ? r.rating : null,
+        text: r.text || '',
+        when: r.relative_time_description || '',
+        source: r._sort || 'relevant',
       })),
     },
     competitors: {
@@ -2053,7 +2089,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
         // these verbatim in competitor_analysis.what_they_do_better
         // per the STEAL STRATEGY RULE.
         top_reviews: Array.isArray(c.reviews) ? c.reviews.map((r) =>
-          `[${r.rating != null ? r.rating + '/5' : '-'} ${r.time || 'recent'}]: "${r.text || ''}"`
+          `[source:${r._sort || 'relevant'} | ★${r.rating != null ? r.rating : '-'} | ${r.relative_time_description || 'recent'} | ${r.author_name || 'Anonymous'}]: "${r.text || ''}"`
         ) : [],
       })) : [],
       top3: Array.isArray(data.competitors_top3) ? data.competitors_top3.map((c) => ({
@@ -2230,7 +2266,7 @@ function buildUserPrompt(bundle) {
   const cs = bundle.census;
 
   const reviewLines = (g.sample_reviews || [])
-    .map((r) => `★${r.stars ?? '?'}: ${r.text}`)
+    .map((r) => `[${r.source || 'relevant'} | ★${r.stars ?? '?'} | ${r.when || 'unknown date'} | ${r.author_name || 'Anonymous'}]: ${r.text || '(no text)'}`)
     .join('\n');
 
   const top3Lines = (c.top3 || []).map((x) => `${x.name} - ${x.rating}★ (${x.review_count} reviews, ${x.distance_miles} mi)`).join('; ');
@@ -3541,9 +3577,8 @@ async function verifyBusinessClassification(data, layer0Result) {
 
       'Sample customer reviews:\n' +
       (data.sample_reviews || [])
-        .slice(0, 3)
         .map((r) =>
-          '★' + (r.stars || r.rating || '?') + ': ' + (r.text || '').slice(0, 300)
+          '★' + (r.stars || r.rating || '?') + ': ' + (r.text || '')
         )
         .join('\n') + '\n\n' +
 
