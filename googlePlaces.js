@@ -2966,38 +2966,28 @@ async function fetchReviewsBySort(placeId, sort, apiKey) {
 }
 
 // ── fetchAllSortedReviews ────────────────────────────────────────────
-// Smart multi-sort review fetch. Decides which sorts to call based on
-// the business's total review count, fires them in parallel, then
-// merges and deduplicates the results.
+// Two-call review fetch using the only two valid Google Places Legacy
+// API sort values: most_relevant and newest.
+// (lowest_rating / highest_rating are not valid — Google ignores them
+// and returns most_relevant results instead.)
 //
 // Dedup key: author_name + time (both present on every Google review).
 // Each returned review gets a _sort field so downstream callers (Claude
 // prompt, report render) know which pool it came from.
 //
 // Review count thresholds:
-//   0         - skip all calls; return []
-//   1-5       - "relevant" only (Google returns the same 5 reviews for
-//               any sort when total count <= 5)
-//   6-10      - "newest" + "lowest_rating"
-//   11-19     - "newest" + "lowest_rating" + "relevant"
-//   >= 20     - all 4: "newest" + "lowest_rating" + "highest_rating" + "relevant"
+//   0    - skip all calls; return []
+//   1+   - both calls: "most_relevant" + "newest"
 //
 // Returns: { reviews: Array, callCount: number }
 async function fetchAllSortedReviews(placeId, reviewCount, apiKey) {
   const count = typeof reviewCount === 'number' ? reviewCount : 0;
 
-  let sorts;
   if (count === 0) {
     return { reviews: [], callCount: 0 };
-  } else if (count <= 5) {
-    sorts = ['relevant'];
-  } else if (count <= 10) {
-    sorts = ['newest', 'lowest_rating'];
-  } else if (count <= 19) {
-    sorts = ['newest', 'lowest_rating', 'relevant'];
-  } else {
-    sorts = ['newest', 'lowest_rating', 'highest_rating', 'relevant'];
   }
+
+  const sorts = ['most_relevant', 'newest'];
 
   const batches = await Promise.all(
     sorts.map((sort) =>

@@ -44,6 +44,8 @@ const MODEL = 'claude-sonnet-4-6';
 // truncates - a 30-page report needs this headroom.
 const MAX_TOKENS_A = 20000;
 const MAX_TOKENS_B = 10000;
+const MAX_TOKENS_C1 = 16000;
+const MAX_TOKENS_C2 = 24000;
 
 // 24h in-memory cache keyed by place_id. Same pattern as the
 // google-places details cache (Phase 4 fix-batch) but bounded at
@@ -613,6 +615,7 @@ OUTPUT FORMAT:
   ],
   "opportunities": [
     {
+      "id": "stable kebab-case id, must be unique per opportunity, prefix with opp_ followed by 2-3 words describing the opportunity. Examples: opp_cave_partnership, opp_loyalty_card, opp_winter_package, opp_mural_wall, opp_cheese_breakfast",
       "category": "one of the 18 categories",
       "title": "short specific title",
       "idea": "2-3 sentences. Name real local things specific to this city and state. Never generic.",
@@ -2871,6 +2874,146 @@ REQUIREMENTS:
 Return ONLY valid JSON. No text before or after. No markdown. No backticks.`;
 
 // ───────────────────────────────────────────────────────────────────
+// SYSTEM_PROMPT_C1 - deep psychology for priority actions (Call C1)
+// ───────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT_C1 = `You are an elite consumer-psychology strategist. You receive a list of priority business actions and customer review data. Your job is to write DEEP psychology enrichment for each action — the hidden human drives, fears, and cognitive triggers that make customers respond.
+
+EXAMPLE OUTPUT - study this carefully.
+This is exactly the quality and format
+you must produce for every item.
+Every field must be this specific.
+Every field must reference real data.
+
+Example business: AmericInn Dodgeville
+Example action: Add Wisconsin local
+cheese to breakfast buffet
+
+{
+  "id": "rec_breakfast_cheese",
+  "memory_trigger": "Guests forget 90% of hotel breakfasts. But if one item is exceptional and named they remember the whole breakfast as amazing. A card that says Today's Wisconsin Cheese, Aged Cheddar from Monroe WI makes guests feel they are eating somewhere that pays attention. That feeling travels home with them.",
+  "word_of_mouth": "If a guest posts a photo of the cheese card on Instagram every follower they have sees AmericInn Dodgeville associated with local Wisconsin food culture for free. A guest who identifies as someone who supports local businesses will share this without being asked because it says something true about who they are.",
+  "revenue_driver": "A guest who remembers your breakfast by name chooses your hotel again on their next Driftless trip instead of trying Don Q Inn. That repeat booking costs you $0.75 in cheese against the full room revenue already calculated in this report.",
+  "local_logic": "Don Q Inn 0.16 miles away serves a standard breakfast with no named local items across 1,058 reviews. Best Western 1.36 miles away has no mention of local food sourcing in any review. Zero hotels on WI-23 are positioned as the local food hotel. You own this the moment you place one card on the breakfast table.",
+  "competitor_gap": "Don Q Inn and Best Western both serve commodity breakfast items with no local sourcing mentioned in any of their combined 1,592 reviews. You differentiate immediately at a cost of $0.75 per guest per day.",
+  "roi_proof": "Wholesale cost $0.75 per serving. At 50 guests per day that is $37.50 per day or $1,125 per month. The revenue potential already calculated is $5,000-$12,000 per year. Every dollar spent on the cheese returns between $4 and $10 in incremental revenue.",
+  "why_not_alternatives": "Generic local bacon with no name has no review mention power because local is a claim and a brand name is proof. Fresh fruit does not create memory because every hotel has fruit. Homemade cinnamon rolls require a baker at 5am and cost $2-3 each. Named Wisconsin cheese requires zero prep and costs $0.75 and guests Google it at the table.",
+  "first_48_hours": "Call Nueske's at 715-253-2226 today and say you are the manager at AmericInn Dodgeville and want to serve their bacon and be listed as a partner hotel. Takes 5 minutes. If no answer email info@nueskes.com. Do it before you close this report.",
+  "leave_behind": "Print 200 small cards with a Wisconsin map outline and AmericInn Dodgeville logo that say Driftless Area Breakfast Club. Give one to every guest at checkout. Cost $20 for 200 cards. Guests who identify with local food culture keep these on their refrigerators for months."
+}
+
+OUTPUT FORMAT:
+CRITICAL JSON RULES - NEVER BREAK:
+Your entire response must be a single
+valid JSON array and nothing else.
+Start your response with [
+End your response with ]
+Include exactly one object per
+opportunity in the input.
+Separate objects with commas.
+No prose before the array.
+No prose after the array.
+No explanations between objects.
+No markdown formatting.
+No code fences or backticks.
+Do not write the example from the
+system prompt as one of the items.
+Only write items for the actual
+opportunities listed in the user prompt.
+If you write anything outside the
+JSON array the parser will fail
+and all psychology will be lost.
+
+Return a JSON ARRAY. Each element has exactly two keys:
+  "id"              - the exact priority action id string from input
+  "psychology_deep" - an object with EXACTLY these 9 keys:
+    "memory_trigger"        - the specific sensory, social, or emotional cue that locks this into long-term customer memory (1-2 sentences)
+    "word_of_mouth"         - exactly what a happy customer says to 3 friends, word-for-word (1-2 sentences)
+    "revenue_driver"        - the direct mechanism connecting this to more cash in the register (1-2 sentences)
+    "local_logic"           - why this works specifically in THIS city, neighborhood, and business type (1-2 sentences)
+    "competitor_gap"        - what no nearby competitor is doing that makes this own the space (1-2 sentences)
+    "roi_proof"             - the simplest numbers that prove return on effort to a skeptical owner (1-2 sentences)
+    "why_not_alternatives"  - why a cheaper or easier alternative falls short and this is the right call (1-2 sentences)
+    "first_48_hours"        - the single most important thing to do in the next 48 hours to start momentum (1 sentence)
+    "leave_behind"          - the one feeling, image, or phrase a customer carries after doing business here (1-2 sentences)
+
+RULES:
+- Be SPECIFIC to this business's sector, city, customer reviews, and competitor landscape
+- Reference actual language from the reviews when it fits — it mirrors how customers think
+- No generic marketing clichés — every sentence must be actionable and grounded in specifics
+- All 9 fields must be present and non-empty strings
+- Return ONLY a valid JSON array. No preamble, no markdown, no code fences.`;
+
+// ───────────────────────────────────────────────────────────────────
+// SYSTEM_PROMPT_C2 - deep psychology for opportunities (Call C2)
+// ───────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT_C2 = `You are an elite consumer-psychology strategist. You receive a list of business opportunities and customer review data. Your job is to write DEEP psychology enrichment for each opportunity — the hidden identity plays, tribal triggers, and behavioral loops that make customers try something new and come back.
+
+EXAMPLE OUTPUT - study this carefully.
+This is exactly the quality and format
+you must produce for every item.
+Every field must be this specific.
+Every field must reference real data.
+
+Example business: AmericInn Dodgeville
+Example action: Add Wisconsin local
+cheese to breakfast buffet
+
+{
+  "id": "rec_breakfast_cheese",
+  "memory_trigger": "Guests forget 90% of hotel breakfasts. But if one item is exceptional and named they remember the whole breakfast as amazing. A card that says Today's Wisconsin Cheese, Aged Cheddar from Monroe WI makes guests feel they are eating somewhere that pays attention. That feeling travels home with them.",
+  "word_of_mouth": "If a guest posts a photo of the cheese card on Instagram every follower they have sees AmericInn Dodgeville associated with local Wisconsin food culture for free. A guest who identifies as someone who supports local businesses will share this without being asked because it says something true about who they are.",
+  "revenue_driver": "A guest who remembers your breakfast by name chooses your hotel again on their next Driftless trip instead of trying Don Q Inn. That repeat booking costs you $0.75 in cheese against the full room revenue already calculated in this report.",
+  "local_logic": "Don Q Inn 0.16 miles away serves a standard breakfast with no named local items across 1,058 reviews. Best Western 1.36 miles away has no mention of local food sourcing in any review. Zero hotels on WI-23 are positioned as the local food hotel. You own this the moment you place one card on the breakfast table.",
+  "competitor_gap": "Don Q Inn and Best Western both serve commodity breakfast items with no local sourcing mentioned in any of their combined 1,592 reviews. You differentiate immediately at a cost of $0.75 per guest per day.",
+  "roi_proof": "Wholesale cost $0.75 per serving. At 50 guests per day that is $37.50 per day or $1,125 per month. The revenue potential already calculated is $5,000-$12,000 per year. Every dollar spent on the cheese returns between $4 and $10 in incremental revenue.",
+  "why_not_alternatives": "Generic local bacon with no name has no review mention power because local is a claim and a brand name is proof. Fresh fruit does not create memory because every hotel has fruit. Homemade cinnamon rolls require a baker at 5am and cost $2-3 each. Named Wisconsin cheese requires zero prep and costs $0.75 and guests Google it at the table.",
+  "first_48_hours": "Call Nueske's at 715-253-2226 today and say you are the manager at AmericInn Dodgeville and want to serve their bacon and be listed as a partner hotel. Takes 5 minutes. If no answer email info@nueskes.com. Do it before you close this report.",
+  "leave_behind": "Print 200 small cards with a Wisconsin map outline and AmericInn Dodgeville logo that say Driftless Area Breakfast Club. Give one to every guest at checkout. Cost $20 for 200 cards. Guests who identify with local food culture keep these on their refrigerators for months."
+}
+
+OUTPUT FORMAT:
+CRITICAL JSON RULES - NEVER BREAK:
+Your entire response must be a single
+valid JSON array and nothing else.
+Start your response with [
+End your response with ]
+Include exactly one object per
+opportunity in the input.
+Separate objects with commas.
+No prose before the array.
+No prose after the array.
+No explanations between objects.
+No markdown formatting.
+No code fences or backticks.
+Do not write the example from the
+system prompt as one of the items.
+Only write items for the actual
+opportunities listed in the user prompt.
+If you write anything outside the
+JSON array the parser will fail
+and all psychology will be lost.
+
+Return a JSON ARRAY. Each element has exactly two keys:
+  "id"              - the exact opportunity id string from input
+  "psychology_deep" - an object with EXACTLY these 9 keys:
+    "memory_trigger"        - the specific sensory, social, or emotional cue that locks this into long-term customer memory (1-2 sentences)
+    "word_of_mouth"         - exactly what a happy customer says to 3 friends, word-for-word (1-2 sentences)
+    "revenue_driver"        - the direct mechanism connecting this to more cash in the register (1-2 sentences)
+    "local_logic"           - why this works specifically in THIS city, neighborhood, and business type (1-2 sentences)
+    "competitor_gap"        - what no nearby competitor is doing that makes this own the space (1-2 sentences)
+    "roi_proof"             - the simplest numbers that prove return on effort to a skeptical owner (1-2 sentences)
+    "why_not_alternatives"  - why a cheaper or easier alternative falls short and this is the right call (1-2 sentences)
+    "first_48_hours"        - the single most important thing to do in the next 48 hours to start momentum (1 sentence)
+    "leave_behind"          - the one feeling, image, or phrase a customer carries after doing business here (1-2 sentences)
+
+RULES:
+- Be SPECIFIC to this business's sector, city, customer reviews, and local competitive landscape
+- Reference actual language from the reviews when it fits — it mirrors how customers already think
+- No generic marketing clichés — every sentence must be actionable and specific to this business
+- All 9 fields must be present and non-empty strings
+- Return ONLY a valid JSON array. No preamble, no markdown, no code fences.`;
+
+// ───────────────────────────────────────────────────────────────────
 // buildUserPromptB - compact prompt for Call B (risks + templates)
 // ───────────────────────────────────────────────────────────────────
 // Smaller than Call A's prompt - only includes the data Call B needs
@@ -2946,6 +3089,98 @@ Generate:
 - execution_templates: 3-5 items, each opportunity_id matching one of the IDs above
 
 Return ONLY valid JSON. No markdown.`;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// buildUserPromptC1 - sends priority actions + review data to C1
+// ───────────────────────────────────────────────────────────────────
+// enriched is the parsed output from Call A (contains priority_actions).
+// bundle provides business context and customer reviews.
+function buildUserPromptC1(enriched, bundle) {
+  const b = bundle.business || {};
+  const g = bundle.google || {};
+  const c = bundle.competitors || {};
+
+  const actions = (enriched.priority_actions || []).slice(0, 10);
+
+  const reviewLines = (g.sample_reviews || []).slice(0, 12).map((r) =>
+    `  [${r.stars || '?'}★] ${sanitizeForPrompt(r.text, 400)}`
+  ).join('\n') || '  (no reviews available)';
+
+  const competitorLines = (c.top5 || []).map((x) =>
+    `  • ${x.name} | ${x.rating}★ | ${x.review_count} reviews`
+  ).join('\n') || '  (none)';
+
+  const actionList = actions.length > 0
+    ? actions.map((a) =>
+        `  id="${a.id}" | title="${a.title || '-'}" | impact=${a.impact || '-'} | what="${sanitizeForPrompt(a.what, 300) || '-'}" | money="${a.money_estimate || '-'}"`
+      ).join('\n')
+    : '  (no priority actions)';
+
+  return `Generate psychology_deep for each priority action listed below.
+
+Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
+Sector: ${b.sector_label || '-'} (NAICS ${b.naics6 || '-'})
+City/State: <city>${sanitizeForPrompt(b.city, 80) || '-'}</city>, <state>${sanitizeForPrompt(b.state, 8) || '-'}</state>
+Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
+
+Top competitors:
+${competitorLines}
+
+Customer reviews (verbatim — use this language when writing psychology fields):
+${reviewLines}
+
+Priority actions to enrich (one output object per action):
+${actionList}
+
+Write all 9 psychology_deep fields for every action in the list.
+Return ONLY valid JSON array. No markdown.`;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// buildUserPromptC2 - sends opportunities + review data to C2
+// ───────────────────────────────────────────────────────────────────
+// enriched is the parsed output from Call A (contains opportunities).
+// bundle provides business context and customer reviews.
+function buildUserPromptC2(enriched, bundle) {
+  const b = bundle.business || {};
+  const g = bundle.google || {};
+  const c = bundle.competitors || {};
+
+  const opportunities = (enriched.opportunities || []).slice(0, 10);
+
+  const reviewLines = (g.sample_reviews || []).slice(0, 12).map((r) =>
+    `  [${r.stars || '?'}★] ${sanitizeForPrompt(r.text, 400)}`
+  ).join('\n') || '  (no reviews available)';
+
+  const competitorLines = (c.top5 || []).map((x) =>
+    `  • ${x.name} | ${x.rating}★ | ${x.review_count} reviews`
+  ).join('\n') || '  (none)';
+
+  const oppList = opportunities.length > 0
+    ? opportunities.map((o) =>
+        `  id="${o.id}" | title="${o.title || '-'}" | category=${o.category || '-'} | idea="${sanitizeForPrompt(o.idea, 300) || '-'}" | cost="${o.cost || '-'}" | revenue="${o.revenue_potential || '-'}"`
+      ).join('\n')
+    : '  (no opportunities)';
+
+  return `Generate psychology_deep for each opportunity listed below.
+
+Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
+Sector: ${b.sector_label || '-'} (NAICS ${b.naics6 || '-'})
+City/State: <city>${sanitizeForPrompt(b.city, 80) || '-'}</city>, <state>${sanitizeForPrompt(b.state, 8) || '-'}</state>
+Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
+
+Top competitors:
+${competitorLines}
+
+Customer reviews (verbatim — use this language when writing psychology fields):
+${reviewLines}
+
+Opportunities to enrich (one output object per opportunity):
+${oppList}
+
+Write all 9 psychology_deep fields for every opportunity in the list.
+Return ONLY valid JSON array. No markdown.`;
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -3246,12 +3481,253 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// Main entry - enrichWithClaude (parallel two-call architecture)
+// callClaudeEnrichC1 - psychology_deep for priority actions
 // ───────────────────────────────────────────────────────────────────
-// Calls A and B run in parallel via Promise.allSettled so an unexpected
-// throw in one inner function never discards the other call's work.
-// Results are merged into one object: A's full payload + B's key_risks
-// + B's execution_templates.
+// Runs AFTER Call A. Receives A's parsed enrichment (for action ids)
+// and the original bundle (for review text + business context).
+// Returns raw JSON text (array of {id, psychology_deep} objects).
+//
+// Retry strategy: two independent retry paths.
+//   Timeout retry   - if first call AbortErrors (15 min ceiling), retry
+//                     once with higher max_tokens cap + 10 min ceiling.
+//   Truncation retry - if first/retry stop_reason=max_tokens, retry once
+//                     with 1.5× the cap (same pattern as Call B).
+async function callClaudeEnrichC1(enriched, bundle) {
+  const userPrompt = buildUserPromptC1(enriched, bundle);
+  const t0 = Date.now();
+  const CALL_C1_TIMEOUT_MS = 15 * 60 * 1000;
+  const CALL_C1_RETRY_TIMEOUT_MS = 10 * 60 * 1000;
+  const requestParams = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS_C1,
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM_PROMPT_C1,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [{ role: 'user', content: userPrompt }],
+  };
+
+  // Helper: is this error a timeout of any kind?
+  const isTimeout = (e) =>
+    (e && e.name === 'AbortError') ||
+    (e && e.name === 'APIConnectionTimeoutError') ||
+    (e && e.code === 'ETIMEDOUT') ||
+    (e && e.message && e.message.toLowerCase().includes('timeout'));
+
+  // ── First attempt (streaming — bypasses 10-min SDK non-streaming limit)
+  let response = null;
+  let fullText = '';
+  let usedRetry = false;
+  console.log('[claude:C1] starting');
+  const acC1 = new AbortController();
+  const timerC1 = setTimeout(() => acC1.abort(), CALL_C1_TIMEOUT_MS);
+  try {
+    const stream = await client.messages.stream(requestParams, { signal: acC1.signal });
+    stream.on('text', (chunk) => { fullText += chunk; });
+    response = await stream.finalMessage();
+  } catch (err) {
+    if (isTimeout(err)) {
+      console.warn('[claude:C1] timeout after 15 min - retrying with max_tokens=' + Math.round(MAX_TOKENS_C1 * 1.5));
+      fullText = '';
+      const retryParams = { ...requestParams, max_tokens: Math.round(MAX_TOKENS_C1 * 1.5) };
+      const acRetryC1 = new AbortController();
+      const timerRetryC1 = setTimeout(() => acRetryC1.abort(), CALL_C1_RETRY_TIMEOUT_MS);
+      try {
+        const retryStream = await client.messages.stream(retryParams, { signal: acRetryC1.signal });
+        retryStream.on('text', (chunk) => { fullText += chunk; });
+        response = await retryStream.finalMessage();
+        usedRetry = true;
+      } catch (retryErr) {
+        if (isTimeout(retryErr)) {
+          console.warn('[claude:C1] timeout retry also timed out after 10 min');
+        } else {
+          console.error('[claude:C1] timeout retry error:', retryErr.message, '/', retryErr.constructor.name);
+        }
+        return null;
+      } finally {
+        clearTimeout(timerRetryC1);
+      }
+    } else {
+      console.error('[claude:C1] error:', err.message, '/', err.constructor.name);
+      if (err.status != null) console.error('[claude:C1] status:', err.status);
+      return null;
+    }
+  } finally {
+    clearTimeout(timerC1);
+  }
+
+  if (!response) return null;
+
+  const dt = Date.now() - t0;
+  const usage = response.usage || {};
+  console.log('[claude:C1] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
+  console.log(`[claude:C1] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+
+  // ── Truncation retry (streaming) ───────────────────────────────────
+  if (response.stop_reason === 'max_tokens' && !usedRetry) {
+    const retryMaxTokens = Math.round(MAX_TOKENS_C1 * 1.5);
+    console.warn(`[claude:C1] hit max_tokens=${MAX_TOKENS_C1} - retrying once with max_tokens=${retryMaxTokens}`);
+    const t1 = Date.now();
+    const retryParams = { ...requestParams, max_tokens: retryMaxTokens };
+    let retryFullText = '';
+    let retry;
+    const acRetryC1 = new AbortController();
+    const timerRetryC1 = setTimeout(() => acRetryC1.abort(), CALL_C1_RETRY_TIMEOUT_MS);
+    try {
+      const retryStream = await client.messages.stream(retryParams, { signal: acRetryC1.signal });
+      retryStream.on('text', (chunk) => { retryFullText += chunk; });
+      retry = await retryStream.finalMessage();
+    } catch (err) {
+      if (isTimeout(err)) {
+        console.warn('[claude:C1] truncation retry timed out after 10 min - returning partial first-attempt text');
+        return fullText || null;
+      }
+      console.error('[claude:C1] retry error:', err.message, '/', err.constructor.name);
+      return null;
+    } finally {
+      clearTimeout(timerRetryC1);
+    }
+    const dt1 = Date.now() - t1;
+    const retryUsage = retry.usage || {};
+    console.log(`[claude:C1] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
+    console.log(`[claude:C1] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
+    if (retry.stop_reason === 'max_tokens') {
+      console.error(`[claude:C1] retry ALSO truncated at max_tokens=${retryMaxTokens} - accepting truncated text`);
+    }
+    return retryFullText || null;
+  }
+
+  return fullText || null;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// callClaudeEnrichC2 - psychology_deep for opportunities
+// ───────────────────────────────────────────────────────────────────
+// Same structure as C1 but targets opportunities. Runs in parallel
+// with C1 and B after Call A completes.
+async function callClaudeEnrichC2(enriched, bundle) {
+  const userPrompt = buildUserPromptC2(enriched, bundle);
+  const t0 = Date.now();
+  const CALL_C2_TIMEOUT_MS = 20 * 60 * 1000;
+  const CALL_C2_RETRY_TIMEOUT_MS = 15 * 60 * 1000;
+  const requestParams = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS_C2,
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM_PROMPT_C2,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [{ role: 'user', content: userPrompt }],
+  };
+
+  // Helper: is this error a timeout of any kind?
+  const isTimeout = (e) =>
+    (e && e.name === 'AbortError') ||
+    (e && e.name === 'APIConnectionTimeoutError') ||
+    (e && e.code === 'ETIMEDOUT') ||
+    (e && e.message && e.message.toLowerCase().includes('timeout'));
+
+  // ── First attempt (streaming — bypasses 10-min SDK non-streaming limit)
+  let response = null;
+  let fullText = '';
+  let usedRetry = false;
+  console.log('[claude:C2] starting');
+  const acC2 = new AbortController();
+  const timerC2 = setTimeout(() => acC2.abort(), CALL_C2_TIMEOUT_MS);
+  try {
+    const stream = await client.messages.stream(requestParams, { signal: acC2.signal });
+    stream.on('text', (chunk) => { fullText += chunk; });
+    response = await stream.finalMessage();
+  } catch (err) {
+    if (isTimeout(err)) {
+      console.warn('[claude:C2] timeout after 20 min - retrying with max_tokens=' + Math.round(MAX_TOKENS_C2 * 1.5));
+      fullText = '';
+      const retryParams = { ...requestParams, max_tokens: Math.round(MAX_TOKENS_C2 * 1.5) };
+      const acRetryC2 = new AbortController();
+      const timerRetryC2 = setTimeout(() => acRetryC2.abort(), CALL_C2_RETRY_TIMEOUT_MS);
+      try {
+        const retryStream = await client.messages.stream(retryParams, { signal: acRetryC2.signal });
+        retryStream.on('text', (chunk) => { fullText += chunk; });
+        response = await retryStream.finalMessage();
+        usedRetry = true;
+      } catch (retryErr) {
+        if (isTimeout(retryErr)) {
+          console.warn('[claude:C2] timeout retry also timed out after 15 min');
+        } else {
+          console.error('[claude:C2] timeout retry error:', retryErr.message, '/', retryErr.constructor.name);
+        }
+        return null;
+      } finally {
+        clearTimeout(timerRetryC2);
+      }
+    } else {
+      console.error('[claude:C2] error:', err.message, '/', err.constructor.name);
+      if (err.status != null) console.error('[claude:C2] status:', err.status);
+      return null;
+    }
+  } finally {
+    clearTimeout(timerC2);
+  }
+
+  if (!response) return null;
+
+  const dt = Date.now() - t0;
+  const usage = response.usage || {};
+  console.log('[claude:C2] id:', response.id, 'stop_reason:', response.stop_reason, 'dt:', dt + 'ms');
+  console.log(`[claude:C2] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+
+  // ── Truncation retry (streaming) ───────────────────────────────────
+  if (response.stop_reason === 'max_tokens' && !usedRetry) {
+    const retryMaxTokens = Math.round(MAX_TOKENS_C2 * 1.5);
+    console.warn(`[claude:C2] hit max_tokens=${MAX_TOKENS_C2} - retrying once with max_tokens=${retryMaxTokens}`);
+    const t1 = Date.now();
+    const retryParams = { ...requestParams, max_tokens: retryMaxTokens };
+    let retryFullText = '';
+    let retry;
+    const acRetryC2 = new AbortController();
+    const timerRetryC2 = setTimeout(() => acRetryC2.abort(), CALL_C2_RETRY_TIMEOUT_MS);
+    try {
+      const retryStream = await client.messages.stream(retryParams, { signal: acRetryC2.signal });
+      retryStream.on('text', (chunk) => { retryFullText += chunk; });
+      retry = await retryStream.finalMessage();
+    } catch (err) {
+      if (isTimeout(err)) {
+        console.warn('[claude:C2] truncation retry timed out after 15 min - returning partial first-attempt text');
+        return fullText || null;
+      }
+      console.error('[claude:C2] retry error:', err.message, '/', err.constructor.name);
+      return null;
+    } finally {
+      clearTimeout(timerRetryC2);
+    }
+    const dt1 = Date.now() - t1;
+    const retryUsage = retry.usage || {};
+    console.log(`[claude:C2] retry id: ${retry.id} stop_reason: ${retry.stop_reason} dt: ${dt1}ms`);
+    console.log(`[claude:C2] retry usage in=${retryUsage.input_tokens} out=${retryUsage.output_tokens} cache_read=${retryUsage.cache_read_input_tokens || 0} cache_write=${retryUsage.cache_creation_input_tokens || 0}`);
+    if (retry.stop_reason === 'max_tokens') {
+      console.error(`[claude:C2] retry ALSO truncated at max_tokens=${retryMaxTokens} - accepting truncated text`);
+    }
+    return retryFullText || null;
+  }
+
+  console.log('[claude:C2] raw response preview:', fullText.slice(0, 500));
+  return fullText || null;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Main entry - enrichWithClaude (A sequential, then B+C1+C2 parallel)
+// ───────────────────────────────────────────────────────────────────
+// Call A runs first (sequential) because C1 and C2 need A's parsed
+// output (priority_actions and opportunities arrays) to know which
+// items to enrich. After A completes, B + C1 + C2 run in parallel via
+// Promise.allSettled so an unexpected throw in one never discards the
+// others' work. Results are merged:
 //
 // PARTIAL ENRICHMENT: when A fails (returned null because the inner
 // function caught an error OR safeParseJSON threw on truncated output)
@@ -3262,10 +3738,9 @@ async function callClaudeEnrichB(bundle, priorityActionIds) {
 // fallback recs instead of the "AI insights unavailable" page on every
 // data-rich business.
 async function enrichWithClaude(bundle) {
-  console.log('[claude] enrichment called (parallel A+B)');
+  console.log('[claude] enrichment called (A sequential, then B+C1+C2 parallel)');
   console.log('[claude] API key present:', !!process.env.ANTHROPIC_API_KEY);
-  // Audit fix CE8 - API key length log removed. Length-leak is a minor
-  // info disclosure that helps an attacker validate any future key leak.
+  // Audit fix CE8 - API key length log removed.
 
   if (!client) {
     console.warn('[claude] enrichment skipped: ANTHROPIC_API_KEY not set');
@@ -3281,42 +3756,34 @@ async function enrichWithClaude(bundle) {
     return cached.value;
   }
 
-  // Pull triggered IDs from the bundle (added by buildDataBundle from
-  // ranker.top10). Both calls run in parallel - neither can see the
-  // other - so we use these deterministic IDs as the shared key for
-  // execution_templates.opportunity_id ↔ priority_actions[].id.
+  // Triggered IDs shared by B (execution_templates) and C1/C2 (context).
   const triggeredIds = Array.isArray(bundle.triggered_rec_ids)
     ? bundle.triggered_rec_ids
     : [];
 
-  const t0 = Date.now();
-  // Promise.allSettled - if either inner function throws (rather than
-  // returning null per its catch block), the other call's result is
-  // still preserved instead of the whole thing rejecting.
-  const [resA, resB] = await Promise.allSettled([
-    callClaudeEnrichA(bundle),
-    callClaudeEnrichB(bundle, triggeredIds),
-  ]);
-  const dt = Date.now() - t0;
-
-  const textA = resA.status === 'fulfilled' ? resA.value : null;
-  const textB = resB.status === 'fulfilled' ? resB.value : null;
-  if (resA.status === 'rejected') {
-    console.error('[claude:A] promise rejected:', resA.reason && resA.reason.message);
+  // ── Step 1: Call A (must complete before C1/C2 can start) ──────────
+  const tA = Date.now();
+  let textA = null;
+  try {
+    textA = await callClaudeEnrichA(bundle);
+  } catch (err) {
+    console.error('[claude:A] unexpected throw:', err.message);
   }
-  if (resB.status === 'rejected') {
-    console.error('[claude:B] promise rejected:', resB.reason && resB.reason.message);
-  }
+  console.log(`[claude] Call A done in ${Date.now() - tA}ms`);
 
   const A = textA ? safeParseJSON(textA, 'A') : null;
-  const B = textB ? safeParseJSON(textB, 'B') : null;
 
-  // ── PARTIAL ENRICHMENT ──────────────────────────────────────────
-  // A failed (HTTP error, max_tokens-after-retry truncation, or JSON
-  // parse failure on truncated text). Return whatever B produced so
-  // the report still has key_risks + execution_templates instead of
-  // the "AI insights unavailable" fallback.
+  // ── PARTIAL: A failed → run B alone; skip C1/C2 (need A output) ────
   if (!A) {
+    const tB = Date.now();
+    const [resB] = await Promise.allSettled([
+      callClaudeEnrichB(bundle, triggeredIds),
+    ]);
+    if (resB.status === 'rejected') {
+      console.error('[claude:B] promise rejected:', resB.reason && resB.reason.message);
+    }
+    const textB = resB.status === 'fulfilled' ? resB.value : null;
+    const B = textB ? safeParseJSON(textB, 'B') : null;
     const partial = {
       priority_actions: [],
       enriched_recommendations: [],
@@ -3325,7 +3792,6 @@ async function enrichWithClaude(bundle) {
       competitor_analysis: null,
       ninety_day_plan: null,
       seasonal_strategy: null,
-      // Array shape since the schema is now an array of competitors.
       competitor_deep_dive: [],
       outperformed_competitors: [],
       key_risks: (B && Array.isArray(B.key_risks)) ? B.key_risks : [],
@@ -3333,23 +3799,101 @@ async function enrichWithClaude(bundle) {
       _partial: 'A_failed',
     };
     console.warn(
-      `[claude] Call A failed - returning partial enrichment with Call B data only (dt=${dt}ms, `
+      `[claude] Call A failed - partial enrichment B-only (B dt=${Date.now() - tB}ms, `
       + `${partial.key_risks.length} risks, ${partial.execution_templates.length} templates)`
     );
-    // Cache the partial too so we don't refire 200-second Call A's on
-    // every page refresh for a business that consistently breaks A.
     CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: partial });
     return partial;
   }
 
+  // ── Step 2: B + C1 + C2 in parallel ────────────────────────────────
+  const tBC = Date.now();
+  const [resB, resC1, resC2] = await Promise.allSettled([
+    callClaudeEnrichB(bundle, triggeredIds),
+    callClaudeEnrichC1(A, bundle),
+    callClaudeEnrichC2(A, bundle),
+  ]);
+  const dtBC = Date.now() - tBC;
+
+  const textB  = resB.status  === 'fulfilled' ? resB.value  : null;
+  const textC1 = resC1.status === 'fulfilled' ? resC1.value : null;
+  const textC2 = resC2.status === 'fulfilled' ? resC2.value : null;
+
+  if (resB.status  === 'rejected') console.error('[claude:B]  promise rejected:', resB.reason  && resB.reason.message);
+  if (resC1.status === 'rejected') console.error('[claude:C1] promise rejected:', resC1.reason && resC1.reason.message);
+  if (resC2.status === 'rejected') console.error('[claude:C2] promise rejected:', resC2.reason && resC2.reason.message);
+
+  const B = textB ? safeParseJSON(textB, 'B') : null;
+
+  // C1 + C2 return JSON arrays — parse with fence-stripping fallback.
+  function parseArrayResponse(text, label) {
+    if (!text) return null;
+    try {
+      const raw = text.trim();
+      const stripped = raw.startsWith('```')
+        ? raw.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '')
+        : raw;
+      const arrayStart = stripped.indexOf('[');
+      const arrayEnd = stripped.lastIndexOf(']');
+      if (arrayStart === -1 || arrayEnd === -1 || arrayEnd < arrayStart) {
+        console.warn(`[claude:${label}] no JSON array brackets found - skipping merge`);
+        return null;
+      }
+      const jsonOnly = stripped.slice(arrayStart, arrayEnd + 1);
+      const parsed = JSON.parse(jsonOnly);
+      if (Array.isArray(parsed)) return parsed;
+      console.warn(`[claude:${label}] response is not a JSON array - skipping merge`);
+      return null;
+    } catch (e) {
+      console.warn(`[claude:${label}] JSON parse failed: ${e.message}`);
+      return null;
+    }
+  }
+
+  const C1 = parseArrayResponse(textC1, 'C1');
+  const C2 = parseArrayResponse(textC2, 'C2');
+  console.log('[claude:C2] parsed array length:', C2 ? C2.length : 'null');
+
+  // ── Merge C1 psychology_deep → priority_actions ─────────────────────
+  let priority_actions = Array.isArray(A.priority_actions) ? A.priority_actions : [];
+  if (C1 && C1.length > 0) {
+    const c1Map = new Map(
+      C1.filter((x) => x && x.id).map((x) => [String(x.id), x.psychology_deep])
+    );
+    priority_actions = priority_actions.map((action) => {
+      const deep = c1Map.get(String(action.id));
+      return deep ? { ...action, psychology_deep: deep } : action;
+    });
+    console.log(`[claude:C1] merged psychology_deep into ${c1Map.size} actions`);
+  } else if (textC1 !== null) {
+    console.warn('[claude:C1] no valid array - priority_actions unchanged');
+  }
+
+  // ── Merge C2 psychology_deep → opportunities ────────────────────────
+  let opportunities = Array.isArray(A.opportunities) ? A.opportunities : [];
+  if (C2 && C2.length > 0) {
+    const c2Map = new Map(
+      C2.filter((x) => x && x.id).map((x) => [String(x.id), x.psychology_deep])
+    );
+    opportunities = opportunities.map((opp) => {
+      const deep = c2Map.get(String(opp.id));
+      return deep ? { ...opp, psychology_deep: deep } : opp;
+    });
+    console.log(`[claude:C2] merged psychology_deep into ${c2Map.size} opportunities`);
+  } else if (textC2 !== null) {
+    console.warn('[claude:C2] no valid array - opportunities unchanged');
+  }
+
   const merged = {
     ...A,
+    priority_actions,
+    opportunities,
     key_risks: (B && Array.isArray(B.key_risks)) ? B.key_risks : [],
     execution_templates: (B && Array.isArray(B.execution_templates)) ? B.execution_templates : [],
   };
 
   console.log(
-    `[claude] enrichment ok in ${dt}ms - `
+    `[claude] enrichment ok (B+C1+C2 parallel dt=${dtBC}ms) - `
     + `${(merged.priority_actions || []).length} priority_actions, `
     + `${(merged.enriched_recommendations || []).length} recs, `
     + `${(merged.opportunities || []).length} opps, `

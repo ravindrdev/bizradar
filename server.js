@@ -5275,9 +5275,30 @@ ${cards}`;
         : /rare/i.test(novelty)
         ? 'novelty-rare'
         : 'novelty-common';
-      const psychologyBlock = (o.psychology && typeof o.psychology === 'string' && o.psychology.trim())
-        ? `<div style="margin-top:10px;padding:10px 14px;background:#EEF2FF;border-left:3px solid #6366F1;border-radius:0 6px 6px 0;"><p style="margin:0;font-size:12.5px;color:#3730A3;line-height:1.6;"><strong style="font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#6366F1;">Why customers say yes</strong><br>${escapeHtml(o.psychology.trim())}</p></div>`
-        : '';
+      // psychology_deep (C2) preferred; falls back to legacy psychology string.
+      let psychologyBlock = '';
+      const oDeep = o.psychology_deep;
+      if (oDeep && typeof oDeep === 'object') {
+        const opf = (label, val, bg, fg) => {
+          if (!val || typeof val !== 'string' || !val.trim()) return '';
+          return `<div><span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;background:${bg};color:${fg};">${label}</span><span style="font-size:13px;color:#374151;line-height:1.7;margin:0;display:block;">${escapeHtml(val.trim())}</span></div>`;
+        };
+        const divider = '<hr style="border:none;border-top:1px solid #E5E7EB;margin:12px 0;">';
+        const deepRows = [
+          opf('MEMORY TRIGGER',       oDeep.memory_trigger,       '#EDE9FE', '#5B21B6'),
+          opf('WORD OF MOUTH',        oDeep.word_of_mouth,        '#DBEAFE', '#1E40AF'),
+          opf('REVENUE DRIVER',       oDeep.revenue_driver,       '#DCFCE7', '#166534'),
+          opf('WHY THIS WORKS HERE',  oDeep.local_logic,          '#FEF3C7', '#92400E'),
+          opf('COMPETITOR GAP',       oDeep.competitor_gap,       '#FFE4E6', '#9F1239'),
+          opf('ROI',                  oDeep.roi_proof,            '#DCFCE7', '#166534'),
+          opf('WHY NOT ALTERNATIVES', oDeep.why_not_alternatives, '#F3F4F6', '#374151'),
+          opf('NEXT 48 HOURS',        oDeep.first_48_hours,       '#FFF7ED', '#C2410C'),
+          opf('LEAVE BEHIND',         oDeep.leave_behind,         '#EDE9FE', '#5B21B6'),
+        ].filter(Boolean);
+        if (deepRows.length > 0) {
+          psychologyBlock = `<div style="margin-top:16px;padding:16px;background:#FAFAFA;border-left:3px solid #6366F1;border-radius:0 8px 8px 0;"><span style="font-size:11px;font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;display:block;">Why this works</span>${deepRows.join(divider)}</div>`;
+        }
+      }
       return `<div class="opportunity">
 <div class="op-meta"><span class="op-category">${escapeHtml(o.category || '-')}</span><span class="op-novelty ${noveltyCls}">${escapeHtml(novelty)}</span></div>
 <h3>${escapeHtml(o.title || '')}</h3>
@@ -6166,6 +6187,31 @@ function renderActionCard(action) {
     ? `<div style="font-size: 13px; color: #6B7280;">${metaParts.join(' &middot; ')}</div>`
     : '';
 
+  // ── psychology_deep block (Call C1 output) ─────────────────────────
+  let psychoDeepBlock = '';
+  const deep = action.psychology_deep;
+  if (deep && typeof deep === 'object') {
+    const pf = (label, val, bg, fg) => {
+      if (!val || typeof val !== 'string' || !val.trim()) return '';
+      return `<div><span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;background:${bg};color:${fg};">${label}</span><span style="font-size:13px;color:#374151;line-height:1.7;margin:0;display:block;">${escapeHtml(val.trim())}</span></div>`;
+    };
+    const divider = '<hr style="border:none;border-top:1px solid #E5E7EB;margin:12px 0;">';
+    const rows = [
+      pf('MEMORY TRIGGER',       deep.memory_trigger,       '#EDE9FE', '#5B21B6'),
+      pf('WORD OF MOUTH',        deep.word_of_mouth,        '#DBEAFE', '#1E40AF'),
+      pf('REVENUE DRIVER',       deep.revenue_driver,       '#DCFCE7', '#166534'),
+      pf('WHY THIS WORKS HERE',  deep.local_logic,          '#FEF3C7', '#92400E'),
+      pf('COMPETITOR GAP',       deep.competitor_gap,       '#FFE4E6', '#9F1239'),
+      pf('ROI',                  deep.roi_proof,            '#DCFCE7', '#166534'),
+      pf('WHY NOT ALTERNATIVES', deep.why_not_alternatives, '#F3F4F6', '#374151'),
+      pf('NEXT 48 HOURS',        deep.first_48_hours,       '#FFF7ED', '#C2410C'),
+      pf('LEAVE BEHIND',         deep.leave_behind,         '#EDE9FE', '#5B21B6'),
+    ].filter(Boolean);
+    if (rows.length > 0) {
+      psychoDeepBlock = `<div style="margin-top:16px;padding:16px;background:#FAFAFA;border-left:3px solid #6366F1;border-radius:0 8px 8px 0;"><span style="font-size:11px;font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;display:block;">Why this works</span>${rows.join(divider)}</div>`;
+    }
+  }
+
   return `<div class="action-card" style="border-left: 4px solid ${colors.border}; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">
   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
     <span style="background: ${colors.bg}; color: ${colors.text}; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${impact} IMPACT</span>
@@ -6176,6 +6222,7 @@ function renderActionCard(action) {
   ${why ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
   ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
   ${metaLine}
+  ${psychoDeepBlock}
 </div>`;
 }
 
