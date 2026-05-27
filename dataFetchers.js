@@ -1263,7 +1263,13 @@ async function fetchUpcomingEvents(city, state) {
       EVENTS_CACHE.set(cacheKey, { ts: Date.now(), value: [] });
       return [];
     }
-    const events = json._embedded.events.slice(0, 5).map((ev) => ({
+    // Map all raw events first, then dedup by name+date before slicing.
+    // Ticketmaster returns the same concert multiple times when it has
+    // multiple ticket packages (e.g. general admission + VIP). Without
+    // dedup, slice(0,5) includes both copies and the list shows
+    // "Phish July 7" twice. Dedup by composite key name|date so each
+    // unique show appears only once; still returns max 5 events.
+    const rawEvents = json._embedded.events.map((ev) => ({
       name: ev.name || '(unnamed event)',
       date: (ev.dates && ev.dates.start && ev.dates.start.localDate) || null,
       venue: (ev._embedded && Array.isArray(ev._embedded.venues) && ev._embedded.venues[0] && ev._embedded.venues[0].name) || null,
@@ -1271,6 +1277,16 @@ async function fetchUpcomingEvents(city, state) {
       // change shape - Ticketmaster doesn't expose attendance either.
       attendance_estimate: null,
     }));
+    const seen = new Set();
+    const events = [];
+    for (const ev of rawEvents) {
+      const key = `${ev.name}|${ev.date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        events.push(ev);
+      }
+      if (events.length >= 5) break;
+    }
     EVENTS_CACHE.set(cacheKey, { ts: Date.now(), value: events });
     return events;
   } catch (err) {

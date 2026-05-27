@@ -2080,22 +2080,24 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     studies: studies.studies,
   });
   sendProgress(sessionId, { step: 15, total: 29, message: 'Cross-referencing 27 verified data sources...', pct: 44 });
-  // Steps 16-28: fake progress ticks fired during the Claude call (60-330s).
-  // Each timer is stored so they can all be cleared the moment Claude returns.
+  // Steps 16-28: fake progress ticks fired during the Claude call.
+  // Spread across 13 minutes to match observed Call A wall time (~5-6 min)
+  // plus B+C1+C2 parallel block (~3-5 min). All timers are cleared
+  // immediately when Claude returns so fast runs skip unfired steps.
   const claudeTimers = [];
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 16, total: 29, message: 'GrowthIM Intelligence Engine activated...', pct: 48 }),  10000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 17, total: 29, message: 'Researching your top competitors in depth...', pct: 52 }),  25000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 18, total: 29, message: 'Identifying what competitors do better than you...', pct: 56 }),  40000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 19, total: 29, message: 'Finding competitor weaknesses you can exploit...', pct: 60 }),  55000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 20, total: 29, message: 'Building your competitor deep dive analysis...', pct: 64 }),  70000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 21, total: 29, message: 'Scanning your market for untapped opportunities...', pct: 68 }),  90000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 22, total: 29, message: 'Finding opportunities nobody in your market is doing...', pct: 72 }), 110000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 23, total: 29, message: 'Calculating your seasonal demand strategy...', pct: 76 }), 130000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 24, total: 29, message: 'Writing your priority actions with revenue estimates...', pct: 80 }), 150000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 25, total: 29, message: 'Building your 90-day action plan week by week...', pct: 84 }), 170000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 26, total: 29, message: 'Calculating revenue opportunities for your market...', pct: 88 }), 190000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 27, total: 29, message: 'Generating your key risks and early warning signs...', pct: 92 }), 210000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 28, total: 29, message: 'Finalizing your market intelligence report...', pct: 96 }), 230000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 16, total: 29, message: 'GrowthIM Intelligence Engine activated...', pct: 48 }),   20000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 17, total: 29, message: 'Researching your top competitors in depth...', pct: 52 }),   80000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 18, total: 29, message: 'Identifying what competitors do better than you...', pct: 56 }),  150000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 19, total: 29, message: 'Finding competitor weaknesses you can exploit...', pct: 60 }),  220000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 20, total: 29, message: 'Building your competitor deep dive analysis...', pct: 64 }),  290000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 21, total: 29, message: 'Scanning your market for untapped opportunities...', pct: 68 }),  360000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 22, total: 29, message: 'Finding opportunities nobody in your market is doing...', pct: 72 }), 420000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 23, total: 29, message: 'Calculating your seasonal demand strategy...', pct: 76 }), 480000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 24, total: 29, message: 'Writing your priority actions with revenue estimates...', pct: 80 }), 540000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 25, total: 29, message: 'Building your 90-day action plan week by week...', pct: 84 }), 600000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 26, total: 29, message: 'Calculating revenue opportunities for your market...', pct: 88 }), 650000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 27, total: 29, message: 'Generating your key risks and early warning signs...', pct: 92 }), 700000));
+  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 28, total: 29, message: 'Finalizing your market intelligence report...', pct: 96 }), 750000));
   const enriched = await claudeEnricher.enrichWithClaude(dataBundle);
   // Detect Call A failure so renderReport can surface the partial-report
   // banner at the top of the page. enrichWithClaude returns a partial
@@ -6929,28 +6931,42 @@ function renderHoursComparison(data) {
         continue;
       }
       // Match all time ranges in the string - handles split hours like
-      // "11:00 AM - 3:00 PM, 5:00 PM - 9:00 PM" by finding every range.
+      // "11:00 AM – 2:30 PM, 4:30 – 9:00 PM" by finding every range.
       // Minutes are optional so "10 AM-4 PM" and "10:00 AM - 5:00 PM"
       // both parse correctly. [-–—] covers hyphen, en-dash, and em-dash.
-      // AM/PM is required on both sides so 12h conversion is unambiguous.
-      // Groups: 1=open_h, 2=open_min?, 3=open_ampm, 4=close_h, 5=close_min?, 6=close_ampm
-      const timeRangeRe = /(\d+)(?::(\d+))?\s*(AM|PM)\s*[-–—]+\s*(\d+)(?::(\d+))?\s*(AM|PM)/ig;
+      // AM/PM is optional on the OPEN side — Google sometimes omits it on
+      // the second period of a split-hours string (e.g. "4:30 – 9:00 PM").
+      // When absent, AM/PM is inferred from the close side:
+      //   openH < closeH  → same period as close  ("4:30 – 9:00 PM" → PM)
+      //   openH >= closeH → assume PM (afternoon session, e.g. "9:30 – 2 PM")
+      // Groups: 1=open_h, 2=open_min?, 3=open_ampm?, 4=close_h, 5=close_min?, 6=close_ampm
+      const timeRangeRe = /(\d+)(?::(\d+))?\s*(AM|PM)?\s*[-–—]+\s*(\d+)(?::(\d+))?\s*(AM|PM)/ig;
       const allRanges = [];
       let rm;
       while ((rm = timeRangeRe.exec(rest)) !== null) {
-        const openH    = parseInt(rm[1], 10);
-        const openMins = rm[2] ? parseInt(rm[2], 10) : 0;
+        const openH     = parseInt(rm[1], 10);
+        const openMins  = rm[2] ? parseInt(rm[2], 10) : 0;
         const closeH    = parseInt(rm[4], 10);
         const closeMins = rm[5] ? parseInt(rm[5], 10) : 0;
-        const openAmPm  = (rm[3] || '').toUpperCase();
+        const openAmPm  = rm[3] ? rm[3].toUpperCase() : null;
         const closeAmPm = (rm[6] || '').toUpperCase();
-        let open24 = openH;
-        if (openAmPm === 'PM' && openH < 12) open24 += 12;
-        if (openAmPm === 'AM' && openH === 12) open24 = 0;
+        // Resolve close24 first so it is available when inferring openAmPm.
         let close24 = closeH;
         if (closeAmPm === 'PM' && closeH < 12) close24 += 12;
         if (closeAmPm === 'AM' && closeH === 12) close24 = 0;
-        allRanges.push(`${open24}-${close24}`);
+        // Resolve open24. When openAmPm is absent infer from closeAmPm.
+        let open24 = openH;
+        if (openAmPm) {
+          if (openAmPm === 'PM' && openH < 12) open24 += 12;
+          if (openAmPm === 'AM' && openH === 12) open24 = 0;
+        } else {
+          const inferredAmPm = openH < closeH ? closeAmPm : 'PM';
+          if (inferredAmPm === 'PM' && openH < 12) open24 += 12;
+          if (inferredAmPm === 'AM' && openH === 12) open24 = 0;
+        }
+        const openStr  = openMins  > 0 ? `${open24}:${String(openMins).padStart(2, '0')}`  : `${open24}`;
+        const closeStr = closeMins > 0 ? `${close24}:${String(closeMins).padStart(2, '0')}` : `${close24}`;
+        allRanges.push(`${openStr}-${closeStr}`);
       }
       if (allRanges.length > 0) {
         result[day] = allRanges.join(', ');
@@ -6981,11 +6997,11 @@ function renderHoursComparison(data) {
   const yourParsed = parseHours(yourHours);
   const yourNumeric = parseHoursNumeric(yourHours);
 
-  // Include ALL competitors (cap at 4). Check both weekday_text and
+  // Include ALL competitors (cap at 5). Check both weekday_text and
   // hours fields. Show N/A for any competitor with no hours data.
   const allCompetitors = (Array.isArray(data.competitors_top5) ? data.competitors_top5 : [])
     .filter((c) => c)
-    .slice(0, 4);
+    .slice(0, 5);
 
   const compsWithHours = allCompetitors.filter((c) =>
     (Array.isArray(c.weekday_text) && c.weekday_text.length > 0) ||

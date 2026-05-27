@@ -613,7 +613,7 @@
   // wall-clock averages, NOT optimistic best-cases. When the countdown
   // hits 0 the timer flips to count-up mode with a "Still working"
   // banner - never an error or timeout message.
-  const INITIAL_ETA_SECONDS = { rate: 480, market: 600 };
+  const INITIAL_ETA_SECONDS = { rate: 900, market: 600 };
   // After this many ms with no SSE event, the quiet banner appears.
   // Set to 30s - fires comfortably during the long Claude calls
   // (Tier 5b runs 60-90s with one event at start and one at end).
@@ -721,13 +721,13 @@
         etaEl.textContent = 'Still working - ' + formatTime(overtime) + ' past estimate';
         const minutesPast = Math.floor(overtime / 60);
         if (minutesPast < 2) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM Intelligence Engine is building your report. Please keep this tab open.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM is doing deep research on your competitors and market. Please keep this tab open.';
         } else if (minutesPast < 5) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - Your market has a lot of data to analyze. This sometimes takes up to 15 minutes for complex markets with many competitors. Your report IS coming. Do not refresh.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - Your market has a lot of competitor data to analyze. Complex markets with many competitors can take up to 18 minutes. Your report is coming. Do not refresh.';
         } else if (minutesPast < 10) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking longer than usual. GrowthIM is doing deep research on your competitors and market. Complex markets can take up to 20 minutes. Please keep this tab open.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking longer than usual. GrowthIM is doing an exceptionally deep analysis of your market. Please keep this tab open and do not refresh.';
         } else {
-          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is finalizing your report. This is the last step. Thank you for your patience. Your report will appear automatically.';
+          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is writing the final sections of your report. This is the last step. Your report will appear automatically. Thank you for your patience.';
         }
         overtimeEl.hidden = false;
         if (lastPct < 95) {

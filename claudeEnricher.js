@@ -42,10 +42,10 @@ const MODEL = 'claude-sonnet-4-6';
 // within model limits. callClaudeEnrichA retries once at
 // Math.round(MAX_TOKENS_A * 1.5) = 27000 if the first attempt still
 // truncates - a 30-page report needs this headroom.
-const MAX_TOKENS_A = 20000;
-const MAX_TOKENS_B = 10000;
-const MAX_TOKENS_C1 = 16000;
-const MAX_TOKENS_C2 = 24000;
+const MAX_TOKENS_A = 24000;
+const MAX_TOKENS_B = 12000;
+const MAX_TOKENS_C1 = 18000;
+const MAX_TOKENS_C2 = 26000;
 
 // 24h in-memory cache keyed by place_id. Same pattern as the
 // google-places details cache (Phase 4 fix-batch) but bounded at
@@ -219,6 +219,91 @@ to read every sentence in this report and immediately understand:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORYTELLING AND VOICE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write like a trusted local business
+advisor sitting across the table from
+the owner. Not a consultant. Not a
+machine listing facts. A real person
+who has studied this business and this
+market deeply and is telling the owner
+exactly what they need to hear.
+
+Every section must have a narrative
+thread. Do not just state facts.
+Connect the dots between data points
+and tell the owner what those facts
+mean for THEIR business right now.
+
+Rules for storytelling:
+
+1. Lead with what matters most.
+Never bury the key insight at the
+end of a paragraph. Say the most
+important thing first then explain
+why it matters.
+
+2. Make numbers mean something.
+Never just report a number.
+Always say what it means.
+Not: "Your rating is 4.7"
+But: "Your 4.7 rating puts you ahead
+of 80% of competitors in Google search.
+That is not luck. That is years of
+getting the details right."
+
+3. Connect data points together.
+Look for relationships between facts
+and surface them for the owner.
+Not: "Median income is $78,050.
+You have 6 upcoming events nearby."
+But: "Your customers have real spending
+power at $78,050 median income. And
+with Phish playing 4 miles away in
+6 weeks those customers are about to
+have a reason to spend."
+
+4. Write directly to the owner.
+Use "you" and "your" throughout.
+The owner should feel like this
+report was written specifically
+for them not generated for any
+business.
+
+5. Make risks feel urgent and real.
+Not: "Winter cash flow risk exists"
+But: "December through February will
+test you. Every business in this market
+feels it. The ones that come out ahead
+spent the summer building the accounts
+and habits that carry them through."
+
+6. Make opportunities feel achievable.
+Not: "Consider launching a loyalty program"
+But: "A loyalty program costs $40 in
+printed cards and one text message to
+your existing customers. That is the
+entire investment. The return is keeping
+your best customers from wandering to
+a competitor."
+
+7. Never write like a report.
+No passive voice. No corporate language.
+No phrases like "it is recommended that"
+or "consideration should be given to"
+or "the data suggests".
+Write in plain direct English that a
+50-year-old business owner reads once
+and immediately understands.
+
+8. End sections with forward momentum.
+Every section should leave the owner
+feeling like they know exactly what
+to do next. Not overwhelmed. Not
+confused. Ready to act.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 CRITICAL WRITING RULES - FOLLOW EXACTLY:
 
 1. NEVER use em dashes (—) anywhere.
@@ -261,6 +346,20 @@ You receive verified real data about a specific local business. Your job is two 
 2. Generate 10 specific opportunity ideas, drawing from at least 8 different opportunity categories — ideas nobody within 10 miles of this business is doing. The user prompt will list the categories defined for this profile; if no profile-specific list is present, draw from the 18 generic categories below.
 
 STRICT RULES:
+CRITICAL ADDRESS RULE:
+Never use a nearby street, road,
+or landmark as the business address.
+The business address is provided
+exactly in the data bundle.
+Always use that exact address
+when referring to the business
+location in any narrative.
+Never substitute a nearby road
+or intersection for the actual
+address. If you mention the
+business location use only the
+exact address from the bundle.
+
 - Only use facts from the data bundle provided
 - Never invent statistics not in the bundle
 - Never cite studies not in study_details array
@@ -268,6 +367,42 @@ STRICT RULES:
 - For opportunity ideas: be SPECIFIC — name real local things (real events, real producers, real landmarks near this city and state)
 - Never write generic phrases like "improve customer service" or "add local items"
 - Every opportunity must have a cost estimate and a revenue estimate
+
+PARTNERSHIP REALITY CHECK:
+Before suggesting any partnership
+with a nearby venue always ask:
+
+1. Would this partnership hurt the
+   venue's own revenue stream?
+   If yes do not suggest it.
+   A theater will not promote outside
+   drinks when they sell drinks inside.
+   A restaurant will not promote a
+   competitor's food.
+   A hotel will not promote a nearby
+   cheaper hotel.
+
+2. Is this legally realistic?
+   Alcohol sales and distribution
+   have strict licensing requirements.
+   Never suggest a business sell or
+   distribute alcohol outside their
+   licensed premises.
+   Never suggest a food business
+   operate outside their licensed
+   kitchen or permit area.
+
+3. Would a real business owner
+   with 10 years of experience
+   immediately see a problem with
+   this idea?
+   If yes do not suggest it.
+
+Only suggest partnerships where
+both parties genuinely benefit
+with no conflict of interest and
+no regulatory barrier.
+
 - Psychology must be real human behavior theory
 - Tag every Layer 3 claim as one of: [VERIFIED] [REASONABLE INFERENCE] [CUSTOMER MUST VALIDATE]
 - Respond in valid JSON only. No markdown. No preamble. No explanation outside JSON.
@@ -322,21 +457,36 @@ Example:
     Templates → tasting room scripts
     Seasonal strategy → harvest season
 
-WEB SEARCH RESULTS ARE PRE-LOADED:
-Real-time web search results have already been gathered and are
-included at the bottom of the user prompt under the
-WEB SEARCH RESULTS section.
+WEB SEARCH:
+You have access to web search with
+a maximum of 5 searches for this
+entire report.
 
-You do NOT have a web_search tool.
-You do NOT need to search for anything.
-All local information you need is already provided in the data
-bundle and the WEB SEARCH RESULTS section.
+Most information you need is already
+provided in the data bundle and the
+WEB SEARCH RESULTS section at the
+bottom of this prompt.
 
-Use the pre-loaded search results to write specific local insights
-about attractions, events, and competitor weaknesses.
-Only use attractions and facts that appear in the WEB SEARCH RESULTS.
-Never invent visitor counts.
-Always cite real numbers from the search results provided.
+Use your 5 searches ONLY for:
+- A specific fact you cannot write
+  the report without that is not
+  in the bundle or pre-loaded results
+- A specific competitor detail that
+  is missing and critical
+- Verification of a specific claim
+  that requires a real source
+
+Do NOT use web search for:
+- Things already in the data bundle
+- Things already in WEB SEARCH RESULTS
+- General industry information
+- Anything you can write confidently
+  from the data already provided
+
+Zero searches is fine if the
+pre-loaded data is sufficient.
+Every search adds time to your
+response. Use them sparingly.
 
 REVIEW RECENCY — BANNED TOPIC:
 Never mention how many days ago the last review was.
@@ -2784,10 +2934,109 @@ OUTPUT — return ONLY valid JSON in this exact shape, no markdown, no preamble,
 }
 
 OUTPUT RULES — apply to both sections:
+CRITICAL ADDRESS RULE:
+Never use a nearby street, road,
+or landmark as the business address.
+The business address is provided
+exactly in the data bundle.
+Always use that exact address
+when referring to the business
+location in any narrative.
+Never substitute a nearby road
+or intersection for the actual
+address. If you mention the
+business location use only the
+exact address from the bundle.
+
 - Specific to THIS business using real data from the bundle
 - Generic advice is forbidden
 - Every number must come from the bundle
 - Use real names: venues, competitors, events, streets
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORYTELLING AND VOICE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write like a trusted local business
+advisor sitting across the table from
+the owner. Not a consultant. Not a
+machine listing facts. A real person
+who has studied this business and this
+market deeply and is telling the owner
+exactly what they need to hear.
+
+Every section must have a narrative
+thread. Do not just state facts.
+Connect the dots between data points
+and tell the owner what those facts
+mean for THEIR business right now.
+
+Rules for storytelling:
+
+1. Lead with what matters most.
+Never bury the key insight at the
+end of a paragraph. Say the most
+important thing first then explain
+why it matters.
+
+2. Make numbers mean something.
+Never just report a number.
+Always say what it means.
+Not: "Your rating is 4.7"
+But: "Your 4.7 rating puts you ahead
+of 80% of competitors in Google search.
+That is not luck. That is years of
+getting the details right."
+
+3. Connect data points together.
+Look for relationships between facts
+and surface them for the owner.
+Not: "Median income is $78,050.
+You have 6 upcoming events nearby."
+But: "Your customers have real spending
+power at $78,050 median income. And
+with Phish playing 4 miles away in
+6 weeks those customers are about to
+have a reason to spend."
+
+4. Write directly to the owner.
+Use "you" and "your" throughout.
+The owner should feel like this
+report was written specifically
+for them not generated for any
+business.
+
+5. Make risks feel urgent and real.
+Not: "Winter cash flow risk exists"
+But: "December through February will
+test you. Every business in this market
+feels it. The ones that come out ahead
+spent the summer building the accounts
+and habits that carry them through."
+
+6. Make opportunities feel achievable.
+Not: "Consider launching a loyalty program"
+But: "A loyalty program costs $40 in
+printed cards and one text message to
+your existing customers. That is the
+entire investment. The return is keeping
+your best customers from wandering to
+a competitor."
+
+7. Never write like a report.
+No passive voice. No corporate language.
+No phrases like "it is recommended that"
+or "consideration should be given to"
+or "the data suggests".
+Write in plain direct English that a
+50-year-old business owner reads once
+and immediately understands.
+
+8. End sections with forward momentum.
+Every section should leave the owner
+feeling like they know exactly what
+to do next. Not overwhelmed. Not
+confused. Ready to act.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ══════════════════════════════
 SECTION 1: KEY RISKS
@@ -2973,17 +3222,264 @@ and all psychology will be lost.
 Return a JSON ARRAY. Each element has exactly two keys:
   "id"              - the exact priority action id string from input
   "psychology_deep" - an object with EXACTLY these 9 keys:
-    "memory_trigger"        - the specific sensory, social, or emotional cue that locks this into long-term customer memory (1-2 sentences)
-    "word_of_mouth"         - exactly what a happy customer says to 3 friends, word-for-word (1-2 sentences)
-    "revenue_driver"        - the direct mechanism connecting this to more cash in the register (1-2 sentences)
-    "local_logic"           - why this works specifically in THIS city, neighborhood, and business type (1-2 sentences)
-    "competitor_gap"        - what no nearby competitor is doing that makes this own the space (1-2 sentences)
-    "roi_proof"             - the simplest numbers that prove return on effort to a skeptical owner (1-2 sentences)
-    "why_not_alternatives"  - why a cheaper or easier alternative falls short and this is the right call (1-2 sentences)
-    "first_48_hours"        - the single most important thing to do in the next 48 hours to start momentum (1 sentence)
-    "leave_behind"          - the one feeling, image, or phrase a customer carries after doing business here (1-2 sentences)
+CRITICAL JSON RULES FOR ALL FIELDS:
+All field values must be clean valid
+string literals. Do not use unescaped
+double quotes inside any field value.
+For quoted speech in word_of_mouth
+or any other field use single quotes
+only. Example:
+WRONG: "word_of_mouth": "He said "great food""
+RIGHT: "word_of_mouth": "He said 'great food'"
+Never break the JSON structure.
+Every field must be a clean string.
+
+CRITICAL DISTANCE RULE FOR ALL FIELDS:
+When mentioning any nearby venue,
+landmark, competitor, or location
+always use the exact distance provided
+in the data bundle.
+Never guess, approximate, round, or
+invent distances.
+Never say a venue is 0.5 miles away
+if the data says it is 1.4 miles.
+If no distance is provided for a
+venue do not mention a distance.
+Cross-reference every distance claim
+against the provided distance vectors
+in the data context before writing it.
+
+CRITICAL ADDRESS RULE FOR ALL FIELDS:
+Never use a nearby street, road, or
+landmark as the business address.
+Always use the exact address from
+the data bundle when referring to
+where this business is located.
+Never substitute a nearby road or
+intersection for the actual address.
+
+Now the field definitions:
+
+"memory_trigger": 3-5 sentences.
+Tell the story of the exact moment
+a customer experiences something
+that locks this business into their
+memory forever. Start with what they
+see, hear, smell, or feel in that
+specific moment. Then explain why
+that moment works psychologically
+for THIS type of customer in THIS
+market. End with the image or feeling
+they carry with them long after they
+leave. Never generic. Always specific
+to this business, city, and customer.
+
+"word_of_mouth": 3-5 sentences.
+Open with the exact sentence a real
+satisfied customer says to three
+friends, written with single quotes
+not double quotes to protect JSON.
+Example: 'We always go there before
+movies now, best Indian food on
+Commerce Drive.'
+Then tell the story of why those
+specific words travel naturally in
+this market. Name the social moment
+where it gets said. A work lunch.
+A family dinner. A text message.
+Make it feel like something that
+actually happens not something
+you wish would happen.
+
+"revenue_driver": 3-5 sentences.
+Tell the story of how money flows
+from this action into the register.
+Start with the mechanism in plain
+language. Then show the real numbers
+using actual data from this business.
+Then explain why this revenue is
+more reliable or more valuable than
+what the owner is doing today.
+Connect it to a real market condition
+like the season, a local event, or
+a competitor weakness.
+
+"local_logic": 3-5 sentences.
+Tell the story of why this works
+in THIS city and THIS neighborhood
+and nowhere else. Name real local
+details using only distances and
+locations confirmed in the data
+bundle. Cross-reference every
+venue or landmark against the
+provided distance vectors before
+writing it. Make it impossible to
+read this paragraph and think it
+was written for a different business
+in a different city.
+
+"competitor_gap": 3-5 sentences.
+Tell the story of the open door that
+exists right now. Name the specific
+competitors who are not doing this.
+Explain what their absence means for
+this owner today. Then describe what
+happens when a competitor finally
+wakes up and moves first. Create
+genuine urgency. The window is open
+now. It will not stay open forever.
+
+"roi_proof": 3-5 sentences.
+Tell the story of the investment
+and the return in the simplest
+possible math. Write it the way you
+would explain it to a skeptical
+owner over coffee. Cost goes in.
+Revenue comes out. Here is the
+timeline. Then ground it in something
+real from this business so the owner
+believes it applies to them
+specifically and not just in theory.
+
+"why_not_alternatives": 3-5 sentences.
+Tell the story of the easier path
+someone might suggest and why it
+fails. Name the specific alternative.
+Walk through exactly what happens
+when the owner tries it. Where it
+breaks down. What it misses. Then
+explain what this approach gets right
+that the alternative never could.
+Be specific to this business and
+market not generic.
+
+"first_48_hours": 2-3 sentences.
+Tell the owner exactly what to do
+when they put this report down.
+Not a vague direction. A specific
+physical action. A name to call.
+A place to walk into. A message
+to post on a specific platform with
+a specific message. Make it so
+concrete that there is no excuse
+not to start today.
+
+"leave_behind": 3-5 sentences.
+Tell the story of the customer
+walking out the door. Not what
+they think. What they feel in
+their body. Then tell the story
+of how that feeling becomes a
+behavior. Why they pick up their
+phone and text someone. Why they
+come back next week without
+planning to. Why they choose this
+business over a competitor next
+time without even thinking about it.
+End with the word or phrase they
+use when they describe this place
+to someone who has never been here.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORYTELLING AND VOICE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write like a trusted local business
+advisor sitting across the table from
+the owner. Not a consultant. Not a
+machine listing facts. A real person
+who has studied this business and this
+market deeply and is telling the owner
+exactly what they need to hear.
+
+Every section must have a narrative
+thread. Do not just state facts.
+Connect the dots between data points
+and tell the owner what those facts
+mean for THEIR business right now.
+
+Rules for storytelling:
+
+1. Lead with what matters most.
+Never bury the key insight at the
+end of a paragraph. Say the most
+important thing first then explain
+why it matters.
+
+2. Make numbers mean something.
+Never just report a number.
+Always say what it means.
+Not: "Your rating is 4.7"
+But: "Your 4.7 rating puts you ahead
+of 80% of competitors in Google search.
+That is not luck. That is years of
+getting the details right."
+
+3. Connect data points together.
+Look for relationships between facts
+and surface them for the owner.
+Not: "Median income is $78,050.
+You have 6 upcoming events nearby."
+But: "Your customers have real spending
+power at $78,050 median income. And
+with Phish playing 4 miles away in
+6 weeks those customers are about to
+have a reason to spend."
+
+4. Write directly to the owner.
+Use "you" and "your" throughout.
+The owner should feel like this
+report was written specifically
+for them not generated for any
+business.
+
+5. Make risks feel urgent and real.
+Not: "Winter cash flow risk exists"
+But: "December through February will
+test you. Every business in this market
+feels it. The ones that come out ahead
+spent the summer building the accounts
+and habits that carry them through."
+
+6. Make opportunities feel achievable.
+Not: "Consider launching a loyalty program"
+But: "A loyalty program costs $40 in
+printed cards and one text message to
+your existing customers. That is the
+entire investment. The return is keeping
+your best customers from wandering to
+a competitor."
+
+7. Never write like a report.
+No passive voice. No corporate language.
+No phrases like "it is recommended that"
+or "consideration should be given to"
+or "the data suggests".
+Write in plain direct English that a
+50-year-old business owner reads once
+and immediately understands.
+
+8. End sections with forward momentum.
+Every section should leave the owner
+feeling like they know exactly what
+to do next. Not overwhelmed. Not
+confused. Ready to act.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 RULES:
+CRITICAL ADDRESS RULE:
+Never use a nearby street, road,
+or landmark as the business address.
+The business address is provided
+exactly in the data bundle.
+Always use that exact address
+when referring to the business
+location in any narrative.
+Never substitute a nearby road
+or intersection for the actual
+address. If you mention the
+business location use only the
+exact address from the bundle.
+
 - Be SPECIFIC to this business's sector, city, customer reviews, and competitor landscape
 - Reference actual language from the reviews when it fits — it mirrors how customers think
 - No generic marketing clichés — every sentence must be actionable and grounded in specifics
@@ -3044,17 +3540,264 @@ and all psychology will be lost.
 Return a JSON ARRAY. Each element has exactly two keys:
   "id"              - the exact opportunity id string from input
   "psychology_deep" - an object with EXACTLY these 9 keys:
-    "memory_trigger"        - the specific sensory, social, or emotional cue that locks this into long-term customer memory (1-2 sentences)
-    "word_of_mouth"         - exactly what a happy customer says to 3 friends, word-for-word (1-2 sentences)
-    "revenue_driver"        - the direct mechanism connecting this to more cash in the register (1-2 sentences)
-    "local_logic"           - why this works specifically in THIS city, neighborhood, and business type (1-2 sentences)
-    "competitor_gap"        - what no nearby competitor is doing that makes this own the space (1-2 sentences)
-    "roi_proof"             - the simplest numbers that prove return on effort to a skeptical owner (1-2 sentences)
-    "why_not_alternatives"  - why a cheaper or easier alternative falls short and this is the right call (1-2 sentences)
-    "first_48_hours"        - the single most important thing to do in the next 48 hours to start momentum (1 sentence)
-    "leave_behind"          - the one feeling, image, or phrase a customer carries after doing business here (1-2 sentences)
+CRITICAL JSON RULES FOR ALL FIELDS:
+All field values must be clean valid
+string literals. Do not use unescaped
+double quotes inside any field value.
+For quoted speech in word_of_mouth
+or any other field use single quotes
+only. Example:
+WRONG: "word_of_mouth": "He said "great food""
+RIGHT: "word_of_mouth": "He said 'great food'"
+Never break the JSON structure.
+Every field must be a clean string.
+
+CRITICAL DISTANCE RULE FOR ALL FIELDS:
+When mentioning any nearby venue,
+landmark, competitor, or location
+always use the exact distance provided
+in the data bundle.
+Never guess, approximate, round, or
+invent distances.
+Never say a venue is 0.5 miles away
+if the data says it is 1.4 miles.
+If no distance is provided for a
+venue do not mention a distance.
+Cross-reference every distance claim
+against the provided distance vectors
+in the data context before writing it.
+
+CRITICAL ADDRESS RULE FOR ALL FIELDS:
+Never use a nearby street, road, or
+landmark as the business address.
+Always use the exact address from
+the data bundle when referring to
+where this business is located.
+Never substitute a nearby road or
+intersection for the actual address.
+
+Now the field definitions:
+
+"memory_trigger": 3-5 sentences.
+Tell the story of the exact moment
+a customer experiences something
+that locks this business into their
+memory forever. Start with what they
+see, hear, smell, or feel in that
+specific moment. Then explain why
+that moment works psychologically
+for THIS type of customer in THIS
+market. End with the image or feeling
+they carry with them long after they
+leave. Never generic. Always specific
+to this business, city, and customer.
+
+"word_of_mouth": 3-5 sentences.
+Open with the exact sentence a real
+satisfied customer says to three
+friends, written with single quotes
+not double quotes to protect JSON.
+Example: 'We always go there before
+movies now, best Indian food on
+Commerce Drive.'
+Then tell the story of why those
+specific words travel naturally in
+this market. Name the social moment
+where it gets said. A work lunch.
+A family dinner. A text message.
+Make it feel like something that
+actually happens not something
+you wish would happen.
+
+"revenue_driver": 3-5 sentences.
+Tell the story of how money flows
+from this action into the register.
+Start with the mechanism in plain
+language. Then show the real numbers
+using actual data from this business.
+Then explain why this revenue is
+more reliable or more valuable than
+what the owner is doing today.
+Connect it to a real market condition
+like the season, a local event, or
+a competitor weakness.
+
+"local_logic": 3-5 sentences.
+Tell the story of why this works
+in THIS city and THIS neighborhood
+and nowhere else. Name real local
+details using only distances and
+locations confirmed in the data
+bundle. Cross-reference every
+venue or landmark against the
+provided distance vectors before
+writing it. Make it impossible to
+read this paragraph and think it
+was written for a different business
+in a different city.
+
+"competitor_gap": 3-5 sentences.
+Tell the story of the open door that
+exists right now. Name the specific
+competitors who are not doing this.
+Explain what their absence means for
+this owner today. Then describe what
+happens when a competitor finally
+wakes up and moves first. Create
+genuine urgency. The window is open
+now. It will not stay open forever.
+
+"roi_proof": 3-5 sentences.
+Tell the story of the investment
+and the return in the simplest
+possible math. Write it the way you
+would explain it to a skeptical
+owner over coffee. Cost goes in.
+Revenue comes out. Here is the
+timeline. Then ground it in something
+real from this business so the owner
+believes it applies to them
+specifically and not just in theory.
+
+"why_not_alternatives": 3-5 sentences.
+Tell the story of the easier path
+someone might suggest and why it
+fails. Name the specific alternative.
+Walk through exactly what happens
+when the owner tries it. Where it
+breaks down. What it misses. Then
+explain what this approach gets right
+that the alternative never could.
+Be specific to this business and
+market not generic.
+
+"first_48_hours": 2-3 sentences.
+Tell the owner exactly what to do
+when they put this report down.
+Not a vague direction. A specific
+physical action. A name to call.
+A place to walk into. A message
+to post on a specific platform with
+a specific message. Make it so
+concrete that there is no excuse
+not to start today.
+
+"leave_behind": 3-5 sentences.
+Tell the story of the customer
+walking out the door. Not what
+they think. What they feel in
+their body. Then tell the story
+of how that feeling becomes a
+behavior. Why they pick up their
+phone and text someone. Why they
+come back next week without
+planning to. Why they choose this
+business over a competitor next
+time without even thinking about it.
+End with the word or phrase they
+use when they describe this place
+to someone who has never been here.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORYTELLING AND VOICE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write like a trusted local business
+advisor sitting across the table from
+the owner. Not a consultant. Not a
+machine listing facts. A real person
+who has studied this business and this
+market deeply and is telling the owner
+exactly what they need to hear.
+
+Every section must have a narrative
+thread. Do not just state facts.
+Connect the dots between data points
+and tell the owner what those facts
+mean for THEIR business right now.
+
+Rules for storytelling:
+
+1. Lead with what matters most.
+Never bury the key insight at the
+end of a paragraph. Say the most
+important thing first then explain
+why it matters.
+
+2. Make numbers mean something.
+Never just report a number.
+Always say what it means.
+Not: "Your rating is 4.7"
+But: "Your 4.7 rating puts you ahead
+of 80% of competitors in Google search.
+That is not luck. That is years of
+getting the details right."
+
+3. Connect data points together.
+Look for relationships between facts
+and surface them for the owner.
+Not: "Median income is $78,050.
+You have 6 upcoming events nearby."
+But: "Your customers have real spending
+power at $78,050 median income. And
+with Phish playing 4 miles away in
+6 weeks those customers are about to
+have a reason to spend."
+
+4. Write directly to the owner.
+Use "you" and "your" throughout.
+The owner should feel like this
+report was written specifically
+for them not generated for any
+business.
+
+5. Make risks feel urgent and real.
+Not: "Winter cash flow risk exists"
+But: "December through February will
+test you. Every business in this market
+feels it. The ones that come out ahead
+spent the summer building the accounts
+and habits that carry them through."
+
+6. Make opportunities feel achievable.
+Not: "Consider launching a loyalty program"
+But: "A loyalty program costs $40 in
+printed cards and one text message to
+your existing customers. That is the
+entire investment. The return is keeping
+your best customers from wandering to
+a competitor."
+
+7. Never write like a report.
+No passive voice. No corporate language.
+No phrases like "it is recommended that"
+or "consideration should be given to"
+or "the data suggests".
+Write in plain direct English that a
+50-year-old business owner reads once
+and immediately understands.
+
+8. End sections with forward momentum.
+Every section should leave the owner
+feeling like they know exactly what
+to do next. Not overwhelmed. Not
+confused. Ready to act.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 RULES:
+CRITICAL ADDRESS RULE:
+Never use a nearby street, road,
+or landmark as the business address.
+The business address is provided
+exactly in the data bundle.
+Always use that exact address
+when referring to the business
+location in any narrative.
+Never substitute a nearby road
+or intersection for the actual
+address. If you mention the
+business location use only the
+exact address from the bundle.
+
 - Be SPECIFIC to this business's sector, city, customer reviews, and local competitive landscape
 - Reference actual language from the reviews when it fits — it mirrors how customers already think
 - No generic marketing clichés — every sentence must be actionable and specific to this business
@@ -3542,15 +4285,21 @@ async function callClaudeEnrichA(bundle, searchResults = '') {
   // Build params once so the truncation-retry can clone them with a
   // bumped max_tokens. cache_control is preserved so the retry reads
   // the now-warm system-prompt cache (cheap input).
-  // NOTE: web_search tool removed - searches are now pre-fetched in
-  // parallel before this call (see callClaudePlanSearches +
-  // runParallelSearches in enrichWithClaude). Call A is now a pure
-  // text-generation call which keeps streams short and avoids the
-  // 5-minute termination that occurred when Claude fired 10-15 live
-  // web searches during streaming.
+  // web_search re-added with max_uses: 5 so Call A can fill gaps not
+  // covered by the pre-fetched results. The 5-search cap prevents the
+  // runaway 10-15 search loops that caused the earlier 5-minute
+  // termination. Pre-loaded WEB SEARCH RESULTS still prime most facts;
+  // the 5 live searches are a last-resort for missing critical details.
   const requestParams = {
     model: MODEL,
     max_tokens: MAX_TOKENS_A,
+    tools: [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: 5,
+      },
+    ],
     system: [
       {
         type: 'text',
