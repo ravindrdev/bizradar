@@ -11,7 +11,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.95.1",
+    "@anthropic-ai/sdk": "^0.98.0",
     "@sparticuz/chromium": "^148.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",

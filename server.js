@@ -1556,6 +1556,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data.total_population = censusRes.value.total_population;
     data.average_household_size = censusRes.value.average_household_size;
     data.census_zip = censusRes.value.zip;
+    data.population_source = censusRes.value.population_source || 'zip';
     // Phase 5+ - housing extension piggybacks on the same ACS call.
     data.census_housing = censusRes.value.census_housing || null;
   } else {
@@ -1976,12 +1977,20 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
         const det = await places.getDetails(comp.place_id, API_KEY);
         const website = (det && typeof det.website === 'string' && det.website.trim()) ? det.website.trim() : null;
         if (website) {
-          const result = await dataFetchers.fetchCompetitorPageSpeed(comp.name, website);
+          // Step 1: Try PSI first.
+          let speedResult = await dataFetchers.fetchCompetitorPageSpeed(comp.name, website);
+          let speedSource = speedResult ? 'psi' : null;
+          // Step 2: PSI returned null (timeout/bot-block) → fall back to CrUX.
+          if (!speedResult) {
+            speedResult = await dataFetchers.fetchCruxScore(website, API_KEY);
+            speedSource = speedResult ? 'crux' : null;
+          }
           compPagespeedResults.push({
             name: comp.name,
             website,
-            mobile_score: result ? result.mobile_score : null,
-            load_time_seconds: result ? result.load_time_seconds : null,
+            mobile_score:      speedResult ? speedResult.mobile_score      : null,
+            load_time_seconds: speedResult ? speedResult.load_time_seconds : null,
+            source:            speedSource,
           });
           await new Promise(r => setTimeout(r, 2000));
         } else {
@@ -4848,7 +4857,7 @@ Studio: <strong>${studio}/mo</strong><br>
 
     marketHtml = `<h2 id="location-market">Location &amp; market</h2>
 <p>Area median household income: <strong>${escapeHtml(income)}</strong><br>
-Local population (ZIP ${escapeHtml(data.census_zip || '')}): <strong>${escapeHtml(pop)}</strong>${hhLine}</p>
+Local population (${data.population_source === 'city' ? `City of ${escapeHtml(data.city || '')}` : `ZIP ${escapeHtml(data.census_zip || '')}`}): <strong>${escapeHtml(pop)}</strong>${hhLine}</p>
 <p class="meta">Source: U.S. Census Bureau ACS 5-Year Estimates (2018-2022) - study S037.</p>
 ${anchorBlock}
 ${transitBlock}
@@ -4965,13 +4974,16 @@ ${fmrBlock}`;
     let compTableHtml = '';
     if (compPsList.length > 0) {
       const rows = compPsList.map((c) => {
-        // FIX 3: score number + color + source note only — no warning label
         let scoreCell;
         if (typeof c.mobile_score === 'number') {
-          const cc = psBgColor(c.mobile_score);
-          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:10px;color:#9CA3AF;">Real-time · Google PageSpeed</span></td>`;
+          const cc         = psBgColor(c.mobile_score);
+          const speedLabel = psLabelStr(c.mobile_score);
+          const sourceNote = c.source === 'crux'
+            ? 'Real-user · Chrome UX Report'
+            : 'Real-time · Google PageSpeed';
+          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:11px;font-weight:600;color:${cc};">${escapeHtml(speedLabel)}</span><br><span style="font-size:10px;color:#9CA3AF;">${sourceNote}</span></td>`;
         } else if (c.website) {
-          scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">Unavailable</td>`;
+          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><div style="font-size:13px;font-weight:600;color:#9CA3AF;">Protected</div><div style="font-size:10px;color:#D1D5DB;margin-top:2px;">Bot shield active</div></td>`;
         } else {
           scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">No website</td>`;
         }
@@ -5340,7 +5352,7 @@ ${psychologyBlock}
 
   const c2Items = [];
   if (typeof data.median_household_income === 'number') c2Items.push(`median income $${data.median_household_income.toLocaleString('en-US')}`);
-  if (typeof data.total_population === 'number') c2Items.push(`pop ${data.total_population.toLocaleString('en-US')} (ZIP ${data.census_zip || '-'})`);
+  if (typeof data.total_population === 'number') c2Items.push(`pop ${data.total_population.toLocaleString('en-US')} (${data.population_source === 'city' ? `city of ${data.city || data.census_zip || '-'}` : `ZIP ${data.census_zip || '-'}`})`);
   if (typeof data.average_household_size === 'number') c2Items.push(`avg household ${data.average_household_size.toFixed(2)}`);
   // Phase 5+ - anchor tenants + transit (Overpass)
   if (typeof data.anchor_tenant_count === 'number' && data.anchor_tenant_count > 0) {
@@ -7055,78 +7067,6 @@ function renderHoursComparison(data) {
     : (yourHasAnyValid ? '' :
       `<div style="margin-top: 14px; padding: 12px 16px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; font-size: 13px; color: #475569; line-height: 1.6;">Your hours could not be read from Google automatically. This may mean you are open 24 hours or your hours are in an unusual format. Please verify your hours on your Google Business Profile.</div>`);
 
-  // Gap analysis - only when we have competitor hours.
-  // Checks every day individually so no gap is missed.
-  let gapInsightsHtml = '';
-  if (hasCompetitorHours) {
-    const insights = [];
-
-    // Convert 24-hour integer to readable AM/PM string.
-    function fmt24(h) {
-      if (h === 0)  return '12 AM';
-      if (h === 12) return '12 PM';
-      if (h < 12)  return h + ' AM';
-      return (h - 12) + ' PM';
-    }
-
-    for (const comp of compsWithHours) {
-      const hoursSource = (Array.isArray(comp.weekday_text) && comp.weekday_text.length > 0)
-        ? comp.weekday_text
-        : (Array.isArray(comp.hours) && comp.hours.length > 0 ? comp.hours : null);
-      const compNumeric = parseHoursNumeric(hoursSource);
-      const compName = escapeHtml(comp.name || 'A nearby competitor');
-      const compInsights = [];
-
-      for (const day of DAYS) {
-        const y = yourNumeric[day];        // { open, close } or null
-        const c = compNumeric[day];        // { open, close } or null
-        const yVal = yourParsed[day];      // 'Cls' | '-' | '10-17' | etc.
-        const cVal = (hoursSource ? parseHours(hoursSource)[day] : null);
-
-        // Case 1: You are closed, competitor is open — they capture all your customers.
-        if (yVal === 'Cls' && c) {
-          compInsights.push(`You are closed on ${day}. ${compName} is open ${fmt24(c.open)} to ${fmt24(c.close)} and capturing all ${day} customers.`);
-          continue;
-        }
-
-        if (y && c) {
-          // Case 2: Competitor closes later than you.
-          if (c.close > y.close) {
-            const gap = c.close - y.close;
-            if (gap > 0 && gap <= 6) {
-              compInsights.push(`${compName} closes ${gap} hour${gap === 1 ? '' : 's'} later on ${day}.`);
-            }
-          }
-          // Case 3: Competitor opens earlier than you.
-          if (c.open < y.open) {
-            const gap = y.open - c.open;
-            if (gap > 0 && gap <= 6) {
-              compInsights.push(`${compName} opens ${gap} hour${gap === 1 ? '' : 's'} earlier on ${day}.`);
-            }
-          }
-          // Case 4: You have an advantage — open earlier or close later.
-          if (y.open < c.open || y.close > c.close) {
-            compInsights.push(`You are open longer on ${day}. Promote this advantage.`);
-          }
-        }
-
-        // Case 5: You are open, competitor is closed — your advantage.
-        if (y && cVal === 'Cls') {
-          compInsights.push(`You are open on ${day} while ${compName} is closed. Promote this on Google and social media.`);
-        }
-      }
-
-      if (compInsights.length === 0) {
-        compInsights.push(`Your hours match ${compName}'s across all 7 days. No gaps found for this competitor.`);
-      }
-      insights.push(...compInsights);
-    }
-
-    if (insights.length > 0) {
-      gapInsightsHtml = `<h3 style="font-size: 15px; color: #0F1729; margin: 22px 0 12px;">Gap analysis</h3>
-${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; border-left: 3px solid #94A3B8; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 14px; line-height: 1.6; color: #1E293B;">${i}</div>`).join('')}`;
-    }
-  }
 
   // FIX 3 - Competitor hours diagnostic note.
   // Root cause: googlePlaces.js fetchNearbyCompetitors calls getDetails()
@@ -7141,6 +7081,8 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
   Competitor hours not yet available. Your hours are shown above. Competitor hours will appear here in a future update.
 </div>`;
 
+  const hoursActionNote = `<div style="margin-top: 12px; padding: 12px 14px; background: #FFF7ED; border-left: 3px solid #F59E0B; border-radius: 0 6px 6px 0; font-size: 13px; color: #92400E; line-height: 1.6;">Check which competitors open earlier or close later than you. If a competitor serves customers during hours you are closed you are losing those customers permanently. Review the table above and adjust your hours to avoid leaving customers without a local option.</div>`;
+
   return `<div class="section">
   <h2 id="hours-comparison">Hours comparison</h2>
   <p style="color: #6B7280; font-size: 13px; margin-bottom: 14px;">You vs your top competitors. Times shown in 24-hour format.</p>
@@ -7148,7 +7090,7 @@ ${insights.map((i) => `<div style="padding: 10px 14px; background: #F8FAFC; bord
   ${naFootnoteHtml}
   ${yourHoursUnreadableHtml}
   ${noCompHoursFallback}
-  ${gapInsightsHtml}
+  ${hoursActionNote}
 </div>`;
 }
 

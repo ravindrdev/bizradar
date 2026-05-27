@@ -322,40 +322,21 @@ Example:
     Templates → tasting room scripts
     Seasonal strategy → harvest season
 
-WEB SEARCH — MANDATORY FOR LOCAL CONTEXT:
+WEB SEARCH RESULTS ARE PRE-LOADED:
+Real-time web search results have already been gathered and are
+included at the bottom of the user prompt under the
+WEB SEARCH RESULTS section.
 
-You have access to web search.
-USE IT to find real local information that is not in the data bundle.
+You do NOT have a web_search tool.
+You do NOT need to search for anything.
+All local information you need is already provided in the data
+bundle and the WEB SEARCH RESULTS section.
 
-ALWAYS search for:
-1. Famous tourist attractions near the business city and state.
-   Search: "famous tourist attractions near {city} {state}"
-
-2. Annual visitor counts for any attraction you plan to mention.
-   Search: "{attraction name} annual visitors {state}"
-
-3. Upcoming local events not in the Ticketmaster data.
-   Search: "events {city} {state} 2026"
-
-4. Local landmarks and points of interest near the business.
-   Search: "things to do near {city} {state}"
-
-RULES for web search results:
-  Only use attractions that are REAL and VERIFIED by search results.
-  Never invent visitor counts.
-  Always cite real numbers from search results.
-  Prioritize attractions within 25 miles of the business.
-  Focus on attractions with 100,000+ annual visitors.
-
-EXAMPLE for AmericInn Dodgeville WI:
-  Search finds:
-    House on the Rock — 500,000 visitors/year, 22km away ✅
-    Cave of the Mounds — 100,000 visitors/year, 14km away ✅
-    Governor Dodge State Park — 234,000 visitors/year, 5km ✅
-
-  Claude writes specific recommendations for each major attraction found.
-
-DO NOT mention attractions that web search cannot verify as real and nearby.
+Use the pre-loaded search results to write specific local insights
+about attractions, events, and competitor weaknesses.
+Only use attractions and facts that appear in the WEB SEARCH RESULTS.
+Never invent visitor counts.
+Always cite real numbers from the search results provided.
 
 REVIEW RECENCY — BANNED TOPIC:
 Never mention how many days ago the last review was.
@@ -763,6 +744,7 @@ DATA FIELDS to draw from when generating actions:
   census.median_household_income→ pricing/positioning action
   weather.has_cold_winter       → off-season survival action
   weather.peak_month            → peak-prep action
+  building_permits              → building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
   google.rating                 → rating-improvement action (review)
   google.review_count           → review-volume action (review)
 
@@ -800,20 +782,12 @@ goes LAST" ordering for this specific case):
          website exists but Google cannot find or index it. All
          three mean customers searching online cannot easily
          find your business.'
-  why: Use the web_search tool to find ONE real verified
-       statistic about local businesses and online presence
-       from a credible source (Google, BrightLocal, Deloitte,
-       Pew Research, BIA Advisory, Clutch, GoDaddy, Square,
-       Verisign, etc.). Quote the statistic, the source name,
-       and the year. Examples of the SHAPE you are looking for
-       (do NOT use these numbers — find your own via web
-       search): "X% of consumers research a local business
-       online before visiting [Source, Year]" or "Businesses
-       without a website lose Y% of potential customers
-       [Source, Year]". NEVER invent, estimate, round, or
-       paraphrase statistics. If web_search returns no usable
-       stat, write a generic sentence about online discovery
-       being important — do NOT make up a number.
+  why: If the WEB SEARCH RESULTS section contains a relevant
+       statistic about local businesses and online presence,
+       quote it with the source name and year. If no usable
+       statistic is in the pre-loaded search results, write a
+       generic sentence about online discovery being important.
+       NEVER invent, estimate, round, or paraphrase statistics.
   action: 'Contact GrowthIM Support at support@growthim.com to
            get help building a professional business website at
            reasonable prices or to fix your existing website so
@@ -1726,15 +1700,16 @@ STRICT RULES FOR competitor_deep_dive (FIX 6):
   evidence in the bundle: amenities, services, pricing, hours,
   facilities, menu, policies, staff, atmosphere, specialties
 
-WEB SEARCH FOR MISSING NEGATIVE REVIEWS (FIX 7):
-If a competitor has no negative reviews (no 1-star or 2-star reviews)
-in the data bundle, you MUST perform a web search to find complaints:
-  Search query: "[competitor name] [city] complaints OR negative reviews OR problems 2025"
-Use ONLY what the web search actually returns as evidence.
-If the web search finds nothing, write:
-  their_weakness: [{ "complaint": "No specific complaints found in public reviews.", "evidence": "[INFERRED FROM DATA]: Web search returned no specific complaints for this competitor.", "your_opportunity": "No documented weakness found — focus on your own strengths." }]
+COMPETITOR WEAKNESSES FROM PRE-LOADED SEARCH RESULTS (FIX 7):
+Competitor complaint information has been pre-searched and is
+available in the WEB SEARCH RESULTS section at the bottom of the
+user prompt. Use those results to identify competitor weaknesses.
+If no complaint information is found in the WEB SEARCH RESULTS for
+a specific competitor, write:
+  their_weakness: [{ "complaint": "No specific complaints found in public reviews.", "evidence": "[INFERRED FROM DATA]: No specific complaints found for this competitor.", "your_opportunity": "No documented weakness found — focus on your own strengths." }]
 NEVER invent weaknesses. NEVER fabricate complaints. NEVER guess what
-might be wrong. Only use verified information from web search results.
+might be wrong. Only use verified information from the search results
+already provided.
 
 5. steal_their_customers — ONE paragraph, MAX 80 words. Must
    include:
@@ -2134,12 +2109,14 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       nearest_transit_meters: data.nearest_transit_meters,
     } : null,
     building_permits: data.building_permits ? {
-      county_name: data.county_name,
-      county_fips: data.county_fips,
-      year: data.building_permits_year,
-      total: data.building_permits_total,
-      single_family: data.building_permits_single_family,
+      county_name:    data.county_name,
+      county_fips:    data.county_fips,
+      year:           data.building_permits_year,
+      total:          data.building_permits_total,
+      single_family:  data.building_permits_single_family,
       yoy_change_pct: data.building_permits_yoy_change,
+      prior_year:     data.building_permits_prior_year || null,
+      prior_total:    data.building_permits_prior_year_total || null,
     } : null,
     upcoming_events: Array.isArray(data.upcoming_events) ? data.upcoming_events : [],
     // Phase 5+ - 3 new keyless data sources, populated by server.js when
@@ -2262,7 +2239,7 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
 // ───────────────────────────────────────────────────────────────────
 // Build the user prompt from the bundle
 // ───────────────────────────────────────────────────────────────────
-function buildUserPrompt(bundle) {
+function buildUserPrompt(bundle, searchResults = '') {
   const b = bundle.business;
   const g = bundle.google;
   const c = bundle.competitors;
@@ -2331,14 +2308,74 @@ Transit: ${transitDesc}`;
     const trend = bp.yoy_change_pct == null
       ? 'no prior-year comparison available'
       : bp.yoy_change_pct > 5
-      ? `growing market (+${bp.yoy_change_pct}% YoY)`
+      ? `growing (${bp.yoy_change_pct}% YoY)`
       : bp.yoy_change_pct < -5
-      ? `declining market (${bp.yoy_change_pct}% YoY)`
-      : `stable market (${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY)`;
-    permitsSection = `\nCounty building permits (${bp.county_name || 'county'}, ${bp.year}, HUD/Census BPS):
+      ? `declining (${bp.yoy_change_pct}% YoY)`
+      : `stable (${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY)`;
+    const priorLine = bp.prior_year && bp.prior_total
+      ? `\nPrior year (${bp.prior_year}): ${bp.prior_total} total permits`
+      : '';
+    permitsSection = `
+County building permits
+(${bp.county_name}, ${bp.year},
+U.S. Census Bureau BPS):
 Total residential permits: ${bp.total}
 Single-family: ${bp.single_family ?? '-'}
-Trend: ${trend}`;
+Market trend: ${trend}${priorLine}
+
+Only use this data if it genuinely
+adds value to the report for this
+specific business type.
+
+If you cannot connect the permit
+data to a real actionable insight
+for this owner do not mention it.
+Do not force a connection that
+does not exist.
+
+If you do use it connect it to a
+specific opportunity or risk for
+this exact business. Never just
+report the number alone.
+
+When permit data IS relevant here
+is how to use it by business type:
+
+For service businesses (salons,
+dentists, gyms, vets, cleaners):
+New permits mean new residents
+actively forming new habits and
+choosing local providers for the
+first time. First mover wins their
+loyalty for years.
+
+For restaurants and cafes:
+New households are exploring local
+dining options with no loyalty yet.
+One great experience locks them in
+as regulars.
+
+For hotels and hospitality:
+New construction means construction
+crews needing extended stay lodging
+AND new residents hosting visiting
+family who need nearby accommodation.
+
+For retail:
+New households are furnishing and
+equipping homes and spending more
+than at any other lifecycle point.
+
+If permits are growing use this as
+a new customer acquisition signal.
+
+If permits are declining focus on
+retention and loyalty of existing
+customers rather than new acquisition.
+
+If permits are stable note the
+steady demand base and focus on
+capturing share from competitors.`;
   }
   let eventsSection = '';
   const events = Array.isArray(bundle.upcoming_events) ? bundle.upcoming_events : [];
@@ -2640,7 +2677,7 @@ Rules reminder:
   • upcoming_events: build seasonal opportunity ideas around named events (cross-promotion, event-day specials, partnership with the listed venues)
   • weather: seasonal off-peak ideas if has_cold_winter, peak-demand pricing ideas if has_hot_summer
   • location_signals: anchor-tenant partnership ideas if anchor_tenants is non-empty
-  • building_permits: new-mover-targeting opportunities if trend is growing, contractor-partnership ideas if single-family permits are high
+  • building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
   • nearby_venues: name actual Foursquare venues from the list above for partnership / cross-traffic / walkability ideas. Don't say "nearby restaurants" - say "Establishment X across the street."
   • tripadvisor: use sub-ratings to identify the SPECIFIC service gap to fix (the lowest sub-rating is the highest-leverage fix; cite the exact sub-rating value). Use trip_types to identify which customer segment dominates and which one is underserved (the smallest non-zero segment is often a growth opportunity). If value_gap_detected is true, the fix is price-to-perceived-quality, not raw quality.
   • bls_employment: reference the actual sector-wide employment level + period for education/professional/healthcare/construction/retail opportunities (talent-pipeline ideas, hiring partnerships with local schools, B2B-to-employer ideas). Cite the exact number.
@@ -2649,7 +2686,16 @@ Rules reminder:
   • npi: flag if NPI status is not Active - patients verify NPI before booking; an inactive NPI is a hard stop. Always reference the NPI number.
   • hud_fmr: use the actual rental rates ($studio / $1BR / $2BR) for pricing-strategy opportunities in real-estate / property-management contexts. Compare your pricing to FMR to find positioning gaps.
   • fdic: compare deposit and asset size to the top community banks in the state for community-banking strategy. If deposits are under $100M, target growth-niche ideas; over $1B, target retention.
-- JSON only in response`;
+- JSON only in response${searchResults ? `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WEB SEARCH RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The following information was gathered from live web searches
+conducted before this call. Use this data to write specific local
+insights about attractions, events, and competitor weaknesses.
+
+${searchResults}` : ''}`;
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -2752,6 +2798,7 @@ Generate 4-6 risks. AT LEAST 1 must be HIGH severity.
 SELECTION RULES — use real data signals:
   upcoming_events                → event execution risk
   weather.has_cold_winter        → winter cash-flow risk
+  building_permits               → building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
   competitors.top5 (review velocity) → competitive encroachment
   google.photo_count < 20        → visibility risk
 
@@ -2941,6 +2988,7 @@ RULES:
 - Reference actual language from the reviews when it fits — it mirrors how customers think
 - No generic marketing clichés — every sentence must be actionable and grounded in specifics
 - All 9 fields must be present and non-empty strings
+- building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
 - Return ONLY a valid JSON array. No preamble, no markdown, no code fences.`;
 
 // ───────────────────────────────────────────────────────────────────
@@ -3011,6 +3059,7 @@ RULES:
 - Reference actual language from the reviews when it fits — it mirrors how customers already think
 - No generic marketing clichés — every sentence must be actionable and specific to this business
 - All 9 fields must be present and non-empty strings
+- building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
 - Return ONLY a valid JSON array. No preamble, no markdown, no code fences.`;
 
 // ───────────────────────────────────────────────────────────────────
@@ -3050,6 +3099,22 @@ function buildUserPromptB(bundle, priorityActionIds) {
     ? priorityActionIds.map((id) => `  • ${id}`).join('\n')
     : '  (no triggered actions - generate templates for the strongest universal levers: review-ask script, referral-ask script, loyalty enrollment)';
 
+  const bpSectionB = (() => {
+    const bp = bundle.building_permits;
+    if (!bp || bp.total == null) return '';
+    const trend = bp.yoy_change_pct == null
+      ? 'no comparison available'
+      : `${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY`;
+    return `
+County building permits
+(${bp.county_name}, ${bp.year}):
+${bp.total} total permits (${trend})
+Only use this if it genuinely adds
+value for this business type.
+If relevant use it when writing
+risk analysis and mitigations.`;
+  })();
+
   return `Generate key_risks and execution_templates for this business.
 
 Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
@@ -3074,7 +3139,7 @@ Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '-
 Weather / seasonality: ${weatherLine}
 
 Anchor tenants within 500m: ${anchorLine}
-
+${bpSectionB}
 Upcoming events within 10 miles, next 90 days:
 ${eventLines}
 
@@ -3117,6 +3182,23 @@ function buildUserPromptC1(enriched, bundle) {
       ).join('\n')
     : '  (no priority actions)';
 
+  const bpSectionC1 = (() => {
+    const bp = bundle.building_permits;
+    if (!bp || bp.total == null) return '';
+    const trend = bp.yoy_change_pct == null
+      ? 'no comparison available'
+      : `${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY`;
+    return `
+County building permits context
+(${bp.county_name}, ${bp.year}):
+${bp.total} total permits (${trend})
+Only reference this in local_logic
+or revenue_driver fields if it
+genuinely adds value for this
+specific business type.
+Do not force a connection.`;
+  })();
+
   return `Generate psychology_deep for each priority action listed below.
 
 Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
@@ -3126,7 +3208,7 @@ Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
 
 Top competitors:
 ${competitorLines}
-
+${bpSectionC1}
 Customer reviews (verbatim — use this language when writing psychology fields):
 ${reviewLines}
 
@@ -3163,6 +3245,23 @@ function buildUserPromptC2(enriched, bundle) {
       ).join('\n')
     : '  (no opportunities)';
 
+  const bpSectionC2 = (() => {
+    const bp = bundle.building_permits;
+    if (!bp || bp.total == null) return '';
+    const trend = bp.yoy_change_pct == null
+      ? 'no comparison available'
+      : `${bp.yoy_change_pct >= 0 ? '+' : ''}${bp.yoy_change_pct}% YoY`;
+    return `
+County building permits context
+(${bp.county_name}, ${bp.year}):
+${bp.total} total permits (${trend})
+Only reference this in local_logic
+or revenue_driver fields if it
+genuinely adds value for this
+specific business type.
+Do not force a connection.`;
+  })();
+
   return `Generate psychology_deep for each opportunity listed below.
 
 Business: <business_name>${sanitizeForPrompt(b.name, 200) || '-'}</business_name>
@@ -3172,7 +3271,7 @@ Rating: ${g.rating ?? '-'} stars (${g.review_count ?? '-'} reviews)
 
 Top competitors:
 ${competitorLines}
-
+${bpSectionC2}
 Customer reviews (verbatim — use this language when writing psychology fields):
 ${reviewLines}
 
@@ -3184,31 +3283,274 @@ Return ONLY valid JSON array. No markdown.`;
 }
 
 // ───────────────────────────────────────────────────────────────────
+// isRetryable - shared helper for Phase 1 and Phase 2 retry logic.
+// Returns true for transient Anthropic errors worth retrying once.
+// ───────────────────────────────────────────────────────────────────
+function isRetryable(err) {
+  if (!err) return false;
+  const msg = (err.message || '').toLowerCase();
+  return (
+    err.name === 'AbortError' ||
+    err.name === 'APIConnectionTimeoutError' ||
+    err.code === 'ETIMEDOUT' ||
+    msg.includes('timeout') ||
+    msg.includes('terminated') ||
+    msg.includes('overloaded')
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────
+// callClaudePlanSearches - Phase 1 of the pre-fetch architecture.
+// Asks Claude to plan which web searches are needed for this report.
+// Fast non-streaming call, no tools. Returns array of query strings.
+// ───────────────────────────────────────────────────────────────────
+const PLAN_SEARCHES_SYSTEM = `You are a research planner for a local business market intelligence report.
+
+You will receive a data bundle about a specific business. Your ONLY job is to return a JSON array of web search queries that would add the most value to this report.
+
+RULES:
+Only suggest searches for information that is genuinely missing from the data bundle provided.
+
+Do NOT suggest searches for:
+- Business rating or review count (already in bundle)
+- Competitor names or ratings (already in bundle)
+- Census population or income data (already in bundle)
+- Weather or seasonal data (already in bundle)
+- Building permits data (already in bundle)
+- BLS employment data (already in bundle)
+- PageSpeed scores (already in bundle)
+
+DO suggest searches for:
+
+1. TOURIST ATTRACTIONS (always search):
+   Famous attractions near the business that would draw visitors.
+   Format: famous tourist attractions near [city] [state]
+
+2. VISITOR COUNTS (always search):
+   Annual visitor counts for any major attraction near the business.
+   Format: [attraction name] annual visitors [state]
+
+3. LOCAL EVENTS (conditional):
+   Only if fewer than 5 upcoming events are in the bundle, search for more.
+   Format: events [city] [state] 2026
+   Also: festivals [city] [state] 2026
+
+4. COMPETITOR COMPLAINTS (always search):
+   Negative reviews and complaints for each competitor in the bundle.
+   One search per competitor.
+   Format: [competitor name] [city] complaints OR negative reviews 2025
+
+5. LOCAL BUSINESS NEWS (conditional):
+   Only if the city population is over 50000, search for recent developments.
+   Format: [city] [state] business news 2026
+   Format: [city] [state] new development 2026
+
+6. SECTOR SPECIFIC (conditional):
+   Only if relevant to this business type.
+   Format: best [business type] [city] [state] 2026
+
+OUTPUT FORMAT:
+Return a valid JSON array of strings only.
+No preamble. No explanation.
+Start with [ and end with ]
+Maximum 15 search queries total.
+Minimum 4 search queries.`;
+
+async function callClaudePlanSearches(bundle) {
+  if (!client) return null;
+  const b = bundle.business || {};
+  const g = bundle.google || {};
+  const c = bundle.competitors || {};
+  const cs = bundle.census || {};
+
+  const top5 = Array.isArray(c.top5) ? c.top5 : [];
+  const competitorLines = top5.length
+    ? top5.map((x) => `  - ${x.name} (${x.distance_miles} mi)`).join('\n')
+    : '  (none)';
+  const eventsCount = Array.isArray(bundle.upcoming_events)
+    ? bundle.upcoming_events.length
+    : 0;
+
+  const userPrompt =
+    `Business: ${b.name || '(unknown)'}
+Type: ${b.sector_label || '(unknown)'}
+City: ${b.city || '(unknown)'}
+State: ${b.state || '(unknown)'}
+Upcoming events in bundle: ${eventsCount}
+City population: ${cs.population != null ? cs.population.toLocaleString('en-US') : 'unknown'}
+
+Top competitors:
+${competitorLines}`;
+
+  const PLAN_TIMEOUT_MS = 60 * 1000;
+
+  // Helper: run one planning attempt with its own AbortController.
+  async function attemptPlan() {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), PLAN_TIMEOUT_MS);
+    try {
+      const res = await client.messages.create(
+        {
+          model: MODEL,
+          max_tokens: 1000,
+          system: PLAN_SEARCHES_SYSTEM,
+          messages: [{ role: 'user', content: userPrompt }],
+        },
+        { signal: ac.signal }
+      );
+      const raw = (res.content || [])
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text)
+        .join('');
+      const start = raw.indexOf('[');
+      const end   = raw.lastIndexOf(']');
+      if (start === -1 || end === -1 || end < start) {
+        console.warn('[search] plan parse failed - no JSON array in response');
+        throw new Error('PLAN_PARSE_FAIL');
+      }
+      const parsed = JSON.parse(raw.slice(start, end + 1));
+      if (!Array.isArray(parsed)) throw new Error('PLAN_NOT_ARRAY');
+      return parsed.filter((q) => typeof q === 'string' && q.trim().length > 0);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Build the default fallback array used when both attempts fail.
+  function planDefaults() {
+    const city  = b.city  || '';
+    const state = b.state || '';
+    const type  = b.sector_label || 'business';
+    const d = [
+      `famous tourist attractions near ${city} ${state}`,
+      `events ${city} ${state} 2026`,
+      `best ${type} ${city} ${state} 2026`,
+    ];
+    if (top5.length > 0) {
+      d.push(`${top5[0].name} ${city} complaints OR negative reviews 2025`);
+    }
+    return d;
+  }
+
+  // First attempt.
+  try {
+    return await attemptPlan();
+  } catch (err) {
+    if (isRetryable(err)) {
+      console.log('[search:plan] retrying after error:', err.message);
+      await new Promise((r) => setTimeout(r, 3000));
+      // Second attempt — fall through to defaults on any failure.
+      try {
+        return await attemptPlan();
+      } catch (err2) {
+        console.warn('[search:plan] retry also failed (' + (err2.message || err2) + ') - using default queries');
+        return planDefaults();
+      }
+    }
+    // Non-retryable error — go straight to defaults.
+    console.warn('[search] planning failed (' + (err.message || err) + ') - using default queries');
+    return planDefaults();
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// runParallelSearches - Phase 2 of the pre-fetch architecture.
+// Fires all planned queries in parallel using individual short calls
+// each capped at one web search. Returns combined formatted string.
+// ───────────────────────────────────────────────────────────────────
+async function runParallelSearches(queries) {
+  if (!queries || queries.length === 0) return '';
+
+  async function runOneSearch(query) {
+    console.log('[search] running:', query);
+    const SEARCH_TIMEOUT_MS = 45 * 1000;
+
+    // Helper: one search attempt with its own AbortController.
+    async function attemptSearch() {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), SEARCH_TIMEOUT_MS);
+      try {
+        const res = await client.messages.create(
+          {
+            model: MODEL,
+            max_tokens: 500,
+            tools: [
+              {
+                type: 'web_search_20250305',
+                name: 'web_search',
+                max_uses: 1,
+              },
+            ],
+            messages: [{ role: 'user', content: query }],
+          },
+          { signal: ac.signal }
+        );
+        // Extract text from all text blocks in the response.
+        const text = (res.content || [])
+          .filter((b) => b.type === 'text' && b.text && b.text.trim())
+          .map((b) => b.text.trim())
+          .join('\n');
+        return text || '(no results)';
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // First attempt.
+    try {
+      const result = await attemptSearch();
+      console.log('[search] done:', query);
+      return result;
+    } catch (err) {
+      if (isRetryable(err)) {
+        console.log('[search] retrying:', query);
+        await new Promise((r) => setTimeout(r, 2000));
+        // Second attempt — return empty string on any failure.
+        try {
+          const result = await attemptSearch();
+          console.log('[search] done (retry):', query);
+          return result;
+        } catch (err2) {
+          console.warn('[search] retry failed:', query, '-', err2.message || err2);
+          return '';
+        }
+      }
+      // Non-retryable error — skip this search.
+      console.warn('[search] failed:', query, '-', err.message || err);
+      return '';
+    }
+  }
+
+  const results = await Promise.allSettled(queries.map((q) => runOneSearch(q)));
+
+  const parts = [];
+  for (let i = 0; i < queries.length; i++) {
+    const r = results[i];
+    const text = r.status === 'fulfilled' ? r.value : '';
+    if (text && text.trim()) {
+      parts.push(`Query: ${queries[i]}\nResult: ${text}`);
+    }
+  }
+  return parts.join('\n\n---\n\n');
+}
+
+// ───────────────────────────────────────────────────────────────────
 // callClaudeEnrichA - existing fields + competitor_deep_dive
 // ───────────────────────────────────────────────────────────────────
-async function callClaudeEnrichA(bundle) {
-  const userPrompt = buildUserPrompt(bundle);
+async function callClaudeEnrichA(bundle, searchResults = '') {
+  const userPrompt = buildUserPrompt(bundle, searchResults);
   // Build params once so the truncation-retry can clone them with a
   // bumped max_tokens. cache_control is preserved so the retry reads
   // the now-warm system-prompt cache (cheap input).
+  // NOTE: web_search tool removed - searches are now pre-fetched in
+  // parallel before this call (see callClaudePlanSearches +
+  // runParallelSearches in enrichWithClaude). Call A is now a pure
+  // text-generation call which keeps streams short and avoids the
+  // 5-minute termination that occurred when Claude fired 10-15 live
+  // web searches during streaming.
   const requestParams = {
     model: MODEL,
     max_tokens: MAX_TOKENS_A,
-    // Anthropic-hosted web search - Claude can search the live web
-    // during generation. Used to surface real local attractions,
-    // visitor counts, and events that aren't in the deterministic
-    // bundle. See SYSTEM_PROMPT_A's WEB SEARCH section for usage rules.
-    // Cost: ~$10 per 1,000 searches. Audit fix CE2 - hard cap at 45
-    // searches per Call A so a runaway loop can't burn unbounded
-    // budget. Typical Call A uses 3-8 searches; 45 is generous
-    // headroom for sector-deep reports without uncapped cost.
-    tools: [
-      {
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: 45,
-      },
-    ],
     system: [
       {
         type: 'text',
@@ -3257,7 +3599,11 @@ async function callClaudeEnrichA(bundle) {
           (err && err.name === 'APIConnectionTimeoutError') ||
           (err && err.code === 'ETIMEDOUT') ||
           (err && err.message &&
-           err.message.toLowerCase().includes('timeout'))
+           err.message.toLowerCase().includes('timeout')) ||
+          (err && err.message &&
+           err.message.toLowerCase().includes('terminated')) ||
+          (err && err.message &&
+           err.message.toLowerCase().includes('overloaded'))
         ) {
           throw new Error('CALL_A_TIMEOUT');
         }
@@ -3761,11 +4107,26 @@ async function enrichWithClaude(bundle) {
     ? bundle.triggered_rec_ids
     : [];
 
+  // ── Pre-fetch: Phase 1 - plan searches, Phase 2 - run in parallel ──
+  // This replaces the old live web_search tool inside Call A's stream.
+  // Searches now complete BEFORE Call A starts so the main generation
+  // call is a pure text call (no tools, no round-trips, short stream).
+  console.log('[search] planning queries...');
+  const searchQueries = await callClaudePlanSearches(bundle);
+  console.log('[search] planned', searchQueries ? searchQueries.length : 0, 'searches');
+
+  let searchResults = '';
+  if (searchQueries && searchQueries.length > 0) {
+    console.log('[search] running', searchQueries.length, 'searches in parallel...');
+    searchResults = await runParallelSearches(searchQueries);
+    console.log('[search] all searches done');
+  }
+
   // ── Step 1: Call A (must complete before C1/C2 can start) ──────────
   const tA = Date.now();
   let textA = null;
   try {
-    textA = await callClaudeEnrichA(bundle);
+    textA = await callClaudeEnrichA(bundle, searchResults);
   } catch (err) {
     console.error('[claude:A] unexpected throw:', err.message);
   }

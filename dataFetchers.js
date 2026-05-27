@@ -7,6 +7,7 @@
 // continues to work - the explicit TTL math becomes belt-and-suspenders
 // since LRU handles eviction internally.
 const { LRUCache } = require('lru-cache');
+const { parse: parseCsv } = require('csv-parse/sync');
 
 /* dataFetchers.js - non-Google data sources.
 
@@ -721,6 +722,130 @@ async function fetchCompetitorPageSpeed(businessName, url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// fetchCruxScore - Chrome UX Report (CrUX) API, PHONE form factor
+// ═══════════════════════════════════════════════════════════════════
+// Fallback for competitors whose sites block PSI's headless Chrome
+// (bot-protection, heavy JS). CrUX returns real-user p75 field data
+// from Chrome users, so it succeeds on sites PSI can never load.
+//
+// Returns null on any failure, 404 (origin not in dataset), or
+// timeout — never throws. Accepts http:// origins and also retries
+// with https:// when the first attempt returns null.
+const CRUX_ENDPOINT = 'https://chromeuxreport.googleapis.com/v1/records:queryRecord';
+const CRUX_TTL_MS   = 7 * 24 * 60 * 60 * 1000; // 7 days — same as PSI cache
+const CRUX_CACHE    = new LRUCache({ max: 1000, ttl: CRUX_TTL_MS });
+
+async function _queryCruxOrigin(origin, apiKey) {
+  const cached = CRUX_CACHE.get(origin);
+  if (cached && Date.now() - cached.ts < CRUX_TTL_MS) {
+    console.log(`[cache] crux hit for ${origin}`);
+    return cached.value;
+  }
+
+  const url  = `${CRUX_ENDPOINT}?key=${apiKey}`;
+  const body = JSON.stringify({
+    origin,
+    formFactor: 'PHONE',
+    metrics: [
+      'largest_contentful_paint',
+      'interaction_to_next_paint',
+      'cumulative_layout_shift',
+    ],
+  });
+  const ac    = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 10000);
+  try {
+    const res  = await fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: ac.signal,
+    });
+    // 404 = origin not in CrUX dataset - normal, not an error.
+    if (res.status === 404) {
+      CRUX_CACHE.set(origin, { ts: Date.now(), value: null });
+      return null;
+    }
+    const json = await res.json();
+    if (!res.ok) {
+      console.warn(`[fetch-crux] ${origin} HTTP ${res.status}:`, json?.error?.message || '');
+      return null;
+    }
+    const metrics = json?.record?.metrics;
+    if (!metrics) return null;
+
+    const lcpP75 = metrics.largest_contentful_paint?.percentiles?.p75  ?? null;
+    const inpP75 = metrics.interaction_to_next_paint?.percentiles?.p75  ?? null;
+    const clsP75 = metrics.cumulative_layout_shift?.percentiles?.p75    ?? null;
+
+    if (lcpP75 == null && inpP75 == null && clsP75 == null) return null;
+
+    // Per-metric ratings.
+    const lcpRating = lcpP75 == null ? null
+      : lcpP75 < 2500 ? 'good' : lcpP75 <= 4000 ? 'needs-improvement' : 'poor';
+    const inpRating = inpP75 == null ? null
+      : inpP75 < 200  ? 'good' : inpP75 <= 500   ? 'needs-improvement' : 'poor';
+    const clsRating = clsP75 == null ? null
+      : clsP75 < 0.10 ? 'good' : clsP75 <= 0.25  ? 'needs-improvement' : 'poor';
+
+    // Convert 3-rating combo to a 0-100 score.
+    const ratings = [lcpRating, inpRating, clsRating].filter(Boolean);
+    const goodCount = ratings.filter((r) => r === 'good').length;
+    const niCount   = ratings.filter((r) => r === 'needs-improvement').length;
+    const poorCount = ratings.filter((r) => r === 'poor').length;
+
+    let score;
+    if (poorCount === 0 && niCount === 0) score = 90;         // all 3 good
+    else if (goodCount === 2 && niCount === 1) score = 75;    // 2G 1NI
+    else if (goodCount === 1 && niCount === 2) score = 55;    // 1G 2NI
+    else if (goodCount === 2 && poorCount === 1) score = 60;  // 2G 1P
+    else if (goodCount === 1 && niCount === 1 && poorCount === 1) score = 45; // mixed
+    else if (poorCount >= 2 && goodCount > 0) score = 35;    // 2P
+    else if (poorCount >= 2) score = 35;                      // 2+ poor
+    else if (poorCount === 3) score = 20;                     // all poor
+    else score = 45;                                          // fallback
+
+    const value = {
+      mobile_score: score,
+      load_time_seconds: null,  // CrUX doesn't expose raw load time
+      source: 'crux',
+      lcp_ms: lcpP75,
+      lcp_rating: lcpRating,
+    };
+    console.log(`[fetch-crux] ${origin} → score:${score} lcp:${lcpP75}ms(${lcpRating}) inp:${inpP75}ms(${inpRating}) cls:${clsP75}(${clsRating})`);
+    CRUX_CACHE.set(origin, { ts: Date.now(), value });
+    return value;
+  } catch (err) {
+    console.warn(`[fetch-crux] ${origin} failed:`, err.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchCruxScore(websiteUrl, apiKey) {
+  if (!websiteUrl || !apiKey) return null;
+  try {
+    const withProto = /^https?:\/\//i.test(websiteUrl) ? websiteUrl : 'https://' + websiteUrl;
+    const origin    = new URL(withProto).origin;
+
+    const result = await _queryCruxOrigin(origin, apiKey);
+    if (result) return result;
+
+    // If the origin used http://, also try https:// as a fallback.
+    if (origin.startsWith('http://')) {
+      const httpsOrigin = 'https://' + origin.slice('http://'.length);
+      console.log(`[fetch-crux] retrying with https: ${httpsOrigin}`);
+      return _queryCruxOrigin(httpsOrigin, apiKey);
+    }
+    return null;
+  } catch (err) {
+    console.warn('[fetch-crux] bad URL:', websiteUrl, err.message);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Phase 5+ - fetchLocationSignals (Overpass API, OpenStreetMap)
 // ═══════════════════════════════════════════════════════════════════
 // Combined query for anchor tenants (within 500m) + transit (within 800m)
@@ -850,24 +975,25 @@ out center tags;`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Phase 5+ - fetchBuildingPermits (HUD residential permits)
+// Phase 5+ - fetchBuildingPermits
+// Source: U.S. Census Bureau Building Permits Survey (BPS) 2025
 // ═══════════════════════════════════════════════════════════════════
-// Two-step pipeline:
-//   1. Census geocoder (free, no key) → county FIPS-5 from a street address
-//   2. HUD ArcGIS FeatureServer (layer 24) → annual permits for that county
+// Replaces HUD ArcGIS (data frozen at 2022). Downloads Census BPS
+// county annual file — plain comma-delimited text, no ZIP, no key.
+//   URL: https://www2.census.gov/econ/bps/County/co{year}a.txt
+//   Format: rows 0-1 = headers, row 2 = blank, rows 3+ = data
+//   Col 1 = state FIPS, col 2 = county FIPS, col 5 = county name
+//   Col 6 = 1-unit bldgs, 9 = 2-unit bldgs, 12 = 3-4 unit bldgs, 15 = 5+ bldgs
 //
-// Confirmed via _probe_hud.js + testApis.js:
-//   - Service has only one layer (id=24, name RESIDENTIAL_CONSTRUCTION_PERMITS_BY_COUNTY_22)
-//   - 267 fields per row, annual permit counts 1980→2022 in `ALL_PERMITS_YYYY`,
-//     `SINGLE_FAMILY_PERMITS_YYYY`, `ALL_MULTIFAMILY_PERMITS_YYYY` triplets.
-//   - One row per U.S. county keyed on `GEOID` (5-digit FIPS as a string).
-//
-// Cache: 30 days per FIPS - same county yields the same data forever, so
-// a small in-memory map is plenty.
+// County matching uses state_fips AND county_fips (&&) — never by name,
+// so Iowa County WI (55-049) is never confused with Iowa County IA (19-093).
+// Tries 2025 first; falls back to 2024 if 2025 returns no match.
+// Prior year fetched alongside current year for YoY comparison.
+// Cache: 30 days per FIPS.
 const PERMITS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PERMITS_CACHE = new LRUCache({ max: 1000, ttl: PERMITS_TTL_MS });
 
-const HUD_URL = 'https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/Residential_Construction_Permits_by_County/FeatureServer/24/query';
+const BPS_BASE = 'https://www2.census.gov/econ/bps/County/';
 const CENSUS_GEOCODER_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/address';
 
 // Pull street / city / state out of a Google formatted_address string.
@@ -926,50 +1052,68 @@ async function fetchCountyFIPS(street, city, state) {
   }
 }
 
-// Find every annual permit field in the row, pick the latest year, return
-// {year, all, single_family, multifamily} for that year + the prior year
-// for YoY comparison.
-function extractLatestPermits(attrs) {
-  const allRe = /^ALL_PERMITS_(\d{4})$/;
-  const sfRe = /^SINGLE_FAMILY_PERMITS_(\d{4})$/;
-  const mfRe = /^ALL_MULTIFAMILY_PERMITS_(\d{4})$/;
+// Parse a Census BPS county annual text file into an array of row objects.
+// Skips the 2-row header block and the blank separator line (rows 0-2).
+// Column layout (0-based, from the BPS file spec):
+//   0=year  1=state_fips  2=county_fips  3=region  4=division  5=county_name
+//   6=1-unit bldgs  9=2-unit bldgs  12=3-4-unit bldgs  15=5+-unit bldgs
+function parseBpsFile(text) {
+  const lines = text.split('\n');
+  // Rows 0-1 are group/sub-headers; row 2 is blank; rows 3+ are data.
+  const dataText = lines.slice(3).join('\n');
+  const rows = parseCsv(dataText, {
+    columns: false,
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+  });
+  return rows.map((r) => {
+    const bldgs1  = parseInt(r[6],  10) || 0;
+    const bldgs2  = parseInt(r[9],  10) || 0;
+    const bldgs34 = parseInt(r[12], 10) || 0;
+    const bldgs5p = parseInt(r[15], 10) || 0;
+    return {
+      year:              (r[0] || '').trim(),
+      state_fips:        (r[1] || '').trim().padStart(2, '0'),
+      county_fips:       (r[2] || '').trim().padStart(3, '0'),
+      county_name:       (r[5] || '').trim(),
+      bldgs_1unit:       bldgs1,
+      bldgs_2unit:       bldgs2,
+      bldgs_34unit:      bldgs34,
+      bldgs_5plus:       bldgs5p,
+      total_bldgs:       bldgs1 + bldgs2 + bldgs34 + bldgs5p,
+      multifamily_bldgs: bldgs2 + bldgs34 + bldgs5p,
+    };
+  });
+}
 
-  const years = new Set();
-  for (const k of Object.keys(attrs || {})) {
-    const m = k.match(allRe);
-    if (m && typeof attrs[k] === 'number') years.add(parseInt(m[1], 10));
+// Fetch and parse one year's Census BPS county file.
+// Returns null on network failure, timeout, or HTTP error — never throws.
+async function fetchBpsYear(year) {
+  const url = `${BPS_BASE}co${year}a.txt`;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 10000);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'GrowthIM/1.0 (Census BPS fetch)' },
+      signal: ac.signal,
+    });
+    if (!res.ok) {
+      console.warn(`[fetch-permits] Census BPS ${year} HTTP ${res.status}`);
+      return null;
+    }
+    const text = await res.text();
+    if (!text || text.length < 200) {
+      console.warn(`[fetch-permits] Census BPS ${year} returned empty body`);
+      return null;
+    }
+    return parseBpsFile(text);
+  } catch (err) {
+    console.warn(`[fetch-permits] Census BPS ${year} failed: ${err.message}`);
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
-  if (!years.size) return null;
-  const sorted = [...years].sort((a, b) => a - b);
-  const latest = sorted[sorted.length - 1];
-  const prior = sorted[sorted.length - 2];
-
-  const get = (re, year) => {
-    if (year == null) return null;
-    const v = attrs[re === 'all' ? `ALL_PERMITS_${year}` : re === 'sf' ? `SINGLE_FAMILY_PERMITS_${year}` : `ALL_MULTIFAMILY_PERMITS_${year}`];
-    return typeof v === 'number' ? v : null;
-  };
-
-  const latestAll = get('all', latest);
-  const latestSf = get('sf', latest);
-  const latestMf = get('mf', latest);
-  const priorAll = get('all', prior);
-
-  // YoY change as a percentage. Null when prior is missing or zero.
-  let yoyPct = null;
-  if (typeof latestAll === 'number' && typeof priorAll === 'number' && priorAll > 0) {
-    yoyPct = +(((latestAll - priorAll) / priorAll) * 100).toFixed(1);
-  }
-
-  return {
-    year: String(latest),
-    prior_year: prior != null ? String(prior) : null,
-    all_permits: latestAll,
-    single_family: latestSf,
-    multifamily: latestMf,
-    prior_year_all_permits: priorAll,
-    yoy_change_pct: yoyPct,
-  };
 }
 
 async function fetchBuildingPermits(countyFIPS) {
@@ -981,53 +1125,59 @@ async function fetchBuildingPermits(countyFIPS) {
     return cached.value;
   }
 
-  const params = new URLSearchParams({
-    where: `GEOID='${countyFIPS}'`,
-    outFields: '*',
-    f: 'json',
-  });
-  const url = `${HUD_URL}?${params.toString()}`;
+  // Split 5-digit FIPS into state (first 2 digits) + county (last 3 digits).
+  // Both must match (&&) so Iowa County WI (55-049) is never confused with
+  // Iowa County IA (19-093) or any other same-named county in a different state.
+  const stateFips  = countyFIPS.slice(0, 2);
+  const countyFips = countyFIPS.slice(2);
+  const findCounty = (r) => r.state_fips === stateFips && r.county_fips === countyFips;
 
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 5000);
-  try {
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: ac.signal,
-    });
-    if (!res.ok) throw new Error(`HUD HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.error) throw new Error(`ArcGIS ${json.error.code}: ${json.error.message}`);
-    const features = json.features || [];
-    if (!features.length) {
-      console.warn(`[fetch-permits] no features for FIPS ${countyFIPS}`);
-      return null;
-    }
-    const attrs = features[0].attributes || {};
-    const latest = extractLatestPermits(attrs);
-    if (!latest) return null;
+  // Try 2025 first; fall back to 2024 if the file is missing or the county
+  // row is absent (some small counties report late).
+  let rows = await fetchBpsYear('2025');
+  let currentYear = '2025';
+  let priorYear   = '2024';
 
-    const value = {
-      county_fips: countyFIPS,
-      county_name: attrs.NAME || null,
-      state_abbr: attrs.STUSAB || null,
-      state_name: attrs.STATE_NAME || null,
-      building_permits_total: latest.all_permits,
-      building_permits_single_family: latest.single_family,
-      building_permits_multifamily: latest.multifamily,
-      building_permits_year: latest.year,
-      building_permits_prior_year: latest.prior_year,
-      building_permits_prior_year_total: latest.prior_year_all_permits,
-      building_permits_yoy_change: latest.yoy_change_pct,
-    };
-    PERMITS_CACHE.set(countyFIPS, { ts: Date.now(), value });
-    return value;
-  } catch (err) {
-    console.warn('[fetch-permits] HUD query failed:', err.message);
-    return null;
-  } finally {
-    clearTimeout(timer);
+  if (!rows || !rows.find(findCounty)) {
+    console.log(`[fetch-permits] FIPS ${countyFIPS} not in BPS 2025 — trying 2024`);
+    rows = await fetchBpsYear('2024');
+    currentYear = '2024';
+    priorYear   = '2023';
+    if (!rows) return null;
   }
+
+  const current = rows.find(findCounty);
+  if (!current) {
+    console.warn(`[fetch-permits] FIPS ${countyFIPS} not found in Census BPS data`);
+    return null;
+  }
+
+  // Fetch prior year for YoY comparison. Failure is non-fatal.
+  const priorRows = await fetchBpsYear(priorYear);
+  const prior     = priorRows ? priorRows.find(findCounty) : null;
+
+  // YoY change as a percentage. Null when prior is missing or zero.
+  let yoyPct = null;
+  if (prior && prior.total_bldgs > 0) {
+    yoyPct = +(((current.total_bldgs - prior.total_bldgs) / prior.total_bldgs) * 100).toFixed(1);
+  }
+
+  const value = {
+    county_fips:                       countyFIPS,
+    county_name:                       current.county_name || null,
+    state_abbr:                        null,
+    state_name:                        null,
+    building_permits_total:            current.total_bldgs,
+    building_permits_single_family:    current.bldgs_1unit,
+    building_permits_multifamily:      current.multifamily_bldgs,
+    building_permits_year:             currentYear,
+    building_permits_prior_year:       prior ? priorYear : null,
+    building_permits_prior_year_total: prior ? prior.total_bldgs : null,
+    building_permits_yoy_change:       yoyPct,
+  };
+  console.log(`[fetch-permits] Census BPS ${currentYear}: FIPS ${countyFIPS} | total=${value.building_permits_total} sf=${value.building_permits_single_family} yoy=${yoyPct ?? 'n/a'}%`);
+  PERMITS_CACHE.set(countyFIPS, { ts: Date.now(), value });
+  return value;
 }
 
 // Caller convenience: take a Google formatted_address, do geocoding +
@@ -3068,6 +3218,7 @@ module.exports = {
   fetchWeather,
   fetchPageSpeed,
   fetchCompetitorPageSpeed,
+  fetchCruxScore,
   fetchLocationSignals,
   fetchCountyFIPS,
   fetchBuildingPermits,
