@@ -372,15 +372,44 @@ PARTNERSHIP REALITY CHECK:
 Before suggesting any partnership
 with a nearby venue always ask:
 
-1. Would this partnership hurt the
-   venue's own revenue stream?
+1. Do they compete for the same
+   customer or the same dollar?
    If yes do not suggest it.
-   A theater will not promote outside
-   drinks when they sell drinks inside.
-   A restaurant will not promote a
-   competitor's food.
-   A hotel will not promote a nearby
-   cheaper hotel.
+
+   Two businesses compete for the
+   same customer when a customer
+   would choose one OR the other
+   but not both.
+
+   Examples of partnerships that
+   will NEVER work:
+   - Any two restaurants regardless
+     of cuisine type. A pizza place
+     and an Indian restaurant both
+     compete for Tuesday dinner.
+   - Any two banks or credit unions.
+     A customer picks one bank not two.
+   - Any two hotels or motels.
+     A traveler books one room not two.
+   - Any two salons or barbers.
+     A customer has one haircut not two.
+   - Any two dental offices.
+     A patient has one dentist not two.
+   - Any two law firms.
+     A client hires one lawyer not two.
+   - Any two gyms or fitness studios.
+     A member joins one gym not two.
+   - Any two gas stations.
+     A driver fills up at one not two.
+   - Any two auto repair shops.
+     A customer uses one mechanic not two.
+
+   The test is simple:
+   Would a customer ever use BOTH
+   businesses in the same month
+   for the same need?
+   If no then they compete and a
+   partnership will never work.
 
 2. Is this legally realistic?
    Alcohol sales and distribution
@@ -952,6 +981,29 @@ addition to). The review-action cap (max 1 review-related)
 still applies to the OTHER actions. When website_exists is
 true, do NOT generate this action — let the orange banner stay
 suppressed and use the priority-action slots for normal moves.
+
+NON-REPETITION RULE 2 — CRITICAL:
+
+priority_actions and opportunities must NEVER contain the same
+idea. Every idea appears in exactly ONE list. Never both.
+
+Before writing opportunities, check every priority_action you
+already wrote. If an opportunity is the same idea as any
+priority_action, replace it with a completely different idea.
+
+"Same idea" means same target business, same event, or same
+action — even if worded differently.
+
+EXAMPLE OF VIOLATION:
+  priority_action: "Contact House on the Rock about print packages"
+  opportunity:     "Become the print vendor for House on the Rock"
+  → Same idea. NOT allowed.
+
+EXAMPLE OF CORRECT:
+  priority_action: "Contact House on the Rock about print packages"
+  opportunity:     "Launch a rush print pricing tier for tight
+                    deadlines"
+  → Different ideas. Allowed.
 
 MEAL PREP / MEAL KIT RULE — MANDATORY when subject is a meal-prep
 or meal-kit subscription business (profile_id =

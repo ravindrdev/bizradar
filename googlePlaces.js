@@ -1614,62 +1614,83 @@ const NAME_CUISINE_SIGNALS = {
 // chain-name fragment to a query that surfaces the chain's actual
 // peers (e.g. Pizza Hut → Domino's / Papa John's, NOT artisan pizza).
 const CHAIN_CATEGORY_QUERIES = {
-  'pizza hut':          'pizza delivery chain dominos papa johns',
-  'domino':             'pizza delivery chain',
-  'papa john':          'pizza delivery chain',
-  'little caesar':      'pizza value chain',
-  'chipotle':           'fast casual mexican qdoba moe',
-  'qdoba':              'fast casual mexican chipotle',
-  'mcdonald':           'fast food burger chain',
-  'burger king':        'fast food burger chain',
-  'wendy':              'fast food burger chain',
-  'five guys':          'fast casual burger chain',
-  'shake shack':        'fast casual burger chain',
-  'in-n-out':           'fast food burger chain',
-  'whataburger':        'fast food burger chain',
-  'subway':             'fast casual sandwich chain',
-  'jersey mike':        'fast casual sandwich chain',
-  'jimmy john':         'fast casual sandwich chain',
-  'taco bell':          'fast food mexican chain',
-  'del taco':           'fast food mexican chain',
-  'kfc':                'fast food chicken chain',
-  'popeyes':            'fast food chicken chain',
-  'chick-fil':          'fast food chicken chain',
-  'raising cane':       'fast food chicken chain',
-  'wingstop':           'fast food chicken wings chain',
-  'zaxby':              'fast food chicken chain',
-  'bojangle':           'fast food chicken chain',
-  'panda express':      'fast casual chinese chain',
-  'starbucks':          'coffee chain cafe',
-  'dunkin':             'coffee donut chain',
-  'tim horton':         'coffee donut chain',
-  'panera':             'fast casual bakery cafe chain',
-  'jason deli':         'fast casual deli sandwich chain',
-  'firehouse':          'fast casual sandwich chain',
-  'sonic':              'fast food drive-in chain',
-  'dairy queen':        'fast food ice cream chain',
-  'culver':             'fast casual burger chain',
-  'cookout':            'fast food burger chain',
-  'hardee':             'fast food burger chain',
-  'carl jr':            'fast food burger chain',
-  'jack in the box':    'fast food burger chain',
-  'checkers':           'fast food burger chain',
-  'rally':              'fast food burger chain',
-  'el pollo':           'fast casual mexican chicken',
-  'habit burger':       'fast casual burger chain',
-  'olive garden':       'casual italian dining chain',
-  'applebee':           'casual american bar grill chain',
-  'chili':              'casual american bar grill chain',
-  'outback':            'casual steakhouse chain',
-  'texas roadhouse':    'casual steakhouse chain',
-  'longhorn':           'casual steakhouse chain',
-  'red lobster':        'casual seafood chain',
-  'ihop':               'breakfast diner chain',
-  'denny':              'breakfast diner chain',
-  'cracker barrel':     'country breakfast diner chain',
-  'waffle house':       'breakfast diner chain',
-  'buffalo wild wings': 'sports bar wings chain',
-  'hooters':            'casual sports bar chain',
+  // ── Mexican ────────────────────────────────────────────────────────
+  'taco bell':          'mexican restaurant taco',
+  'chipotle':           'mexican restaurant burrito',
+  'qdoba':              'mexican restaurant burrito',
+  'del taco':           'mexican restaurant taco',
+  'taco johns':         'mexican restaurant taco',
+  'el pollo':           'mexican restaurant chicken',
+  // ── Burger ─────────────────────────────────────────────────────────
+  'mcdonald':           'fast food burger restaurant',
+  'burger king':        'fast food burger restaurant',
+  'wendy':              'fast food burger restaurant',
+  'five guys':          'fast food burger restaurant',
+  'culver':             'fast food burger restaurant',
+  'sonic':              'fast food burger restaurant',
+  'hardee':             'fast food burger restaurant',
+  'whataburger':        'fast food burger restaurant',
+  'jack in the box':    'fast food burger restaurant',
+  'shake shack':        'fast food burger restaurant',
+  'in-n-out':           'fast food burger restaurant',
+  'cookout':            'fast food burger restaurant',
+  'carl jr':            'fast food burger restaurant',
+  'checkers':           'fast food burger restaurant',
+  'rally':              'fast food burger restaurant',
+  'habit burger':       'fast food burger restaurant',
+  'dairy queen':        'ice cream fast food restaurant',
+  // ── Chicken ────────────────────────────────────────────────────────
+  'kfc':                'fast food chicken restaurant',
+  'chick-fil':          'fast food chicken restaurant',
+  'popeyes':            'fast food chicken restaurant',
+  'raising cane':       'fast food chicken restaurant',
+  'church chicken':     'fast food chicken restaurant',
+  'wingstop':           'fast food chicken wing restaurant',
+  'zaxby':              'fast food chicken restaurant',
+  'bojangle':           'fast food chicken restaurant',
+  // ── Sandwich ───────────────────────────────────────────────────────
+  'subway':             'fast food sandwich restaurant',
+  'jimmy john':         'fast food sandwich restaurant',
+  'jersey mike':        'fast food sandwich restaurant',
+  'firehouse':          'fast food sandwich restaurant',
+  'arby':               'fast food sandwich restaurant',
+  'potbelly':           'fast food sandwich restaurant',
+  'quiznos':            'fast food sandwich restaurant',
+  'jason deli':         'fast food sandwich restaurant',
+  // ── Pizza ──────────────────────────────────────────────────────────
+  'pizza hut':          'pizza restaurant delivery',
+  'domino':             'pizza restaurant delivery',
+  'papa john':          'pizza restaurant delivery',
+  'little caesar':      'pizza restaurant',
+  'jets pizza':         'pizza restaurant',
+  'marcos pizza':       'pizza restaurant',
+  // ── Chinese ────────────────────────────────────────────────────────
+  'panda express':      'chinese fast food restaurant',
+  // ── Coffee / cafe ──────────────────────────────────────────────────
+  'starbucks':          'coffee shop cafe',
+  'dunkin':             'coffee shop donut cafe',
+  'tim horton':         'coffee shop cafe',
+  'caribou':            'coffee shop cafe',
+  'panera':             'cafe bakery sandwich',
+  // ── Breakfast / diner ──────────────────────────────────────────────
+  'ihop':               'breakfast restaurant diner',
+  'denny':              'breakfast restaurant diner',
+  'waffle house':       'breakfast restaurant diner',
+  'cracker barrel':     'family restaurant diner',
+  'bob evans':          'family restaurant diner',
+  'perkins':            'family restaurant diner',
+  'first watch':        'breakfast brunch restaurant',
+  // ── Casual dining ──────────────────────────────────────────────────
+  'applebee':           'casual dining bar grill',
+  'chili':              'casual dining bar grill',
+  'olive garden':       'italian restaurant casual dining',
+  'red robin':          'burger casual dining restaurant',
+  'outback':            'steakhouse casual dining',
+  'texas roadhouse':    'steakhouse casual dining',
+  'longhorn':           'steakhouse casual dining',
+  'red lobster':        'seafood restaurant casual dining',
+  'buffalo wild wings': 'sports bar wings restaurant',
+  'hooters':            'sports bar wings restaurant',
 };
 
 // Layer 5 - generic chain detection for chains NOT in
@@ -1832,6 +1853,139 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
     return null;
   } catch (e) {
     console.log(`[competitor-query] claude+web failed: ${e.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// refineCompetitorQueryWithClaude - Claude-powered query refinement
+// ─────────────────────────────────────────────────────────────────────
+// Fires inside buildCompetitorQuery for NON-RESTAURANT businesses,
+// BEFORE the static NAICS_QUERIES lookup. Sends businessName + NAICS +
+// Google types + reviews to Claude Haiku with web_search so Claude can
+// confirm what the business actually sells and return a targeted query.
+//
+// Process-lifetime cache keyed by name|naics6|city. Returns null on
+// any failure so the caller falls through to the existing NAICS lookup.
+const REFINE_CACHE = new Map();
+
+async function refineCompetitorQueryWithClaude(
+  businessName, naics6, naics6Description, googleTypes, reviewTexts, city, state
+) {
+  try {
+    const cacheKey = String(businessName || '').slice(0, 25)
+      + '|' + (naics6 || '')
+      + '|' + String(city || '').slice(0, 10);
+
+    if (REFINE_CACHE.has(cacheKey)) {
+      const cached = REFINE_CACHE.get(cacheKey);
+      if (cached) console.log(`[competitor:refine] cache hit for ${businessName} → ${cached}`);
+      return cached;
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      REFINE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    const types = Array.isArray(googleTypes) ? googleTypes : [];
+    const reviews = Array.isArray(reviewTexts) ? reviewTexts.slice(0, 3) : [];
+
+    const systemPrompt =
+      'You identify what a business actually sells and return the exact Google Maps search query ' +
+      'that would find its direct competitors.\n\n' +
+      'Use web search to look up the actual business and confirm what it sells before deciding.\n\n' +
+      'Return ONLY 3-8 words that would find direct competitors on Google Maps.\n\n' +
+      'CRITICAL RULES:\n' +
+      '- Output ONLY the query words\n' +
+      '- No sentences\n' +
+      '- No explanation\n' +
+      '- No preamble like \'I will search\'\n' +
+      '- No punctuation\n' +
+      '- Just 3-8 words maximum\n\n' +
+      'After your web search output ONLY the final query words. Nothing else before or after.\n\n' +
+      'EXAMPLES OF CORRECT OUTPUT:\n' +
+      'bait shop tackle fishing supply\n' +
+      'crossfit gym functional fitness\n' +
+      'immigration lawyer visa attorney\n' +
+      'yoga apparel athletic wear boutique\n' +
+      'gun store firearms dealer ammo\n\n' +
+      'EXAMPLES OF WRONG OUTPUT:\n' +
+      'I\'ll search for the business first\n' +
+      'Based on my research the query is\n' +
+      'The competitors would be found by';
+
+    const userPrompt =
+      'Business: ' + (businessName || '(unknown)') + '\n' +
+      'Address: ' + (city || '') + ' ' + (state || '') + '\n' +
+      'NAICS: ' + (naics6 || '') + ' (' + (naics6Description || '') + ')\n' +
+      'Google types: ' + types.join(', ') + '\n' +
+      'Customer reviews: ' + reviews.join(' | ') + '\n\n' +
+      'Web search this business to confirm what it sells. Then output ONLY the 3-8 word competitor search query.';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: systemPrompt,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const data = await response.json();
+
+    // Extract all text content blocks and join them.
+    const allText = (data && Array.isArray(data.content)
+      ? data.content.filter((b) => b && b.type === 'text').map((b) => b.text || '')
+      : []
+    ).join('\n').trim();
+
+    if (!allText) {
+      console.log(`[competitor:refine] ${businessName} → rejected (empty response)`);
+      REFINE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    // Take ONLY the last non-empty line — skips reasoning/preamble.
+    const lines = allText.split('\n').map((l) => l.trim()).filter(Boolean);
+    let cleaned = lines[lines.length - 1] || '';
+
+    // Strip any text before a colon if a colon exists.
+    if (cleaned.includes(':')) {
+      cleaned = cleaned.split(':').pop().trim();
+    }
+
+    // Strip common preamble phrases.
+    cleaned = cleaned
+      .replace(/^(query|result|answer|the query is|search for|i would|competitors)\s*/i, '')
+      .replace(/[^\w\s]/g, '')  // strip all punctuation except spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned || cleaned.length > 120) {
+      console.log(`[competitor:refine] ${businessName} → rejected after cleanup (empty or >120 chars)`);
+      REFINE_CACHE.set(cacheKey, null);
+      return null;
+    }
+
+    console.log('[competitor:refine]', businessName, '→', cleaned);
+    REFINE_CACHE.set(cacheKey, cleaned);
+    return cleaned;
+  } catch (e) {
+    console.log(`[competitor:refine] failed for ${businessName}: ${e.message}`);
     return null;
   }
 }
@@ -2263,7 +2417,33 @@ async function buildCompetitorQuery(businessName, naics6, naics2, googleTypes, c
     return 'restaurant dining' + suffix;
   }
 
-  // ─── NON-RESTAURANTS - existing 5-priority logic, unchanged ────────
+  // ─── NON-RESTAURANTS ────────────────────────────────────────────────
+
+  // Priority 0 - Claude query refinement for non-restaurants.
+  // Sends name + NAICS + Google types + reviews to Haiku with web_search
+  // so Claude can identify the business's full identity and return a
+  // targeted query. Falls through to Priority 1 on any failure.
+  try {
+    const naics6Desc = NAICS_QUERIES[naics6Str] || '';
+    const reviewSnippets = (Array.isArray(reviewTexts) ? reviewTexts : [])
+      .map((r) => String(typeof r === 'string' ? r : (r && r.text) || '').slice(0, 150));
+    const refined = await refineCompetitorQueryWithClaude(
+      businessName,
+      naics6Str,
+      naics6Desc,
+      googleTypes,
+      reviewSnippets,
+      city,
+      state
+    );
+    if (refined) {
+      const q = refined + suffix;
+      console.log(`[competitor-query] ${businessName} → layer:claude_refine category:"${refined}"`);
+      return q;
+    }
+  } catch (_) {
+    // Fall through to deterministic priorities on any error.
+  }
 
   // Priority 1 - exact NAICS-6 lookup
   if (naics6Str && NAICS_QUERIES[naics6Str]) {
@@ -2513,6 +2693,405 @@ function fuzzyDedupByName(arr) {
   return Array.from(byNorm.values());
 }
 
+// ── verifyAndReplaceCompetitors ─────────────────────────────────────
+// Post-ladder quality gate: asks Claude Haiku to select the best 5
+// competitors from the top 10 in the pool using distance-weighted
+// scoring and web search verification. For any selection that can't
+// be matched back to the pool, the next-best unused pool entry is
+// promoted. Never crashes — returns original list on any failure.
+async function verifyAndReplaceCompetitors({
+  subjectName,
+  subjectAddress,
+  naics6,
+  googleTypes,
+  reviewTexts,
+  competitors,
+  pool,
+  apiKey,
+  city,
+  state,
+}) {
+  try {
+    const fullPool = Array.isArray(pool) ? pool : [];
+    if (!process.env.ANTHROPIC_API_KEY || fullPool.length === 0) {
+      return competitors;
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    function normalizeName(str) {
+      return (str || '')
+        .toLowerCase()
+        .replace(/[‘’‚‛′‵']/g, "'")
+        .replace(/[“”„‟″‶"]/g, '"')
+        .replace(/\b(llc|inc|corp|ltd|co|company|the)\b/gi, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function fuzzyMatch(nameA, nameB) {
+      const a = normalizeName(nameA);
+      const b = normalizeName(nameB);
+      if (a === b) return true;
+      if (a.startsWith(b)) return true;
+      if (b.startsWith(a)) return true;
+      const wordsA = a.split(' ').filter((w) => w.length > 2);
+      const wordsB = b.split(' ').filter((w) => w.length > 2);
+      if (wordsA.length === 0 || wordsB.length === 0) return false;
+      const matches = wordsA.filter((w) => wordsB.includes(w));
+      const overlapRatio = matches.length / Math.min(wordsA.length, wordsB.length);
+      return overlapRatio >= 0.8;
+    }
+
+    // ── Chain / fast-food detection ─────────────────────────────────
+    const FAST_FOOD_CHAINS = [
+      'mcdonald', 'burger king', 'wendys',
+      'taco bell', 'kfc', 'subway',
+      'pizza hut', 'dominos', 'papa johns',
+      'little caesars', 'chipotle', 'qdoba',
+      'chick fil a', 'popeyes', 'wingstop',
+      'culvers', 'sonic', 'hardees',
+      'arbys', 'five guys', 'shake shack',
+      'jimmy johns', 'jersey mikes',
+      'firehouse subs', 'panera',
+      'starbucks', 'dunkin', 'ihop',
+      'dennys', 'waffle house',
+      'cracker barrel', 'applebees',
+      'chilis', 'olive garden',
+      'red robin', 'outback',
+      'texas roadhouse', 'panda express',
+      'dairy queen', 'raising canes',
+      'churches chicken', 'jack in the box',
+      'whataburger', 'del taco',
+      'taco johns', 'el pollo loco',
+      'moes', 'buffalo wild wings',
+      'hooters', 'bob evans', 'perkins',
+      'first watch', 'tim hortons',
+      'caribou', 'potbelly', 'quiznos',
+      'jets pizza', 'marcos pizza',
+    ];
+
+    const subjectNameLower = (subjectName || '').toLowerCase();
+    const isRestaurant = String(naics6 || '').startsWith('722');
+    const isFastFood = FAST_FOOD_CHAINS.some((chain) => subjectNameLower.includes(chain));
+
+    // ── Enrich top 10 from pool ─────────────────────────────────────
+    const toVerify = fullPool.slice(0, 10);
+
+    const enriched = await Promise.all(toVerify.map(async (c) => {
+      if (!c.place_id) return { ...c, _address: null, _types: [] };
+      try {
+        const d = await getDetails(c.place_id, apiKey);
+        return {
+          ...c,
+          _address: d.formatted_address || null,
+          _types: Array.isArray(d.types) ? d.types : [],
+        };
+      } catch (_) {
+        return { ...c, _address: null, _types: [] };
+      }
+    }));
+
+    const naicsDescription = NAICS_QUERIES[String(naics6 || '')] || '';
+    const sellsContext = (Array.isArray(googleTypes) ? googleTypes : []).join(', ');
+    const reviewContext = (Array.isArray(reviewTexts) ? reviewTexts.slice(0, 5) : [])
+      .map((t) => String(t).slice(0, 100))
+      .join(' | ');
+
+    const candidateList = enriched.map((c, i) => {
+      const distMiles = typeof c.distance_meters === 'number'
+        ? (c.distance_meters / 1609.34).toFixed(1)
+        : '?';
+      return (
+        (i + 1) + '. ' + c.name + '\n' +
+        '   Address: ' + (c._address || c.formatted_address || '(unknown)') + '\n' +
+        '   Distance: ' + distMiles + ' miles\n' +
+        '   Google types: ' + (c._types.length ? c._types.join(', ') : (c.types || []).join(', ') || '(unknown)') + '\n' +
+        '   Rating: ' + (c.rating || 'no rating') + '\n' +
+        '   Reviews: ' + (c.review_count || 0)
+      );
+    }).join('\n\n');
+
+    // ── System prompt branches on restaurant vs non-restaurant ────
+    const systemPrompt = isRestaurant
+      ? // ── Restaurant path ─────────────────────────────────────────
+        'You select the best 5 competitors for a restaurant from a list of candidates.\n\n' +
+        'LOCATION LOCK RULE - HIGHEST PRIORITY:\n' +
+        'Any candidate within 2 miles of the subject business MUST be included in the final 5 ' +
+        'unless it is a completely different business type with zero product overlap.\n\n' +
+        'A motel near a hotel is ALWAYS a competitor regardless of amenity differences.\n' +
+        'A convenience store near a bait shop that sells ANY fishing products is ALWAYS a competitor.\n' +
+        'A gas station is NOT a competitor for a hotel even if it is 0.1 miles.\n' +
+        'A car repair shop is NOT a competitor for a sporting goods store.\n\n' +
+        'For borderline cases within 2 miles ALWAYS include. ' +
+        'Never exclude nearby businesses unless they are clearly a completely different industry.\n\n' +
+        'DISTANCE IS THE MOST IMPORTANT FACTOR.\n' +
+        'A restaurant 0.5 miles away is always a stronger competitor than one 20 miles away ' +
+        'even if it serves different food.\n\n' +
+        'Scoring rules:\n' +
+        '1. Web search each candidate to verify what cuisine or food they serve. ' +
+        'Google category tags are unreliable. Always verify with web search first.\n\n' +
+        '2. Score each candidate:\n' +
+        '   HIGHLY RELEVANT: same cuisine type\n' +
+        '   RELEVANT: different cuisine but same price point and dining format\n' +
+        '   PARTIAL: some overlap in customer\n' +
+        '   NOT RELEVANT: completely different type like a gas station or pharmacy\n\n' +
+        '3. Apply distance weighting:\n' +
+        '   Under 1 mile: multiply score by 3.0\n' +
+        '   1 to 3 miles: multiply score by 2.0\n' +
+        '   3 to 10 miles: multiply score by 1.0\n' +
+        '   Over 10 miles: multiply score by 0.4\n\n' +
+        '4. NEVER select a competitor over 10 miles away when there are relevant competitors under 5 miles. ' +
+        'Only go far when nearby options are truly irrelevant.\n\n' +
+        'FAST FOOD CHAIN RULE:\n' +
+        'If the subject is a fast food chain select a MIX:\n' +
+        '2 to 3 same cuisine competitors.\n' +
+        '2 to 3 other nearby fast food chains.\n' +
+        'Prefer closer over farther always.\n\n' +
+        'Return JSON:\n' +
+        '{\n' +
+        '  "selected": [\n' +
+        '    {\n' +
+        '      "name": "string",\n' +
+        '      "relevance": "string",\n' +
+        '      "distance_note": "string",\n' +
+        '      "reason": "string"\n' +
+        '    }\n' +
+        '  ]\n' +
+        '}\n' +
+        'Return exactly 5.\n\n' +
+        'CRITICAL: Output ONLY the JSON object. No markdown fences. No explanation before or after.'
+      : // ── Non-restaurant path ─────────────────────────────────────
+        'You select the best 5 competitors for a local business from a list of candidates.\n\n' +
+        'LOCATION LOCK RULE - HIGHEST PRIORITY:\n' +
+        'Any candidate within 2 miles of the subject business MUST be included in the final 5 ' +
+        'unless it is a completely different business type with zero product overlap.\n\n' +
+        'A motel near a hotel is ALWAYS a competitor regardless of amenity differences.\n' +
+        'A convenience store near a bait shop that sells ANY fishing products is ALWAYS a competitor.\n' +
+        'A gas station is NOT a competitor for a hotel even if it is 0.1 miles.\n' +
+        'A car repair shop is NOT a competitor for a sporting goods store.\n\n' +
+        'For borderline cases within 2 miles ALWAYS include. ' +
+        'Never exclude nearby businesses unless they are clearly a completely different industry.\n\n' +
+        'DISTANCE IS THE MOST IMPORTANT FACTOR.\n' +
+        'A store 0.5 miles away that sells 30% of the same products is a STRONGER competitor ' +
+        'than a store 25 miles away that sells 80% of the same products.\n\n' +
+        'Customers do not drive 25 miles to a competitor when there is one nearby. Always prefer local.\n\n' +
+        'Scoring rules:\n' +
+        '1. Web search the subject business first to understand what it sells. ' +
+        'Build a mental list of its main products and services.\n\n' +
+        '2. Web search each candidate to verify what they sell. ' +
+        'Google category tags are wrong for most small local businesses. ' +
+        'A bait shop is tagged as convenience_store. A gun store is tagged as store. Always verify.\n\n' +
+        '3. Score product overlap 0 to 100:\n' +
+        '   Over 50 percent: HIGHLY RELEVANT\n' +
+        '   30 to 50 percent: RELEVANT\n' +
+        '   10 to 30 percent: PARTIAL\n' +
+        '   Under 10 percent: NOT RELEVANT\n\n' +
+        '4. Apply distance weighting to score:\n' +
+        '   Under 2 miles: score × 3.0\n' +
+        '   2 to 5 miles: score × 2.0\n' +
+        '   5 to 15 miles: score × 1.0\n' +
+        '   15 to 30 miles: score × 0.5\n' +
+        '   Over 30 miles: score × 0.2\n\n' +
+        '5. Final selection: Pick the 5 with highest weighted scores.\n\n' +
+        '6. NEVER select NOT RELEVANT competitors regardless of distance. ' +
+        'A car repair shop is never a competitor for a bait shop. ' +
+        'A shopping mall is never a competitor for a sporting goods store.\n\n' +
+        '7. For businesses with 0 reviews and no rating on Google treat them as low confidence ' +
+        'and prefer established businesses with real reviews over them.\n\n' +
+        'EDGE CASES:\n' +
+        '- General stores and convenience stores: Always web search before deciding. ' +
+        'They often sell bait, tackle, camping supplies and ARE direct competitors. ' +
+        'Do not reject based on category alone.\n' +
+        '- Big box stores like Walmart and Target: If they sell significant overlap products ' +
+        'they ARE competitors even though they sell many other things.\n' +
+        '- Ghost listings: 0 reviews, no website, no phone. Treat as lowest priority. ' +
+        'Only include if no better options exist.\n\n' +
+        'Return JSON:\n' +
+        '{\n' +
+        '  "selected": [\n' +
+        '    {\n' +
+        '      "name": "string",\n' +
+        '      "overlap_score": "number",\n' +
+        '      "weighted_score": "number",\n' +
+        '      "relevance": "string",\n' +
+        '      "reason": "string"\n' +
+        '    }\n' +
+        '  ]\n' +
+        '}\n' +
+        'Return exactly 5.\n\n' +
+        'CRITICAL: Output ONLY the JSON object. No markdown fences. No explanation before or after.';
+
+    // ── User prompt ─────────────────────────────────────────────────
+    let userPrompt =
+      'Subject business:\n' +
+      'Name: ' + (subjectName || '(unknown)') + '\n' +
+      'Address: ' + (subjectAddress || '(unknown)') + '\n' +
+      'City: ' + (city || '') + ' ' + (state || '') + '\n' +
+      'NAICS: ' + (naics6 || '') + '\n' +
+      'Google types: ' + sellsContext + '\n' +
+      'Reviews: ' + reviewContext + '\n\n' +
+      'Candidates to evaluate (' + toVerify.length + '):\n' +
+      candidateList + '\n\n' +
+      'Web search the subject business first. Then web search any unclear candidates. ' +
+      'Select the best 5 using distance weighted scoring.';
+
+    if (isFastFood) {
+      userPrompt +=
+        '\n\nIMPORTANT: This is a fast food chain. ' +
+        'Select 2-3 same cuisine AND 2-3 other nearby fast food chains. ' +
+        'Prefer closer over farther always.';
+    }
+
+    // ── Claude API call ─────────────────────────────────────────────
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: systemPrompt,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 9 }],
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const data = await response.json();
+
+    // ── Parse response ──────────────────────────────────────────────
+    const textBlock = data && Array.isArray(data.content)
+      ? data.content.filter((b) => b && b.type === 'text').pop()
+      : null;
+    const raw = (textBlock && typeof textBlock.text === 'string' ? textBlock.text : '').trim();
+
+    if (!raw) {
+      console.log('[verify] empty response from Claude — keeping original top 5');
+      return competitors;
+    }
+
+    let parsed;
+    try {
+      const stripped = raw.replace(/```json?\s*/gi, '').replace(/```/g, '');
+      const braceStart = stripped.indexOf('{');
+      const braceEnd = stripped.lastIndexOf('}');
+      if (braceStart < 0 || braceEnd <= braceStart) {
+        console.log('[verify] no JSON object found — keeping original top 5');
+        return competitors;
+      }
+      parsed = JSON.parse(stripped.slice(braceStart, braceEnd + 1));
+    } catch (_) {
+      console.log('[verify] JSON parse failed — keeping original top 5');
+      return competitors;
+    }
+
+    const selected = Array.isArray(parsed.selected) ? parsed.selected : [];
+    if (selected.length === 0) {
+      console.log('[verify] empty selected array — keeping original top 5');
+      return competitors;
+    }
+
+    // ── Match selected names back to pool ────────────────────────────
+    const poolByNorm = new Map();
+    for (const c of fullPool) {
+      if (c.name) poolByNorm.set(normalizeName(c.name), c);
+    }
+
+    const result = [];
+    const usedIds = new Set();
+
+    for (let i = 0; i < Math.min(selected.length, 5); i++) {
+      const sel = selected[i];
+      const selNorm = normalizeName(sel.name || '');
+
+      // Step 1: exact normalized match
+      let match = poolByNorm.get(selNorm);
+
+      // Step 2: fuzzy match against all pool entries
+      if (!match || (match.place_id && usedIds.has(match.place_id))) {
+        match = null;
+        for (const c of fullPool) {
+          if (c.place_id && usedIds.has(c.place_id)) continue;
+          if (fuzzyMatch(sel.name || '', c.name || '')) {
+            match = c;
+            break;
+          }
+        }
+      }
+
+      // Step 3: walk pool for next unused entry
+      if (!match) {
+        for (const c of fullPool) {
+          if (c.place_id && !usedIds.has(c.place_id)) {
+            console.log('[verify] "' + (sel.name || '?') + '" not matched — pool substitute:', c.name);
+            match = c;
+            break;
+          }
+        }
+      }
+
+      if (match) {
+        if (match.place_id) usedIds.add(match.place_id);
+        console.log('[verify] selected:', match.name, sel.relevance || '?');
+        result.push(match);
+      }
+    }
+
+    // Pad from pool if fewer than 5
+    for (const c of fullPool) {
+      if (result.length >= 5) break;
+      if (c.place_id && !usedIds.has(c.place_id)) {
+        console.log('[verify] padding slot', result.length + 1, 'with:', c.name);
+        usedIds.add(c.place_id);
+        result.push(c);
+      }
+    }
+
+    if (result.length === 0) {
+      console.log('[verify] no results assembled — keeping original top 5');
+      return competitors;
+    }
+
+    // ── Final sort by distance bucket → rating → reviews ────────────
+    const getBucket = (meters) => {
+      if (meters == null) return 5;
+      const mi = meters / 1609.34;
+      if (mi < 2) return 1;
+      if (mi < 5) return 2;
+      if (mi < 15) return 3;
+      if (mi < 30) return 4;
+      return 5;
+    };
+
+    result.sort((a, b) => {
+      const bA = getBucket(a.distance_meters);
+      const bB = getBucket(b.distance_meters);
+      if (bA !== bB) return bA - bB;
+      if ((b.rating || 0) !== (a.rating || 0)) return (b.rating || 0) - (a.rating || 0);
+      return (b.review_count || 0) - (a.review_count || 0);
+    });
+
+    console.log('[verify] final 5:');
+    result.slice(0, 5).forEach((c, i) =>
+      console.log('  ' + (i + 1) + '.', c.name, (c.distance_meters / 1609.34).toFixed(1) + 'mi')
+    );
+
+    return result.slice(0, 5);
+  } catch (e) {
+    console.log('[verify] failed:', e.message, '— keeping original top 5');
+    return competitors;
+  }
+}
+
 async function fetchNearbyCompetitors({
   placeId, lat, lng, type, apiKey,
   city = null, state = null, subjectName = null,
@@ -2537,25 +3116,26 @@ async function fetchNearbyCompetitors({
     return cached.value;
   }
 
-  // ── Subject reviews fetch (food-service only) ────────────────────
+  // ── Subject reviews fetch ──────────────────────────────────────────
   // The cuisine-detection pipeline in buildCompetitorQuery (Layers 2
   // and 3) scans the SUBJECT business's review text for cuisine
-  // keywords. Pull the subject's reviews via getDetails - almost
-  // always a 24h DETAILS_CACHE hit because server.js called getDetails
-  // earlier in the request to populate the report. Gated on 722xxx so
-  // hotels/dental/etc. don't pay any extra Details cost. Failure is
-  // non-fatal: cuisine detection just falls through to layers that
-  // don't depend on review text (Layer 1 google types, Layer 4 name
-  // signals, Layer 5 chain, Layer 6 fallback).
+  // keywords. The refineCompetitorQueryWithClaude call for non-
+  // restaurants also benefits from review context to understand the
+  // business's full identity. Pull the subject's reviews via getDetails
+  // - almost always a 24h DETAILS_CACHE hit because server.js called
+  // getDetails earlier in the request to populate the report. Failure
+  // is non-fatal: both cuisine detection and query refinement fall
+  // through to layers that don't depend on review text.
   let subjectReviewTexts = [];
-  const naics6IsFoodService = String(naics6 || '').startsWith('722');
-  if (naics6IsFoodService && placeId) {
+  let subjectAddress = null;
+  if (placeId) {
     try {
       const subjectDetails = await getDetails(placeId, apiKey);
       const reviews = Array.isArray(subjectDetails && subjectDetails.reviews)
         ? subjectDetails.reviews
         : [];
       subjectReviewTexts = reviews.map((r) => String((r && r.text) || ''));
+      subjectAddress = subjectDetails.formatted_address || null;
     } catch (err) {
       console.warn(`[competitor-query] subject reviews fetch failed: ${err.message}`);
     }
@@ -2621,7 +3201,12 @@ async function fetchNearbyCompetitors({
       if (seenPlaceIds.has(c.place_id)) return;             // dedup by place_id
       seenPlaceIds.add(c.place_id);
     }
-    if (subjectNorm && normalizeName(c.name) === subjectNorm) return; // subject by name
+    // Same-name filter: only drop if within 100m of the subject (same
+    // listing / co-located duplicate). A second Kwik Trip across town is
+    // a real competitor and must stay in the pool.
+    if (subjectNorm && normalizeName(c.name) === subjectNorm) {
+      if (c.distance_meters == null || c.distance_meters <= 100) return;
+    }
     pool.push(c);
   }
 
@@ -2743,12 +3328,66 @@ async function fetchNearbyCompetitors({
     console.log(`[competitors] only ${pool.length} found within 150 miles - may be limited competition`);
   }
 
+  // ── Fast food nearby search ──────────────────────────────────────
+  // For fast food chains the main ladder runs a cuisine-specific query
+  // (e.g. "mexican restaurant taco near Dodgeville WI") which surfaces
+  // same-cuisine competitors but misses other nearby fast food chains.
+  // Run one additional broad "fast food restaurant" search at 5 miles
+  // so nearby chains of ALL cuisines land in the pool for Claude to
+  // evaluate during the verify step.
+  const subjectNameLowerFF = String(businessName || subjectName || '').toLowerCase();
+  const isSubjectFastFood = FAST_FOOD_CHAINS.some((c) => subjectNameLowerFF.includes(c));
+  if (isSubjectFastFood) {
+    const FF_RADIUS = 8047; // ~5 miles
+    const ffLocality = [city, state].filter(Boolean).join(' ');
+    const ffQuery = ffLocality
+      ? `fast food restaurant near ${ffLocality}`
+      : 'fast food restaurant';
+    const poolBeforeFF = pool.length;
+    try {
+      const url = `${TEXTSEARCH_URL}?query=${encodeURIComponent(ffQuery)}`
+        + `&location=${lat},${lng}`
+        + `&radius=${FF_RADIUS}`
+        + `&key=${apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Places Text HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
+        throw new Error(`Places Text status=${json.status} ${json.error_message || ''}`);
+      }
+      const results = json.results || [];
+      for (const r of results) tryAdd(r, 'google_text_ff_nearby', FF_RADIUS);
+    } catch (err) {
+      console.warn(`[competitor] fast food nearby search failed:`, err.message);
+    }
+    const ffAdded = pool.length - poolBeforeFF;
+    console.log(
+      `[competitor] added ${ffAdded} from fast food nearby search (pool now ${pool.length})`
+    );
+  }
+
   // ── Fuzzy dedup, sort, slice ─────────────────────────────────────
   const poolBeforeDedup = pool.length;
   const fuzzed = fuzzyDedupByName(pool);
   fuzzed.sort(competitorComparator);
   const top7 = fuzzed.slice(0, 7);
-  const top5 = top7.slice(0, 5);
+  let top5 = top7.slice(0, 5);
+
+  // ── Verify & replace: ask Claude to confirm each top-5 competitor is
+  // a genuine direct competitor using distance-weighted scoring and web
+  // search verification. Mismatches get swapped for better pool entries.
+  top5 = await verifyAndReplaceCompetitors({
+    subjectName: businessName || subjectName || '',
+    subjectAddress,
+    naics6,
+    googleTypes: googleTypes || (type ? [type] : []),
+    reviewTexts: subjectReviewTexts,
+    competitors: top5,
+    pool: fuzzed,
+    apiKey,
+    city,
+    state,
+  });
 
   // ── FIX 3 - Fetch Place Details for top 5 in parallel ────────────
   // Each detail fetch hits the existing 24h DETAILS_CACHE so repeat
@@ -3025,4 +3664,5 @@ module.exports = {
   isOperationalOrUnknown,
   fetchReviewsBySort,
   fetchAllSortedReviews,
+  refineCompetitorQueryWithClaude,
 };

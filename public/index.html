@@ -615,9 +615,9 @@
   // banner - never an error or timeout message.
   const INITIAL_ETA_SECONDS = { rate: 900, market: 600 };
   // After this many ms with no SSE event, the quiet banner appears.
-  // Set to 30s - fires comfortably during the long Claude calls
-  // (Tier 5b runs 60-90s with one event at start and one at end).
-  const QUIET_THRESHOLD_MS = 30000;
+  // Set to 120s - only fires if genuinely silent for 2 minutes.
+  // Biggest fake-timer gap is 60s so normal steps never trigger it.
+  const QUIET_THRESHOLD_MS = 120000;
 
   function formatTime(secs) {
     const s = Math.max(0, Math.floor(secs));
@@ -765,7 +765,6 @@
 
       // Reset quiet-period timer on every real SSE event.
       lastSseUpdate = Date.now();
-      document.getElementById('term-quiet-warning').hidden = true;
 
       // Progress bar - only ever advances forward.
       if (data.pct >= lastPct) {

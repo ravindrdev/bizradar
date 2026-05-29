@@ -1,0 +1,74 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    fontSize: 16px
+    lineColor: "#94a3b8"
+    background: "#0f172a"
+    mainBkg: "#1e293b"
+    nodeBorder: "#475569"
+    clusterBkg: "#111827"
+    clusterBorder: "#475569"
+    edgeLabelBackground: "#1e293b"
+  flowchart:
+    nodeSpacing: 35
+    rankSpacing: 45
+    padding: 14
+    htmlLabels: true
+---
+flowchart TD
+    POOL(["RAW POOL from\nradius ladder\ne.g. 12 competitors"]):::input
+
+    POOL --> DEDUP["1. fuzzyDedupByName()\nlowercase, alpha+space only\ncapped 20 chars\nfirst-seen wins"]:::proc
+
+    DEDUP --> SORT["2. competitorComparator() sort\nPRIMARY: distance bucket\n<2mi → <5mi → <15mi → 15mi+ → unknown\nSECONDARY: higher rating\nTERTIARY: more reviews\nClosest ALWAYS rank top"]:::proc
+
+    SORT --> SLICE["3. Slice into tiers\ntop7 = [0:7]\ntop5 = [0:5] → gets enriched\ntop3 = [0:3] → report cards"]:::proc
+
+    SLICE --> ENRICH["4. Enrich top 5 — PARALLEL\ngetDetails(placeId) per competitor\n24hr cache — usually free\nExtracts:\n• 3 reviews (300 chars each)\n• formatted_address\n• weekday_text (hours)"]:::api
+
+    ENRICH --> TIER{"5. classifyCompetitorTier()\nSubject reviews\n< 25?"}:::dec
+
+    TIER -->|"< 25 reviews\nSMALL subject"| SMALL
+    TIER -->|"≥ 25 reviews\nESTABLISHED"| EST
+
+    subgraph SMALL ["SMALL SUBJECT RULES (absolute thresholds)"]
+        S1{"comp rating ≥ 4.5\nAND reviews ≥ 10?"}:::dec
+        S1 -->|"Yes"| ST["🔴 THREAT\ngenuinely better"]:::block
+        S1 -->|"No"| S2{"comp reviews < 5?"}:::dec
+        S2 -->|"Yes"| SN1["⚪ NEUTRAL\ntoo few to judge"]:::neutral
+        S2 -->|"No"| S3{"comp rating < 3.8\nAND reviews ≥ 5?"}:::dec
+        S3 -->|"Yes"| SW["🟢 WINNING\nsubject ahead"]:::pass
+        S3 -->|"No"| SN2["⚪ NEUTRAL"]:::neutral
+    end
+
+    subgraph EST ["ESTABLISHED SUBJECT RULES (gap-based)"]
+        GAP["ratingGap =\ncomp.rating − subject.rating"]:::proc
+        GAP --> E1{"gap ≥ 0.5\nAND reviews ≥ 20?"}:::dec
+        E1 -->|"Yes"| ET["🔴 THREAT\noutperforming"]:::block
+        E1 -->|"No"| E2{"gap ≤ −0.3\nOR rating < 3.8?"}:::dec
+        E2 -->|"Yes"| EW["🟢 WINNING\nsubject beating"]:::pass
+        E2 -->|"No"| EN["⚪ NEUTRAL\nfiltered from report"]:::neutral
+    end
+
+    ST & SN1 & SW & SN2 & ET & EW & EN --> MULTI
+
+    MULTI["6. Multi-sort review fetch\nfor top 5 — PARALLEL\nSorts: most relevant, newest\nhighest rated, lowest rated\nGives Claude richer evidence\nfor competitor analysis"]:::ai
+
+    MULTI --> OUTPUT
+
+    OUTPUT["FINAL OUTPUT OBJECT\n• competitor_count (total dedup)\n• competitor_median_rating\n• competitor_median_review_count\n• competitors_top7 / top5 / top3\n• search_radius_miles\n• competitor_query\n• competitor_query_claude\n• sources_used"]:::warn
+
+    OUTPUT --> CACHE["Cached:\nCOMPETITOR_CACHE\nv5|placeId|naics6\nprocess lifetime"]:::proc
+
+    OUTPUT --> RETURN(["→ Returned to server.js\n→ claudeEnricher\n→ final report"]):::pass
+
+    classDef input fill:#4c1d95,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
+    classDef api fill:#065f46,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef ai fill:#581c87,stroke:#c084fc,color:#f3e8ff,stroke-width:2px
+    classDef dec fill:#1e293b,stroke:#f59e0b,color:#fde68a,stroke-width:2px
+    classDef block fill:#450a0a,stroke:#ef4444,color:#fca5a5,stroke-width:2px
+    classDef pass fill:#14532d,stroke:#22c55e,color:#bbf7d0,stroke-width:2px
+    classDef warn fill:#78350f,stroke:#f97316,color:#fed7aa,stroke-width:2px
+    classDef proc fill:#1e293b,stroke:#475569,color:#e2e8f0,stroke-width:1px
+    classDef neutral fill:#1e293b,stroke:#94a3b8,color:#94a3b8,stroke-width:2px

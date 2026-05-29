@@ -1,0 +1,98 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    fontSize: 16px
+    lineColor: "#94a3b8"
+    background: "#0f172a"
+    mainBkg: "#1e293b"
+    nodeBorder: "#475569"
+    clusterBkg: "#111827"
+    clusterBorder: "#475569"
+    edgeLabelBackground: "#1e293b"
+  flowchart:
+    nodeSpacing: 35
+    rankSpacing: 45
+    padding: 14
+    htmlLabels: true
+---
+flowchart TD
+    START(["8-STEP RADIUS LADDER\nClimb until pool ≥ 5"]):::input
+
+    START --> S1["Step 1: 1 mile\nstrip mall / same block"]:::proc
+    S1 --> API1["Google Text Search\nquery + lat,lng + radius"]:::api
+    API1 --> TA1
+
+    subgraph TRYADD ["tryAdd() — FILTER GATE  (runs per result)"]
+        TA1{"CLOSED\npermanently?"}:::dec
+        TA1 -->|"Yes"| DROP1["❌ DROP"]:::block
+        TA1 -->|"No"| TA2
+
+        TA2{"Distance >\n1.5x step\nradius?"}:::dec
+        TA2 -->|"Yes"| DROP2["❌ DROP\ncaught on wider\nrung later"]:::block
+        TA2 -->|"No"| TA3
+
+        TA3{"Same place_id\nas subject?\nOR already\nin pool?"}:::dec
+        TA3 -->|"Yes"| DROP3["❌ DROP\ndedup"]:::block
+        TA3 -->|"No"| TA4
+
+        TA4{"Normalized name\n= subject name?\nlowercase, alpha+space\n20 chars"}:::dec
+        TA4 -->|"Yes"| DROP4["❌ DROP\nself-match"]:::block
+        TA4 -->|"No"| ACCEPT["✅ ADDED\nto pool"]:::pass
+    end
+
+    ACCEPT --> CHK1{"pool ≥ 5?"}:::dec
+    CHK1 -->|"YES → STOP"| POST
+    CHK1 -->|"NO"| S2
+
+    S2["Step 2: 3 miles — neighborhood"]:::proc --> A2["Text Search"]:::api --> F2["tryAdd()"]:::proc --> C2{"pool ≥ 5?"}:::dec
+    C2 -->|"YES"| POST
+    C2 -->|"NO"| S3
+
+    S3["Step 3: 8 miles — city core"]:::proc --> A3["Text Search"]:::api --> F3["tryAdd()"]:::proc --> C3{"pool ≥ 5?"}:::dec
+    C3 -->|"YES"| POST
+    C3 -->|"NO"| S4
+
+    S4["Step 4: 15 miles — small town"]:::proc --> A4["Text Search"]:::api --> F4["tryAdd()"]:::proc --> C4{"pool ≥ 5?"}:::dec
+    C4 -->|"YES"| POST
+    C4 -->|"NO"| S5
+
+    S5["Step 5: 30 miles — regional"]:::proc --> A5["Text Search"]:::api --> F5["tryAdd()"]:::proc --> C5{"pool ≥ 5?"}:::dec
+    C5 -->|"YES"| POST
+    C5 -->|"NO"| S6
+
+    S6["Step 6: 50 miles — multi-county"]:::proc --> A6["Text Search"]:::api --> F6["tryAdd()"]:::proc --> C6{"pool ≥ 5?"}:::dec
+    C6 -->|"YES"| POST
+    C6 -->|"NO — TRIGGER\nCLAUDE"| CLAUDE
+
+    CLAUDE["🤖 CLAUDE SAFETY NET\ndetectCompetitorQueryWithClaude()\nclaude-haiku-4-5 + web_search\nFires ONCE — only here\nSends: name, city, state, naics6\nReturns: business_type +\ncompetitor_types + 5 search queries"]:::ai
+
+    CLAUDE --> CVLD{"Claude returned\nvalid queries?"}:::dec
+    CVLD -->|"No / failed"| S7
+    CVLD -->|"Yes"| CLOOP
+
+    CLOOP["Run each of 5 Claude queries\nthrough Text Search at 50mi\nResults tagged:\nsource='google_text_claude'\nEach passes through tryAdd()"]:::ai
+
+    CLOOP --> CP{"pool ≥ 5\nafter Claude?"}:::dec
+    CP -->|"YES"| POST
+    CP -->|"NO"| S7
+
+    S7["Step 7: 75 miles — cross-region"]:::proc --> A7["Text Search"]:::api --> F7["tryAdd()"]:::proc --> C7{"pool ≥ 5?"}:::dec
+    C7 -->|"YES"| POST
+    C7 -->|"NO"| S8
+
+    S8["Step 8: 150 miles — nearby states\nUSES queryNoLocality\n(drops 'near city state')"]:::warn --> A8["Text Search"]:::api --> F8["tryAdd()"]:::proc --> C8{"pool ≥ 5?"}:::dec
+    C8 -->|"YES"| POST
+    C8 -->|"NO\nladder exhausted"| THIN["⚠️ Limited competition\nonly N found in 150mi"]:::warn
+    THIN --> POST
+
+    POST(["→ PHASE 4\nPost-Processing"]):::pass
+
+    classDef input fill:#4c1d95,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
+    classDef api fill:#065f46,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef ai fill:#581c87,stroke:#c084fc,color:#f3e8ff,stroke-width:2px
+    classDef dec fill:#1e293b,stroke:#f59e0b,color:#fde68a,stroke-width:2px
+    classDef block fill:#450a0a,stroke:#ef4444,color:#fca5a5,stroke-width:2px
+    classDef pass fill:#14532d,stroke:#22c55e,color:#bbf7d0,stroke-width:2px
+    classDef warn fill:#78350f,stroke:#f97316,color:#fed7aa,stroke-width:2px
+    classDef proc fill:#1e293b,stroke:#475569,color:#e2e8f0,stroke-width:1px

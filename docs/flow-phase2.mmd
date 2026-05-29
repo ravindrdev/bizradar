@@ -1,0 +1,113 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    fontSize: 16px
+    lineColor: "#94a3b8"
+    background: "#0f172a"
+    mainBkg: "#1e293b"
+    nodeBorder: "#475569"
+    clusterBkg: "#111827"
+    clusterBorder: "#475569"
+    edgeLabelBackground: "#1e293b"
+  flowchart:
+    nodeSpacing: 35
+    rankSpacing: 45
+    padding: 14
+    htmlLabels: true
+---
+flowchart TD
+    ENTRY(["buildCompetitorQuery()\nbusinessName, naics6, naics2\ngoogleTypes, city, state, reviews"]):::input
+
+    ENTRY --> CC{"Cache check\nv5|placeId|naics6"}:::dec
+    CC -->|"HIT"| CACHED["Return cached\ncompetitor data\nSkip everything"]:::pass
+    CC -->|"MISS"| OV1
+
+    OV1{"NAICS=722320\n+ name has\n'meal prep/kit/plan'?"}:::dec
+    OV1 -->|"Yes"| QMP["QUERY:\nmeal prep service\nmeal kit healthy food\ndelivery subscription"]:::pass
+    OV1 -->|"No"| OV2
+
+    OV2{"NAICS=721110\n+ name has\n'resort' or 'lodge'?"}:::dec
+    OV2 -->|"Yes"| QRS["QUERY:\nresort lodge\ndestination hotel\nwaterpark"]:::pass
+    OV2 -->|"No"| OV3
+
+    OV3{"NAICS=812199\n+ name has\n'tattoo/piercing/ink'?"}:::dec
+    OV3 -->|"Yes"| QTT["QUERY:\ntattoo parlor\nbody piercing\nink shop"]:::pass
+    OV3 -->|"No"| SPLIT
+
+    SPLIT{"NAICS starts\nwith 722?"}:::dec
+
+    SPLIT -->|"YES\nRestaurant"| R0
+    SPLIT -->|"NO\nNon-Restaurant"| P1
+
+    subgraph REST ["🍽️  RESTAURANT PATH  (722xxx)  —  6 layers"]
+        R0{"L0: Chain?\n205 chains\n+ fast food"}:::dec
+        R0 -->|"Hit"| RQ0["chain category\nquery"]:::pass
+        R0 -->|"Miss"| R1
+
+        R1{"L1: Google\ncuisine type?\nindian_restaurant\netc."}:::dec
+        R1 -->|"Hit"| RQ1["cuisine\nquery"]:::pass
+        R1 -->|"Miss"| R15
+
+        R15["🤖 L1.5: Claude Haiku\n+ web_search\nname+city+types+reviews\n→ single cuisine word"]:::ai
+        R15 --> R15C{"Valid\ncuisine?"}:::dec
+        R15C -->|"Yes"| RQ15["cuisine-specific\nquery"]:::pass
+        R15C -->|"No"| R2
+
+        R2{"L2: Name signal?\ntaqueria→mexican\nsteak→steak\nsushi→japanese"}:::dec
+        R2 -->|"Hit"| RQ2["name-based\ncuisine query"]:::pass
+        R2 -->|"Miss"| R3
+
+        R3{"L3: Review\nkeyword score?\ntop score ≥ 2"}:::dec
+        R3 -->|"Hit"| RQ3["review-based\ncuisine query"]:::pass
+        R3 -->|"Miss"| R4
+
+        R4{"L4: Strong\nsingle keyword?\nhibachi, dim sum\nramen, biryani"}:::dec
+        R4 -->|"Hit"| RQ4["keyword\nquery"]:::pass
+        R4 -->|"Miss"| RQ5
+
+        RQ5["L5 FALLBACK:\n'restaurant dining'"]:::warn
+    end
+
+    subgraph NONREST ["🏪  NON-RESTAURANT PATH  —  5 priorities"]
+        P1{"P1: NAICS-6\nexact key?\n~160 entries"}:::dec
+        P1 -->|"Hit\ne.g. 459110→\n'sporting goods store\noutdoor gear...'"| PQ1["NAICS-6 query\n⚠️ ONE static string\nfor ALL businesses\nunder this code"]:::warn
+        P1 -->|"Miss"| P2A
+
+        P2A{"P2a: NAICS-4\nprefix scan?"}:::dec
+        P2A -->|"Hit"| PQ2A["NAICS-4\nquery"]:::pass
+        P2A -->|"Miss"| P2B
+
+        P2B{"P2b: NAICS-3\nkey?"}:::dec
+        P2B -->|"Hit"| PQ2B["NAICS-3\nquery"]:::pass
+        P2B -->|"Miss"| P2C
+
+        P2C{"P2c: NAICS-2\nkey?"}:::dec
+        P2C -->|"Hit"| PQ2C["NAICS-2\nquery"]:::pass
+        P2C -->|"Miss"| P3
+
+        P3{"P3: Google type?\nnon-generic only\nskips: establishment\nstore, food, health"}:::dec
+        P3 -->|"Hit"| PQ3["type→spaces\nquery"]:::pass
+        P3 -->|"Miss"| P4
+
+        P4{"P4: Name keyword?\n~30 terms\n⚠️ FRAGILE\nmissing: bait, tackle\nfalse: yoga→yoga studio"}:::dec
+        P4 -->|"Hit"| PQ4["keyword\nquery"]:::warn
+        P4 -->|"Miss"| PQ5
+
+        PQ5["P5 FALLBACK:\nfirst 3 words of\nbusiness name"]:::warn
+    end
+
+    RQ0 & RQ1 & RQ15 & RQ2 & RQ3 & RQ4 & RQ5 --> DONE
+    PQ1 & PQ2A & PQ2B & PQ2C & PQ3 & PQ4 & PQ5 --> DONE
+    QMP & QRS & QTT --> DONE
+
+    DONE(["QUERY STRING\n+ ' near {city} {state}'\nsuffix appended"]):::pass
+
+    classDef input fill:#4c1d95,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
+    classDef api fill:#065f46,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef ai fill:#581c87,stroke:#c084fc,color:#f3e8ff,stroke-width:2px
+    classDef dec fill:#1e293b,stroke:#f59e0b,color:#fde68a,stroke-width:2px
+    classDef block fill:#450a0a,stroke:#ef4444,color:#fca5a5,stroke-width:2px
+    classDef pass fill:#14532d,stroke:#22c55e,color:#bbf7d0,stroke-width:2px
+    classDef warn fill:#78350f,stroke:#f97316,color:#fed7aa,stroke-width:2px
+    classDef proc fill:#1e293b,stroke:#475569,color:#e2e8f0,stroke-width:1px

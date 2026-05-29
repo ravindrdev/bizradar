@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Competitor Discovery Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { background: #fff; margin: 0; padding: 30px 20px; font-family: system-ui, sans-serif; }
+  h2 { margin: 40px 0 10px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 20px; }
+  h2:first-of-type { margin-top: 0; }
+  .mermaid { margin: 20px auto; max-width: 100%; }
+  .page-title { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: #64748b; margin-bottom: 30px; }
+</style>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#dbeafe',
+      primaryTextColor: '#1e293b',
+      primaryBorderColor: '#3b82f6',
+      secondaryColor: '#f0fdf4',
+      secondaryTextColor: '#1e293b',
+      secondaryBorderColor: '#22c55e',
+      tertiaryColor: '#fef3c7',
+      tertiaryTextColor: '#1e293b',
+      tertiaryBorderColor: '#f59e0b',
+      lineColor: '#64748b',
+      fontSize: '13px',
+      fontFamily: 'system-ui, sans-serif',
+    },
+    flowchart: {
+      htmlLabels: true,
+      curve: 'basis',
+      nodeSpacing: 30,
+      rankSpacing: 40,
+      padding: 12,
+    }
+  });
+</script>
+</head>
+<body>
+
+<div class="page-title">Competitor Discovery Architecture</div>
+<div class="page-sub">googlePlaces.js &bull; Every path from business name to final competitor pool</div>
+
+<!-- ============================================================ -->
+<h2>Phase 1 &mdash; Input, Classification &amp; Gating</h2>
+<!-- ============================================================ -->
+
+<pre class="mermaid">
+flowchart TD
+    START(["fa:fa-search User enters<br/>business name + address"])
+    START --> FIND_PLACE
+
+    FIND_PLACE["Google Places: findPlace()<br/>Resolve place_id from input text"]
+    FIND_PLACE --> FIND_CHECK{place_id<br/>found?}
+    FIND_CHECK -->|"Yes - place_id set early<br/>skip future findPlace calls"| DETAILS
+    FIND_CHECK -->|"No"| TEXT_SEARCH["Google Text Search fallback<br/>broader match on input string"]
+    TEXT_SEARCH --> DETAILS
+
+    DETAILS["Google Places: getDetails()<br/>Returns: google_types[], name,<br/>lat/lng, 8 reviews, address<br/>(24hr cache)"]
+    DETAILS --> CLASSIFY
+
+    subgraph CLASSIFY ["NAICS-6 Classification Cascade"]
+        direction TB
+        T1{"Tier 1: Chain match?<br/>classifierRegistry.json<br/>205 chains + 30 disambig rules"}
+        T1 -->|"Yes<br/>e.g. 'Hilton' → 721110"| NAICS_DONE["NAICS-6 assigned"]
+        T1 -->|"No match"| T2{"Tier 2: Specific Google type?<br/>placesTypeMapper.js<br/>e.g. dentist → 621210"}
+        T2 -->|"Yes"| NAICS_DONE
+        T2 -->|"No specific type"| T3{"Tier 3: Generic type OR<br/>name_fallback keyword?<br/>e.g. 'sporting goods' → 459110"}
+        T3 -->|"Yes"| NAICS_DONE
+        T3 -->|"All 3 tiers failed"| T4["Tier 4: Claude AI classify<br/>Sends name + types to Claude<br/>Gets NAICS-6 back<br/>~$0.002 per call"]
+        T4 --> NAICS_DONE
+    end
+
+    NAICS_DONE --> L0_AI{"Layer0 AI verify?<br/>Fires when confidence = LOW<br/>(name_fallback, generic)"}
+    L0_AI -->|"HIGH confidence<br/>skip verify"| OOS_CHECK
+    L0_AI -->|"LOW confidence"| L0_VERIFY["Claude + web_search verifies NAICS<br/>Can override NAICS-6 if wrong<br/>e.g. confirms 459110 for Kate's Bait"]
+    L0_VERIFY --> OOS_CHECK
+
+    OOS_CHECK{"Out-of-Scope check<br/>naicsRouter.csv<br/>92 explicit overrides"}
+    OOS_CHECK -->|"OUT_OF_SCOPE_NICHE<br/>mining, parking, photo finish,<br/>manufactured homes"| BLOCKED["Waitlist page<br/>NO report generated<br/>NO competitors searched"]
+    OOS_CHECK -->|"OUT_OF_SCOPE_REGULATED<br/>utilities, pipelines, pharmacies,<br/>optical, cannabis"| BLOCKED
+    OOS_CHECK -->|"OUT_OF_SCOPE_55<br/>holding companies"| BLOCKED
+    OOS_CHECK -->|"OUT_OF_SCOPE_92<br/>all public administration<br/>(govt agencies)"| BLOCKED
+    OOS_CHECK -->|"813xxx prefix<br/>religious, civic,<br/>membership orgs"| BLOCKED
+    OOS_CHECK -->|"In scope<br/>(vast majority)"| PROFILE_CHECK
+
+    PROFILE_CHECK{"profileResolver:<br/>NAICS → profile?"}
+    PROFILE_CHECK -->|"Profile found<br/>(100 filled profiles)"| PROCEED["Proceed to<br/>competitor discovery"]
+    PROFILE_CHECK -->|"No profile match"| CLAUDE_FALLBACK["Claude classify fallback<br/>asks Claude to pick NAICS"]
+    CLAUDE_FALLBACK --> RE_OOS{"Re-check OOS<br/>+ re-resolve profile"}
+    RE_OOS -->|"OOS"| BLOCKED
+    RE_OOS -->|"Still no profile"| UNSUPPORTED["'Unsupported' page<br/>NO report generated"]
+    RE_OOS -->|"Profile found"| PROCEED
+
+    style BLOCKED fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style UNSUPPORTED fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style PROCEED fill:#dcfce7,stroke:#22c55e,color:#166534
+    style START fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    style T4 fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style L0_VERIFY fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style CLAUDE_FALLBACK fill:#f3e8ff,stroke:#a855f7,color:#581c87
+</pre>
+
+<!-- ============================================================ -->
+<h2>Phase 2 &mdash; Competitor Query Building (buildCompetitorQuery)</h2>
+<!-- ============================================================ -->
+
+<pre class="mermaid">
+flowchart TD
+    ENTRY(["buildCompetitorQuery()<br/>Inputs: businessName, naics6, naics2,<br/>googleTypes, city, state, reviewTexts"])
+    ENTRY --> OVERRIDE_CHECK
+
+    subgraph OVERRIDES ["Hardcoded Name Overrides (3 cases)"]
+        direction TB
+        OVERRIDE_CHECK{"NAICS = 722320<br/>AND name has<br/>'meal prep/kit/plan'?"}
+        OVERRIDE_CHECK -->|"Yes"| MEAL["QUERY: meal prep service<br/>meal kit healthy food<br/>delivery subscription"]
+        OVERRIDE_CHECK -->|"No"| RESORT_CHECK{"NAICS = 721110<br/>AND name has<br/>'resort' or 'lodge'?"}
+        RESORT_CHECK -->|"Yes"| RESORT["QUERY: resort lodge<br/>destination hotel waterpark<br/>conference center"]
+        RESORT_CHECK -->|"No"| TATTOO_CHECK{"NAICS = 812199<br/>AND name has<br/>'tattoo/piercing/ink/body art'?"}
+        TATTOO_CHECK -->|"Yes"| TATTOO["QUERY: tattoo parlor<br/>tattoo studio body piercing<br/>ink shop body art"]
+        TATTOO_CHECK -->|"No"| SPLIT
+    end
+
+    SPLIT{"NAICS starts<br/>with 722?"}
+    SPLIT -->|"YES - Restaurant<br/>Food Service"| REST_BRANCH
+    SPLIT -->|"NO - Everything Else"| NONREST_BRANCH
+
+    subgraph REST_BRANCH ["Restaurant Path (722xxx) — 6 Layers"]
+        direction TB
+        R0{"Layer 0: Chain match?<br/>205 chains + fast food list<br/>e.g. olive garden, mcdonalds"}
+        R0 -->|"Hit: 'olive garden'"| RQ0["QUERY: italian restaurant<br/>pasta house"]
+        R0 -->|"No chain match"| R1{"Layer 1: Google cuisine type?<br/>e.g. indian_restaurant,<br/>chinese_restaurant,<br/>japanese_restaurant"}
+        R1 -->|"Type found"| RQ1["QUERY: from<br/>GOOGLE_CUISINE_TYPES map"]
+        R1 -->|"No cuisine type"| R15
+
+        R15["Layer 1.5: Claude Haiku micro-call<br/>model: claude-haiku-4-5<br/>+ web_search tool<br/>Inputs: name, city, types, 3 reviews<br/>Returns: single cuisine word<br/>(indian/chinese/thai/etc)"]
+        R15 --> R15_CHECK{"Cuisine detected?<br/>Must be in VALID_CUISINES set"}
+        R15_CHECK -->|"Valid cuisine"| RQ15["QUERY: from CUISINE_QUERIES<br/>e.g. indian → indian restaurant<br/>curry house tandoori"]
+        R15_CHECK -->|"null / invalid"| R2
+
+        R2{"Layer 2: Name signals?<br/>e.g. 'taqueria' → mexican<br/>'steak' → steak<br/>'sushi' → japanese<br/>'pho' → vietnamese"}
+        R2 -->|"Signal found"| RQ2["QUERY: cuisine-specific<br/>search terms"]
+        R2 -->|"No signal"| R3{"Layer 3: Review keyword scoring<br/>Scans ALL review text<br/>Scores each cuisine by keyword hits<br/>Top score must be >= 2"}
+        R3 -->|"Score >= 2"| RQ3["QUERY: winning<br/>cuisine query"]
+        R3 -->|"All scores < 2"| R4{"Layer 4: Strong single keywords<br/>e.g. 'hibachi', 'dim sum',<br/>'ramen', 'biryani'<br/>One occurrence = match"}
+        R4 -->|"Keyword found"| RQ4["QUERY: strong<br/>keyword query"]
+        R4 -->|"Nothing matched"| RQ5["Layer 5: FALLBACK<br/>QUERY: 'restaurant dining'"]
+    end
+
+    subgraph NONREST_BRANCH ["Non-Restaurant Path — 5 Priorities"]
+        direction TB
+        P1{"Priority 1: NAICS-6 exact?<br/>NAICS_QUERIES map<br/>~160 entries<br/>e.g. 459110 → 'sporting goods<br/>store outdoor gear bike shop<br/>hunting fishing outdoor'"}
+        P1 -->|"Key found"| PQ1["QUERY: static NAICS string<br/>ONE query for ALL businesses<br/>under this NAICS code"]
+        P1 -->|"No exact key"| P2A{"Priority 2a: NAICS-4 prefix?<br/>First key starting with<br/>same 4 digits"}
+        P2A -->|"Found"| PQ2A["QUERY: NAICS-4<br/>match string"]
+        P2A -->|"No 4-digit match"| P2B{"Priority 2b: NAICS-3 key?<br/>e.g. '111', '312'"}
+        P2B -->|"Found"| PQ2B["QUERY: NAICS-3<br/>match string"]
+        P2B -->|"No 3-digit match"| P2C{"Priority 2c: NAICS-2 key?<br/>Broadest sector level"}
+        P2C -->|"Found"| PQ2C["QUERY: NAICS-2<br/>match string"]
+        P2C -->|"No NAICS match at all"| P3{"Priority 3: Google type?<br/>First non-generic type<br/>Skips: establishment,<br/>point_of_interest, store,<br/>food, health, etc."}
+        P3 -->|"Specific type found"| PQ3["QUERY: type with<br/>underscores → spaces"]
+        P3 -->|"All types generic"| P4{"Priority 4: Name keyword?<br/>COMPETITOR_NAME_KEYWORDS list<br/>~30 terms like 'salon',<br/>'gym', 'dental', 'hotel'<br/>MISSING: bait, tackle, fishing"}
+        P4 -->|"Keyword found"| PQ4["QUERY: matched keyword"]
+        P4 -->|"No keyword"| PQ5["Priority 5: FALLBACK<br/>First 3 words of business name<br/>Strips LLC/Inc/Corp"]
+    end
+
+    MEAL --> DONE
+    RESORT --> DONE
+    TATTOO --> DONE
+    RQ0 --> DONE
+    RQ1 --> DONE
+    RQ15 --> DONE
+    RQ2 --> DONE
+    RQ3 --> DONE
+    RQ4 --> DONE
+    RQ5 --> DONE
+    PQ1 --> DONE
+    PQ2A --> DONE
+    PQ2B --> DONE
+    PQ2C --> DONE
+    PQ3 --> DONE
+    PQ4 --> DONE
+    PQ5 --> DONE
+
+    DONE(["Query string returned<br/>+ ' near {city} {state}' suffix appended"])
+
+    style ENTRY fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    style DONE fill:#dcfce7,stroke:#22c55e,color:#166534
+    style R15 fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style RQ5 fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    style PQ5 fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    style PQ1 fill:#fff7ed,stroke:#f97316,color:#9a3412
+    style MEAL fill:#dcfce7,stroke:#22c55e,color:#166534
+    style RESORT fill:#dcfce7,stroke:#22c55e,color:#166534
+    style TATTOO fill:#dcfce7,stroke:#22c55e,color:#166534
+</pre>
+
+<!-- ============================================================ -->
+<h2>Phase 3 &mdash; 8-Step Radius Ladder Search</h2>
+<!-- ============================================================ -->
+
+<pre class="mermaid">
+flowchart TD
+    FNC(["fetchNearbyCompetitors()<br/>Inputs: placeId, lat, lng, apiKey,<br/>city, state, businessName,<br/>naics6, naics2, googleTypes"])
+
+    FNC --> CACHE{"Cache check<br/>key: v5|placeId|naics6<br/>TTL: process lifetime"}
+    CACHE -->|"HIT"| CACHE_RETURN(["Return cached<br/>competitor data"])
+    CACHE -->|"MISS"| REV_CHECK
+
+    REV_CHECK{"NAICS 722xxx?<br/>Food service?"}
+    REV_CHECK -->|"Yes"| FETCH_REV["Fetch subject reviews<br/>getDetails(placeId)<br/>usually 24hr cache hit<br/>For cuisine detection layers 2-3"]
+    REV_CHECK -->|"No"| BUILD_Q
+    FETCH_REV --> BUILD_Q
+
+    BUILD_Q["buildCompetitorQuery()<br/>(see Phase 2 diagram)<br/>Called TWICE:"]
+    BUILD_Q --> Q_WITH["queryWithLocality<br/>'...terms... near Dodgeville WI'<br/>Used: Steps 1-7"]
+    BUILD_Q --> Q_WITHOUT["queryNoLocality<br/>'...terms...' (no city/state)<br/>Used: Step 8 only<br/>Catches cross-state results"]
+
+    Q_WITH --> LADDER_START
+    Q_WITHOUT --> LADDER_START
+
+    LADDER_START["Initialize: pool = empty, seenPlaceIds = Set"]
+    LADDER_START --> S1
+
+    S1["Step 1: radius = 1 mile<br/>strip mall / same block"] --> API1
+    API1["Google Places Text Search<br/>query + location + radius"] --> TRYADD1
+    TRYADD1["tryAdd() filter — per result"] --> CHECK1{"pool >= 5?"}
+    CHECK1 -->|"Yes — STOP"| POST
+    CHECK1 -->|"No"| S2
+
+    S2["Step 2: radius = 3 miles<br/>neighborhood"] --> API2["Text Search API call"] --> TRYADD2["tryAdd() filter"] --> CHECK2{"pool >= 5?"}
+    CHECK2 -->|"Yes"| POST
+    CHECK2 -->|"No"| S3
+
+    S3["Step 3: radius = 8 miles<br/>small-city core"] --> API3["Text Search"] --> TRYADD3["tryAdd()"] --> CHECK3{"pool >= 5?"}
+    CHECK3 -->|"Yes"| POST
+    CHECK3 -->|"No"| S4
+
+    S4["Step 4: radius = 15 miles<br/>greater small-town area"] --> API4["Text Search"] --> TRYADD4["tryAdd()"] --> CHECK4{"pool >= 5?"}
+    CHECK4 -->|"Yes"| POST
+    CHECK4 -->|"No"| S5
+
+    S5["Step 5: radius = 30 miles<br/>regional"] --> API5["Text Search"] --> TRYADD5["tryAdd()"] --> CHECK5{"pool >= 5?"}
+    CHECK5 -->|"Yes"| POST
+    CHECK5 -->|"No"| S6
+
+    S6["Step 6: radius = 50 miles<br/>multi-county"] --> API6["Text Search"] --> TRYADD6["tryAdd()"] --> CHECK6{"pool >= 5?"}
+    CHECK6 -->|"Yes"| POST
+    CHECK6 -->|"No — TRIGGER CLAUDE"| CLAUDE_SAFETY
+
+    CLAUDE_SAFETY["CLAUDE SAFETY NET<br/>detectCompetitorQueryWithClaude()<br/>model: claude-haiku-4-5 + web_search<br/>Fires ONCE, only here<br/>Sends: name, city, state, naics6<br/>Claude web-searches the business<br/>Returns JSON: business_type,<br/>competitor_types, 5 search_queries"]
+
+    CLAUDE_SAFETY --> CLAUDE_CHECK{"Claude returned<br/>valid queries?"}
+    CLAUDE_CHECK -->|"No / failed"| S7
+    CLAUDE_CHECK -->|"Yes — run each query"| CLAUDE_LOOP
+
+    CLAUDE_LOOP["For each of 5 Claude queries:<br/>Google Text Search at 50mi radius<br/>Results tagged source = 'google_text_claude'<br/>Each passes through tryAdd()"]
+    CLAUDE_LOOP --> CLAUDE_POOL{"pool >= 5<br/>after Claude?"}
+    CLAUDE_POOL -->|"Yes"| POST
+    CLAUDE_POOL -->|"No — keep climbing"| S7
+
+    S7["Step 7: radius = 75 miles<br/>cross-region"] --> API7["Text Search"] --> TRYADD7["tryAdd()"] --> CHECK7{"pool >= 5?"}
+    CHECK7 -->|"Yes"| POST
+    CHECK7 -->|"No"| S8
+
+    S8["Step 8: radius = 150 miles<br/>nearby states<br/>USES queryNoLocality<br/>(drops 'near city state')"] --> API8["Text Search"] --> TRYADD8["tryAdd()"] --> CHECK8{"pool >= 5?"}
+    CHECK8 -->|"Yes"| POST
+    CHECK8 -->|"No — ladder exhausted"| THIN["Log: only N found within 150mi<br/>may be limited competition"]
+    THIN --> POST
+
+    POST(["Go to Phase 4:<br/>Post-Processing"])
+
+    style FNC fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    style CACHE_RETURN fill:#dcfce7,stroke:#22c55e,color:#166534
+    style POST fill:#dcfce7,stroke:#22c55e,color:#166534
+    style CLAUDE_SAFETY fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style CLAUDE_LOOP fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style THIN fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    style S8 fill:#fff1f2,stroke:#f43f5e,color:#9f1239
+</pre>
+
+<!-- ============================================================ -->
+<h2>Phase 3a &mdash; tryAdd() Filter Gate (runs per result)</h2>
+<!-- ============================================================ -->
+
+<pre class="mermaid">
+flowchart TD
+    RAW(["Raw Google Places result"]) --> C1
+
+    C1{"Check 1: isOperationalOrUnknown()<br/>Is business_status ==<br/>CLOSED_PERMANENTLY?"}
+    C1 -->|"CLOSED"| DROP1["DROPPED<br/>closed businesses never<br/>enter the pool"]
+    C1 -->|"OPERATIONAL<br/>or unknown"| CONVERT
+
+    CONVERT["toCompetitorFromGoogle()<br/>Calculate distance_meters<br/>from subject lat/lng"] --> C2
+
+    C2{"Check 2: Distance filter<br/>distance > 1.5x step radius?<br/>(Google returns far-away matches<br/>that don't belong at this step)"}
+    C2 -->|"Too far away"| DROP2["DROPPED<br/>will be caught on<br/>a wider rung later"]
+    C2 -->|"Within 1.5x radius"| C3
+
+    C3{"Check 3a: Same place_id<br/>as subject business?"}
+    C3 -->|"Yes — it's the subject"| DROP3["DROPPED<br/>don't compete with yourself"]
+    C3 -->|"Different place_id"| C3B{"Check 3b: place_id<br/>already in pool?<br/>(seenPlaceIds Set)"}
+    C3B -->|"Already seen"| DROP4["DROPPED<br/>dedup — same business<br/>from overlapping radius"]
+    C3B -->|"New place_id"| C4
+
+    C4{"Check 4: Normalized name<br/>matches subject name?<br/>(lowercase, alpha+space,<br/>first 20 chars)"}
+    C4 -->|"Names match"| DROP5["DROPPED<br/>same business,<br/>different listing"]
+    C4 -->|"Different name"| PASS
+
+    PASS["ACCEPTED into pool<br/>Add place_id to seenPlaceIds"]
+
+    style RAW fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    style DROP1 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style DROP2 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style DROP3 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style DROP4 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style DROP5 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style PASS fill:#dcfce7,stroke:#22c55e,color:#166534
+</pre>
+
+<!-- ============================================================ -->
+<h2>Phase 4 &mdash; Post-Processing, Enrichment &amp; Output</h2>
+<!-- ============================================================ -->
+
+<pre class="mermaid">
+flowchart TD
+    POOL(["Raw pool from radius ladder<br/>e.g. 12 competitors"]) --> DEDUP
+
+    DEDUP["fuzzyDedupByName()<br/>Normalized name dedup<br/>(lowercase, alpha+space only,<br/>capped 20 chars)<br/>Keeps the first seen per name"]
+    DEDUP --> SORT
+
+    SORT["competitorComparator() sort<br/>PRIMARY: distance bucket<br/>&lt;2mi → &lt;5mi → &lt;15mi → 15mi+ → unknown<br/>SECONDARY: higher rating first<br/>TERTIARY: more reviews first<br/>(closest competitors always rank top)"]
+    SORT --> SLICE
+
+    SLICE["Slice into tiers<br/>top7 = fuzzed[0:7]<br/>top5 = fuzzed[0:5]<br/>top3 = fuzzed[0:3]"]
+    SLICE --> ENRICH
+
+    ENRICH["Enrich Top 5 — parallel<br/>getDetails(place_id) per competitor<br/>24hr cache — usually free<br/>Extracts per competitor:<br/>• 3 reviews (300 char each)<br/>• formatted_address<br/>• weekday_text (hours)"]
+    ENRICH --> TIER
+
+    TIER["classifyCompetitorTier()<br/>per competitor vs subject"]
+    TIER --> TIER_CHECK{"Subject has<br/>&lt; 25 reviews?"}
+
+    TIER_CHECK -->|"Yes — SMALL subject"| SMALL_RULES
+    TIER_CHECK -->|"No — ESTABLISHED subject"| EST_RULES
+
+    subgraph SMALL_RULES ["Small Subject Rules (absolute thresholds)"]
+        direction TB
+        SM1{"comp rating >= 4.5<br/>AND comp reviews >= 10?"}
+        SM1 -->|"Yes"| SM_THREAT["THREAT<br/>genuinely better"]
+        SM1 -->|"No"| SM2{"comp reviews < 5?"}
+        SM2 -->|"Yes"| SM_NEUTRAL1["NEUTRAL<br/>too few to judge"]
+        SM2 -->|"No"| SM3{"comp rating < 3.8<br/>AND comp reviews >= 5?"}
+        SM3 -->|"Yes"| SM_WINNING["WINNING<br/>subject is ahead"]
+        SM3 -->|"No"| SM_NEUTRAL2["NEUTRAL"]
+    end
+
+    subgraph EST_RULES ["Established Subject Rules (gap-based)"]
+        direction TB
+        ES_GAP["ratingGap = comp.rating - subject.rating"]
+        ES_GAP --> ES1{"gap >= 0.5<br/>AND comp reviews >= 20?"}
+        ES1 -->|"Yes"| ES_THREAT["THREAT<br/>outperforming subject"]
+        ES1 -->|"No"| ES2{"gap <= -0.3<br/>OR comp rating < 3.8?"}
+        ES2 -->|"Yes"| ES_WINNING["WINNING<br/>subject beating them"]
+        ES2 -->|"No"| ES_NEUTRAL["NEUTRAL<br/>similar level"]
+    end
+
+    SM_THREAT --> MULTI_REV
+    SM_WINNING --> MULTI_REV
+    SM_NEUTRAL1 --> MULTI_REV
+    SM_NEUTRAL2 --> MULTI_REV
+    ES_THREAT --> MULTI_REV
+    ES_WINNING --> MULTI_REV
+    ES_NEUTRAL --> MULTI_REV
+
+    MULTI_REV["Multi-sort review fetch<br/>for top 5 competitors<br/>Parallel — independent per competitor<br/>Sorts: most relevant, newest,<br/>highest rated, lowest rated<br/>Gives Claude richer evidence"]
+    MULTI_REV --> OUTPUT
+
+    OUTPUT["FINAL OUTPUT OBJECT<br/>• competitor_count (total deduped pool)<br/>• competitor_median_rating<br/>• competitor_median_review_count<br/>• competitors_top7 / top5 / top3<br/>• search_radius_miles (largest step fired)<br/>• competitor_query (the search string used)<br/>• competitor_query_claude (if safety net fired)<br/>• sources_used: google_text / google_text_claude"]
+    OUTPUT --> CACHED["Cached: COMPETITOR_CACHE<br/>key: v5|placeId|naics6"]
+    OUTPUT --> RETURNED(["Returned to server.js<br/>→ claudeEnricher for report"])
+
+    style POOL fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    style RETURNED fill:#dcfce7,stroke:#22c55e,color:#166534
+    style SM_THREAT fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style ES_THREAT fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    style SM_WINNING fill:#dcfce7,stroke:#22c55e,color:#166534
+    style ES_WINNING fill:#dcfce7,stroke:#22c55e,color:#166534
+    style SM_NEUTRAL1 fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    style SM_NEUTRAL2 fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    style ES_NEUTRAL fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    style MULTI_REV fill:#f3e8ff,stroke:#a855f7,color:#581c87
+    style OUTPUT fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</pre>
+
+</body>
+</html>

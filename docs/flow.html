@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f172a;color:#e2e8f0;font-family:system-ui,sans-serif;padding:24px;width:800px}
+.title{font-size:22px;font-weight:800;color:#f8fafc;margin-bottom:4px}
+.sub{font-size:12px;color:#64748b;margin-bottom:24px}
+.phase{font-size:16px;font-weight:700;color:#fbbf24;margin:28px 0 14px;padding-bottom:6px;border-bottom:2px solid #334155}
+.phase:first-of-type{margin-top:12px}
+
+/* Nodes */
+.n{position:relative;margin:0 auto 6px;padding:10px 14px;border-radius:8px;font-size:12px;line-height:1.5;max-width:700px;text-align:center}
+.n b{display:block;font-size:13px;margin-bottom:2px}
+.n code{background:#0f172a;padding:1px 4px;border-radius:3px;font-size:11px;color:#a78bfa}
+.n-input{background:#1e40af;border:2px solid #60a5fa;color:#dbeafe}
+.n-proc{background:#1e293b;border:1px solid #475569}
+.n-dec{background:#1e293b;border:2px solid #f59e0b;border-radius:8px}
+.n-dec b::before{content:"◆ ";color:#f59e0b;font-size:10px}
+.n-ai{background:#4c1d95;border:2px solid #a78bfa;color:#e9d5ff}
+.n-api{background:#065f46;border:2px solid #34d399;color:#d1fae5}
+.n-out{background:#9f1239;border:2px solid #fb7185;color:#fce7f3}
+.n-block{background:#450a0a;border:2px solid #ef4444;color:#fca5a5}
+.n-pass{background:#14532d;border:2px solid #22c55e;color:#bbf7d0}
+.n-warn{background:#78350f;border:2px solid #f97316;color:#fed7aa}
+.n-cache{background:#1e293b;border:2px dashed #64748b}
+
+/* Arrows */
+.arr{text-align:center;padding:2px 0;color:#64748b;font-size:16px;line-height:1}
+.arr span{font-size:10px;font-weight:600;display:inline-block;padding:1px 8px;border-radius:3px;margin-left:8px;vertical-align:middle}
+.arr .yes{background:#14532d;color:#4ade80}
+.arr .no{background:#450a0a;color:#fca5a5}
+.arr .info{background:#1e293b;color:#94a3b8}
+
+/* Branch */
+.branch-row{display:flex;gap:12px;max-width:720px;margin:8px auto}
+.branch{flex:1;border:1px solid #334155;border-radius:8px;padding:10px;background:#0f172a}
+.branch-title{text-align:center;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:8px;display:block}
+.bt-yes{background:#14532d;color:#4ade80}
+.bt-no{background:#450a0a;color:#fca5a5}
+
+/* Cascade items */
+.cas{margin:4px 0;padding:6px 8px;border-radius:6px;font-size:11px;line-height:1.4;background:#1e293b;border:1px solid #334155;display:flex;align-items:flex-start;gap:6px}
+.cas.hi{border-color:#7c3aed;background:#1e1b3a}
+.cas-num{width:18px;height:18px;border-radius:50%;background:#334155;color:#94a3b8;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cas.hi .cas-num{background:#7c3aed;color:#fff}
+.cas-text{flex:1}
+.cas-text b{color:#f8fafc}
+.cas-text em{color:#f87171;font-style:normal;font-size:10px}
+.cas-fall{color:#64748b;font-size:9px;margin-left:auto;white-space:nowrap}
+
+/* Ladder */
+.ladder{display:flex;gap:3px;align-items:flex-end;justify-content:center;height:70px;margin:10px auto;max-width:600px}
+.lbar{flex:1;border-radius:3px 3px 0 0;text-align:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.8);display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px}
+.lbl{text-align:center;font-size:9px;color:#94a3b8;margin-top:2px}
+
+.file{font-size:9px;color:#475569;font-family:monospace;margin-top:3px}
+.note{font-size:11px;color:#94a3b8;text-align:center;margin:8px auto;max-width:650px;line-height:1.5}
+.note b{color:#fbbf24}
+</style>
+</head>
+<body>
+
+<div class="title">Competitor Discovery Architecture</div>
+<div class="sub">googlePlaces.js &bull; Full flow with every edge case</div>
+
+<!-- ============================== PHASE 1 ============================== -->
+<div class="phase">Phase 1 &mdash; Input, Classification &amp; Gating</div>
+
+<div class="n n-input"><b>User enters business name + address</b>"Kate's Bait &amp; Sporting Goods, 3916 WI-23, Dodgeville, WI"</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-api"><b>Google Places: findPlace()</b>Resolves place_id from input text<br>If place_id already set &rarr; <b>skip</b> (saves API call)</div>
+<div class="arr">&darr; <span class="info">place_id found? If NO &rarr; Text Search fallback</span></div>
+
+<div class="n n-api"><b>Google Places: getDetails()</b>Returns: <code>google_types[]</code>, name, lat/lng, 8 reviews, address (24hr cache)</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-proc"><b>NAICS-6 Classification &mdash; 4-tier cascade</b></div>
+<div class="arr">&darr;</div>
+
+<div style="max-width:700px;margin:0 auto">
+  <div class="cas"><span class="cas-num">1</span><span class="cas-text"><b>Chain match</b> &mdash; classifierRegistry.json &mdash; 205 chains + 30 disambig rules<br>e.g. "Hilton" &rarr; 721110, "Starbucks" &rarr; 722515</span><span class="cas-fall">&darr; miss</span></div>
+  <div class="cas"><span class="cas-num">2</span><span class="cas-text"><b>Specific Google type</b> &mdash; placesTypeMapper.js<br>e.g. <code>dentist</code> &rarr; 621210, <code>car_repair</code> &rarr; 811111</span><span class="cas-fall">&darr; miss</span></div>
+  <div class="cas"><span class="cas-num">3</span><span class="cas-text"><b>Generic type OR name_fallback keyword</b><br>e.g. type "store" + name has "sporting goods" &rarr; 459110</span><span class="cas-fall">&darr; miss</span></div>
+  <div class="cas hi"><span class="cas-num">4</span><span class="cas-text"><b>Claude AI classify</b> &mdash; sends name + types to Claude ~$0.002<br>Returns NAICS-6. Only fires when Tiers 1-3 all fail.</span></div>
+</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-dec"><b>Layer0 AI verify? (confidence = LOW?)</b>Fires when name_fallback or generic type was used</div>
+<div class="arr">&darr; <span class="yes">HIGH confidence &rarr; skip</span> <span class="no">LOW &rarr; Claude + web_search verifies NAICS</span></div>
+
+<div class="n n-dec"><b>Out-of-Scope check &mdash; naicsRouter.csv (92 overrides)</b></div>
+
+<div class="branch-row">
+  <div class="branch" style="flex:2">
+    <span class="branch-title bt-no">BLOCKED &mdash; these never get competitors</span>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">X</span><span class="cas-text"><b>OUT_OF_SCOPE_NICHE</b> &mdash; mining (21xxxx), parking (812930), photo finishing, manufactured homes</span></div>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">X</span><span class="cas-text"><b>OUT_OF_SCOPE_REGULATED</b> &mdash; utilities (22xxxx), pipelines, pharmacies, optical, cannabis</span></div>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">X</span><span class="cas-text"><b>OUT_OF_SCOPE_55</b> &mdash; holding companies</span></div>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">X</span><span class="cas-text"><b>OUT_OF_SCOPE_92</b> &mdash; all public administration / govt agencies</span></div>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">X</span><span class="cas-text"><b>813xxx prefix</b> &mdash; religious, civic, membership orgs</span></div>
+    <div class="n n-block" style="margin-top:6px"><b>Waitlist page shown. No report. No competitors.</b></div>
+  </div>
+  <div class="branch" style="flex:1">
+    <span class="branch-title bt-yes">IN SCOPE &mdash; continue</span>
+    <div class="arr">&darr;</div>
+    <div class="n n-dec" style="font-size:11px"><b>Profile resolved?</b>NAICS &rarr; profileRegistry (100 profiles)</div>
+    <div class="arr" style="font-size:10px">&darr; <span class="yes">Yes</span> <span class="no">No &rarr; Claude fallback &rarr; re-check OOS</span></div>
+    <div class="n n-pass"><b>Proceed to competitor discovery</b></div>
+  </div>
+</div>
+
+<!-- ============================== PHASE 2 ============================== -->
+<div class="phase">Phase 2 &mdash; Query Building (buildCompetitorQuery)</div>
+
+<div class="n n-proc"><b>fetchNearbyCompetitors() called</b>Inputs: placeId, lat, lng, businessName, naics6, naics2, googleTypes, city, state</div>
+<div class="arr">&darr;</div>
+<div class="n n-cache"><b>Cache check: <code>v5|{placeId}|{naics6}</code></b>Hit &rarr; return immediately, skip everything. Miss &rarr; continue.</div>
+<div class="arr">&darr; <span class="no">CACHE MISS</span></div>
+
+<div class="n n-dec"><b>Hardcoded name overrides (3 special cases)</b></div>
+<div style="max-width:700px;margin:4px auto">
+  <div class="cas"><span class="cas-num">1</span><span class="cas-text"><b>NAICS 722320</b> + name has "meal prep/kit/plan" &rarr; <code>meal prep service meal kit healthy food delivery subscription</code></span></div>
+  <div class="cas"><span class="cas-num">2</span><span class="cas-text"><b>NAICS 721110</b> + name has "resort" or "lodge" &rarr; <code>resort lodge destination hotel waterpark conference center</code></span></div>
+  <div class="cas"><span class="cas-num">3</span><span class="cas-text"><b>NAICS 812199</b> + name has "tattoo/piercing/ink/body art" &rarr; <code>tattoo parlor body piercing ink shop</code></span></div>
+</div>
+<div class="note">If any override matches &rarr; <b>return query immediately</b>, skip everything below</div>
+<div class="arr">&darr; <span class="info">no override matched</span></div>
+
+<div class="n n-dec"><b>NAICS starts with 722? (Food Service)</b>This is the BIG SPLIT &mdash; two completely different paths</div>
+
+<div class="branch-row">
+  <!-- RESTAURANT BRANCH -->
+  <div class="branch">
+    <span class="branch-title bt-yes">YES &mdash; Restaurant (722xxx)</span>
+    <div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:6px">Fetches subject reviews first (getDetails cache hit)</div>
+    <div class="cas"><span class="cas-num">0</span><span class="cas-text"><b>Chain detection</b> &mdash; 205 chains + fast food list<br>"olive garden" &rarr; <code>italian restaurant pasta</code></span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">1</span><span class="cas-text"><b>Google cuisine type</b><br><code>indian_restaurant</code> &rarr; query from map</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas hi"><span class="cas-num">1.5</span><span class="cas-text"><b>Claude Haiku micro-call</b> &#x1F916;<br>name + city + types + 3 reviews<br>+ web_search tool<br>&rarr; returns single cuisine word<br>Must be in VALID_CUISINES set</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">2</span><span class="cas-text"><b>Name signals</b><br>"taqueria" &rarr; mexican, "steak" &rarr; steak<br>"sushi" &rarr; japanese, "pho" &rarr; vietnamese</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">3</span><span class="cas-text"><b>Review keyword scoring</b><br>Scans all review text, top score &ge; 2 wins</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">4</span><span class="cas-text"><b>Strong single keywords</b><br>"hibachi", "dim sum", "ramen", "biryani"</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas" style="border-color:#f59e0b"><span class="cas-num" style="background:#f59e0b;color:#000">5</span><span class="cas-text"><b>FALLBACK</b> &rarr; <code>"restaurant dining"</code></span></div>
+  </div>
+
+  <!-- NON-RESTAURANT BRANCH -->
+  <div class="branch">
+    <span class="branch-title bt-no">NO &mdash; Non-Restaurant</span>
+    <div style="font-size:10px;color:#f87171;text-align:center;margin-bottom:6px">&#9888; No AI layer here &mdash; the precision gap</div>
+    <div class="cas" style="border-color:#059669"><span class="cas-num" style="background:#059669;color:#fff">1</span><span class="cas-text"><b>NAICS-6 exact</b> &mdash; NAICS_QUERIES map (~160 entries)<br>e.g. <code>459110</code> &rarr; <code>"sporting goods store outdoor gear bike shop hunting fishing outdoor"</code><br><em>&#9888; ONE query for ALL businesses under this code</em></span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">2a</span><span class="cas-text"><b>NAICS-4 prefix</b> &mdash; first key sharing 4 digits</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">2b</span><span class="cas-text"><b>NAICS-3 key</b> &mdash; e.g. "312"</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">2c</span><span class="cas-text"><b>NAICS-2 key</b> &mdash; broadest sector level</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">3</span><span class="cas-text"><b>Google type</b> &mdash; first non-generic type<br>Skips: establishment, point_of_interest, store, food</span><span class="cas-fall">&darr;</span></div>
+    <div class="cas"><span class="cas-num">4</span><span class="cas-text"><b>Name keyword</b> &mdash; COMPETITOR_NAME_KEYWORDS (~30 terms)<br><em>&#9888; FRAGILE: missing bait, tackle, fishing. "Yoga Pants Boutique" would false-match "yoga"</em></span><span class="cas-fall">&darr;</span></div>
+    <div class="cas" style="border-color:#f59e0b"><span class="cas-num" style="background:#f59e0b;color:#000">5</span><span class="cas-text"><b>FALLBACK</b> &mdash; first 3 words of business name (strips LLC/Inc/Corp)</span></div>
+  </div>
+</div>
+
+<div class="arr">&darr;</div>
+<div class="n n-proc"><b>Two query variants prepared</b><code>queryWithLocality</code> = terms + "near Dodgeville WI" (Steps 1-7)<br><code>queryNoLocality</code> = terms only, no city/state (Step 8 only &mdash; catches cross-state results)</div>
+
+<!-- ============================== PHASE 3 ============================== -->
+<div class="phase">Phase 3 &mdash; 8-Step Radius Ladder Search</div>
+
+<div class="note">Each step = one <b>Google Places Text Search</b> API call. Pool is <b>cumulative</b> &mdash; deduped across steps. <b>Stop climbing when pool &ge; 5</b> (POOL_TARGET).</div>
+
+<div class="ladder">
+  <div style="flex:1"><div class="lbar" style="height:10px;background:#22c55e">1</div><div class="lbl">1mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:18px;background:#22c55e">2</div><div class="lbl">3mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:26px;background:#22c55e">3</div><div class="lbl">8mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:34px;background:#3b82f6">4</div><div class="lbl">15mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:44px;background:#3b82f6">5</div><div class="lbl">30mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:54px;background:#f59e0b">6</div><div class="lbl">50mi<br><span style="color:#fbbf24;font-weight:700">&#9889;Claude</span></div></div>
+  <div style="flex:1"><div class="lbar" style="height:62px;background:#ef4444">7</div><div class="lbl">75mi</div></div>
+  <div style="flex:1"><div class="lbar" style="height:70px;background:#ef4444">8</div><div class="lbl">150mi<br><span style="color:#f87171">no locality</span></div></div>
+</div>
+
+<div class="n n-proc"><b>Per step: Google Places Text Search</b><code>GET /textsearch?query={query}&amp;location={lat},{lng}&amp;radius={stepRadius}</code><br>Each result passes through <b>tryAdd()</b> filter gate &darr;</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-warn"><b>tryAdd() &mdash; 4-check filter (per result)</b></div>
+<div style="max-width:700px;margin:4px auto">
+  <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">1</span><span class="cas-text"><b>isOperationalOrUnknown()?</b> &mdash; CLOSED_PERMANENTLY &rarr; <b>DROP</b> (never enters pool)</span></div>
+  <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">2</span><span class="cas-text"><b>Distance &gt; 1.5&times; step radius?</b> &rarr; <b>DROP</b> (Google returns far-away matches; caught on wider rung later)</span></div>
+  <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">3</span><span class="cas-text"><b>Same place_id as subject? Already in pool?</b> &rarr; <b>DROP</b> (dedup by place_id via seenPlaceIds Set)</span></div>
+  <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">4</span><span class="cas-text"><b>Normalized name matches subject?</b> &rarr; <b>DROP</b> (lowercase, alpha+space, 20-char cap)</span></div>
+  <div class="cas" style="border-color:#22c55e"><span class="cas-num" style="background:#22c55e;color:#fff">&#10003;</span><span class="cas-text"><b>PASS all 4</b> &rarr; added to pool, place_id added to seenPlaceIds</span></div>
+</div>
+
+<div class="arr">&darr;</div>
+<div class="n n-dec"><b>pool &ge; 5?</b>Yes &rarr; STOP climbing. No &rarr; expand to next radius step.</div>
+
+<div class="arr">&darr; <span class="no">pool &lt; 5 after Step 6 (50mi)</span></div>
+
+<div class="n n-ai"><b>&#9889; Claude Safety Net &mdash; detectCompetitorQueryWithClaude()</b>Fires <b>ONCE</b> &mdash; only after Step 6 when pool &lt; 5<br>Model: <code>claude-haiku-4-5</code> + <code>web_search</code> tool<br>Sends: businessName, city, state, naics6<br>Claude web-searches the business, returns JSON:<br><code>{ business_type, competitor_types, search_queries[5] }</code></div>
+<div class="arr">&darr;</div>
+
+<div class="n n-proc"><b>Run each of Claude's 5 queries through Google Text Search at 50mi</b>Results tagged <code>source = 'google_text_claude'</code><br>Each result passes through tryAdd() same as above</div>
+
+<div class="arr">&darr; <span class="info">If pool still &lt; 5 &rarr; continue to Steps 7 (75mi) and 8 (150mi)</span></div>
+<div class="arr">&darr; <span class="no">If ladder exhausted with &lt; 5 &rarr; log "limited competition"</span></div>
+
+<!-- ============================== PHASE 4 ============================== -->
+<div class="phase">Phase 4 &mdash; Post-Processing, Enrichment &amp; Output</div>
+
+<div class="n n-proc"><b>1. fuzzyDedupByName()</b>Normalized name dedup (lowercase, alpha+space, 20-char cap, first-seen wins)</div>
+<div class="arr">&darr;</div>
+<div class="n n-proc"><b>2. competitorComparator() sort</b>PRIMARY: distance bucket (&lt;2mi &rarr; &lt;5mi &rarr; &lt;15mi &rarr; 15mi+ &rarr; unknown)<br>SECONDARY: higher rating first &mdash; TERTIARY: more reviews first<br>Closest competitors ALWAYS rank top regardless of rating</div>
+<div class="arr">&darr;</div>
+<div class="n n-proc"><b>3. Slice into tiers</b>top7 = [0:7] &bull; top5 = [0:5] &bull; top3 = [0:3]</div>
+<div class="arr">&darr;</div>
+<div class="n n-api"><b>4. Enrich Top 5 &mdash; parallel getDetails()</b>Per competitor (24hr cache): 3 reviews (300 char), address, weekday_text (hours)</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-dec"><b>5. classifyCompetitorTier() &mdash; per competitor vs subject</b></div>
+
+<div class="branch-row">
+  <div class="branch">
+    <span class="branch-title" style="background:#1e293b;color:#94a3b8">Subject &lt; 25 reviews (SMALL)</span>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">T</span><span class="cas-text"><b>THREAT</b> &mdash; comp rating &ge; 4.5 AND comp reviews &ge; 10</span></div>
+    <div class="cas"><span class="cas-num" style="background:#64748b;color:#fff">N</span><span class="cas-text"><b>NEUTRAL</b> &mdash; comp reviews &lt; 5 (too few to judge)</span></div>
+    <div class="cas"><span class="cas-num" style="background:#22c55e;color:#fff">W</span><span class="cas-text"><b>WINNING</b> &mdash; comp rating &lt; 3.8 AND comp reviews &ge; 5</span></div>
+    <div class="cas"><span class="cas-num" style="background:#64748b;color:#fff">N</span><span class="cas-text"><b>NEUTRAL</b> &mdash; everything else</span></div>
+  </div>
+  <div class="branch">
+    <span class="branch-title" style="background:#1e293b;color:#94a3b8">Subject &ge; 25 reviews (ESTABLISHED)</span>
+    <div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:4px">ratingGap = comp.rating - subject.rating</div>
+    <div class="cas"><span class="cas-num" style="background:#ef4444;color:#fff">T</span><span class="cas-text"><b>THREAT</b> &mdash; gap &ge; 0.5 AND comp reviews &ge; 20</span></div>
+    <div class="cas"><span class="cas-num" style="background:#22c55e;color:#fff">W</span><span class="cas-text"><b>WINNING</b> &mdash; gap &le; -0.3 OR comp rating &lt; 3.8</span></div>
+    <div class="cas"><span class="cas-num" style="background:#64748b;color:#fff">N</span><span class="cas-text"><b>NEUTRAL</b> &mdash; everything else (filtered from report)</span></div>
+  </div>
+</div>
+
+<div class="arr">&darr;</div>
+<div class="n n-ai"><b>6. Multi-sort review fetch for Top 5 (parallel)</b>Replaces single-sort with: most relevant, newest, highest, lowest<br>Gives Claude richer evidence for competitor analysis in report</div>
+<div class="arr">&darr;</div>
+
+<div class="n n-out"><b>FINAL OUTPUT &rarr; cached &rarr; returned to server.js &rarr; claudeEnricher</b><code>competitor_count</code> (total dedup pool) &bull; <code>competitor_median_rating</code><br><code>competitors_top7/top5/top3</code> (enriched objects) &bull; <code>search_radius_miles</code><br><code>competitor_query</code> (the search string) &bull; <code>competitor_query_claude</code> (if safety net fired)<br><code>sources_used</code>: ['google_text'] or ['google_text', 'google_text_claude']</div>
+
+</body>
+</html>

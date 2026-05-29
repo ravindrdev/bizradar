@@ -1515,6 +1515,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data.competitors_top3 = competitorRes.value.competitors_top3;
     data.competitors_top5 = competitorRes.value.competitors_top5;
     data.search_radius_miles = competitorRes.value.search_radius_miles;
+    data.competitor_query = competitorRes.value.competitor_query;
   } else {
     data.competitor_count = null;
     data.competitor_median_rating = null;
@@ -1522,6 +1523,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     data.competitors_top3 = null;
     data.competitors_top5 = null;
     data.search_radius_miles = null;
+    data.competitor_query = null;
     if (competitorRes.status === 'rejected') {
       console.warn('[fetch1] nearby-search failed:', competitorRes.reason && competitorRes.reason.message);
     }
@@ -6851,10 +6853,18 @@ function renderRankingEstimate(data, profile) {
   }
 
   // CHANGE 3 - explanation paragraph sits between the navy headline
-  // card and the ranked list, inside the white card. Uses the real
-  // business-type label and city from the report data so the example
-  // search query reflects what a customer would actually type.
-  const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(bizType)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
+  // card and the ranked list, inside the white card. The example search
+  // query uses the Claude-generated competitor query (data.competitor_query)
+  // so it reflects what a customer would actually type. That query carries
+  // a " near <city> <state>" locality suffix from buildCompetitorQuery, so
+  // we strip it here - the locality should appear only once, via " in
+  // <city>" below. Falls back to the business-type label (truncated to 40
+  // chars) when no competitor query is available. City always comes from
+  // cityLabel (data.city), never the full address.
+  const searchExample = (typeof data.competitor_query === 'string' && data.competitor_query.trim())
+    ? data.competitor_query.trim().split(/\s+near\s+/i)[0].trim()
+    : bizType.slice(0, 40);
+  const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(searchExample)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
 
   // Note shown when the subject has no reviews - explains why they
   // appear at the bottom and motivates the first review action.

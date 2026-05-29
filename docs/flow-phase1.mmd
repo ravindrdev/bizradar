@@ -1,0 +1,92 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    fontSize: 16px
+    primaryColor: "#1e40af"
+    primaryTextColor: "#dbeafe"
+    primaryBorderColor: "#60a5fa"
+    secondaryColor: "#065f46"
+    secondaryTextColor: "#d1fae5"
+    secondaryBorderColor: "#34d399"
+    tertiaryColor: "#78350f"
+    tertiaryTextColor: "#fde68a"
+    tertiaryBorderColor: "#f59e0b"
+    lineColor: "#94a3b8"
+    background: "#0f172a"
+    mainBkg: "#1e293b"
+    nodeBorder: "#475569"
+    clusterBkg: "#111827"
+    clusterBorder: "#334155"
+    titleColor: "#f8fafc"
+    edgeLabelBackground: "#1e293b"
+  flowchart:
+    nodeSpacing: 40
+    rankSpacing: 50
+    padding: 16
+    htmlLabels: true
+---
+flowchart TD
+    START(["🔍 USER ENTERS\nbusiness name + address"]):::input
+    START --> FIND
+
+    FIND["Google Places: findPlace()\nResolve place_id from input"]:::api
+    FIND --> FOUND{place_id\nfound?}:::dec
+    FOUND -->|"Yes - set early\nskip future calls"| DET
+    FOUND -->|"No"| TXT["Text Search\nfallback"]:::api
+    TXT --> DET
+
+    DET["Google Places: getDetails()\ngoogle_types[], name, lat/lng\n8 reviews, address\n(24hr cache)"]:::api
+    DET --> T1
+
+    T1{"TIER 1\nChain match?\n205 chains\n30 disambig rules"}:::dec
+    T1 -->|"Hit\ne.g. Hilton→721110"| NAICS
+    T1 -->|"Miss"| T2
+
+    T2{"TIER 2\nSpecific Google type?\ne.g. dentist→621210\ncar_repair→811111"}:::dec
+    T2 -->|"Hit"| NAICS
+    T2 -->|"Miss"| T3
+
+    T3{"TIER 3\nGeneric type OR\nname keyword?\ne.g. 'sporting goods'→459110"}:::dec
+    T3 -->|"Hit"| NAICS
+    T3 -->|"Miss"| T4
+
+    T4["TIER 4: Claude AI classify\nSends name + types to Claude\nReturns NAICS-6\n~$0.002 per call\nOnly fires when T1-T3 all fail"]:::ai
+    T4 --> NAICS
+
+    NAICS["NAICS-6 ASSIGNED"]:::pass
+
+    NAICS --> L0{"Layer0-AI\nverify needed?\nconfidence = LOW?"}:::dec
+    L0 -->|"HIGH conf\nskip"| OOS
+    L0 -->|"LOW conf"| VERIFY["Claude + web_search\nverifies NAICS-6\ncan override if wrong"]:::ai
+    VERIFY --> OOS
+
+    OOS{"OUT-OF-SCOPE\nCHECK\nnaicsRouter.csv\n92 overrides"}:::dec
+
+    OOS -->|"NICHE\nmining, parking\nphoto finish"| DEAD
+    OOS -->|"REGULATED\nutilities, pipelines\npharmacies, cannabis"| DEAD
+    OOS -->|"SECTOR 55\nholding companies"| DEAD
+    OOS -->|"SECTOR 92\ngov't agencies"| DEAD
+    OOS -->|"PREFIX 813\nreligious, civic\nmembership"| DEAD
+
+    DEAD["❌ WAITLIST PAGE\nNo report\nNo competitors"]:::block
+
+    OOS -->|"✅ IN SCOPE"| PROF
+
+    PROF{"Profile\nresolved?\n100 profiles\nin registry"}:::dec
+    PROF -->|"Found"| GO
+    PROF -->|"No match"| CFALL["Claude classify\nfallback"]:::ai
+    CFALL --> RECHECK{"Re-check\nOOS + profile"}:::dec
+    RECHECK -->|"OOS"| DEAD
+    RECHECK -->|"Still no profile"| UNSUP["❌ UNSUPPORTED\npage shown"]:::block
+    RECHECK -->|"Profile found"| GO
+
+    GO["✅ PROCEED TO\nCOMPETITOR DISCOVERY"]:::pass
+
+    classDef input fill:#4c1d95,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
+    classDef api fill:#065f46,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef ai fill:#581c87,stroke:#c084fc,color:#f3e8ff,stroke-width:2px
+    classDef dec fill:#1e293b,stroke:#f59e0b,color:#fde68a,stroke-width:2px
+    classDef block fill:#450a0a,stroke:#ef4444,color:#fca5a5,stroke-width:2px
+    classDef pass fill:#14532d,stroke:#22c55e,color:#bbf7d0,stroke-width:2px
+    classDef proc fill:#1e293b,stroke:#475569,color:#e2e8f0,stroke-width:1px
