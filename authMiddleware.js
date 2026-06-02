@@ -41,4 +41,48 @@ async function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+// requireAdmin — owner-only gate for the admin surface.
+//
+// This is the LEGAL LOCK on the admin area, so it is deliberately
+// self-contained: it repeats the full auth check (cookie → verifyJWT →
+// findUserById) rather than assuming requireAuth ran first, then layers
+// the owner check on top. It reads the JWT user id as `decoded.uid` —
+// exactly the same field requireAuth uses above (see the !decoded.uid
+// guard and findUserById(decoded.uid) call) — so the real owner is
+// correctly recognized on the allow path.
+//
+// EVERY denial returns an identical 404 { error: 'Not found' } so the
+// admin area is never even advertised: a logged-out visitor, a bad or
+// expired token, a deleted user, and a logged-in non-owner are all
+// indistinguishable from "this route does not exist." It never returns
+// data and never 500s.
+//
+// CRITICAL fail-safe: if ADMIN_EMAIL is unset or empty we DENY everyone.
+// The gate must never default to "allow" when it is misconfigured.
+async function requireAdmin(req, res, next) {
+  const deny = () => res.status(404).json({ error: 'Not found' });
+  try {
+    const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    if (!adminEmail) {
+      // Misconfigured / not enabled → deny everyone. Never default to allow.
+      return deny();
+    }
+    const token = req.cookies && req.cookies[COOKIE_NAME];
+    if (!token) return deny();
+    const decoded = auth.verifyJWT(token);
+    if (!decoded || !decoded.uid) return deny();
+    const user = await auth.findUserById(decoded.uid);
+    if (!user) return deny();
+    if (!user.email || user.email.trim().toLowerCase() !== adminEmail) {
+      return deny();
+    }
+    req.user = user;
+    return next();
+  } catch (err) {
+    // Any unexpected DB/JWT error becomes the same 404 — never a 500,
+    // never a data leak.
+    return deny();
+  }
+}
+
+module.exports = { requireAuth, requireAdmin };

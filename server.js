@@ -8,7 +8,7 @@ const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./authRoutes');
-const { requireAuth } = require('./authMiddleware');
+const { requireAuth, requireAdmin } = require('./authMiddleware');
 const pool = require('./db');
 
 const layer0 = require('./server_layer0');
@@ -26,6 +26,20 @@ const claudeMarketAnalyst = require('./claudeMarketAnalyst');
 const { verifyQuotes } = require('./provenance');
 const studies = require('./verifiedStudies.json');
 const sectorProblems = require('./sectorCommonProblems.json');
+
+// ── Crash guards ──────────────────────────────────────────────────────
+// One stray async rejection or thrown error should NOT take down the
+// whole server and drop every in-flight report. Log it (timestamp + full
+// stack) and KEEP THE PROCESS RUNNING - we deliberately do not exit here.
+// The boot-time JWT_SECRET guard below still fails fast on purpose; that
+// is a separate, intentional exit.
+process.on('unhandledRejection', (reason) => {
+  const stack = reason instanceof Error ? (reason.stack || reason.message) : reason;
+  console.error(`[${new Date().toISOString()}] UNHANDLED REJECTION - process kept alive:\n`, stack);
+});
+process.on('uncaughtException', (err) => {
+  console.error(`[${new Date().toISOString()}] UNCAUGHT EXCEPTION - process kept alive:\n`, err.stack || err);
+});
 
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
@@ -51,6 +65,27 @@ if (!process.env.JWT_SECRET) {
 }
 
 const app = express();
+// Trust exactly ONE proxy hop (Railway's edge). express-rate-limit then
+// keys on the real client IP from X-Forwarded-For. Using 1 (not true)
+// means a client cannot spoof its IP with extra X-Forwarded-For entries
+// to dodge the limiter. Also clears the express-rate-limit
+// "X-Forwarded-For is set but trust proxy is false" validation warning.
+app.set('trust proxy', 1);
+
+// ── Canonical host: 301 www.growthim.com → growthim.com (apex) ──────────
+// Placed right after 'trust proxy' and before any body parsing / routes /
+// static so a www request is redirected before doing any other work.
+// Only fires when the Host starts with "www." — apex traffic and the
+// Railway-internal *.up.railway.app host (no "www." prefix) fall straight
+// through untouched. Forces https and preserves the full path + query.
+app.use((req, res, next) => {
+  const host = req.headers.host || '';
+  if (host.toLowerCase().startsWith('www.')) {
+    return res.redirect(301, 'https://' + host.slice(4) + req.originalUrl);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -79,6 +114,61 @@ const reportLimiter = rateLimit({
   message: { ok: false, error: 'Too many report generations. Try again in an hour.' },
 });
 
+// ── In-process pipeline concurrency gate ───────────────────────────────
+// /classify and /market-analysis each kick off a heavy detached pipeline
+// (Claude + Google Places + Puppeteer) in setImmediate. Without a cap,
+// N simultaneous requests = N concurrent pipelines, which blows up memory
+// and trips upstream rate limits. reportGate runs at most
+// MAX_CONCURRENT_REPORTS pipelines at once and queues the rest; when any
+// active pipeline SETTLES (resolve OR reject) the next queued one starts.
+// SHARED across both endpoints. NOTE: in-process only - if this app is ever
+// run as multiple instances, the cap is per-instance.
+// (Deliberately NOT the p-limit package: p-limit v4+ is ESM-only and would
+//  break `require` in this CommonJS project.)
+const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) || 3;
+// Rough average pipeline runtime, used ONLY to estimate the wait time shown
+// to queued users. Approximate by design - a fixed figure, not measured.
+const AVG_REPORT_MINUTES = 12;
+let reportActive = 0;
+const reportQueue = [];
+
+function reportGate(jobId, task) {
+  const run = () => {
+    reportActive++;
+    console.log(`[concurrency] pipeline started (${reportActive} running)`);
+    Promise.resolve()
+      .then(task)
+      .catch((e) => {
+        // Pipelines handle their own errors via failJob; this is only a
+        // last-resort guard so a thrown task can't wedge the queue.
+        console.error('[concurrency] pipeline task threw:', e && e.message);
+      })
+      .finally(() => {
+        // Release the slot no matter how the task settled, then promote the
+        // next waiter. finally guarantees a failing pipeline never holds a slot.
+        reportActive--;
+        console.log(`[concurrency] pipeline finished (${reportActive} running, ${reportQueue.length} waiting)`);
+        const next = reportQueue.shift();
+        if (next) next.run();
+      });
+  };
+  if (reportActive < MAX_CONCURRENT_REPORTS) {
+    run();
+  } else {
+    reportQueue.push({ jobId, run });
+    console.log(`[concurrency] queued (${reportActive} running, ${reportQueue.length} waiting)`);
+  }
+}
+
+// Returns the 1-based position of a waiting job in the queue, or 0 if the job
+// is not waiting (already running, finished, or unknown). Used by
+// /report-status to show queued users their place in line.
+function getQueuePosition(jobId) {
+  if (!jobId) return 0;
+  const idx = reportQueue.findIndex((entry) => entry.jobId === jobId);
+  return idx === -1 ? 0 : idx + 1;
+}
+
 // User auth router - handles signup, login, OTP verification, forgot
 // password, and /auth/me. JWT cookie 'token' is set on successful
 // signup or login. Routes that need authentication wrap their handler
@@ -103,15 +193,200 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
        ORDER BY created_at DESC`,
       [id]
     );
+
+    // In-progress and failed jobs for this user. 'ready' jobs are excluded
+    // on purpose: a finished job is already represented by its row in
+    // `reports` above, so including it here would double-list it. Scoped by
+    // user_id exactly like the reports query.
+    const jobsResult = await pool.query(
+      `SELECT job_id, status, label, error, created_at
+       FROM jobs
+       WHERE user_id = $1 AND status IN ('processing', 'error')
+       ORDER BY created_at DESC`,
+      [id]
+    );
+
+    // Merge finished reports + active/failed jobs into one list, each tagged
+    // by kind, newest first - lets the dashboard interleave generating and
+    // failed cards with finished ones in true chronological order.
+    const reportItems = reportsResult.rows.map((r) => ({
+      kind: 'report',
+      id: r.id,
+      business_name: r.business_name,
+      address: r.address,
+      naics_code: r.naics_code,
+      created_at: r.created_at,
+    }));
+    const jobItems = jobsResult.rows.map((j) => ({
+      kind: 'job',
+      job_id: j.job_id,
+      status: j.status,
+      label: j.label,
+      error: j.error,
+      created_at: j.created_at,
+    }));
+    const items = reportItems
+      .concat(jobItems)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     res.json({
       user: { id, name, email, created_at },
       reports: reportsResult.rows,
       total_reports: reportsResult.rows.length,
+      items,
     });
   } catch (err) {
     console.error('[dashboard] query failed:', err.message);
     res.status(500).json({ error: 'Could not load dashboard data' });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// GET /api/admin/overview - read-only owner dashboard data.
+//
+// Behind requireAdmin ONLY (deliberately NOT requireAuth as well):
+// requireAdmin is fully self-contained — it does its own cookie→JWT→user
+// lookup and then the owner check, returning a uniform 404 for ANY denial.
+// Putting requireAuth in front would 401 a no-cookie request before
+// requireAdmin could 404 it, breaking the "admin area is never even
+// advertised" guarantee.
+//
+// Everything in this handler is SELECT-only. No writes, ever.
+// ─────────────────────────────────────────────────────────────────────
+app.get('/api/admin/overview', requireAdmin, async (req, res) => {
+  try {
+    // --- report counts -------------------------------------------------
+    const totalReportsQ = await pool.query(
+      `SELECT count(*)::int AS n FROM reports`
+    );
+    const processingQ = await pool.query(
+      `SELECT count(*)::int AS n FROM jobs WHERE status = 'processing'`
+    );
+
+    // success / degraded / failed come from the durable report_outcomes
+    // table when it exists (a permanent record that survives the hourly
+    // jobs cleanup). If it somehow doesn't exist yet, fall back to counting
+    // failed jobs from the jobs table — but note that jobs are pruned
+    // hourly, so that fallback is effectively LAST-24H ONLY, and
+    // success/degraded cannot be recovered from it.
+    let outcomesSource = 'report_outcomes';
+    let successN = null, degradedN = null, failedN = null;
+    const haveOutcomes = await pool.query(
+      `SELECT to_regclass('report_outcomes') IS NOT NULL AS exists`
+    );
+    if (haveOutcomes.rows[0] && haveOutcomes.rows[0].exists) {
+      const oc = await pool.query(
+        `SELECT outcome, count(*)::int AS n
+         FROM report_outcomes
+         GROUP BY outcome`
+      );
+      successN = 0; degradedN = 0; failedN = 0;
+      for (const row of oc.rows) {
+        if (row.outcome === 'success') successN = row.n;
+        else if (row.outcome === 'degraded') degradedN = row.n;
+        else if (row.outcome === 'failed') failedN = row.n;
+      }
+    } else {
+      // Fallback: last-24h only (jobs are pruned hourly); success/degraded
+      // are not recoverable from the jobs table, so they stay null.
+      outcomesSource = 'jobs_fallback_last_24h';
+      const f = await pool.query(
+        `SELECT count(*)::int AS n FROM jobs WHERE status = 'error'`
+      );
+      failedN = f.rows[0].n;
+    }
+
+    // --- signups -------------------------------------------------------
+    const signupsQ = await pool.query(
+      `SELECT count(*)::int AS n FROM users`
+    );
+
+    // --- approximate active users --------------------------------------
+    // Distinct users with ANY report or job activity in the last 15 min.
+    // This is an APPROXIMATION (the field name says so): it counts report
+    // creation and job updates, not page views, so a user merely reading
+    // existing reports won't show up. The user_id NOT NULL guard keeps any
+    // orphaned rows out of the count.
+    const activeQ = await pool.query(
+      `SELECT count(*)::int AS n FROM (
+         SELECT user_id FROM reports
+           WHERE user_id IS NOT NULL AND created_at > NOW() - INTERVAL '15 minutes'
+         UNION
+         SELECT user_id FROM jobs
+           WHERE user_id IS NOT NULL AND updated_at > NOW() - INTERVAL '15 minutes'
+       ) AS active_users`
+    );
+
+    // --- report list (optional search + paging) ------------------------
+    // search matches business name OR owner email, case-insensitively.
+    // limit defaults to 50, clamped to [1, 200]; offset defaults to 0, >= 0.
+    const rawSearch = (req.query.search || '').toString().trim();
+    const search = rawSearch.length ? rawSearch : null;
+    let limit = parseInt(req.query.limit, 10);
+    if (!Number.isFinite(limit)) limit = 50;
+    limit = Math.max(1, Math.min(200, limit));
+    let offset = parseInt(req.query.offset, 10);
+    if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+    const listQ = await pool.query(
+      `SELECT r.id, r.business_name, r.created_at,
+              u.name  AS owner_name,
+              u.email AS owner_email
+       FROM reports r
+       JOIN users u ON u.id = r.user_id
+       WHERE ($1::text IS NULL
+              OR r.business_name ILIKE '%' || $1 || '%'
+              OR u.email ILIKE '%' || $1 || '%')
+       ORDER BY r.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [search, limit, offset]
+    );
+
+    res.json({
+      reports: {
+        total: totalReportsQ.rows[0].n,
+        processing: processingQ.rows[0].n,
+        success: successN,
+        degraded: degradedN,
+        failed: failedN,
+        outcomes_source: outcomesSource,
+      },
+      total_signups: signupsQ.rows[0].n,
+      active_users_approx: activeQ.rows[0].n,
+      active_users_window_minutes: 15,
+      report_list: {
+        items: listQ.rows,
+        limit,
+        offset,
+        search,
+        count: listQ.rows.length,
+      },
+    });
+  } catch (err) {
+    // Reached only by an authenticated admin (requireAdmin already passed)
+    // on a genuine query failure — safe to return a generic 500 here.
+    console.error('[admin/overview] query failed:', err.message);
+    res.status(500).json({ error: 'Could not load admin overview' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// GET /admin - the owner-only admin dashboard PAGE.
+//
+// Behind requireAdmin ONLY, exactly like /api/admin/overview: a non-admin
+// (or logged-out) visitor gets the same uniform 404, so the page is never
+// even advertised. The HTML lives in /private - OUTSIDE the public/ folder
+// that express.static serves (further below) - so it is NOT reachable as a
+// static file; the ONLY way to load it is through this gated route. It
+// carries no secrets and just calls the gated /api/admin/overview on load.
+// ─────────────────────────────────────────────────────────────────────
+app.get('/admin', requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'private', 'admin.html'), (err) => {
+    if (err && !res.headersSent) {
+      console.error('[admin page] sendFile failed:', err.message);
+      res.status(500).send('Internal error');
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────
@@ -209,6 +484,77 @@ const REPORT_VIEW_NAVBAR = `
 </header>
 `;
 
+// ─────────────────────────────────────────────────────────────────────
+// serveSavedReport - shared HTML renderer/sender for a saved report row.
+//
+// Used by BOTH the owner-scoped GET /report/:id route and the owner-only
+// GET /admin/report/:id route. Those two routes differ ONLY in the WHERE
+// clause that fetched `row` (owner-scoped vs id-only); everything about
+// turning that row into the HTML response lives here, so the two render
+// byte-for-byte identically and can never drift. `idNum` is the validated
+// integer id (used for reportId and log lines).
+// ─────────────────────────────────────────────────────────────────────
+async function serveSavedReport(res, row, idNum) {
+  let payload;
+  try {
+    payload = typeof row.report_json === 'string'
+      ? JSON.parse(row.report_json)
+      : row.report_json;
+  } catch (e) {
+    console.error('[report] JSON parse failed for report id=' + idNum + ':', e.message);
+    return res.status(500).send('Saved report is corrupted');
+  }
+
+  let html;
+  if (payload && payload._type === 'market_analysis') {
+    // The market-analysis renderer reads the same fields it would
+    // have read live (top10, deep_dive, raw, _quote_verification,
+    // etc.) - they all serialize through JSON.stringify cleanly.
+    html = renderMarketReport(payload);
+  } else {
+    // Default to the classify renderer. `studies` is loaded fresh
+    // from verifiedStudies.json at startup so we don't persist it;
+    // re-attach the current array here. If a study was retired
+    // between save and replay, citationLine() in renderReport
+    // already handles "(not found)" gracefully.
+    // Review-gap velocity, look back from THIS report's created_at
+    // (not "now") so replays of older reports show the velocity that
+    // was true at the time, not a snapshot warped by newer reports.
+    const velocityBusinessName = row.business_name
+      || (payload && payload.data && (payload.data.name || payload.data.business_name))
+      || '';
+    const velocity = await fetchReviewVelocity(row.user_id, velocityBusinessName, row.created_at);
+    html = renderReport({
+      input: payload && payload.input,
+      layer0Result: payload && payload.layer0Result,
+      profile: payload && payload.profile,
+      data: payload && payload.data,
+      redFlags: (payload && payload.redFlags) || [],
+      strengths: (payload && payload.strengths) || [],
+      ranked: (payload && payload.ranked) || { allTriggered: [], top10: [] },
+      enriched: payload && payload.enriched,
+      studies: studies.studies,
+      velocity,
+      reportId: idNum,
+    });
+  }
+  // FIX 3 - Em-dash post-processing for the replay route. The saved
+  // JSON is already dash-cleaned (we run deepCleanDashes in the
+  // /classify pipeline before INSERT), but legacy reports persisted
+  // before that fix still contain em dashes in their enriched fields.
+  // Running cleanDashes on the rendered HTML catches those too.
+  html = cleanDashes(html);
+  // Inject the GrowthIM sticky navbar right after <body> so the
+  // user always has logo + My Dashboard + Logout above the
+  // restored report. Single string replace; PAGE_OPEN uses a
+  // bare `<body>` open tag with no attributes, so the match is
+  // unambiguous. Falls back gracefully (no-op) if the body tag
+  // is somehow missing.
+  html = html.replace('<body>', '<body>' + REPORT_VIEW_NAVBAR);
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+}
+
 app.get('/report/:id', requireAuth, async (req, res) => {
   try {
     const idNum = parseInt(req.params.id, 10);
@@ -224,68 +570,39 @@ app.get('/report/:id', requireAuth, async (req, res) => {
     if (!r.rowCount) {
       return res.status(404).send('Report not found');
     }
-    const row = r.rows[0];
-
-    let payload;
-    try {
-      payload = typeof row.report_json === 'string'
-        ? JSON.parse(row.report_json)
-        : row.report_json;
-    } catch (e) {
-      console.error('[report/:id] JSON parse failed for report id=' + idNum + ':', e.message);
-      return res.status(500).send('Saved report is corrupted');
-    }
-
-    let html;
-    if (payload && payload._type === 'market_analysis') {
-      // The market-analysis renderer reads the same fields it would
-      // have read live (top10, deep_dive, raw, _quote_verification,
-      // etc.) - they all serialize through JSON.stringify cleanly.
-      html = renderMarketReport(payload);
-    } else {
-      // Default to the classify renderer. `studies` is loaded fresh
-      // from verifiedStudies.json at startup so we don't persist it;
-      // re-attach the current array here. If a study was retired
-      // between save and replay, citationLine() in renderReport
-      // already handles "(not found)" gracefully.
-      // Review-gap velocity, look back from THIS report's created_at
-      // (not "now") so replays of older reports show the velocity that
-      // was true at the time, not a snapshot warped by newer reports.
-      const velocityBusinessName = row.business_name
-        || (payload && payload.data && (payload.data.name || payload.data.business_name))
-        || '';
-      const velocity = await fetchReviewVelocity(row.user_id, velocityBusinessName, row.created_at);
-      html = renderReport({
-        input: payload && payload.input,
-        layer0Result: payload && payload.layer0Result,
-        profile: payload && payload.profile,
-        data: payload && payload.data,
-        redFlags: (payload && payload.redFlags) || [],
-        strengths: (payload && payload.strengths) || [],
-        ranked: (payload && payload.ranked) || { allTriggered: [], top10: [] },
-        enriched: payload && payload.enriched,
-        studies: studies.studies,
-        velocity,
-        reportId: idNum,
-      });
-    }
-    // FIX 3 - Em-dash post-processing for the replay route. The saved
-    // JSON is already dash-cleaned (we run deepCleanDashes in the
-    // /classify pipeline before INSERT), but legacy reports persisted
-    // before that fix still contain em dashes in their enriched fields.
-    // Running cleanDashes on the rendered HTML catches those too.
-    html = cleanDashes(html);
-    // Inject the GrowthIM sticky navbar right after <body> so the
-    // user always has logo + My Dashboard + Logout above the
-    // restored report. Single string replace; PAGE_OPEN uses a
-    // bare `<body>` open tag with no attributes, so the match is
-    // unambiguous. Falls back gracefully (no-op) if the body tag
-    // is somehow missing.
-    html = html.replace('<body>', '<body>' + REPORT_VIEW_NAVBAR);
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
+    return await serveSavedReport(res, r.rows[0], idNum);
   } catch (err) {
     console.error('[report/:id] failed:', err.message);
+    res.status(500).send('Could not load report');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// GET /admin/report/:id - owner-only: open ANY report by id, regardless
+// of who created it. Behind requireAdmin ONLY, which already returns the
+// uniform 404 to non-admins (so the route is never advertised). Renders
+// via the SAME serveSavedReport helper as /report/:id; the ONLY difference
+// is this query has NO user_id restriction. Invalid/nonexistent id → a
+// clean 404 (not 500), same as /report/:id.
+// ─────────────────────────────────────────────────────────────────────
+app.get('/admin/report/:id', requireAdmin, async (req, res) => {
+  try {
+    const idNum = parseInt(req.params.id, 10);
+    if (!Number.isInteger(idNum) || idNum <= 0) {
+      return res.status(404).send('Report not found');
+    }
+    const r = await pool.query(
+      `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
+       FROM reports
+       WHERE id = $1`,
+      [idNum]
+    );
+    if (!r.rowCount) {
+      return res.status(404).send('Report not found');
+    }
+    return await serveSavedReport(res, r.rows[0], idNum);
+  } catch (err) {
+    console.error('[admin/report/:id] failed:', err.message);
     res.status(500).send('Could not load report');
   }
 });
@@ -297,9 +614,12 @@ app.get('/report/:id', requireAuth, async (req, res) => {
 // load the same HTML the /report/:id replay route renders, and print it
 // to PDF with A4 paper + 15-20mm margins.
 //
-// Auth: same WHERE user_id = req.user.id guard as /report/:id - users
-// can only PDF reports they own. 404 is returned for both nonexistent
-// and not-yours so the IDs don't leak.
+// Auth: stays on requireAuth. A user can PDF reports they own (the
+// owner-scoped WHERE user_id = req.user.id query, same as /report/:id).
+// Additionally, the admin (req.user.email === ADMIN_EMAIL, same check +
+// fail-safe as requireAdmin) can PDF ANY report via an id-only fetch.
+// 404 is returned for nonexistent ids, and for not-yours when the
+// requester is not the admin, so the IDs don't leak.
 //
 // PDF generation is intentionally NOT passed reportId, so the
 // "Download PDF" button does not appear in the printed PDF itself.
@@ -313,12 +633,29 @@ app.get('/report/:id/pdf', requireAuth, async (req, res) => {
     if (!Number.isInteger(idNum) || idNum <= 0) {
       return res.status(404).json({ error: 'Report not found' });
     }
-    const r = await pool.query(
-      `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
-       FROM reports
-       WHERE id = $1 AND user_id = $2`,
-      [idNum, req.user.id]
-    );
+    // Admin override: same check + fail-safe as requireAdmin. If ADMIN_EMAIL
+    // is unset/empty, adminEmail is '' -> isAdmin is false -> NO override, so
+    // a logged-in non-owner non-admin still hits the owner-scoped query below
+    // and gets the same 404 it gets today. Only an email === ADMIN_EMAIL match
+    // unlocks the id-only fetch.
+    const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const isAdmin = !!adminEmail
+      && !!req.user.email
+      && req.user.email.trim().toLowerCase() === adminEmail;
+
+    const r = isAdmin
+      ? await pool.query(
+          `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
+           FROM reports
+           WHERE id = $1`,
+          [idNum]
+        )
+      : await pool.query(
+          `SELECT id, user_id, business_name, address, naics_code, report_json, created_at
+           FROM reports
+           WHERE id = $1 AND user_id = $2`,
+          [idNum, req.user.id]
+        );
     if (!r.rowCount) {
       return res.status(404).json({ error: 'Report not found' });
     }
@@ -615,26 +952,69 @@ profileResolver.load();
         status     TEXT NOT NULL DEFAULT 'processing',
         report_id  INTEGER,
         error      TEXT,
+        label      TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS jobs_user_id_idx    ON jobs (user_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS jobs_created_at_idx ON jobs (created_at)');
+    // Idempotent: ensure the `label` column exists on a pre-existing jobs
+    // table (it is in the CREATE above for fresh installs; this covers the
+    // live prod table). The dashboard uses it to show a human-readable
+    // subject on in-progress and failed cards - the typed query for rate
+    // mode, "City, ST - market analysis" for market mode.
+    await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS label TEXT');
+
+    // Durable outcome tally - separate from `jobs` ON PURPOSE so it
+    // survives the hourly 24h jobs cleanup and gives a long-term record
+    // of how report attempts ended (success / degraded / failed).
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS report_outcomes (
+        id          SERIAL PRIMARY KEY,
+        report_type TEXT,
+        outcome     TEXT,
+        created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
     console.log('[jobs] table ready');
+
+    // ── Startup reconciliation: orphaned 'processing' jobs ──────────────
+    // A restart (deploy, crash, manual bounce) abandons any in-flight job:
+    // the worker that would have moved it to 'ready'/'error' is gone, so it
+    // sits in 'processing' forever and the user's page spins indefinitely.
+    // Flip every such job to 'error' with a clear message so they can retry.
+    //
+    // NOTE: this flips ALL 'processing' jobs on boot, which is correct for a
+    // SINGLE-PROCESS deployment (only one instance touches this table). If
+    // this app is ever run as MULTIPLE concurrent instances, this MUST be
+    // revisited - a booting instance would otherwise kill jobs actively
+    // running on another live instance.
+    // Own try/catch: a failed reconciliation must never stop startup (the
+    // process-level crash guards back this up too).
+    try {
+      const reconciled = await pool.query(
+        `UPDATE jobs SET status = 'error', error = $1, updated_at = NOW() WHERE status = 'processing'`,
+        ['Report was interrupted by a server restart. Please try again.']
+      );
+      console.log(`[startup] reconciled ${reconciled.rowCount} orphaned processing job(s) -> error`);
+    } catch (recErr) {
+      console.error('[startup] orphaned-job reconciliation failed:', recErr.message);
+    }
   } catch (err) {
     console.error('[jobs] table create failed:', err.message);
   }
 })();
 
-async function setJob(sessionId, userId) {
+async function setJob(sessionId, userId, label) {
   if (!sessionId) return;
   try {
     await pool.query(
-      `INSERT INTO jobs (job_id, user_id, status, report_id, error, created_at, updated_at)
-       VALUES ($1, $2, 'processing', NULL, NULL, NOW(), NOW())
-       ON CONFLICT (job_id) DO UPDATE SET updated_at = NOW()`,
-      [sessionId, userId]
+      `INSERT INTO jobs (job_id, user_id, status, report_id, error, label, created_at, updated_at)
+       VALUES ($1, $2, 'processing', NULL, NULL, $3, NOW(), NOW())
+       ON CONFLICT (job_id) DO UPDATE SET updated_at = NOW(), label = EXCLUDED.label`,
+      [sessionId, userId, label ? String(label).slice(0, 300) : null]
     );
   } catch (err) {
     console.error('[jobs] setJob failed:', err.message);
@@ -674,6 +1054,22 @@ async function completeJob(sessionId, reportId) {
   }
 }
 
+// ── Durable outcome logging (record-only) ────────────────────────────
+// Appends one row per terminal report outcome. Its own try/catch means a
+// logging failure can NEVER break or fail a report; it runs ALONGSIDE
+// completeJob/failJob (fire-and-forget, never awaited) and never gates them.
+async function recordOutcome(reportType, outcome) {
+  try {
+    await pool.query(
+      `INSERT INTO report_outcomes (report_type, outcome) VALUES ($1, $2)`,
+      [reportType, outcome]
+    );
+    console.log(`[outcome] ${reportType} report: ${outcome}`);
+  } catch (err) {
+    console.error('[outcome] record failed:', err && err.message);
+  }
+}
+
 // Cleanup loop - every hour purge job rows older than 24 hours.
 // `unref()` so the timer never blocks a clean process exit.
 setInterval(async () => {
@@ -697,20 +1093,36 @@ setInterval(async () => {
 // logged-in user to be able to read the first one's status.
 app.get('/report-status/:jobId', requireAuth, async (req, res) => {
   try {
+    const jobId = String(req.params.jobId || '');
     const { rows } = await pool.query(
       `SELECT status, report_id, error, user_id FROM jobs WHERE job_id = $1`,
-      [String(req.params.jobId || '')]
+      [jobId]
     );
     if (!rows.length) return res.json({ status: 'not_found' });
     const job = rows[0];
     if (job.user_id != null && job.user_id !== req.user.id) {
       return res.json({ status: 'not_found' });
     }
-    return res.json({
+    const resp = {
       status: job.status,
       reportId: job.report_id,
       error: job.error,
-    });
+    };
+    // For an in-progress job, tell the browser whether it is actually running
+    // or still waiting behind the concurrency cap. A queued job also gets its
+    // place in line + a rough wait estimate, so the page can show
+    // "#N in line, about X min" instead of a live progress terminal.
+    if (job.status === 'processing') {
+      const position = getQueuePosition(jobId);
+      if (position > 0) {
+        resp.queued = true;
+        resp.queuePosition = position;
+        resp.estimatedWaitMinutes = Math.ceil(position / MAX_CONCURRENT_REPORTS) * AVG_REPORT_MINUTES;
+      } else {
+        resp.queued = false;
+      }
+    }
+    return res.json(resp);
   } catch (err) {
     console.error('[report-status] DB error:', err.message);
     return res.json({ status: 'not_found' });
@@ -733,15 +1145,24 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // browser starts polling /report-status/:jobId at 3 s cadence; the
   // actual report runs inside setImmediate() below, free of any
   // upstream HTTP timeout.
-  await setJob(sessionId, userId);
+  // Label = the user's typed query. It is the only meaningful subject we
+  // have at this point (the resolved business name is not computed until
+  // after the response is closed), and it lets the dashboard show a
+  // recognizable "generating" card while the job runs.
+  await setJob(sessionId, userId, input || null);
   res.json({ ok: true, jobId: sessionId });
 
   // From here on we run detached. Every error path inside the try
   // block routes through failJob(sessionId, msg) instead of res.send.
   // res.setHeader is silenced because the response is already closed
   // (the existing X-* diagnostic headers below would otherwise warn).
-  setImmediate(async () => {
+  setImmediate(() => {
    res.setHeader = function () {};
+   // Gate the heavy pipeline behind the shared concurrency limiter. The job
+   // row already exists and the jobId is already returned to the browser;
+   // only EXECUTION waits for a free slot. Until one frees up the job stays
+   // 'processing' and its dashboard card shows the "generating" state.
+   reportGate(sessionId, async () => {
    try {
     if (!input) {
       failJob(sessionId, 'Please enter a business name and city.');
@@ -2241,14 +2662,19 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   if (savedReportId == null) {
     failJob(sessionId, 'Report was generated but could not be saved. Please try again.');
+    recordOutcome('rate', 'failed');
     return;
   }
 
   completeJob(sessionId, savedReportId);
+  const rateDegraded = !!(data && (data.call_a_failed || data.claude_unavailable));
+  recordOutcome('rate', rateDegraded ? 'degraded' : 'success');
    } catch (jobErr) {
     console.error('[classify] background job failed:', jobErr && jobErr.message, jobErr && jobErr.stack);
     failJob(sessionId, (jobErr && jobErr.message) || 'Report generation failed.');
+    recordOutcome('rate', 'failed');
    }
+   });
   });
 });
 
@@ -2259,11 +2685,22 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   console.log('[market-analysis] called for', city, state);
 
   // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
-  await setJob(sessionId, userId);
+  // Label matches the finished report's business_name format ("City, ST -
+  // market analysis") so the dashboard card text stays stable when the job
+  // transitions from generating to finished. Guarded: setJob runs before
+  // city/state validation below, so they may be missing on a bad request.
+  const jobLabel = (city && state)
+    ? `${String(city).trim()}, ${String(state).trim().toUpperCase()} - market analysis`
+    : 'Market analysis';
+  await setJob(sessionId, userId, jobLabel);
   res.json({ ok: true, jobId: sessionId });
 
-  setImmediate(async () => {
+  setImmediate(() => {
    res.setHeader = function () {};
+   // Gate the heavy pipeline behind the shared concurrency limiter (shared
+   // with /classify). Job + jobId are already returned; only EXECUTION waits
+   // for a free slot, so the job stays 'processing' until one frees up.
+   reportGate(sessionId, async () => {
    try {
 
   // ── TIER 1 - Validation ─────────────────────────────────────────
@@ -2372,21 +2809,27 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
 
     if (savedReportId == null) {
       failJob(sessionId, 'Market analysis was generated but could not be saved. Please try again.');
+      recordOutcome('market', 'failed');
       return;
     }
 
     sendProgress(sessionId, { step: 10, total: 10, message: 'Done!', pct: 100 });
     completeJob(sessionId, savedReportId);
+    const marketDegraded = !(result && result.deep_dive);
+    recordOutcome('market', marketDegraded ? 'degraded' : 'success');
   } catch (err) {
     cancelTimers();
     console.error('[market-analysis] error:', err);
     failJob(sessionId, err.message || 'Something went wrong.');
+    recordOutcome('market', 'failed');
   }
 
    } catch (jobErr) {
     console.error('[market-analysis] background job failed:', jobErr && jobErr.message, jobErr && jobErr.stack);
     failJob(sessionId, (jobErr && jobErr.message) || 'Market analysis failed.');
+    recordOutcome('market', 'failed');
    }
+   });
   });
 });
 
@@ -2423,6 +2866,18 @@ app.post('/market-chat', requireAuth, async (req, res) => {
     console.error('[market-chat] error:', err);
     res.status(500).json({ error: err.message || 'Chat failed.' });
   }
+});
+
+// ── Global error handler ──────────────────────────────────────────────
+// 4-arg Express error middleware. Last app.use, so it catches anything
+// passed via next(err) from the routes above. Full stack is logged
+// server-side; the client NEVER sees it - just a generic 500. If headers
+// were already sent (e.g. an SSE/streaming response), delegate to
+// Express's default handler instead of double-responding.
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] Unhandled route error:\n`, err.stack || err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {

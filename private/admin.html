@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Owner Dashboard - GrowthIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1729;
+  --navy-2: #1E293B;
+  --blue: #2563EB;
+  --blue-hover: #1D4ED8;
+  --blue-tint: #EFF6FF;
+  --emerald: #10B981;
+  --emerald-tint: #ECFDF5;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #1E293B;
+  --muted: #64748B;
+  --muted-2: #94A3B8;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-300: #CBD5E1;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --amber: #B45309;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 41, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 41, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 41, 0.10);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+a { color: var(--blue); text-decoration: none; }
+.hidden { display: none !important; }
+
+/* ─── NAVBAR ─── */
+.nav {
+  position: sticky;
+  top: 0;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 50;
+}
+.nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.admin-badge {
+  color: #FFFFFF;
+  background: rgba(37, 99, 235, 0.25);
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.logout-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── HERO ─── */
+.hero {
+  background: linear-gradient(180deg, #EFF6FF 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 48px 24px 40px;
+}
+.hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.hero-greeting {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ─── MAIN ─── */
+.main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin: 4px 0 16px;
+}
+.section-title:not(:first-child) { margin-top: 40px; }
+
+/* ─── STAT CARDS ─── */
+.stats {
+  display: grid;
+  gap: 16px;
+}
+.stats-5 { grid-template-columns: repeat(5, 1fr); }
+.stats-2 { grid-template-columns: repeat(2, 1fr); max-width: 720px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-value.accent  { color: var(--blue); }
+.stat-value.ok      { color: var(--emerald); }
+.stat-value.warn    { color: var(--amber); }
+.stat-value.danger  { color: var(--danger); }
+.stat-foot {
+  font-size: 12px;
+  color: var(--muted-2);
+  margin-top: 8px;
+}
+.approx-tag {
+  display: inline-block;
+  background: var(--gray-100);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 14px 0 0;
+  line-height: 1.55;
+}
+
+/* ─── TOOLBAR (search) ─── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 420px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue);
+  color: #FFFFFF;
+  border: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn-outline:hover { background: var(--blue-tint); }
+.btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: transparent;
+  border-color: var(--gray-300);
+  color: var(--muted-2);
+}
+
+/* ─── REPORT TABLE ─── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.admin-table thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 14px 20px;
+  background: var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
+}
+.admin-table tbody td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--text);
+  vertical-align: middle;
+}
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr:hover td { background: #FAFBFC; }
+.cell-business { font-weight: 600; color: var(--navy); }
+.cell-business a { color: var(--blue); text-decoration: none; }
+.cell-business a:hover { text-decoration: underline; }
+.cell-email { color: var(--muted); }
+.cell-date { color: var(--muted); white-space: nowrap; }
+.table-msg {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ─── PAGER ─── */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--gray-100);
+  flex-wrap: wrap;
+}
+.pager-info { font-size: 13px; color: var(--muted); }
+.pager-btns { display: flex; gap: 10px; }
+
+/* ─── STATES (error / not-owner) ─── */
+.state-card {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.state-card.is-error { border-color: #FCA5A5; }
+.state-icon { font-size: 40px; margin-bottom: 14px; }
+.state-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 8px;
+}
+.state-card.is-error .state-title { color: #991B1B; }
+.state-text {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 auto 20px;
+  max-width: 480px;
+  line-height: 1.6;
+}
+.retry-btn {
+  background: #991B1B;
+  color: #FFFFFF;
+  border: 0;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.retry-btn:hover { background: #7F1D1D; }
+
+/* ─── LOADING SKELETON ─── */
+.loading { display: flex; flex-direction: column; gap: 16px; }
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 0%, #E5EAF1 50%, var(--gray-100) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 12px;
+}
+.skeleton-stat { height: 96px; }
+.skeleton-card { height: 200px; }
+
+/* ─── FOOTER ─── */
+.footer {
+  background: #0F1729;
+  color: rgba(255,255,255,0.7);
+  padding: 36px 24px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 14px;
+}
+.footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .stats-5 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 800px) {
+  .hero { padding: 36px 20px 32px; }
+  .hero-greeting { font-size: 26px; }
+  .main { padding: 24px 20px 48px; }
+}
+@media (max-width: 560px) {
+  .stats-5, .stats-2 { grid-template-columns: 1fr; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" style="text-decoration:none;">
+      <div class="logo">
+        <span style="color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+          Growth<span style="color:#2563EB">IM</span>
+        </span>
+        <div style="width:140px;height:2px;background:#2563EB;opacity:0.4;margin-top:2px;"></div>
+        <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">
+          GROWTH INTELLIGENCE MACHINE
+        </div>
+      </div>
+    </a>
+    <div class="nav-right">
+      <span class="admin-badge">OWNER</span>
+      <a href="/dashboard" class="nav-link">My Dashboard</a>
+      <button class="logout-btn" id="logout-btn" type="button">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-greeting">Owner Dashboard</h1>
+    <p class="hero-sub">Internal overview &mdash; visible only to the owner account.</p>
+  </div>
+</section>
+
+<!-- ─── MAIN ─── -->
+<main class="main">
+
+  <!-- LOADING -->
+  <div id="admin-loading" class="loading">
+    <div class="skeleton skeleton-stat"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="admin-error" class="state-card is-error hidden">
+    <div class="state-icon">&#9888;</div>
+    <h3 class="state-title">Couldn&rsquo;t load the admin overview</h3>
+    <p class="state-text" id="admin-error-text">Something went wrong. Please try again.</p>
+    <button class="retry-btn" id="admin-retry" type="button">Retry</button>
+  </div>
+
+  <!-- NOT OWNER -->
+  <div id="admin-notowner" class="state-card hidden">
+    <div class="state-icon">&#128274;</div>
+    <h3 class="state-title">Owner access required</h3>
+    <p class="state-text">This area is only available to the owner account. Please sign in with the owner account to continue.</p>
+    <a class="btn-primary" href="/login.html">Go to login</a>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="admin-content" class="hidden">
+
+    <!-- Section 1: report counts -->
+    <h2 class="section-title">Reports</h2>
+    <div class="stats stats-5">
+      <div class="stat-card">
+        <div class="stat-label">Total Reports</div>
+        <div class="stat-value accent" id="c-total">&mdash;</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Processing</div>
+        <div class="stat-value" id="c-processing">&mdash;</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Success</div>
+        <div class="stat-value ok" id="c-success">&mdash;</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Degraded</div>
+        <div class="stat-value warn" id="c-degraded">&mdash;</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value danger" id="c-failed">&mdash;</div>
+      </div>
+    </div>
+    <p class="note">Success / degraded / failed are only counted for reports run <em>after</em> the scoreboard was added, so <strong>0</strong> here at first is normal. <span id="outcomes-source-note"></span></p>
+
+    <!-- Section 2: users -->
+    <h2 class="section-title">Users</h2>
+    <div class="stats stats-2">
+      <div class="stat-card">
+        <div class="stat-label">Total Signups</div>
+        <div class="stat-value accent" id="u-signups">&mdash;</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Now <span class="approx-tag">APPROX</span></div>
+        <div class="stat-value" id="u-active">&mdash;</div>
+        <div class="stat-foot" id="u-active-foot">approximate &middot; last 15 min</div>
+      </div>
+    </div>
+
+    <!-- Section 3: report table -->
+    <h2 class="section-title">All Reports</h2>
+    <div class="toolbar">
+      <input type="text" id="search-input" class="search-input" placeholder="Search business name or email&hellip;" autocomplete="off">
+      <button type="button" id="search-btn" class="btn-primary">Search</button>
+      <button type="button" id="clear-btn" class="btn-outline">Clear</button>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Owner</th>
+              <th>Business</th>
+              <th>Email</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="report-tbody"></tbody>
+        </table>
+      </div>
+      <div id="table-msg" class="table-msg hidden"></div>
+      <div class="pager">
+        <span class="pager-info" id="pager-info">&mdash;</span>
+        <div class="pager-btns">
+          <button type="button" id="prev-btn" class="btn-outline" disabled>&lsaquo; Prev</button>
+          <button type="button" id="next-btn" class="btn-outline" disabled>Next &rsaquo;</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ─── FOOTER ─── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div style="color:rgba(255,255,255,0.85);font-weight:600;">GrowthIM &copy; 2026</div>
+    <div><a href="/dashboard" style="color:rgba(255,255,255,0.7);text-decoration:none;">Back to dashboard</a></div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ── State ──
+  var offset = 0;
+  var limit = 25;        // synced from the endpoint response after first load
+  var search = '';
+  var lastCount = 0;     // rows returned by the most recent fetch
+
+  // ── DOM refs ──
+  var loadingEl   = $('admin-loading');
+  var errorEl     = $('admin-error');
+  var errorTextEl = $('admin-error-text');
+  var notOwnerEl  = $('admin-notowner');
+  var contentEl   = $('admin-content');
+  var retryBtn    = $('admin-retry');
+
+  var cTotal      = $('c-total');
+  var cProcessing = $('c-processing');
+  var cSuccess    = $('c-success');
+  var cDegraded   = $('c-degraded');
+  var cFailed     = $('c-failed');
+  var srcNote     = $('outcomes-source-note');
+  var uSignups    = $('u-signups');
+  var uActive     = $('u-active');
+  var uActiveFoot = $('u-active-foot');
+
+  var searchInput = $('search-input');
+  var searchBtn   = $('search-btn');
+  var clearBtn    = $('clear-btn');
+  var tbody       = $('report-tbody');
+  var tableMsg    = $('table-msg');
+  var pagerInfo   = $('pager-info');
+  var prevBtn     = $('prev-btn');
+  var nextBtn     = $('next-btn');
+  var logoutBtn   = $('logout-btn');
+
+  // ── Helpers ──
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function fmtDate(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  function numOrDash(n) {
+    return (typeof n === 'number' && isFinite(n)) ? String(n) : '—';
+  }
+  function showState(state) {
+    loadingEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+    notOwnerEl.classList.add('hidden');
+    contentEl.classList.add('hidden');
+    if (state === 'loading')      loadingEl.classList.remove('hidden');
+    else if (state === 'error')   errorEl.classList.remove('hidden');
+    else if (state === 'notowner') notOwnerEl.classList.remove('hidden');
+    else if (state === 'content') contentEl.classList.remove('hidden');
+  }
+  function setBusy(busy) {
+    searchBtn.disabled = busy;
+    clearBtn.disabled = busy;
+    prevBtn.disabled = busy || offset <= 0;
+    nextBtn.disabled = busy || lastCount < limit;
+  }
+
+  // ── Render ──
+  function render(data) {
+    var reports = (data && data.reports) || {};
+    cTotal.textContent      = numOrDash(reports.total);
+    cProcessing.textContent = numOrDash(reports.processing);
+    cSuccess.textContent    = numOrDash(reports.success);
+    cDegraded.textContent   = numOrDash(reports.degraded);
+    cFailed.textContent     = numOrDash(reports.failed);
+
+    // If the durable scoreboard table isn't present yet, the endpoint falls
+    // back to last-24h failed-job counts and can't report success/degraded.
+    if (reports.outcomes_source && reports.outcomes_source !== 'report_outcomes') {
+      srcNote.textContent = '(Showing last-24h failed jobs only — the durable scoreboard table isn’t in use, so success/degraded read —.)';
+    } else {
+      srcNote.textContent = '';
+    }
+
+    uSignups.textContent = numOrDash(data && data.total_signups);
+    uActive.textContent  = numOrDash(data && data.active_users_approx);
+    var win = data && data.active_users_window_minutes;
+    uActiveFoot.textContent = 'approximate · last ' + (typeof win === 'number' ? win : 15) + ' min';
+
+    var list = (data && data.report_list) || {};
+    var items = Array.isArray(list.items) ? list.items : [];
+    // The endpoint clamps limit/offset, so trust its echoed values.
+    if (typeof list.limit === 'number') limit = list.limit;
+    if (typeof list.offset === 'number') offset = list.offset;
+    lastCount = items.length;
+
+    if (items.length === 0) {
+      tbody.innerHTML = '';
+      tableMsg.textContent = search ? 'No reports match your search.' : 'No reports yet.';
+      tableMsg.classList.remove('hidden');
+    } else {
+      tableMsg.classList.add('hidden');
+      tbody.innerHTML = items.map(function (r) {
+        return '<tr>' +
+          '<td>' + escapeHtml(r.owner_name || '—') + '</td>' +
+          '<td class="cell-business"><a href="/admin/report/' + encodeURIComponent(r.id) + '" target="_blank" rel="noopener">' + escapeHtml(r.business_name || '(unnamed business)') + '</a></td>' +
+          '<td class="cell-email">' + escapeHtml(r.owner_email || '—') + '</td>' +
+          '<td class="cell-date">' + escapeHtml(fmtDate(r.created_at)) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    var start = items.length ? offset + 1 : 0;
+    var end = offset + items.length;
+    pagerInfo.textContent = items.length
+      ? ('Showing ' + start + '–' + end)
+      : 'Showing 0';
+    prevBtn.disabled = offset <= 0;
+    nextBtn.disabled = lastCount < limit;
+  }
+
+  // ── Loader ──
+  // initial=true → full-page loading view; otherwise (search/paging) keep the
+  // content on screen and just swap a "Loading…" row into the table.
+  async function load(opts) {
+    var initial = !!(opts && opts.initial);
+    if (initial) showState('loading');
+    setBusy(true);
+    if (!initial) {
+      tbody.innerHTML = '<tr><td colspan="4" class="table-msg" style="padding:24px;">Loading…</td></tr>';
+      tableMsg.classList.add('hidden');
+    }
+    try {
+      var params = new URLSearchParams();
+      if (search) params.set('search', search);
+      params.set('limit', String(limit));
+      params.set('offset', String(offset));
+      var res = await fetch('/api/admin/overview?' + params.toString(), { credentials: 'same-origin' });
+
+      // 404 (uniform deny) or 401 → not the owner / session no longer valid.
+      if (res.status === 404 || res.status === 401) {
+        showState('notowner');
+        return;
+      }
+      if (!res.ok) {
+        var msg = 'Could not load the admin overview.';
+        try { var j = await res.json(); if (j && j.error) msg = j.error; } catch (_) { /* keep default */ }
+        throw new Error(msg);
+      }
+      var data = await res.json();
+      render(data);
+      showState('content');
+    } catch (err) {
+      errorTextEl.textContent = (err && err.message) || 'Network error. Please try again.';
+      showState('error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ── Events ──
+  searchBtn.addEventListener('click', function () {
+    search = (searchInput.value || '').trim();
+    offset = 0;
+    load();
+  });
+  clearBtn.addEventListener('click', function () {
+    searchInput.value = '';
+    search = '';
+    offset = 0;
+    load();
+  });
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); searchBtn.click(); }
+  });
+  prevBtn.addEventListener('click', function () {
+    if (offset <= 0) return;
+    offset = Math.max(0, offset - limit);
+    load();
+  });
+  nextBtn.addEventListener('click', function () {
+    if (lastCount < limit) return;   // last page was not full → no next page
+    offset = offset + limit;
+    load();
+  });
+  retryBtn.addEventListener('click', function () { load({ initial: true }); });
+
+  logoutBtn.addEventListener('click', async function () {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = 'Logging out…';
+    try { await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) { /* fall through */ }
+    window.location.href = '/login.html';
+  });
+
+  // ── Boot ──
+  load({ initial: true });
+})();
+</script>
+
+</body>
+</html>
