@@ -125,7 +125,7 @@ const reportLimiter = rateLimit({
 // run as multiple instances, the cap is per-instance.
 // (Deliberately NOT the p-limit package: p-limit v4+ is ESM-only and would
 //  break `require` in this CommonJS project.)
-const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) || 3;
+const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) || 5;
 // Rough average pipeline runtime, used ONLY to estimate the wait time shown
 // to queued users. Approximate by design - a fixed figure, not measured.
 const AVG_REPORT_MINUTES = 12;
