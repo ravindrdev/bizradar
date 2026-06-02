@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GrowthIM - Know your market. Own your city.</title>
+  <meta name="robots" content="noindex,follow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -499,15 +500,19 @@
       <!-- Current step message (live) + step counter -->
       <div id="term-current-message" style="margin-top:14px;color:#10B981;font-size:13px;min-height:20px">Connecting...</div>
       <div id="term-step-counter" style="color:#64748B;font-size:11px;margin-top:4px">Step 0 of -</div>
+      <!-- Queue banner - shown ONLY while the report is waiting behind the
+           concurrency cap. JS fills in queue position + wait estimate and
+           hides the live-progress bits above; cleared once the run starts. -->
+      <div id="term-queue-banner" style="background:#1E293B;border-left:4px solid #F59E0B;color:#E2E8F0;padding:12px 16px;border-radius:6px;margin-top:12px;font-size:14px;line-height:1.5" hidden></div>
       <!-- Overtime banner - JS un-hides it when the initial ETA expires. -->
       <div id="term-overtime-warning" class="lp-term-overtime-warning" hidden>
         <strong>Still working</strong> - GrowthIM Intelligence Engine is building your report.
-        This can take up to 8 minutes. Please don&rsquo;t refresh or close this tab.
+        This usually takes about 3-5 minutes. You don&rsquo;t need to wait here; it will appear in your dashboard as soon as it&rsquo;s done.
       </div>
       <!-- Quiet banner - JS un-hides it when the SSE stream goes 30+ seconds silent. -->
       <div id="term-quiet-warning" class="lp-term-quiet-warning" hidden>
         GrowthIM Intelligence Engine is doing deep research on your market. This is the most thorough step.
-        Average wait from here: 3-5 minutes. Your report IS coming. Do not refresh.
+        This usually takes about 3-5 minutes. You can safely close or leave this page; your report keeps generating and will appear in your dashboard when it&rsquo;s ready.
       </div>
       <!-- Engine-activated banner - shown when step 16 (pct=48) fires, hidden on completion. -->
       <div id="term-engine-banner" style="display:none; background:#1E3A5F; border-left:4px solid #3B82F6; color:#FFFFFF; padding:12px 16px; border-radius:6px; margin-top:12px; font-size:14px; font-weight:500;">GrowthIM Intelligence Engine activated.</div>
@@ -681,16 +686,10 @@
     terminal.hidden = false;
     btn.hidden = true;
 
-    // Anti-refresh warning - the moment the user clicks Analyze, set
-    // a beforeunload handler so leaving/refreshing prompts a confirm.
-    // This is cleared on report arrival OR on network error so the
-    // user never sees the prompt for a no-longer-running request.
-    window.onbeforeunload = function () {
-      return "GrowthIM is still building your report. If you leave now you will lose your report and need to start over. Please stay on this page.";
-    };
-
+    // No beforeunload warning: generation runs on the server and saves to
+    // the user's dashboard, so leaving or refreshing does NOT lose the report.
     const sessionId = genSessionId();
-    const startTime = Date.now();
+    let startTime = Date.now();
 
     // ── ETA state ──────────────────────────────────────────────────
     // countdown decrements at 1Hz. When it hits 0 we flip to count-up
@@ -721,13 +720,13 @@
         etaEl.textContent = 'Still working - ' + formatTime(overtime) + ' past estimate';
         const minutesPast = Math.floor(overtime / 60);
         if (minutesPast < 2) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM is doing deep research on your competitors and market. Please keep this tab open.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM is doing deep research on your competitors and market. You can safely leave this page; your report will be in your dashboard when it&rsquo;s ready.';
         } else if (minutesPast < 5) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - Your market has a lot of competitor data to analyze. Complex markets with many competitors can take up to 18 minutes. Your report is coming. Do not refresh.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - Complex markets with many competitors can take a little longer. You don&rsquo;t need to wait here; your report will be in your dashboard as soon as it&rsquo;s done.';
         } else if (minutesPast < 10) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking longer than usual. GrowthIM is doing an exceptionally deep analysis of your market. Please keep this tab open and do not refresh.';
+          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking a little longer than usual, which is normal for some businesses. You don&rsquo;t need to wait here; your report will be in your dashboard as soon as it&rsquo;s done.';
         } else {
-          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is writing the final sections of your report. This is the last step. Your report will appear automatically. Thank you for your patience.';
+          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is writing the final sections of your report. You don&rsquo;t need to wait here; it will appear in your dashboard as soon as it&rsquo;s done.';
         }
         overtimeEl.hidden = false;
         if (lastPct < 95) {
@@ -822,7 +821,6 @@
     function cleanupRunningUi() {
       isComplete = true;
       if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
-      window.onbeforeunload = null;
       try { evt.close(); } catch (_) {}
       terminal.hidden = true;
       document.getElementById('form-' + mode).hidden = false;
@@ -856,6 +854,10 @@
     // wiping the in-memory jobStore mid-flight - after ~30s of
     // 'not_found' we give up and tell the user to retry.
     let notFoundStreak = 0;
+    // Tracks whether the previous poll reported the job as queued behind the
+    // concurrency cap, so we can detect the queued -> running transition.
+    let queuedState = false;
+    const queueBannerEl = document.getElementById('term-queue-banner');
     const pollHandle = setInterval(async () => {
       try {
         const sres = await fetch('/report-status/' + encodeURIComponent(jobId), {
@@ -895,6 +897,43 @@
         // 'processing' - keep polling. Reset the not_found streak in
         // case we hit a transient inconsistency earlier.
         notFoundStreak = 0;
+        if (sjson.queued === true) {
+          // Waiting behind the concurrency cap. Show queue position + a
+          // rough wait estimate instead of live progress, and pause the
+          // ETA count-up so it doesn't tick into a false "overtime" state
+          // while we wait for a slot to open.
+          if (!queuedState) {
+            queuedState = true;
+            if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
+            document.getElementById('term-current-message').hidden = true;
+            document.getElementById('term-step-counter').hidden = true;
+            document.getElementById('term-overtime-warning').hidden = true;
+            document.getElementById('term-quiet-warning').hidden = true;
+            document.getElementById('term-engine-banner').style.display = 'none';
+            document.getElementById('term-eta').textContent = 'waiting in queue';
+            queueBannerEl.hidden = false;
+          }
+          // Refresh each poll - the position can advance as others finish.
+          const pos = sjson.queuePosition;
+          const mins = sjson.estimatedWaitMinutes;
+          queueBannerEl.innerHTML =
+            'You&rsquo;re #' + pos + ' in line - estimated wait about ' + mins +
+            ' minutes. You can close this page and come back; your report will be ' +
+            'in your dashboard when it&rsquo;s ready.';
+        } else if (queuedState) {
+          // Just flipped from queued -> running. Hide the queue banner,
+          // restore the live-progress bits, and reset the ETA timer so the
+          // countdown reflects the actual run, not the time spent waiting.
+          queuedState = false;
+          queueBannerEl.hidden = true;
+          document.getElementById('term-current-message').hidden = false;
+          document.getElementById('term-step-counter').hidden = false;
+          startTime = Date.now();
+          lastSseUpdate = Date.now();
+          lastPct = 0;
+          countdown = (INITIAL_ETA_SECONDS[mode] || 120);
+          if (!etaInterval) { etaInterval = setInterval(tickEta, 1000); tickEta(); }
+        }
       } catch (e) {
         // Transient network blip - keep polling on the next tick.
         console.warn('[poll] error:', e && e.message);

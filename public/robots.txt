@@ -1,0 +1,34 @@
+# GrowthIM — robots.txt
+# Public marketing/legal pages are crawlable; app, account, and API
+# routes are disallowed (they are auth-gated and have no SEO value).
+
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /dashboard
+Disallow: /report/
+Disallow: /admin
+Disallow: /api/
+
+# ---------------------------------------------------------------------------
+# AI search / answer-engine crawlers — EXPLICITLY allowed.
+# We never want to be accidentally excluded from AI answers, so each of these
+# is given full access and is intentionally NOT disallowed.
+# ---------------------------------------------------------------------------
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://growthim.com/sitemap.xml
