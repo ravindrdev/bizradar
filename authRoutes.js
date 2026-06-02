@@ -62,6 +62,7 @@ const SAFE_AUTH_ERRORS = new Set([
   'Please verify your email first',
   'No pending signup',
   'No active reset request',
+  'No active login request',
   'OTP expired',
   'Incorrect code',
   'Too many incorrect attempts. Request a new code.',
@@ -73,6 +74,16 @@ function safeAuthError(err, fallback) {
   if (err && err.message && SAFE_AUTH_ERRORS.has(err.message)) return err.message;
   console.error('[auth-route] raw error swallowed:', err && err.message);
   return fallback;
+}
+
+// Admin 2FA gate. Returns true ONLY when ADMIN_EMAIL is configured AND it
+// matches the given email. FAIL-SAFE: if ADMIN_EMAIL is unset/empty this
+// returns false for everyone, so NOBODY gets the OTP step and login is
+// identical to before. This is also the documented break-glass recovery.
+function isAdminEmail(email) {
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!adminEmail) return false;
+  return String(email || '').trim().toLowerCase() === adminEmail;
 }
 
 function validateSignupBody(body) {
@@ -144,10 +155,45 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Email and password required' });
     }
     const { token, user } = await auth.loginUser(email, password);
+    // Mandatory 2FA for the admin account ONLY. FAIL-SAFE: if ADMIN_EMAIL is
+    // unset/empty, isAdminEmail() is false for everyone → regular flow below,
+    // login identical to today (this is also the break-glass recovery path).
+    if (isAdminEmail(user.email)) {
+      // Credentials are already valid here, but we do NOT set the session
+      // cookie yet. Issue + email a login OTP and tell the client to show the
+      // code-entry step. The JWT from loginUser is intentionally discarded —
+      // no cookie exists until /auth/verify-login-otp succeeds.
+      await auth.startLoginOTP(user.email);
+      return res.json({ success: true, otpRequired: true, email: user.email });
+    }
     setAuthCookie(res, token);
     return res.json({ success: true, user });
   } catch (err) {
     return res.status(400).json({ success: false, error: safeAuthError(err, 'Login failed') });
+  }
+});
+
+// ── POST /auth/verify-login-otp ─────────────────────────────────────
+// Terminal step of admin 2FA: verify the emailed code, and ONLY then set
+// the session cookie. Gated on isAdminEmail() as defense-in-depth so this
+// path can never mint a session for a non-admin (a regular user has no
+// 'login' OTP row anyway). Same fail-safe: if ADMIN_EMAIL is unset this
+// returns the uniform "No active login request" and no session is issued.
+router.post('/verify-login-otp', async (req, res) => {
+  try {
+    const email = (req.body && req.body.email) || '';
+    const otp = (req.body && req.body.otp) || '';
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, error: 'Email and OTP required' });
+    }
+    if (!isAdminEmail(email)) {
+      return res.status(400).json({ success: false, error: 'No active login request' });
+    }
+    const { token, user } = await auth.verifyLoginOTP(email, otp);
+    setAuthCookie(res, token);
+    return res.json({ success: true, user });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: safeAuthError(err, 'Verification failed') });
   }
 });
 

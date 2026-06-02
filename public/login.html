@@ -46,6 +46,13 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .error.show { display: block; }
 .flash { display: none; margin-bottom: 18px; padding: 10px 14px; background: var(--success-bg); border: 1px solid #A7F3D0; color: var(--success); border-radius: 8px; font-size: 13px; }
 .flash.show { display: block; }
+/* Admin 2FA: screen toggle + OTP entry (reused from signup.html) */
+.screen { display: none; }
+.screen.active { display: block; }
+.otp-input { letter-spacing: 12px; font-size: 22px; font-weight: 600; text-align: center; padding: 14px; }
+.resend { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
+.resend button { background: transparent; border: 0; color: var(--blue); font-weight: 500; cursor: pointer; font-family: inherit; font-size: 13px; padding: 0; }
+.resend button:disabled { color: var(--muted); cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -65,6 +72,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 </header>
 
 <div class="wrap">
+  <section id="screen-login" class="screen active">
   <div id="flash" class="flash"></div>
   <h1>Welcome back</h1>
   <p class="meta">Sign in to access your GrowthIM reports.</p>
@@ -85,6 +93,24 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
   </form>
   <p class="link-row"><a href="/forgot.html">Forgot password?</a></p>
   <p class="link-row">No account? <a href="/signup.html">Sign up</a></p>
+  </section>
+
+  <!-- ─────── Admin 2FA: OTP entry — shown ONLY when the server returns otpRequired ─────── -->
+  <section id="screen-otp" class="screen">
+    <h1>Enter your login code</h1>
+    <p class="meta">For security, we emailed a 6-digit code to <span id="otp-email">your email</span>. Enter it to finish signing in.</p>
+    <form id="otp-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="otp">Verification code</label>
+        <input id="otp" name="otp" type="text" class="otp-input" inputmode="numeric" maxlength="6" pattern="\d{6}" required>
+      </div>
+      <button id="verify-btn" class="primary" type="submit">Verify &amp; sign in</button>
+      <div id="otp-error" class="error"></div>
+    </form>
+    <div class="resend">
+      Didn't receive it? <button id="resend-btn" type="button" disabled>Resend code in 60s</button>
+    </div>
+  </section>
 </div>
 
 <p style="text-align:center;font-size:12px;color:#94A3B8;margin:24px auto 8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;">
@@ -106,6 +132,43 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
   }
   function validEmail(e) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  // ── Admin 2FA state + helpers ──
+  // Credentials stay in JS memory between the login submit and OTP
+  // verification so Resend can re-call /auth/login. Only ever populated
+  // for the admin account (server returns otpRequired); wiped on success.
+  let pendingEmail = '';
+  let pendingPassword = '';
+  let resendInterval = null;
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+  function showOtpError(msg) {
+    const b = $('otp-error');
+    b.textContent = msg;
+    b.classList.add('show');
+  }
+  function hideOtpError() {
+    $('otp-error').classList.remove('show');
+  }
+  function startResendCountdown() {
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    let s = 60;
+    btn.textContent = `Resend code in ${s}s`;
+    clearInterval(resendInterval);
+    resendInterval = setInterval(() => {
+      s -= 1;
+      if (s <= 0) {
+        clearInterval(resendInterval);
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+      } else {
+        btn.textContent = `Resend code in ${s}s`;
+      }
+    }, 1000);
   }
 
   // Password show/hide toggle.
@@ -154,11 +217,90 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
         submitBtn.textContent = 'Login';
         return;
       }
+      // Admin account → server withholds the session and asks for an emailed
+      // OTP. Regular users have no otpRequired flag and fall straight through
+      // to the dashboard exactly as before.
+      if (json.otpRequired) {
+        pendingEmail = email;
+        pendingPassword = password;
+        $('otp-email').textContent = json.email || email;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Login';
+        showScreen('screen-otp');
+        startResendCountdown();
+        setTimeout(() => $('otp').focus(), 50);
+        return;
+      }
       window.location.href = '/dashboard';
     } catch (e) {
       showError('Network error. Please try again.');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Login';
+    }
+  });
+
+  // ── Admin 2FA: OTP submit → verify; the session cookie is set server-side ──
+  $('otp-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    hideOtpError();
+    const otp = $('otp').value.trim();
+    if (!/^\d{6}$/.test(otp)) return showOtpError('Enter the 6-digit code.');
+    const verifyBtn = $('verify-btn');
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+    try {
+      const res = await fetch('/auth/verify-login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, otp }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showOtpError(json.error || 'Incorrect code, try again.');
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify & sign in';
+        return;
+      }
+      pendingEmail = '';
+      pendingPassword = '';
+      window.location.href = '/dashboard';
+    } catch (e) {
+      showOtpError('Network error. Please try again.');
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify & sign in';
+    }
+  });
+
+  // ── Admin 2FA: Resend — re-calls /auth/login with the in-memory creds,
+  // which re-validates the password and issues a fresh code (resetting the
+  // attempt counter). Mirrors signup.html's resend pattern. ──
+  $('resend-btn').addEventListener('click', async () => {
+    if (!pendingEmail || !pendingPassword) {
+      showOtpError('Session expired. Please sign in again.');
+      return;
+    }
+    hideOtpError();
+    const btn = $('resend-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, password: pendingPassword }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showOtpError(json.error || 'Could not resend code.');
+        btn.disabled = false;
+        btn.textContent = 'Resend code';
+        return;
+      }
+      startResendCountdown();
+    } catch (e) {
+      showOtpError('Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Resend code';
     }
   });
 })();

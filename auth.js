@@ -89,11 +89,16 @@ function verifyJWT(token) {
 
 async function sendOTPEmail(email, otp, type) {
   const transporter = getTransporter();
-  const subject = type === 'reset'
-    ? 'GrowthIM - reset your password'
+  const subject =
+    type === 'reset' ? 'GrowthIM - reset your password'
+    : type === 'login' ? 'GrowthIM - your login verification code'
     : 'GrowthIM - verify your email';
+  const otpLabel =
+    type === 'reset' ? 'password reset'
+    : type === 'login' ? 'login verification'
+    : 'verification';
   const body =
-`Your GrowthIM ${type === 'reset' ? 'password reset' : 'verification'} code is:
+`Your GrowthIM ${otpLabel} code is:
 
     ${otp}
 
@@ -313,6 +318,85 @@ async function resetPassword(email, otp, newPassword) {
   return { success: true };
 }
 
+// ── Admin login OTP (mandatory 2FA for the admin account) ───────────
+// Mirrors sendPasswordResetOTP: issues a fresh login OTP on the
+// (already credential-validated) admin's verified row and emails it.
+// On SMTP failure it clears the otp_* columns and throws a user-safe
+// error — the SAME rollback contract as signup/reset, so a send outage
+// never leaves a dangling code. The caller (/auth/login) only reaches
+// here AFTER loginUser() has verified the password, so this can't be
+// used to spray OTP emails without valid admin credentials.
+async function startLoginOTP(email) {
+  const e = normalizeEmail(email);
+  const r = await pool.query(
+    `SELECT id FROM users WHERE email = $1 AND email_verified = true`,
+    [e]
+  );
+  const user = r.rows[0];
+  if (!user) throw new Error('Invalid credentials');
+
+  const otp = generateOTP();
+  const otpHash = await hashOTP(otp);
+  const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
+
+  // otp_attempts reset to 0 so the 5-attempt lockout is per-code.
+  await pool.query(
+    `UPDATE users SET otp_code = $1, otp_expires = $2, otp_type = 'login', otp_attempts = 0 WHERE id = $3`,
+    [otpHash, expires, user.id]
+  );
+  // Audit fix A2 pattern — surface a user-safe error and clear the login
+  // OTP state if the email never makes it out (SMTP outage, etc.).
+  try {
+    await sendOTPEmail(e, otp, 'login');
+  } catch (err) {
+    console.error('[auth] SMTP send failed during admin login:', err.message);
+    await pool.query(
+      `UPDATE users SET otp_code = NULL, otp_expires = NULL, otp_type = NULL WHERE id = $1`,
+      [user.id]
+    ).catch(() => {});
+    throw new Error('Could not send verification email. Please try again.');
+  }
+  return { success: true };
+}
+
+// verifyLoginOTP — terminal step of admin 2FA. Mirrors verifyResetOTP's
+// lockout/expiry/verify logic, but on success it CLEARS the otp_* state
+// and issues the 7-day session JWT (like verifySignupOTP). Only matches
+// rows whose otp_type = 'login', so a reset code can never satisfy it
+// (and vice-versa).
+async function verifyLoginOTP(email, otp) {
+  const e = normalizeEmail(email);
+  const r = await pool.query(
+    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts
+     FROM users WHERE email = $1 AND email_verified = true AND otp_type = 'login'`,
+    [e]
+  );
+  const user = r.rows[0];
+  if (!user) throw new Error('No active login request');
+  // Bounded brute force — 5 attempts per code, same as signup/reset.
+  if ((user.otp_attempts || 0) >= 5) {
+    throw new Error('Too many incorrect attempts. Request a new code.');
+  }
+  if (!user.otp_expires || new Date(user.otp_expires) < new Date()) {
+    throw new Error('OTP expired');
+  }
+  const ok = await verifyOTPHash(String(otp || ''), user.otp_code);
+  if (!ok) {
+    await pool.query(
+      `UPDATE users SET otp_attempts = otp_attempts + 1 WHERE id = $1`,
+      [user.id]
+    ).catch(() => {});
+    throw new Error('Incorrect code');
+  }
+  // Success — clear OTP state and issue the session token.
+  await pool.query(
+    `UPDATE users SET otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0 WHERE id = $1`,
+    [user.id]
+  );
+  const token = generateJWT(user.id);
+  return { token, user: { id: user.id, name: user.name, email: user.email } };
+}
+
 // ── User lookup (used by /auth/me middleware) ───────────────────────
 async function findUserById(id) {
   if (!id) return null;
@@ -331,6 +415,8 @@ module.exports = {
   verifySignupOTP,
   deleteUnverifiedUser,
   loginUser,
+  startLoginOTP,
+  verifyLoginOTP,
   sendPasswordResetOTP,
   verifyResetOTP,
   resetPassword,
