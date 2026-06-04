@@ -1749,14 +1749,15 @@ const FAST_FOOD_CHAINS = [
 // `queryNoLocality` inside fetchNearbyCompetitors pass different city/
 // state (the latter passes null), so they will trigger TWO calls per
 // new business; switch the cache key to name-only if cost matters.
-// Process-lifetime cache (no TTL - cuisine type doesn't change). Bounded
-// at max=1000 so memory stays flat under sustained traffic.
-const CUISINE_CACHE = new LRUCache({ max: 1000 });
+// 7-day TTL so entries eventually expire (cuisine rarely changes, but a
+// re-detect after a week is cheap). Bounded at max=1000 so memory stays
+// flat under sustained traffic.
+const CUISINE_CACHE = new LRUCache({ max: 1000, ttl: 7 * 24 * 60 * 60 * 1000 });
 // Same shape, used by detectCompetitorQueryWithClaude (the safety-net
 // fallback fired mid-ladder when the deterministic search has produced
-// <5 competitors after the 50-mile rung). Process-lifetime, keyed by
-// `name|city|state` so repeat analyses of the same business are free.
-const COMPETITOR_CLAUDE_CACHE = new LRUCache({ max: 500 });
+// <5 competitors after the 50-mile rung). 7-day TTL, keyed by
+// `name|city|state` so repeat analyses of the same business stay cheap.
+const COMPETITOR_CLAUDE_CACHE = new LRUCache({ max: 500, ttl: 7 * 24 * 60 * 60 * 1000 });
 const VALID_CUISINES = new Set([
   'indian', 'chinese', 'japanese', 'korean', 'thai', 'vietnamese',
   'mexican', 'italian', 'french', 'greek', 'middleeastern', 'seafood',
@@ -1886,15 +1887,15 @@ async function detectCuisineWithClaude(businessName, city, state, googleTypes, r
 //
 // Process-lifetime cache keyed by name|naics6|city. Returns null on
 // any failure so the caller falls through to the existing NAICS lookup.
-const REFINE_CACHE = new Map();
+const REFINE_CACHE = new LRUCache({ max: 1000, ttl: 24 * 60 * 60 * 1000 });
 
 async function refineCompetitorQueryWithClaude(
   businessName, naics6, naics6Description, googleTypes, reviewTexts, city, state
 ) {
   try {
-    const cacheKey = String(businessName || '').slice(0, 25)
+    const cacheKey = String(businessName || '').toLowerCase()
       + '|' + (naics6 || '')
-      + '|' + String(city || '').slice(0, 10);
+      + '|' + String(city || '').toLowerCase();
 
     if (REFINE_CACHE.has(cacheKey)) {
       const cached = REFINE_CACHE.get(cacheKey);
@@ -3139,10 +3140,16 @@ async function fetchNearbyCompetitors({
   // buildCompetitorQuery now produces cuisine-specific queries for
   // 722xxx subjects, so old v4 entries (generic 'restaurant dining')
   // are intentionally orphaned.
+  // Only consult the cache when we have a real place_id. Without it the
+  // key collapses to `v5||<naics>`, so two different id-less businesses of
+  // the same NAICS would share one competitor set. No id => skip cache.
+  const canCacheCompetitors = !!placeId;
   const cacheKey = `v5|${placeId || ''}|${String(naics6 || type || '')}`;
-  const cached = COMPETITOR_CACHE.get(cacheKey);
-  if (cached && Date.now() - cached.ts < COMPETITOR_TTL_MS) {
-    return cached.value;
+  if (canCacheCompetitors) {
+    const cached = COMPETITOR_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.ts < COMPETITOR_TTL_MS) {
+      return cached.value;
+    }
   }
 
   // ── Subject reviews fetch ──────────────────────────────────────────
@@ -3484,7 +3491,7 @@ async function fetchNearbyCompetitors({
     competitor_query_claude: (claudeResult && claudeResult.business_type) || null,
     competitor_types_claude: (claudeResult && claudeResult.competitor_types) || null,
   };
-  COMPETITOR_CACHE.set(cacheKey, { ts: Date.now(), value });
+  if (canCacheCompetitors) COMPETITOR_CACHE.set(cacheKey, { ts: Date.now(), value });
   return value;
 }
 

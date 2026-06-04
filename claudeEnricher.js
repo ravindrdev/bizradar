@@ -47,11 +47,12 @@ const MAX_TOKENS_B = 12000;
 const MAX_TOKENS_C1 = 18000;
 const MAX_TOKENS_C2 = 26000;
 
-// 24h in-memory cache keyed by place_id. Same pattern as the
-// google-places details cache (Phase 4 fix-batch) but bounded at
-// max=1000 entries so we don't OOM.
-const CLAUDE_TTL_MS = 24 * 60 * 60 * 1000;
-const CLAUDE_CACHE = new LRUCache({ max: 1000, ttl: CLAUDE_TTL_MS });
+// CACHE REMOVED (cache-integrity fix): the AI enrichment bundle is no
+// longer cached across runs. It was keyed on bundle.business.address,
+// which is neither unique (shared-address tenants collided) nor always
+// present ('claude_undefined' shared one report across every address-less
+// business). Per the "every report fresh from current API calls" rule,
+// enrichWithClaude now recomputes a fresh bundle on every run.
 
 // ── Prompt-injection defense (audit fix CE1) ────────────────────────
 // User-controlled fields (business name, address, city, state, place
@@ -4911,14 +4912,9 @@ async function enrichWithClaude(bundle) {
     return null;
   }
 
-  // Stable cache key on the bundle's address (1:1 proxy for place_id).
-  const placeId = bundle.business && bundle.business.address;
-  const cacheKey = 'claude_' + placeId;
-  const cached = CLAUDE_CACHE.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CLAUDE_TTL_MS) {
-    console.log(`[cache] claude hit for ${placeId}`);
-    return cached.value;
-  }
+  // No cross-run cache: every report computes a fresh AI bundle from the
+  // current API calls (see CACHE REMOVED note near the top of this file).
+  // This also eliminates the old address-key cross-business contamination.
 
   // Triggered IDs shared by B (execution_templates) and C1/C2 (context).
   const triggeredIds = Array.isArray(bundle.triggered_rec_ids)
@@ -4981,7 +4977,6 @@ async function enrichWithClaude(bundle) {
       `[claude] Call A failed - partial enrichment B-only (B dt=${Date.now() - tB}ms, `
       + `${partial.key_risks.length} risks, ${partial.execution_templates.length} templates)`
     );
-    CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: partial });
     return partial;
   }
 
@@ -5080,7 +5075,6 @@ async function enrichWithClaude(bundle) {
     + `${(merged.execution_templates || []).length} templates`
   );
 
-  CLAUDE_CACHE.set(cacheKey, { ts: Date.now(), value: merged });
   return merged;
 }
 

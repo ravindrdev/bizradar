@@ -2149,7 +2149,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
   // Excludes 485 transit/limo/taxi, 486 pipeline, 487 scenic, 492 courier.
   const fmcsaNaics3 = gateNaics6.slice(0, 3);
   const fmcsaPromise = (fmcsaNaics3 === '484' || fmcsaNaics3 === '488')
-    ? dataFetchers.fetchFMCSA(data.business_name)
+    ? dataFetchers.fetchFMCSA(data.business_name, data.state)
     : Promise.resolve(null);
   // NPI Registry - health-sector NAICS-2 = 62 plus veterinarians (541940,
   // technically NAICS-2 = 54). Vets carry NPI numbers; previous gate

@@ -1946,12 +1946,14 @@ async function fetchUSDANASS(state, commodity) {
 const FMCSA_TTL_MS = 24 * 60 * 60 * 1000;
 const FMCSA_CACHE = new LRUCache({ max: 1000, ttl: FMCSA_TTL_MS });
 
-async function fetchFMCSA(businessName) {
+async function fetchFMCSA(businessName, state) {
   if (!businessName) return null;
   const apiKey = process.env.FMCSA_API_KEY;
   if (!apiKey) return null;
 
-  const cacheKey = businessName.toLowerCase();
+  // Scope the key by state so two same-named carriers in different states
+  // don't collide (caller passes data.state). Audit: cache-integrity fix.
+  const cacheKey = businessName.toLowerCase() + '|' + String(state || '').toLowerCase();
   const cached = FMCSA_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < FMCSA_TTL_MS) {
     console.log(`[cache] fmcsa hit for ${cacheKey}`);
