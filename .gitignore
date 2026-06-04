@@ -20,3 +20,9 @@ skills-lock.json
 # Transient test/audit artifacts
 harness_results.txt
 harness_run_results.json
+final_audit.js
+final_audit_results.txt
+final_audit_stress.js
+final_audit_stress_results.txt
+final_audit_million.js
+final_audit_million_results.txt

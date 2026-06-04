@@ -1517,6 +1517,14 @@ app.post('/api/checkout/report', reportLimiter, requireAuth, async (req, res) =>
 });
 
 app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
+  // Fix #1: reject a PRESENT-but-non-string body field with a clean 400. A number/
+  // object/array would otherwise throw a TypeError on the .trim() below → 500.
+  // Absent (null/undefined) fields fall through to the existing `|| ''` handling.
+  for (const f of ['query', 'place_id', 'sessionId']) {
+    if (req.body && req.body[f] != null && typeof req.body[f] !== 'string') {
+      return res.status(400).json({ ok: false, error: 'Invalid input. Please enter a valid business name.' });
+    }
+  }
   const input = (req.body.query || '').trim();
   // Optional - set by the landing-page autocomplete when the user picks
   // a suggestion from the dropdown. Lets us skip the 7-step findPlace
@@ -2963,6 +2971,13 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
   // plus B+C1+C2 parallel block (~3-5 min). All timers are cleared
   // immediately when Claude returns so fast runs skip unfired steps.
   const claudeTimers = [];
+  // Timer-leak fix (1M-run finding): create the progress timers and run the
+  // enrichment await inside try/finally so all 13 long-delay setTimeouts are
+  // cleared on EVERY exit (success, thrown enrichment, or any future early
+  // return) — not just the success path. They still FIRE during the await
+  // (finally runs only after it settles), so progress messages are unchanged.
+  let enriched;
+  try {
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 16, total: 29, message: 'GrowthIM Intelligence Engine activated...', pct: 48 }),   20000));
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 17, total: 29, message: 'Researching your top competitors in depth...', pct: 52 }),   80000));
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 18, total: 29, message: 'Identifying what competitors do better than you...', pct: 56 }),  150000));
@@ -2976,7 +2991,13 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 26, total: 29, message: 'Calculating revenue opportunities for your market...', pct: 88 }), 650000));
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 27, total: 29, message: 'Generating your key risks and early warning signs...', pct: 92 }), 700000));
   claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 28, total: 29, message: 'Finalizing your market intelligence report...', pct: 96 }), 750000));
-  const enriched = await claudeEnricher.enrichWithClaude(dataBundle);
+  enriched = await claudeEnricher.enrichWithClaude(dataBundle);
+  } finally {
+    // Clear on ALL exits — fixes the failure-path leak where a thrown
+    // enrichment left all 13 long-delay timers pending (1M-run finding).
+    claudeTimers.forEach(t => clearTimeout(t));
+    claudeTimers.length = 0;
+  }
   // Detect Call A failure so renderReport can surface the partial-report
   // banner at the top of the page. enrichWithClaude returns a partial
   // object with _partial:'A_failed' when callClaudeEnrichA returned null
@@ -3132,6 +3153,13 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
 }
 
 app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
+  // Fix #1: reject PRESENT-but-non-string body fields with a clean 400 (mirrors
+  // /classify); absent fields fall through to the existing handling below.
+  for (const f of ['city', 'state', 'sessionId']) {
+    if (req.body && req.body[f] != null && typeof req.body[f] !== 'string') {
+      return res.status(400).json({ ok: false, error: 'Invalid input. Please enter a valid city and state.' });
+    }
+  }
   const { city, state } = req.body;
   const sessionId = (req.body.sessionId || '').toString();
   const userId = req.user.id;
@@ -5995,7 +6023,7 @@ ${fmrBlock}`;
   if (typeof data.bls_employment_level === 'number') {
     const periodPart = data.bls_employment_period ? `${escapeHtml(data.bls_employment_period)} ` : '';
     const yearPart = data.bls_employment_year ? escapeHtml(String(data.bls_employment_year)) : '';
-    seasonalityLines.push(`<strong>Local employment (sector-wide):</strong> ${data.bls_employment_level.toLocaleString('en-US')} jobs (${periodPart}${yearPart}). <small>Source: BLS Public Data API.</small>`);
+    seasonalityLines.push(`<strong>U.S. sector employment:</strong> ${data.bls_employment_level.toLocaleString('en-US')} jobs (${periodPart}${yearPart}). <small>Source: BLS Public Data API.</small>`);
   }
   const events = Array.isArray(data.upcoming_events) ? data.upcoming_events : [];
   let eventsBlock = '';
@@ -7082,24 +7110,27 @@ function renderROISummary(actions) {
   for (const a of actions) {
     const est = String(a.money_estimate || '').trim();
     if (!est) continue;
-    // FIX 7 - skip one-time costs; they are not annual revenue.
-    if (/one[- ]?time|build|setup/i.test(est)) continue;
-    // Extract ALL numbers and use min/max as the revenue range.
-    // This avoids grabbing cost numbers first when Claude writes
-    // formats like "$0-$50/month cost · Revenue: $7,200/year".
-    const allNums = est
-      .replace(/[$,]/g, '')
-      .match(/\d+(?:\.\d+)?/g)
-      ?.map(Number) || [];
-    if (allNums.length === 0) continue;
-    let low = Math.min(...allNums);
-    let high = Math.max(...allNums);
-    // FIX 7 - normalize /month estimates to annual for a consistent total.
-    if (/\/month/i.test(est)) {
-      low = low * 12;
-      high = high * 12;
-    }
-    rows.push({ title: a.title || 'Action', est, low, high });
+    // BUG 1 FIX — conservative revenue-range parser. A money_estimate can carry
+    // a "Math:" suffix and/or a "(assuming …)" parenthetical (extra numbers), be
+    // a /month or /year figure, or be a COST line (e.g. the website-builder
+    // action). Parse ONLY the leading revenue range (text before "Math:" and the
+    // first "("), skip cost/mixed lines, and annualize from the revenue clause's
+    // OWN period — so the grand total equals the sum of the clean per-item rows.
+    let revPart = est.split(/math:/i)[0];
+    const parenIdx = revPart.indexOf('(');
+    if (parenIdx !== -1) revPart = revPart.slice(0, parenIdx);
+    revPart = revPart.trim();
+    // Skip cost / mixed / unparseable lines (contribute 0 — not counted, not a row).
+    if (/one[- ]?time|hosting|\bcost\b|build|setup|·|contact support/i.test(revPart)) continue;
+    const m = revPart.match(/\$\s?([\d,]+)\s?([kK])?\s*[-–]\s*\$?\s?([\d,]+)\s?([kK])?/);
+    if (!m) continue; // no clean "$X-$Y" revenue range → skip
+    let low = parseFloat(m[1].replace(/,/g, '')) * (m[2] ? 1000 : 1);
+    let high = parseFloat(m[3].replace(/,/g, '')) * (m[4] ? 1000 : 1);
+    if (!isFinite(low) || !isFinite(high)) continue;
+    // Period from the REVENUE clause ONLY (never scan the whole string — that was
+    // the bug that 12×'d a yearly figure whenever a stray "/month" appeared).
+    if (/\/\s?month|per month/i.test(revPart)) { low *= 12; high *= 12; }
+    rows.push({ title: a.title || 'Action', est });
     totalLow += low;
     totalHigh += high;
   }
@@ -8428,7 +8459,7 @@ function renderKeyRisks(risks) {
 
   return `<div class="section">
   <h2 id="key-risks">&#9888;&#65039; Key risks - and how to stay ahead</h2>
-  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Restaurants and businesses fail on execution not ideas. These are the specific risks facing this business right now, with early warning signs so you can act before they become crises.</p>
+  <p style="color: #6B7280; font-size: 14px; margin-bottom: 20px;">Most businesses fail on execution, not ideas. These are the specific risks facing this business right now, with early warning signs so you can act before they become crises.</p>
   ${cardsHtml}
 </div>`;
 }

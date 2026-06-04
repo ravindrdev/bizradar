@@ -199,6 +199,13 @@ to read every sentence in this report and immediately understand:
    GOOD: "$8,000-$18,000/year (assuming 15 kits per week at
           $28 average over 20 peak summer weeks)."
 
+   The revenue or income dollar estimate must appear ONLY in
+    money_estimate.range. Do NOT state a different revenue or income
+    dollar figure in why_it_works, magnitude, or why_your_business.
+    Citing other numbers (study statistics, local counts, costs) is
+    still required where specified; this applies only to the revenue
+    dollar estimate.
+
 8. Competitor comparisons must always end with ONE specific
    action.
 
