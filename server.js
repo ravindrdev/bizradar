@@ -971,8 +971,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // and can't pile up SSE connections to exhaust memory.
 const MAX_PROGRESS_CLIENTS = 500;
 const progressClients = new Map();
+// Last progress tick per session, so a page refresh mid-report can replay the
+// real current step/pct on reconnect instead of resetting to step 0. Bounded
+// (LRU max + TTL) so abandoned sessions can't grow it without limit; cleared
+// at terminal in completeJob/failJob.
+const { LRUCache } = require('lru-cache');
+const lastProgress = new LRUCache({ max: 1000, ttl: 2 * 60 * 60 * 1000 });
 function sendProgress(sessionId, data) {
   if (!sessionId) return;
+  // Record the tick BEFORE the connected-client early-return, so progress
+  // emitted during a refresh gap (no client attached) is still captured for
+  // replay on reconnect. Skip error frames (they carry no numeric pct).
+  if (data && typeof data.pct === 'number') lastProgress.set(sessionId, data);
   const client = progressClients.get(sessionId);
   if (!client || client.writableEnded) return;
   try {
@@ -991,6 +1001,11 @@ app.get('/progress/:sessionId', requireAuth, (req, res) => {
   res.flushHeaders();
   // Initial "connected" tick so the client can confirm the channel is live.
   res.write('data: {"step":0,"total":0,"message":"connected","pct":0}\n\n');
+  // Replay the last known progress (if any) so a page refresh mid-report jumps
+  // straight to the real current step/pct instead of sitting at step 0. The
+  // client onmessage handler only advances the bar forward, so this is safe.
+  const lp = lastProgress.get(req.params.sessionId);
+  if (lp) res.write('data: ' + JSON.stringify(lp) + '\n\n');
   progressClients.set(req.params.sessionId, res);
   // 15s heartbeat so proxies don't kill an idle stream.
   const heartbeat = setInterval(() => {
@@ -1178,6 +1193,7 @@ async function setJob(sessionId, userId, label, reportType) {
 
 async function failJob(sessionId, message) {
   if (!sessionId) return;
+  lastProgress.delete(sessionId);
   try {
     await pool.query(
       `UPDATE jobs SET status = 'error', error = $2, updated_at = NOW() WHERE job_id = $1`,
@@ -1199,6 +1215,7 @@ async function failJob(sessionId, message) {
 
 async function completeJob(sessionId, reportId) {
   if (!sessionId) return;
+  lastProgress.delete(sessionId);
   try {
     await pool.query(
       `UPDATE jobs SET status = 'ready', report_id = $2, error = NULL, updated_at = NOW() WHERE job_id = $1`,

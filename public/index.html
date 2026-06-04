@@ -762,7 +762,7 @@
   }
 
   // Main submit flow. mode is 'rate' or 'market'.
-  async function submitForm({ mode, url, body, btn, errEl, resumeJobId, paymentFailedHint }) {
+  async function submitForm({ mode, url, body, btn, errEl, resumeJobId, paymentFailedHint, resumeEtaSeconds, resumeStartedAt }) {
     const main          = document.getElementById('page-main');
     const resultSection = document.getElementById('result-section');
     const resultDiv     = document.getElementById('result');
@@ -807,14 +807,14 @@
     resetTerminal();
     terminal.hidden = false;
     btn.hidden = true;
-    let startTime = Date.now();
+    let startTime = resumeStartedAt ? new Date(resumeStartedAt).getTime() : Date.now();
 
     // ── ETA state ──────────────────────────────────────────────────
     // countdown decrements at 1Hz. When it hits 0 we flip to count-up
     // mode and force the bar to ≥95% with a pulsing animation.
     // lastSseUpdate tracks the most recent SSE event so we can show
     // the quiet-period banner if the stream stalls.
-    let countdown = (INITIAL_ETA_SECONDS[mode] || 120);
+    let countdown = resumeEtaSeconds ? resumeEtaSeconds : (INITIAL_ETA_SECONDS[mode] || 120);
     let lastSseUpdate = Date.now();
     let lastPct = 0;
     let isComplete = false;
@@ -1248,7 +1248,7 @@
   (function resumeOnLoad() {
     const qs = new URLSearchParams(window.location.search);
     const rj = qs.get('resume_job');
-    function resume(jobId, rmode, failedHint) {
+    function resume(jobId, rmode, failedHint, etaSeconds, startedAt) {
       submitForm({
         mode: rmode,
         url: null,
@@ -1257,6 +1257,8 @@
         errEl: document.getElementById('err-' + rmode),
         resumeJobId: jobId,
         paymentFailedHint: !!failedHint,
+        resumeEtaSeconds: etaSeconds || null,
+        resumeStartedAt: startedAt || null,
       });
     }
     if (rj) {
@@ -1277,7 +1279,12 @@
         if (!data || !Array.isArray(data.items)) return;
         const job = data.items.find(function (it) { return it.kind === 'job' && it.status === 'processing'; });
         if (!job) return;
-        resume(job.job_id, job.report_type === 'market' ? 'market' : 'rate');
+        // Seed the resumed ETA from the dashboard's real remaining estimate
+        // (minutesRemaining when running, estimatedWaitMinutes when queued)
+        // instead of a fresh 15:00; seed startTime from the job's created_at.
+        const mins = (job.minutesRemaining != null) ? job.minutesRemaining : job.estimatedWaitMinutes;
+        const etaSeconds = (typeof mins === 'number' && mins > 0) ? mins * 60 : null;
+        resume(job.job_id, job.report_type === 'market' ? 'market' : 'rate', false, etaSeconds, job.created_at);
       })
       .catch(function () {});
   })();
