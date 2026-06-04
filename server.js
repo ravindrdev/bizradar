@@ -2911,6 +2911,13 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     cms_overall_rating: data.cms_overall_rating,
   }));
 
+  // W3: when Google omits business_status (thin listings), default it to
+  // operational so the required-fields gate below doesn't hard-fail the report.
+  // A genuinely-closed business carries the explicit 'CLOSED_PERMANENTLY' /
+  // 'CLOSED_TEMPORARILY' value (truthy), so this `== null` default never
+  // overrides it — the closed-business banner + blocking flag stay intact.
+  if (data.business_status == null) data.business_status = 'OPERATIONAL';
+
   const requiredMissing = profile.required_inputs.filter((f) => {
     if (f === 'google_review_count') return false;
     // A business with zero reviews has no rating - treat null rating as valid

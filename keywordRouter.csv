@@ -289,7 +289,7 @@ Mediator,Professional Services (modern formats),541199,All Other Legal Services,
 Mobile Notary,Professional Services (modern formats),541199,All Other Legal Services,professional.legal,high,modern_via_naics6
 Mobile Pet Cremation,Professional Services (modern formats),812220,Cemeteries and Crematories,other_services.death_care,high,modern_via_naics6
 Notary Public (Mobile),Professional Services (modern formats),541199,All Other Legal Services,professional.legal,high,modern_via_naics6
-Officiant / Wedding Officiant,Professional Services (modern formats),813110,Religious Organizations,other_services.religious_civic,high,modern_via_naics6
+Officiant / Wedding Officiant,Professional Services (modern formats),812990,All Other Personal Services,professional.consulting,high,officiant_remap_from_813110
 Online Auction (Estate),Professional Services (modern formats),454390,Other Direct Selling Establishments,retail.fuel_general_misc,high,modern_via_naics6
 Operations Consultant,Professional Services (modern formats),541611,Administrative Management and General Management Consulting Services,professional.consulting,high,modern_via_naics6
 PR / Public Relations Agency,Professional Services (modern formats),541820,Public Relations Agencies,professional.consulting,high,modern_via_naics6

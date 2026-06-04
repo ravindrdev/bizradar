@@ -2748,7 +2748,8 @@
       "459920",
       "459930",
       "459991",
-      "459999"
+      "459999",
+      "445320"
     ],
     "scope": "in_scope",
     "evidence_class": "STRONG",
@@ -2860,8 +2861,10 @@
   "retail.ecommerce_dtc": {
     "id": "retail.ecommerce_dtc",
     "sector_naics2": "44-45",
-    "name": "E-commerce / DTC / electronic shopping / mail order (orphan profile — 0 NAICS-6 codes route here)",
-    "naics6_codes": [],
+    "name": "E-commerce / DTC / Online Retail",
+    "naics6_codes": [
+      "454110"
+    ],
     "scope": "partial",
     "evidence_class": "MODERATE",
     "required_inputs": [

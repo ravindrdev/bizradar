@@ -5245,7 +5245,8 @@ async function verifyBusinessClassification(data, layer0Result) {
       '  Physical therapist / PT clinic / sports rehab → 621340 NOT 621310 (621310 is chiropractors)\n' +
       '  Urgent care / walk-in clinic / immediate care → 621493 NOT 621111 general medicine\n' +
       '  Movie theater / cinema / multiplex → 512131 profile recreation.amusement_attraction NOT information sector\n' +
-      '  Mortgage broker / mortgage lender → 522292 profile finance.ria_wealth_management NOT finance.community_bank\n\n' +
+      '  Mortgage broker / mortgage lender → 522292 profile finance.ria_wealth_management NOT finance.community_bank\n' +
+      '  SaaS / software product company / app or platform developer that builds and SELLS its own software product → 513210 profile information.saas_software NOT professional.consulting (DO NOT apply to IT consultancies, custom-development shops, dev agencies, or systems integrators - those stay professional.consulting)\n\n' +
 
       'PROFILE MISMATCH RULE:\n' +
       'For pawn shops, check cashing, payday lenders and title loan shops:\n' +
