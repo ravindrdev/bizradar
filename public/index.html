@@ -406,11 +406,17 @@
       .result-wrap { padding: 28px 20px; }
     }
   </style>
+<!-- Dodo Payments overlay checkout SDK (loaded always; only used when
+     window.__PAYMENTS__.enabled is true). No publishable key needed — the
+     overlay is powered by the server-generated checkout_url. -->
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
+<script>/* Injected server-side by the /app route; falls back to disabled. */
+  try { window.__PAYMENTS__ = %%PAYMENTS_CONFIG%%; } catch (e) { window.__PAYMENTS__ = { enabled: false }; }</script>
 </head>
 <body>
 
 <!-- ─── NAVBAR ──────────────────────────────────────────────────── -->
-<nav class="lp-nav">
+<nav class="lp-nav" style="display:flex;align-items:center;justify-content:space-between;">
   <div class="lp-nav-logo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"></circle>
@@ -420,6 +426,10 @@
       <line x1="2" y1="12" x2="22" y2="12"></line>
     </svg>
     GrowthIM
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <a href="/dashboard" style="color:#E2E8F0;text-decoration:none;font-size:14px;font-weight:600;padding:8px 14px;border:1px solid rgba(255,255,255,0.18);border-radius:8px;">Dashboard</a>
+    <button id="nav-logout" type="button" style="color:#94A3B8;background:transparent;border:0;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;padding:8px 4px;">Log out</button>
   </div>
 </nav>
 
@@ -517,7 +527,7 @@
       <!-- Engine-activated banner - shown when step 16 (pct=48) fires, hidden on completion. -->
       <div id="term-engine-banner" style="display:none; background:#1E3A5F; border-left:4px solid #3B82F6; color:#FFFFFF; padding:12px 16px; border-radius:6px; margin-top:12px; font-size:14px; font-weight:500;">GrowthIM Intelligence Engine activated.</div>
       <div class="lp-term-log" id="term-log"></div>
-      <div class="lp-term-status">
+      <div class="lp-term-status" id="term-status-row">
         Estimated time remaining: <span id="term-eta">-</span>
       </div>
     </div>
@@ -619,6 +629,82 @@
   // hits 0 the timer flips to count-up mode with a "Still working"
   // banner - never an error or timeout message.
   const INITIAL_ETA_SECONDS = { rate: 900, market: 600 };
+
+  // ── Dodo Payments overlay (only used when window.__PAYMENTS__.enabled) ──
+  // Stays on growthim.com; powered entirely by the server-generated
+  // checkout_url (no publishable key). The payment.succeeded WEBHOOK is the
+  // source of truth that starts the report — these events are UX only.
+  // openDodoOverlay resolves true if the customer paid, false if they closed.
+  let __dodoInited = false;
+  let __overlayResolve = null;
+  let __overlayOutcome = null; // 'paid' | 'failed' | 'closed'
+  function resolveOverlay() {
+    if (__overlayResolve) { const r = __overlayResolve; __overlayResolve = null; r(__overlayOutcome || 'closed'); }
+  }
+  function ensureDodoInit() {
+    if (__dodoInited || !window.DodoPayments || !window.DodoPayments.Initialize) return;
+    window.DodoPayments.Initialize({
+      mode: (window.__PAYMENTS__ && window.__PAYMENTS__.mode) || 'test',
+      displayType: 'overlay',
+      onEvent: (e) => {
+        const t = e && (e.event_type || e.type || '');
+        // ONLY a confirmed payment counts as paid. checkout.redirect is NOT
+        // treated as success — it can fire on non-success outcomes; the
+        // webhook is the real source of truth.
+        if (t === 'checkout.payment_succeeded') {
+          __overlayOutcome = 'paid'; resolveOverlay();
+        } else if (t === 'checkout.error' || t === 'checkout.failed' ||
+                   t === 'checkout.cancelled' || t === 'checkout.link_expired') {
+          __overlayOutcome = 'failed'; resolveOverlay();
+        } else if (t === 'checkout.closed') {
+          if (__overlayOutcome == null) __overlayOutcome = 'closed';
+          resolveOverlay();
+        }
+      },
+    });
+    __dodoInited = true;
+  }
+  function openDodoOverlay(checkoutUrl) {
+    return new Promise((resolve) => {
+      if (!window.DodoPayments || !window.DodoPayments.Checkout) {
+        window.location.href = checkoutUrl; // SDK missing → full-page fallback
+        return; // page navigates away; promise intentionally never resolves
+      }
+      ensureDodoInit();
+      __overlayOutcome = null;
+      __overlayResolve = resolve;
+      try {
+        window.DodoPayments.Checkout.open({
+          checkoutUrl: checkoutUrl,
+          options: {
+            showTimer: true,
+            showSecurityBadge: true,
+            themeConfig: { primaryColor: '#2563EB', backgroundColor: '#FFFFFF', fontFamily: 'Inter, sans-serif' },
+          },
+        });
+      } catch (err) {
+        __overlayResolve = null;
+        window.location.href = checkoutUrl;
+      }
+    });
+  }
+  // Returns { outcome: 'paid'|'failed'|'closed', jobId }.
+  async function startPaidCheckout(mode, body, sessionId) {
+    const reportType = (mode === 'market') ? 'market' : 'rate';
+    const res = await fetch('/api/checkout/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body + '&reportType=' + reportType + '&sessionId=' + encodeURIComponent(sessionId),
+      credentials: 'same-origin',
+    });
+    if (res.status === 401) { window.location.href = '/login.html'; return { outcome: 'closed', jobId: null }; }
+    const json = await res.json();
+    if (!json || !json.ok || !json.checkoutUrl || !json.jobId) {
+      throw new Error((json && json.error) || 'Could not start checkout.');
+    }
+    const outcome = await openDodoOverlay(json.checkoutUrl);
+    return { outcome: outcome, jobId: json.jobId };
+  }
   // After this many ms with no SSE event, the quiet banner appears.
   // Set to 120s - only fires if genuinely silent for 2 minutes.
   // Biggest fake-timer gap is 60s so normal steps never trigger it.
@@ -641,6 +727,8 @@
     document.getElementById('term-current-message').textContent = 'Connecting...';
     document.getElementById('term-step-counter').textContent = 'Step 0 of -';
     document.getElementById('term-eta').textContent = '-';
+    var _statusRow0 = document.getElementById('term-status-row');
+    if (_statusRow0) _statusRow0.hidden = false;
     document.getElementById('term-overtime-warning').hidden = true;
     document.getElementById('term-quiet-warning').hidden = true;
     document.getElementById('term-engine-banner').style.display = 'none';
@@ -674,21 +762,51 @@
   }
 
   // Main submit flow. mode is 'rate' or 'market'.
-  async function submitForm({ mode, url, body, btn, errEl }) {
+  async function submitForm({ mode, url, body, btn, errEl, resumeJobId, paymentFailedHint }) {
     const main          = document.getElementById('page-main');
     const resultSection = document.getElementById('result-section');
     const resultDiv     = document.getElementById('result');
     const terminal      = document.getElementById('lp-terminal');
 
+    // No beforeunload warning: generation runs on the server and saves to
+    // the user's dashboard, so leaving or refreshing does NOT lose the report.
+    const sessionId = resumeJobId || genSessionId();
+
+    // ── PAY-FIRST ──────────────────────────────────────────────────────
+    // When payments are ON, collect payment BEFORE showing ANY analysis UI.
+    // The click goes straight to the payment window — no progress terminal,
+    // no "Connecting…"/ETA — so nothing looks like a report is running until
+    // payment actually succeeds. Closing the overlay without paying leaves the
+    // form as-is. No data APIs or report work happen here (only a checkout).
+    let prepaidJobId = null;
+    if (!resumeJobId && window.__PAYMENTS__ && window.__PAYMENTS__.enabled) {
+      const _prevLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Opening payment…';
+      let _checkout;
+      try {
+        _checkout = await startPaidCheckout(mode, body, sessionId);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = _prevLabel;
+        showError(errEl, 'Request failed: ' + (err && err.message ? err.message : err));
+        return;
+      }
+      btn.disabled = false; btn.textContent = _prevLabel;
+      if (_checkout.outcome === 'failed') {
+        // Payment failed/cancelled/expired — do NOT enter the confirming state.
+        showError(errEl, 'Payment failed — please try again.');
+        return;
+      }
+      if (_checkout.outcome !== 'paid') return; // 'closed' — user dismissed; form stays, no message
+      prepaidJobId = _checkout.jobId;
+    }
+
+    // Payment done (or not required) — NOW show the analysis terminal.
     document.getElementById('form-rate').hidden = true;
     document.getElementById('form-market').hidden = true;
     resetTerminal();
     terminal.hidden = false;
     btn.hidden = true;
-
-    // No beforeunload warning: generation runs on the server and saves to
-    // the user's dashboard, so leaving or refreshing does NOT lose the report.
-    const sessionId = genSessionId();
     let startTime = Date.now();
 
     // ── ETA state ──────────────────────────────────────────────────
@@ -829,24 +947,50 @@
 
     let jobId = null;
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body + '&sessionId=' + encodeURIComponent(sessionId),
-        credentials: 'same-origin',
-      });
-      if (res.status === 401) {
-        window.location.href = '/login.html';
-        return;
+      if (resumeJobId) {
+        // Resumed after a post-payment redirect — the job already exists
+        // server-side; skip checkout entirely and just poll it.
+        jobId = resumeJobId;
+      } else if (window.__PAYMENTS__ && window.__PAYMENTS__.enabled) {
+        // Payment was already collected up-front (pay-first), BEFORE any
+        // analysis UI was shown — just reuse that job id, no second checkout.
+        jobId = prepaidJobId;
+      } else {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body + '&sessionId=' + encodeURIComponent(sessionId),
+          credentials: 'same-origin',
+        });
+        if (res.status === 401) {
+          window.location.href = '/login.html';
+          return;
+        }
+        const json = await res.json();
+        if (res.status === 503 || (json && json.busy)) {
+          cleanupRunningUi();
+          showError(errEl, (json && json.error) || 'Our servers are completely full right now. Please try again in a few minutes.');
+          return;
+        }
+        if (!json || !json.ok || !json.jobId) {
+          throw new Error((json && json.error) || 'Could not start report.');
+        }
+        jobId = json.jobId;
       }
-      const json = await res.json();
-      if (!json || !json.ok || !json.jobId) {
-        throw new Error((json && json.error) || 'Could not start report.');
-      }
-      jobId = json.jobId;
     } catch (err) {
       cleanupRunningUi();
       showError(errEl, 'Request failed: ' + (err && err.message ? err.message : err));
+      return;
+    }
+
+    // Fast-path: Dodo redirected back to /app with an EXPLICIT failure status
+    // in the URL (see resumeOnLoad). We already know this checkout did not
+    // succeed, so skip the "confirming…" poll and show the failure now. The
+    // payment.failed webhook -> 'payment_failed' poll branch below is the
+    // authoritative backstop when no URL hint is present.
+    if (paymentFailedHint) {
+      cleanupRunningUi();
+      showError(errEl, 'Payment failed — please try again.');
       return;
     }
 
@@ -857,7 +1001,20 @@
     // Tracks whether the previous poll reported the job as queued behind the
     // concurrency cap, so we can detect the queued -> running transition.
     let queuedState = false;
+    let confirmStart = null; // when the 'awaiting_payment' (confirming) state began
     const queueBannerEl = document.getElementById('term-queue-banner');
+    // ── Guaranteed-exit guards (client-side only) ───────────────────────
+    // The poll can never spin forever: MAX_WAIT_MS caps actual RUNNING time
+    // (queued time is NOT counted), and errorStreak gives up after ~30s of
+    // consecutive network failures. Both hand off to the dashboard - the job
+    // keeps running server-side and lands there regardless. The backend 90-min
+    // watchdog + startup reconciliation still guarantee a terminal status;
+    // these are independent client-side backstops so a stuck/unreachable
+    // status can't pin the page.
+    const MAX_WAIT_MS = 40 * 60 * 1000; // 40 min of actual running time
+    let runningMs = 0;        // accumulated running (non-queued) time
+    let lastRunTick = null;   // timestamp of the last running poll; null while queued/paused
+    let errorStreak = 0;      // consecutive network/fetch failures
     const pollHandle = setInterval(async () => {
       try {
         const sres = await fetch('/report-status/' + encodeURIComponent(jobId), {
@@ -869,6 +1026,7 @@
           return;
         }
         const sjson = await sres.json();
+        errorStreak = 0; // a successful poll resets the network give-up counter
 
         if (sjson.status === 'ready' && sjson.reportId != null) {
           clearInterval(pollHandle);
@@ -894,9 +1052,63 @@
           }
           return;
         }
+        if (sjson.status === 'payment_failed') {
+          // The payment.failed webhook marked this checkout failed (surfaced
+          // by /report-status). Stop confirming and return to the form.
+          clearInterval(pollHandle);
+          cleanupRunningUi();
+          showError(errEl, 'Payment failed — please try again.');
+          return;
+        }
+        if (sjson.status === 'awaiting_payment') {
+          // Paid in the overlay, but the payment.succeeded webhook hasn't
+          // landed yet (usually a few seconds). Show a friendly confirming
+          // state and keep polling — never an error or a blank screen. The
+          // ETA row is hidden here so there's no fake "time remaining".
+          notFoundStreak = 0;
+          if (confirmStart == null) confirmStart = Date.now();
+          document.getElementById('term-step-counter').textContent = '';
+          document.getElementById('term-status-row').hidden = true;
+          if (Date.now() - confirmStart > 40000) {
+            // AMBIGUOUS after ~40s: could be a slow successful payment OR a
+            // payment that never completed. We must NOT say "payment failed"
+            // (double-charge risk). Show a neutral message pointing to the
+            // dashboard and stop the spinner; keep polling so a late success
+            // still resolves to the report.
+            if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
+            try { document.getElementById('term-bar').classList.remove('pulsing'); } catch (_) {}
+            document.getElementById('term-current-message').textContent =
+              '→ Taking longer than usual — if your payment went through, your report will appear in your dashboard shortly. Please check there before paying again.';
+          } else {
+            document.getElementById('term-current-message').textContent = '→ Confirming your payment…';
+          }
+          return;
+        }
         // 'processing' - keep polling. Reset the not_found streak in
         // case we hit a transient inconsistency earlier.
         notFoundStreak = 0;
+        document.getElementById('term-status-row').hidden = false; // generating — show ETA row again
+        confirmStart = null;
+        // ── Running-time cap ───────────────────────────────────────────────
+        // Accumulate elapsed time ONLY while actually running, not while queued
+        // behind the concurrency cap (reads the same `queued` signal the ETA
+        // timer pauses on). Over MAX_WAIT_MS of running time, stop polling and
+        // hand off to the dashboard. The job is NOT killed - it finishes
+        // server-side and appears in the dashboard.
+        if (sjson.queued === true) {
+          lastRunTick = null; // paused while waiting in the queue
+        } else {
+          const _now = Date.now();
+          if (lastRunTick != null) runningMs += _now - lastRunTick;
+          lastRunTick = _now;
+          if (runningMs > MAX_WAIT_MS) {
+            clearInterval(pollHandle);
+            cleanupRunningUi();
+            errEl.innerHTML = 'Your report is taking longer than usual and is still being generated. You can close this page &mdash; it will be in your <a href="/dashboard">dashboard</a> when it&rsquo;s ready.';
+            errEl.hidden = false;
+            return;
+          }
+        }
         if (sjson.queued === true) {
           // Waiting behind the concurrency cap. Show queue position + a
           // rough wait estimate instead of live progress, and pause the
@@ -935,13 +1147,32 @@
           if (!etaInterval) { etaInterval = setInterval(tickEta, 1000); tickEta(); }
         }
       } catch (e) {
-        // Transient network blip - keep polling on the next tick.
+        // Transient network blip - keep polling, but give up after ~30s of
+        // consecutive failures so an unreachable server never spins forever.
         console.warn('[poll] error:', e && e.message);
+        errorStreak++;
+        if (errorStreak > 10) {
+          clearInterval(pollHandle);
+          cleanupRunningUi();
+          errEl.innerHTML = 'We couldn&rsquo;t reach the server. Your report may still be processing &mdash; please check your <a href="/dashboard">dashboard</a>.';
+          errEl.hidden = false;
+        }
       }
     }, 3000);
   }
 
   // ── Mode 1 submit → POST /classify ──────────────────────────────
+  // Payment mode: relabel the report buttons to signal pay-first. When
+  // PAYMENTS_ENABLED is OFF, the markup defaults ("Analyze →" / "Find
+  // Opportunities →") are left untouched.
+  if (window.__PAYMENTS__ && window.__PAYMENTS__.enabled) {
+    const payLabel = 'Pay & Analyze';
+    const _br = document.getElementById('btn-rate');
+    const _bm = document.getElementById('btn-market');
+    if (_br) _br.textContent = payLabel;
+    if (_bm) _bm.textContent = payLabel;
+  }
+
   const fRate   = document.getElementById('f-rate');
   const errRate = document.getElementById('err-rate');
   fRate.addEventListener('submit', (ev) => {
@@ -992,6 +1223,64 @@
     document.getElementById('page-main').style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  // ── Resume after a post-payment redirect ────────────────────────────
+  // Dodo's overlay returns the browser to return_url (…/app?resume_job=…&
+  // resume_mode=…) after payment. Re-enter the report UI for that job: show
+  // the terminal, then poll /report-status — which shows "Confirming your
+  // payment…" until the forwarded webhook flips the job to processing, then
+  // the report. Normal /app loads (no resume_job) are unaffected.
+  // ── /app navbar: Log out ─────────────────────────────────────────────
+  (function wireLogout() {
+    const lo = document.getElementById('nav-logout');
+    if (!lo) return;
+    lo.addEventListener('click', function () {
+      fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
+        .then(function () { window.location.href = '/'; })
+        .catch(function () { window.location.href = '/'; });
+    });
+  })();
+
+  // On /app load: resume an in-progress report so a refresh isn't a blank
+  // form. Two sources, in priority order:
+  //   1. ?resume_job=…&resume_mode=…  (post-payment redirect back to /app)
+  //   2. otherwise, ask /api/dashboard for any 'processing' job for this user
+  (function resumeOnLoad() {
+    const qs = new URLSearchParams(window.location.search);
+    const rj = qs.get('resume_job');
+    function resume(jobId, rmode, failedHint) {
+      submitForm({
+        mode: rmode,
+        url: null,
+        body: null,
+        btn: document.getElementById('btn-' + rmode),
+        errEl: document.getElementById('err-' + rmode),
+        resumeJobId: jobId,
+        paymentFailedHint: !!failedHint,
+      });
+    }
+    if (rj) {
+      const rmode = qs.get('resume_mode') === 'market' ? 'market' : 'rate';
+      // Dodo appends ?status=…&payment_id=… to the return_url. status is a
+      // tamperable UX hint (NOT proof of payment), so only an EXPLICIT failure
+      // value fast-fails here; 'succeeded'/unknown defer to the poll, and the
+      // payment.failed webhook -> 'payment_failed' poll path is authoritative.
+      const pstatus = (qs.get('status') || '').toLowerCase();
+      const failed = ['failed', 'cancelled', 'canceled', 'declined', 'expired'].indexOf(pstatus) !== -1;
+      try { history.replaceState(null, '', '/app'); } catch (_) {} // don't re-trigger on refresh
+      resume(rj, rmode, failed);
+      return;
+    }
+    fetch('/api/dashboard', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.items)) return;
+        const job = data.items.find(function (it) { return it.kind === 'job' && it.status === 'processing'; });
+        if (!job) return;
+        resume(job.job_id, job.report_type === 'market' ? 'market' : 'rate');
+      })
+      .catch(function () {});
+  })();
 </script>
 
 <!-- Google Places Autocomplete bootstrap.

@@ -1,7 +1,22 @@
 .env
 node_modules/
+.agents/
 *.log
 .DS_Store
 oos_log.jsonl
 testAllApis_results.json
 testAllApis_v2_results.json
+
+# Server stdout/stderr + startup logs (never commit)
+server_err.txt
+server_out.txt
+server_startup.log
+
+# Claude Code local config + skills (machine-specific, not for the repo)
+.claude/settings.local.json
+.claude/skills/
+skills-lock.json
+
+# Transient test/audit artifacts
+harness_results.txt
+harness_run_results.json

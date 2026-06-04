@@ -680,13 +680,7 @@
     "id": "mining.support_services",
     "sector_naics2": "21",
     "name": "Support activities for mining (primarily B2B — recommendations target any consumer-facing surface only)",
-    "naics6_codes": [
-      "213111",
-      "213112",
-      "213113",
-      "213114",
-      "213115"
-    ],
+    "naics6_codes": [],
     "scope": "partial",
     "evidence_class": "THIN",
     "required_inputs": [

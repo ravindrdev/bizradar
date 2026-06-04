@@ -392,6 +392,7 @@ a { color: var(--blue); text-decoration: none; }
   letter-spacing: 0.01em;
 }
 .job-status.generating { background: #FEF3C7; color: #B45309; }
+.job-status.queued { background: #E2E8F0; color: #475569; }
 .job-status.failed { background: var(--danger-bg); color: var(--danger); }
 
 /* ─── EMPTY STATE ─── */
@@ -679,20 +680,37 @@ a { color: var(--blue); text-decoration: none; }
     const label = escapeHtml(j.label || 'Your report');
     const date = fmtFullDate(j.created_at);
     if (j.status === 'processing') {
+      // Real status from /api/dashboard: queued behind the concurrency cap
+      // (position + rough wait) vs actually generating (rough time remaining).
+      var sub, pill, pillClass;
+      if (j.queued === true) {
+        var qmins = (typeof j.estimatedWaitMinutes === 'number') ? j.estimatedWaitMinutes : null;
+        sub = 'Queued &mdash; #' + (j.queuePosition || 1) + ' in line'
+            + (qmins != null ? ' &middot; ~' + qmins + ' min' : '')
+            + ' &middot; you can leave and come back.';
+        pill = 'Queued';
+        pillClass = 'queued';
+      } else {
+        var rmins = (typeof j.minutesRemaining === 'number') ? j.minutesRemaining : null;
+        sub = 'Generating&hellip;' + (rmins != null ? ' &middot; ~' + rmins + ' min remaining' : '')
+            + ' &middot; you can leave and come back.';
+        pill = 'Generating&hellip;';
+        pillClass = 'generating';
+      }
       return `
         <div class="report-card is-generating">
           <div class="report-left">
             <div class="report-icon is-spinner"><div class="spinner"></div></div>
             <div class="report-text">
               <h3 class="report-name">${label}</h3>
-              <p class="report-sub">This usually takes a few minutes - you can leave and come back.</p>
+              <p class="report-sub">${sub}</p>
             </div>
           </div>
           <div class="report-right">
             <div class="report-meta">
               <span class="report-date">${date}</span>
             </div>
-            <span class="job-status generating">Generating&hellip;</span>
+            <span class="job-status ${pillClass}">${pill}</span>
           </div>
         </div>
       `;
@@ -808,6 +826,21 @@ a { color: var(--blue); text-decoration: none; }
       if (meRes.status === 401) {
         window.location.href = '/login.html';
         return;
+      }
+      if (meRes.status === 429) {
+        // Rate-limited (not an auth failure). Show a wait message instead of
+        // "could not verify your session" so the user doesn't keep hammering
+        // Retry into an exhausted window. Read Retry-After if present.
+        let waitMsg = "You're temporarily rate-limited. Please wait a few minutes and try again.";
+        const ra = meRes.headers.get('Retry-After');
+        if (ra) {
+          const secs = parseInt(ra, 10);
+          if (!isNaN(secs) && secs > 0) {
+            const mins = Math.ceil(secs / 60);
+            waitMsg = "You're temporarily rate-limited. Please wait about " + mins + " minute" + (mins === 1 ? '' : 's') + " and try again.";
+          }
+        }
+        throw new Error(waitMsg);
       }
       if (!meRes.ok) {
         throw new Error('Could not verify your session.');

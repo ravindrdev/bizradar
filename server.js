@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./authRoutes');
 const { requireAuth, requireAdmin } = require('./authMiddleware');
 const pool = require('./db');
+const payments = require('./payments');
 
 const layer0 = require('./server_layer0');
 const naicsRouter = require('./naicsRouter');
@@ -86,6 +87,49 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Dodo Payments webhook (one-time $29.99 report gate) ─────────────────
+// Mounted at EXACTLY /api/webhooks/dodo (the URL registered in Dodo).
+// NOTE: the @dodopayments/express adapter verifies via JSON.stringify(req.body)
+// — it needs the PARSED JSON object, NOT the raw buffer — so this route parses
+// with its own express.json({type:'*/*'}). (An earlier assumption that it
+// needed the raw body left req.body undefined and made verify() throw a 500.)
+//
+// Decided at boot from PAYMENTS_ENABLED (an env change => redeploy, as usual):
+//   ON  -> the adapter verifies the signature + dispatches to our handlers.
+//   OFF -> a tiny stub 200s so Dodo test pings never 404, and NO report can
+//          ever run for free. The Dodo SDK is require()d ONLY on the ON path,
+//          so an OFF deploy needs neither keys nor a loaded SDK at startup.
+if (payments.isEnabled()) {
+  const { Webhooks } = require('@dodopayments/express');
+  app.post('/api/webhooks/dodo',
+    // The adapter does JSON.stringify(req.body) to verify, so req.body MUST be
+    // the PARSED JSON object. Parse it here (type:'*/*' = parse regardless of
+    // Content-Type). Without this req.body is undefined and verify() throws 500.
+    express.json({ type: '*/*' }),
+    // Diagnostic: logs that a POST arrived and the final status the adapter
+    // returned, so 200 vs 401 (bad secret) vs 500 is unambiguous in the log.
+    (req, res, next) => {
+      const wid = req.get('webhook-id') || 'none';
+      console.log('[payments] webhook POST received (webhook-id=' + wid + ', has-signature=' + !!req.get('webhook-signature') + ') — verifying…');
+      res.on('finish', () => {
+        console.log('[payments] webhook responded ' + res.statusCode + ' for webhook-id=' + wid
+          + (res.statusCode === 401 ? '  <-- SIGNATURE REJECTED: DODO_PAYMENTS_WEBHOOK_KEY does not match the sending endpoint' : ''));
+      });
+      next();
+    },
+    Webhooks({
+      webhookKey: payments.env().webhookKey,
+      onPaymentSucceeded: async (payload) => { await handleDodoPaymentSucceeded(payload); },
+      onPaymentFailed:    async (payload) => { await handleDodoPaymentFailed(payload); },
+      onRefundSucceeded:  async (payload) => { await handleDodoRefundSucceeded(payload); },
+    }));
+  console.log('[payments] Dodo webhook mounted at /api/webhooks/dodo (PAYMENTS_ENABLED=true, mode=' + payments.env().environment + ')');
+} else {
+  app.post('/api/webhooks/dodo', express.raw({ type: '*/*' }), (req, res) => {
+    res.json({ received: true, ignored: 'payments_disabled' });
+  });
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -101,10 +145,22 @@ app.use(cookieParser());
 const rateLimit = require('express-rate-limit');
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many auth attempts. Try again in 15 minutes.' },
+});
+// sessionLimiter: for /auth/me (+ /auth/logout) ONLY - the read-only session
+// check the dashboard and /app hit on every page load and on Retry. Kept
+// SEPARATE from authLimiter so routine dashboard refreshing can't drain the
+// login brute-force bucket and lock the whole IP out of login. Generous
+// in-memory abuse ceiling only (same default MemoryStore, cleared on restart).
+const sessionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests. Please slow down and try again shortly.' },
 });
 const reportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -131,21 +187,51 @@ const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) 
 const AVG_REPORT_MINUTES = 12;
 let reportActive = 0;
 const reportQueue = [];
+// Cap the waiting line: at most MAX_QUEUE jobs wait behind the
+// MAX_CONCURRENT_REPORTS running ones. Past that (5 running + 5 waiting = 10),
+// the gate is full and new requests are turned away with BUSY_MESSAGE (503)
+// BEFORE any job is created or response closed.
+const MAX_QUEUE = parseInt(process.env.MAX_QUEUE, 10) || 5;
+const BUSY_MESSAGE = 'We are getting far more customers than we expected right now, and all of our servers are completely full. Please try again in a few minutes.';
+// PDF generation launches headless Chromium per request (memory-heavy) and is
+// NOT behind reportGate. Cap concurrent PDF renders so a burst of downloads
+// can't exhaust memory; the synchronous route turns over-cap requests away with
+// a 503 busy page (no waiting, no Chromium spawned).
+const MAX_PDF_CONCURRENT = parseInt(process.env.MAX_PDF_CONCURRENT, 10) || 3;
+let pdfActive = 0;
+// Per-report watchdog backstop. Each external call already has its own timeout;
+// this is an OVERALL ceiling (well above the legitimate worst case ~85 min) so a
+// step that hangs past its per-call timeout can't hold a reportGate slot forever
+// and wedge the queue. On fire it forces failJob + releases the slot.
+const REPORT_WATCHDOG_MS = parseInt(process.env.REPORT_WATCHDOG_MS, 10) || 90 * 60 * 1000; // 90 min backstop
 
 function reportGate(jobId, task) {
   const run = () => {
     reportActive++;
     console.log(`[concurrency] pipeline started (${reportActive} running)`);
-    Promise.resolve()
-      .then(task)
+    // Overall watchdog: race the task against a backstop timer so a step that
+    // hangs past its per-call timeout can't hold this slot forever.
+    let watchdog;
+    const watchdogPromise = new Promise((_, reject) => {
+      watchdog = setTimeout(() => reject(new Error('WATCHDOG_TIMEOUT')), REPORT_WATCHDOG_MS);
+    });
+    Promise.race([Promise.resolve().then(task), watchdogPromise])
       .catch((e) => {
-        // Pipelines handle their own errors via failJob; this is only a
-        // last-resort guard so a thrown task can't wedge the queue.
-        console.error('[concurrency] pipeline task threw:', e && e.message);
+        if (e && e.message === 'WATCHDOG_TIMEOUT') {
+          // The pipeline never settled in time. Force the job to a terminal
+          // error so the polling page stops spinning, then release the slot.
+          console.error(`[concurrency] WATCHDOG fired for job ${jobId}, releasing slot`);
+          failJob(jobId, 'This report took too long and was stopped. Please try again.');
+        } else {
+          // Pipelines handle their own errors via failJob; this is only a
+          // last-resort guard so a thrown task can't wedge the queue.
+          console.error('[concurrency] pipeline task threw:', e && e.message);
+        }
       })
       .finally(() => {
-        // Release the slot no matter how the task settled, then promote the
-        // next waiter. finally guarantees a failing pipeline never holds a slot.
+        // Clear the watchdog (no dangling timer on normal completion), release
+        // the slot no matter how the task settled, then promote the next waiter.
+        clearTimeout(watchdog);
         reportActive--;
         console.log(`[concurrency] pipeline finished (${reportActive} running, ${reportQueue.length} waiting)`);
         const next = reportQueue.shift();
@@ -173,7 +259,19 @@ function getQueuePosition(jobId) {
 // password, and /auth/me. JWT cookie 'token' is set on successful
 // signup or login. Routes that need authentication wrap their handler
 // with requireAuth (imported above from authMiddleware.js).
-app.use('/auth', authLimiter, authRoutes);
+// The strict brute-force limiter (authLimiter) is attached ONLY to the
+// credential / OTP / email endpoints below - NOT to the whole /auth mount -
+// so the high-frequency read-only session check /auth/me (hit on every
+// dashboard + /app load and on Retry) can't drain the login bucket and lock
+// the IP out of login. /auth/me + /auth/logout get the generous sessionLimiter.
+app.use(
+  ['/auth/signup', '/auth/verify-signup', '/auth/cancel-signup',
+   '/auth/login', '/auth/verify-login-otp', '/auth/forgot-password',
+   '/auth/verify-reset-otp', '/auth/reset-password'],
+  authLimiter
+);
+app.use(['/auth/me', '/auth/logout'], sessionLimiter);
+app.use('/auth', authRoutes);
 
 // ─────────────────────────────────────────────────────────────────────
 // GET /api/dashboard - JSON feed for the user's dashboard page.
@@ -199,7 +297,7 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
     // `reports` above, so including it here would double-list it. Scoped by
     // user_id exactly like the reports query.
     const jobsResult = await pool.query(
-      `SELECT job_id, status, label, error, created_at
+      `SELECT job_id, status, label, error, report_type, created_at, updated_at
        FROM jobs
        WHERE user_id = $1 AND status IN ('processing', 'error')
        ORDER BY created_at DESC`,
@@ -217,14 +315,34 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
       naics_code: r.naics_code,
       created_at: r.created_at,
     }));
-    const jobItems = jobsResult.rows.map((j) => ({
-      kind: 'job',
-      job_id: j.job_id,
-      status: j.status,
-      label: j.label,
-      error: j.error,
-      created_at: j.created_at,
-    }));
+    const jobItems = jobsResult.rows.map((j) => {
+      const item = {
+        kind: 'job',
+        job_id: j.job_id,
+        status: j.status,
+        label: j.label,
+        error: j.error,
+        report_type: j.report_type || 'rate',
+        created_at: j.created_at,
+      };
+      // For a 'processing' job, mirror /report-status: queued behind the
+      // concurrency cap (position + rough wait) vs actually generating (rough
+      // minutes remaining) — lets the dashboard card show real status.
+      if (j.status === 'processing') {
+        const position = getQueuePosition(j.job_id);
+        if (position > 0) {
+          item.queued = true;
+          item.queuePosition = position;
+          item.estimatedWaitMinutes = Math.ceil(position / MAX_CONCURRENT_REPORTS) * AVG_REPORT_MINUTES;
+        } else {
+          item.queued = false;
+          const startedMs = j.updated_at ? new Date(j.updated_at).getTime() : Date.now();
+          const elapsedMin = Math.max(0, Math.floor((Date.now() - startedMs) / 60000));
+          item.minutesRemaining = Math.max(1, AVG_REPORT_MINUTES - elapsedMin);
+        }
+      }
+      return item;
+    });
     const items = reportItems
       .concat(jobItems)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -313,7 +431,8 @@ app.get('/api/admin/overview', requireAdmin, async (req, res) => {
            WHERE user_id IS NOT NULL AND created_at > NOW() - INTERVAL '15 minutes'
          UNION
          SELECT user_id FROM jobs
-           WHERE user_id IS NOT NULL AND updated_at > NOW() - INTERVAL '15 minutes'
+           WHERE user_id IS NOT NULL AND status <> 'awaiting_payment'
+             AND updated_at > NOW() - INTERVAL '15 minutes'
        ) AS active_users`
     );
 
@@ -627,8 +746,15 @@ app.get('/admin/report/:id', requireAdmin, async (req, res) => {
 // Error path: any failure returns a JSON 500 with a user-friendly
 // message. Browser stays open until the finally block closes it.
 app.get('/report/:id/pdf', requireAuth, async (req, res) => {
+  // PDF concurrency cap. Checked BEFORE any await and before pdfActive++ (no
+  // await between), so two simultaneous requests can't both pass. A rejected
+  // request returns here -> never enters the try -> never increments/decrements.
+  if (pdfActive >= MAX_PDF_CONCURRENT) {
+    return res.status(503).type('html').send('<!doctype html><meta charset="utf-8"><body style="font-family:system-ui,sans-serif;max-width:480px;margin:80px auto;padding:0 24px;text-align:center;color:#1e293b"><h2>We are very busy right now</h2><p>A lot of reports are being downloaded at the moment. Please go back and tap Download PDF again in a few seconds.</p></body>');
+  }
   let browser = null;
   try {
+    pdfActive++;
     const idNum = parseInt(req.params.id, 10);
     if (!Number.isInteger(idNum) || idNum <= 0) {
       return res.status(404).json({ error: 'Report not found' });
@@ -742,6 +868,7 @@ app.get('/report/:id/pdf', requireAuth, async (req, res) => {
         console.warn('[report/:id/pdf] browser close failed:', closeErr.message);
       }
     }
+    pdfActive--;
   }
 });
 
@@ -778,10 +905,9 @@ app.get('/app', (req, res) => {
       path.join(__dirname, 'public', 'index.html'),
       'utf8'
     );
-    const injected = html.replace(
-      /%%GOOGLE_API_KEY%%/g,
-      process.env.GOOGLE_PLACES_API_KEY || ''
-    );
+    const injected = html
+      .replace(/%%GOOGLE_API_KEY%%/g, process.env.GOOGLE_PLACES_API_KEY || '')
+      .replace(/%%PAYMENTS_CONFIG%%/g, JSON.stringify(payments.clientConfig()));
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(injected);
   } catch (e) {
@@ -965,6 +1091,7 @@ profileResolver.load();
     // subject on in-progress and failed cards - the typed query for rate
     // mode, "City, ST - market analysis" for market mode.
     await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS label TEXT');
+    await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS report_type TEXT');
 
     // Durable outcome tally - separate from `jobs` ON PURPOSE so it
     // survives the hourly 24h jobs cleanup and gives a long-term record
@@ -975,6 +1102,34 @@ profileResolver.load();
         report_type TEXT,
         outcome     TEXT,
         created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // ── Dodo Payments tables (one-time $29.99 report gate) ───────────
+    // pending_payments holds the report params + payment state for a job
+    // awaiting / completing payment. Separate from `jobs` so the existing
+    // job lifecycle + queries stay untouched.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pending_payments (
+        job_id          TEXT PRIMARY KEY,
+        user_id         INTEGER,
+        report_type     TEXT,
+        params          JSONB,
+        dodo_session_id TEXT,
+        payment_id      TEXT,
+        status          TEXT NOT NULL DEFAULT 'awaiting_payment',
+        created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS pending_payments_status_idx ON pending_payments (status)');
+    // processed_webhooks gives DB-UNIQUE idempotency: the PRIMARY KEY makes a
+    // repeated payment id a no-op (Dodo retries webhooks).
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS processed_webhooks (
+        webhook_id  TEXT PRIMARY KEY,
+        type        TEXT,
+        received_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
 
@@ -1007,14 +1162,14 @@ profileResolver.load();
   }
 })();
 
-async function setJob(sessionId, userId, label) {
+async function setJob(sessionId, userId, label, reportType) {
   if (!sessionId) return;
   try {
     await pool.query(
-      `INSERT INTO jobs (job_id, user_id, status, report_id, error, label, created_at, updated_at)
-       VALUES ($1, $2, 'processing', NULL, NULL, $3, NOW(), NOW())
-       ON CONFLICT (job_id) DO UPDATE SET updated_at = NOW(), label = EXCLUDED.label`,
-      [sessionId, userId, label ? String(label).slice(0, 300) : null]
+      `INSERT INTO jobs (job_id, user_id, status, report_id, error, label, report_type, created_at, updated_at)
+       VALUES ($1, $2, 'processing', NULL, NULL, $3, $4, NOW(), NOW())
+       ON CONFLICT (job_id) DO UPDATE SET updated_at = NOW(), label = EXCLUDED.label, report_type = EXCLUDED.report_type`,
+      [sessionId, userId, label ? String(label).slice(0, 300) : null, reportType || null]
     );
   } catch (err) {
     console.error('[jobs] setJob failed:', err.message);
@@ -1070,6 +1225,134 @@ async function recordOutcome(reportType, outcome) {
   }
 }
 
+// ── Dodo Payments: pending-job + webhook handlers ───────────────────────
+// Only reached when PAYMENTS_ENABLED. Paid report lifecycle:
+//   /api/checkout/report -> 'awaiting_payment' job + pending_payments row
+//   -> Dodo overlay -> customer pays -> payment.succeeded webhook
+//   -> handleDodoPaymentSucceeded -> startPaidReport -> reportGate(pipeline)
+
+// Create the job row up front as 'awaiting_payment'. This status is invisible
+// to MAX_CONCURRENT_REPORTS (reportGate runs only at execution time), to the
+// dashboard (lists status IN ('processing','error')), to admin stats (counts
+// status='processing'), and to startup reconciliation (flips only 'processing').
+// Abandoned ones are swept by the janitor above.
+async function setPendingPaymentJob(jobId, userId, label, reportType) {
+  await pool.query(
+    `INSERT INTO jobs (job_id, user_id, status, report_id, error, label, report_type, created_at, updated_at)
+     VALUES ($1, $2, 'awaiting_payment', NULL, NULL, $3, $4, NOW(), NOW())
+     ON CONFLICT (job_id) DO UPDATE SET status = 'awaiting_payment', label = EXCLUDED.label, report_type = EXCLUDED.report_type, updated_at = NOW()`,
+    [jobId, userId, label ? String(label).slice(0, 300) : null, reportType || null]
+  );
+}
+
+// Run a PAID report through the SAME pipeline the free path uses, with a
+// single automatic retry on failure (decision: auto-retry ONCE; if it still
+// fails, flag for manual re-delivery; NEVER auto-refund).
+function startPaidReport(jobId, userId, reportType, params) {
+  const runOnce = () => (reportType === 'market')
+    ? marketPipeline({ sessionId: jobId, userId, city: params.city, state: params.state })
+    : classifyPipeline({ sessionId: jobId, userId, input: params.input, clientPlaceId: params.clientPlaceId || '', res: { setHeader() {} } });
+
+  const jobFailed = async () => {
+    const r = await pool.query(`SELECT status FROM jobs WHERE job_id = $1`, [jobId]).catch(() => null);
+    return !!(r && r.rows[0] && r.rows[0].status === 'error');
+  };
+
+  reportGate(jobId, async () => {
+    await runOnce();
+    if (await jobFailed()) {
+      console.warn('[payments] paid report failed - auto-retrying ONCE for job', jobId);
+      await pool.query(`UPDATE jobs SET status = 'processing', error = NULL, updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
+      await runOnce();
+      if (await jobFailed()) {
+        console.error('[payments] paid report failed AGAIN after retry - flagging for manual re-delivery, job', jobId);
+        await pool.query(`UPDATE pending_payments SET status = 'needs_manual_redelivery', updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
+        // Never auto-refund. Job stays 'error' (failJob messaged the user);
+        // pending_payments flags it for a human / free re-delivery.
+      }
+    }
+  });
+}
+
+async function handleDodoPaymentSucceeded(payload) {
+  const data = payments.dataOf(payload);
+  const paymentId = data.payment_id || data.paymentId || null;
+  // Idempotency #1 - DB-UNIQUE on the payment id (Dodo retries webhooks).
+  if (paymentId) {
+    try {
+      const ins = await pool.query(
+        `INSERT INTO processed_webhooks (webhook_id, type) VALUES ($1, 'payment.succeeded')
+         ON CONFLICT (webhook_id) DO NOTHING`,
+        [paymentId]
+      );
+      if (ins.rowCount === 0) {
+        console.log('[payments] duplicate payment.succeeded ignored:', paymentId);
+        return;
+      }
+    } catch (e) { console.error('[payments] idempotency insert failed:', e.message); }
+  }
+  // Defense-in-depth - must be OUR product, exact $29.99, USD.
+  if (!payments.paymentMatchesReportProduct(data)) {
+    console.error('[payments] payment.succeeded did NOT match the $29.99 report product - ignoring',
+      { amount: data.total_amount, currency: data.currency });
+    return;
+  }
+  const { jobId } = payments.metadataFrom(data);
+  if (!jobId) {
+    console.error('[payments] payment.succeeded has no job_id metadata - cannot map to a report');
+    return;
+  }
+  // Idempotency #2 (authoritative) - atomic compare-and-set awaiting_payment
+  // -> paid. Only the FIRST delivery flips it and enqueues the report.
+  const upd = await pool.query(
+    `UPDATE pending_payments SET status = 'paid', payment_id = $2, updated_at = NOW()
+     WHERE job_id = $1 AND status = 'awaiting_payment'
+     RETURNING report_type, params, user_id`,
+    [jobId, paymentId]
+  );
+  if (upd.rowCount === 0) {
+    console.log('[payments] job already paid/processed or unknown - skipping:', jobId);
+    return;
+  }
+  const row = upd.rows[0];
+  let params;
+  try { params = typeof row.params === 'string' ? JSON.parse(row.params) : row.params; }
+  catch (_) { params = {}; }
+  // Flip the job to 'processing' so the dashboard + /report-status show the
+  // generating (or queued) state instead of awaiting_payment.
+  await pool.query(`UPDATE jobs SET status = 'processing', updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
+  console.log('[payments] payment confirmed - starting', row.report_type, 'report for job', jobId);
+  startPaidReport(jobId, row.user_id, row.report_type, params);
+}
+
+async function handleDodoPaymentFailed(payload) {
+  const data = payments.dataOf(payload);
+  const { jobId } = payments.metadataFrom(data);
+  console.warn('[payments] payment.failed for job', jobId || '(unknown)');
+  if (!jobId) return;
+  // Mark pending failed; leave the job at 'awaiting_payment' (NOT 'error', so
+  // an unpaid attempt never surfaces a scary failure). Janitor sweeps it.
+  await pool.query(
+    `UPDATE pending_payments SET status = 'failed', updated_at = NOW() WHERE job_id = $1 AND status = 'awaiting_payment'`,
+    [jobId]
+  ).catch(() => {});
+}
+
+async function handleDodoRefundSucceeded(payload) {
+  const data = payments.dataOf(payload);
+  const paymentId = data.payment_id || data.paymentId || null;
+  // Record-only: the report (a digital good) was already delivered; per the
+  // refund policy refunds are rare (duplicate/erroneous). No auto re-charge,
+  // no access revocation - just an audit log + a status flag for visibility.
+  console.log('[payments] refund.succeeded recorded for payment', paymentId || '(unknown)');
+  if (paymentId) {
+    await pool.query(
+      `UPDATE pending_payments SET status = 'refunded', updated_at = NOW() WHERE payment_id = $1`,
+      [paymentId]
+    ).catch(() => {});
+  }
+}
+
 // Cleanup loop - every hour purge job rows older than 24 hours.
 // `unref()` so the timer never blocks a clean process exit.
 setInterval(async () => {
@@ -1079,6 +1362,23 @@ setInterval(async () => {
     );
     if (result.rowCount > 0) {
       console.log(`[jobs] cleanup: deleted ${result.rowCount} old job(s)`);
+    }
+    // Abandoned/failed-checkout TTL: purge the companion pending_payments rows
+    // (status 'awaiting_payment' = overlay opened but never paid, or 'failed'
+    // = payment declined) + their 'awaiting_payment' jobs after 2 hours.
+    // Paid / processing / ready jobs are untouched.
+    try {
+      const stale = await pool.query(
+        `DELETE FROM pending_payments WHERE status IN ('awaiting_payment', 'failed') AND created_at < NOW() - INTERVAL '2 hours' RETURNING job_id`
+      );
+      if (stale.rowCount > 0) {
+        await pool.query(
+          `DELETE FROM jobs WHERE status = 'awaiting_payment' AND created_at < NOW() - INTERVAL '2 hours'`
+        );
+        console.log(`[payments] cleanup: purged ${stale.rowCount} abandoned checkout(s)`);
+      }
+    } catch (e) {
+      console.error('[payments] abandoned-checkout cleanup failed:', e.message);
     }
   } catch (err) {
     console.error('[jobs] cleanup failed:', err.message);
@@ -1108,6 +1408,24 @@ app.get('/report-status/:jobId', requireAuth, async (req, res) => {
       reportId: job.report_id,
       error: job.error,
     };
+    // Paid flow: a job stays 'awaiting_payment' until the payment.succeeded
+    // webhook flips it. If a payment.failed webhook arrived instead, its
+    // companion pending_payments row is marked 'failed' (the jobs row is left
+    // at 'awaiting_payment' on purpose, so an unpaid attempt never becomes a
+    // scary error card). Surface that as a distinct 'payment_failed' status so
+    // the browser can show "payment failed - try again" instead of an endless
+    // "confirming…". One extra query, and only in the rare awaiting case.
+    if (job.status === 'awaiting_payment' && payments.isEnabled()) {
+      try {
+        const pp = await pool.query(
+          `SELECT status FROM pending_payments WHERE job_id = $1`,
+          [jobId]
+        );
+        if (pp.rows.length && pp.rows[0].status === 'failed') {
+          resp.status = 'payment_failed';
+        }
+      } catch (_) { /* leave as awaiting_payment - the 40s timeout backstop covers it */ }
+    }
     // For an in-progress job, tell the browser whether it is actually running
     // or still waiting behind the concurrency cap. A queued job also gets its
     // place in line + a rough wait estimate, so the page can show
@@ -1129,6 +1447,58 @@ app.get('/report-status/:jobId', requireAuth, async (req, res) => {
   }
 });
 
+// ── POST /api/checkout/report - start a PAID report (PAYMENTS_ENABLED) ──
+// requireAuth + reportLimiter. The rate limit lives here for the paid flow
+// (it remains on /classify + /market-analysis for the free flow). Creates
+// the 'awaiting_payment' job + pending_payments row with the report params,
+// then a SERVER-SIDE Dodo checkout session (product/amount/metadata are NOT
+// client-controlled). Returns { jobId, checkoutUrl } for the overlay to open.
+app.post('/api/checkout/report', reportLimiter, requireAuth, async (req, res) => {
+  if (!payments.isEnabled()) return res.status(404).json({ error: 'Not found' });
+  try {
+    const userId = req.user.id;
+    const email = req.user.email || undefined;
+    const reportType = (req.body.reportType === 'market') ? 'market' : 'rate';
+    let jobId = (req.body.sessionId || '').toString().trim();
+    if (!jobId) jobId = 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+
+    let params, label;
+    if (reportType === 'market') {
+      const city = (req.body.city || '').toString().trim();
+      const state = (req.body.state || '').toString().trim();
+      if (!city || !/^[A-Za-z]{2}$/.test(state)) {
+        return res.status(400).json({ error: 'City and a 2-letter state are required.' });
+      }
+      params = { city, state };
+      label = `${city}, ${state.toUpperCase()} - market analysis`;
+    } else {
+      const input = (req.body.query || '').toString().trim();
+      const clientPlaceId = (req.body.place_id || '').toString().trim();
+      if (!input) return res.status(400).json({ error: 'Please enter a business name and address.' });
+      params = { input, clientPlaceId };
+      label = input;
+    }
+
+    await setPendingPaymentJob(jobId, userId, label, reportType);
+    await pool.query(
+      `INSERT INTO pending_payments (job_id, user_id, report_type, params, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'awaiting_payment', NOW(), NOW())
+       ON CONFLICT (job_id) DO UPDATE SET report_type = EXCLUDED.report_type, params = EXCLUDED.params, status = 'awaiting_payment', updated_at = NOW()`,
+      [jobId, userId, reportType, JSON.stringify(params)]
+    );
+
+    const { checkoutUrl, sessionId } = await payments.createReportCheckoutSession({ jobId, userId, reportType, customerEmail: email });
+    if (!checkoutUrl) throw new Error('Dodo did not return a checkout URL');
+    await pool.query(`UPDATE pending_payments SET dodo_session_id = $2, updated_at = NOW() WHERE job_id = $1`, [jobId, sessionId]).catch(() => {});
+
+    console.log('[checkout] session created for job ' + jobId + ' (' + reportType + ') — awaiting payment; NO data APIs or report pipeline started');
+    return res.json({ ok: true, jobId, checkoutUrl });
+  } catch (err) {
+    console.error('[checkout] failed:', err && err.message);
+    return res.status(500).json({ error: 'Could not start checkout. Please try again.' });
+  }
+});
+
 app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   const input = (req.body.query || '').trim();
   // Optional - set by the landing-page autocomplete when the user picks
@@ -1140,6 +1510,21 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   const sessionId = (req.body.sessionId || '').toString();
   const userId = req.user.id;
 
+  // Payment gate: when PAYMENTS_ENABLED, free generation is OFF — the browser
+  // must use /api/checkout/report (overlay -> pay -> webhook runs the report).
+  // Defense-in-depth refusal of a direct hit. When the flag is OFF this is
+  // skipped and the route behaves EXACTLY as before.
+  if (payments.isEnabled()) {
+    return res.status(402).json({ ok: false, needsPayment: true, error: 'Payment required.' });
+  }
+
+  // Gate full (5 running + 5 waiting): turn the request away BEFORE creating a
+  // job or closing the response, so a rejected request leaves no 'processing'
+  // row behind.
+  if (reportActive + reportQueue.length >= MAX_CONCURRENT_REPORTS + MAX_QUEUE) {
+    return res.status(503).json({ ok: false, busy: true, error: BUSY_MESSAGE });
+  }
+
   // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
   // Mark the job 'processing' first, then close the response. The
   // browser starts polling /report-status/:jobId at 3 s cadence; the
@@ -1149,7 +1534,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // have at this point (the resolved business name is not computed until
   // after the response is closed), and it lets the dashboard show a
   // recognizable "generating" card while the job runs.
-  await setJob(sessionId, userId, input || null);
+  await setJob(sessionId, userId, input || null, 'rate');
   res.json({ ok: true, jobId: sessionId });
 
   // From here on we run detached. Every error path inside the try
@@ -1158,11 +1543,18 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   // (the existing X-* diagnostic headers below would otherwise warn).
   setImmediate(() => {
    res.setHeader = function () {};
-   // Gate the heavy pipeline behind the shared concurrency limiter. The job
-   // row already exists and the jobId is already returned to the browser;
-   // only EXECUTION waits for a free slot. Until one frees up the job stays
-   // 'processing' and its dashboard card shows the "generating" state.
-   reportGate(sessionId, async () => {
+   // Gate the heavy pipeline behind the shared concurrency limiter.
+   reportGate(sessionId, () => classifyPipeline({ sessionId, userId, input, clientPlaceId, res }));
+  });
+});
+
+// ── Extracted classify report pipeline ──────────────────────────────────
+// Hoisted so BOTH the free path (setImmediate above) and the paid path
+// (Dodo webhook -> startPaidReport) can run it. Body is UNCHANGED from the
+// original inline closure; `res` is the real response on the free path (its
+// X-* diagnostic headers are silenced) or a { setHeader(){} } stub when run
+// after payment. Captures: sessionId, userId, input, clientPlaceId, res.
+async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }) {
    try {
     if (!input) {
       failJob(sessionId, 'Please enter a business name and city.');
@@ -1651,6 +2043,45 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
 
   data.sector_naics2 = naics2FromNaics6(layer0Result.naics6);
   data.profile_id = profile.id;
+
+  // ── Shared-code profile disambiguation (merge-gate) ───────────────
+  // A few NAICS-6 codes are shared by a broad profile (the first-wins
+  // winner) and one or more specialty profiles that can never be reached
+  // by NAICS alone (721110 lodging vs resort; 621111 medical_practice vs
+  // plastic_surgery/dermatology; 621210 dental_practice vs orthodontics/
+  // oral_surgery). When the settled profile is the broad winner of such a
+  // code, ask a focused Claude sub-call (web search) to pick the right
+  // profile from a CLOSED menu and set it directly. Purely additive: any
+  // failure / non-HIGH / off-menu / broad answer leaves the settled
+  // profile untouched (identical to today). Sits AFTER the settled-profile
+  // line so it overrides it; the specialty shares the parent's NAICS-2, so
+  // data.sector_naics2 (already set above) and all sector-gated fetchers
+  // below are unaffected.
+  const MERGING_CODES = {
+    '721110': { broad: 'hospitality.lodging',         menu: ['hospitality.lodging', 'hospitality.resort'] },
+    '621111': { broad: 'healthcare.medical_practice', menu: ['healthcare.medical_practice', 'healthcare.plastic_surgery', 'healthcare.dermatology'] },
+    '621210': { broad: 'healthcare.dental_practice',  menu: ['healthcare.dental_practice', 'healthcare.orthodontics', 'healthcare.oral_surgery'] },
+  };
+  const _mc = MERGING_CODES[layer0Result.naics6];
+  if (_mc && _mc.menu.length >= 2) {
+    try {
+      const _allP = profileResolver.getAllProfiles();
+      const _pick = await claudeEnricher.disambiguateSharedCode(data, _mc.menu, _mc.broad, _allP);
+      if (_pick && _pick.confidence === 'HIGH'
+          && _pick.profile_id && _pick.profile_id !== _mc.broad
+          && _mc.menu.includes(_pick.profile_id)
+          && _allP[_pick.profile_id]) {
+        console.log('[merge-gate] switched', layer0Result.naics6, profile.id, '->', _pick.profile_id, '(', _pick.confidence, ')');
+        profile = _allP[_pick.profile_id];
+        data.profile_id = _pick.profile_id;
+        data.profile_disambiguated = _pick.profile_id;
+      } else {
+        console.log('[merge-gate] kept broad', layer0Result.naics6, profile.id);
+      }
+    } catch (e) {
+      console.error('[merge-gate] failed:', e.message, '- keeping broad');
+    }
+  }
 
   // Phase 5+ - sector-conditional promises. Skip (resolve to null)
   // when the business doesn't belong to the relevant NAICS-2 sector
@@ -2477,7 +2908,7 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
   }
 
   const redFlags = evaluateRedFlags(profile, data);
-  const blocking = redFlags.find((r) => r.severity === 'critical' && r.blocks_report);
+  const blocking = redFlags.find((r) => r.severity === 'critical' && r.blocks_report && r.id !== 'rf_closed_permanently' && !/CLOSED_PERMANENTLY/.test(r.trigger || ''));
   if (blocking) {
     res.setHeader('X-Status', 'blocked');
     failJob(sessionId, `Report blocked: ${(blocking && blocking.message) || 'critical issue detected for this business.'}`);
@@ -2674,15 +3105,25 @@ app.post('/classify', reportLimiter, requireAuth, async (req, res) => {
     failJob(sessionId, (jobErr && jobErr.message) || 'Report generation failed.');
     recordOutcome('rate', 'failed');
    }
-   });
-  });
-});
+}
 
 app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   const { city, state } = req.body;
   const sessionId = (req.body.sessionId || '').toString();
   const userId = req.user.id;
   console.log('[market-analysis] called for', city, state);
+
+  // Payment gate: when PAYMENTS_ENABLED, free generation is OFF (see /classify).
+  if (payments.isEnabled()) {
+    return res.status(402).json({ ok: false, needsPayment: true, error: 'Payment required.' });
+  }
+
+  // Gate full (5 running + 5 waiting): turn the request away BEFORE creating a
+  // job or closing the response (mirrors /classify), so a rejected request
+  // leaves no 'processing' row behind.
+  if (reportActive + reportQueue.length >= MAX_CONCURRENT_REPORTS + MAX_QUEUE) {
+    return res.status(503).json({ ok: false, busy: true, error: BUSY_MESSAGE });
+  }
 
   // ── Async job init (Railway 5-min HTTP timeout workaround) ──────
   // Label matches the finished report's business_name format ("City, ST -
@@ -2692,15 +3133,21 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
   const jobLabel = (city && state)
     ? `${String(city).trim()}, ${String(state).trim().toUpperCase()} - market analysis`
     : 'Market analysis';
-  await setJob(sessionId, userId, jobLabel);
+  await setJob(sessionId, userId, jobLabel, 'market');
   res.json({ ok: true, jobId: sessionId });
 
   setImmediate(() => {
    res.setHeader = function () {};
-   // Gate the heavy pipeline behind the shared concurrency limiter (shared
-   // with /classify). Job + jobId are already returned; only EXECUTION waits
-   // for a free slot, so the job stays 'processing' until one frees up.
-   reportGate(sessionId, async () => {
+   // Gate the heavy pipeline behind the shared concurrency limiter (shared with /classify).
+   reportGate(sessionId, () => marketPipeline({ sessionId, userId, city, state }));
+  });
+});
+
+// ── Extracted market-analysis report pipeline ───────────────────────────
+// Hoisted so BOTH the free path (setImmediate above) and the paid path
+// (Dodo webhook -> startPaidReport) can run it. Body UNCHANGED from the
+// original inline closure. Captures: sessionId, userId, city, state.
+async function marketPipeline({ sessionId, userId, city, state }) {
    try {
 
   // ── TIER 1 - Validation ─────────────────────────────────────────
@@ -2829,9 +3276,7 @@ app.post('/market-analysis', reportLimiter, requireAuth, async (req, res) => {
     failJob(sessionId, (jobErr && jobErr.message) || 'Market analysis failed.');
     recordOutcome('market', 'failed');
    }
-   });
-  });
-});
+}
 
 // ── POST /market-chat - Tier 5c follow-up Q&A ──────────────────────
 // Stateful: relies on the 24h MARKET_CACHE inside claudeMarketAnalyst.
@@ -4800,6 +5245,19 @@ function renderReport(ctx) {
 </div>`
     : '';
 
+  // Subject-business permanently-closed banner. The closed RED FLAG no longer
+  // blocks the report (see classifyPipeline); instead we surface a prominent
+  // top-of-report notice. SUBJECT business only — nearby-venue/competitor
+  // closed-filtering (isOperationalOrUnknown) is unrelated and untouched.
+  const closedPermanentlyBanner = (data && data.business_status === 'CLOSED_PERMANENTLY')
+    ? `<div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:8px;padding:20px 24px;margin:0 0 24px 0;font-family:sans-serif;">
+  <div style="font-size:18px;font-weight:bold;color:#B45309;margin-bottom:10px;">&#9888; Google lists this business as permanently closed</div>
+  <div style="color:#78350F;font-size:14px;line-height:1.6;">
+    Heads up: Google currently lists this business as permanently closed. If you are reopening or this is incorrect, update your Google Business Profile so customers can find you. The report below is based on the latest available data.
+  </div>
+</div>`
+    : '';
+
   // Claude-unavailable banner: shown when enrichWithClaude returned null
   // entirely (no API key / both calls rejected). Distinct from the
   // partial-report case - the data sections (Census, BLS, competitor
@@ -6147,7 +6605,7 @@ function toggleDark() {
 </script>`;
 
   return `${PAGE_OPEN}<div class="back-links" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;"><a class="back" style="margin-bottom:0" href="/app">&larr; new search</a> <a class="back" style="margin-bottom:0" href="/dashboard">&larr; Back to Dashboard</a>${pdfBtnHtml ? ' ' + pdfBtnHtml : ''}<button id="dark-toggle" onclick="toggleDark()" style="margin-left:auto;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">🌙 Dark mode</button></div>
-${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
+${closedPermanentlyBanner}${partialReportBanner}${claudeUnavailableBanner}${noWebsiteBanner}${lowConfidenceBanner}${headerHtml}
 ${overallHtml}
 ${tocHtml}
 ${localContextHtml}

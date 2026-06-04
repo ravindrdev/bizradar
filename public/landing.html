@@ -496,7 +496,7 @@ img { max-width: 100%; display: block; }
   transform: translateY(-1px);
   box-shadow: 0 8px 22px rgba(37, 99, 235, 0.32);
 }
-.price-stripe {
+.price-secure {
   text-align: center;
   margin-top: 16px;
   font-size: 13px;
@@ -1014,7 +1014,7 @@ img { max-width: 100%; display: block; }
       GrowthIM generates a 50-page market intelligence report for your business in under 15 minutes. Know who your competitors are, why Google ranks them above you, and exactly what to do about it.
     </p>
     <div class="hero-ctas">
-      <a href="/signup.html" class="btn btn-blue btn-blue-lg">Get Your Report - $29.99 →</a>
+      <a href="/signup.html" id="hero-cta" class="btn btn-blue btn-blue-lg">Get Your Report - $29.99 →</a>
       <a href="mailto:support@growthim.com?subject=Sample Report Request&body=Hi, I would like to see a sample GrowthIM report before purchasing. Please send me one. Thank you." class="btn btn-outline btn-blue-lg">See Sample Report →</a>
     </div>
     <div class="trust-row">
@@ -1169,8 +1169,8 @@ img { max-width: 100%; display: block; }
         <li>Compliance checklist</li>
         <li>Instant delivery</li>
       </ul>
-      <a href="/signup.html" class="price-cta">Get Your Report Now →</a>
-      <div class="price-stripe">💳 Secure payment by Stripe</div>
+      <a href="/signup.html" id="price-cta" class="price-cta">Get Your Report Now →</a>
+      <div class="price-secure">🔒 Secure checkout</div>
     </div>
   </div>
 </section>
@@ -1326,6 +1326,29 @@ function toggleFounderExpanded() {
       }
     });
   });
+})();
+</script>
+
+<!-- Session-aware nav: if already logged in, swap the sign-up CTAs for
+     in-app links so a returning user isn't asked to "Get Started" again. -->
+<script>
+(function () {
+  fetch('/auth/me', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.success) return; // not logged in — keep default CTAs
+      var nav = document.querySelector('.nav-actions');
+      if (nav) {
+        nav.innerHTML =
+          '<a href="/dashboard" class="btn btn-outline-white">Dashboard</a>' +
+          '<a href="/app" class="btn btn-blue">Generate a report</a>';
+      }
+      ['hero-cta', 'price-cta'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.setAttribute('href', '/app'); el.textContent = 'Generate a report →'; }
+      });
+    })
+    .catch(function () {});
 })();
 </script>
 

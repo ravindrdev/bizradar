@@ -37,7 +37,7 @@ function impactLabel(score) {
 
 function scoreRecommendations(profile, data, studies) {
   const triggered = [];
-  for (const rec of profile.recommendations) {
+  for (const rec of profile.recommendations || []) {
     let ast;
     try {
       ast = parse(rec.trigger);

@@ -77,6 +77,17 @@ console.log(`[db] SSL ${useSSL ? 'ENABLED' : 'disabled'} (${sslReason})`);
 const pool = new Pool({
   connectionString,
   ssl: useSSL ? { rejectUnauthorized: false } : false,
+  // Pool sizing + timeouts (audit fix). max/connectionTimeoutMillis are
+  // pool-level; statement_timeout/query_timeout/idle_in_transaction_session_timeout
+  // are pass-through Client options pg applies per connection. 30s is safe: no
+  // legitimate query runs longer (report-save is a single INSERT; boot DDL is
+  // IF NOT EXISTS on small tables) and there are no long-lived transactions for
+  // idle_in_transaction_session_timeout to interrupt.
+  max: 15,
+  connectionTimeoutMillis: 10000,
+  statement_timeout: 30000,
+  query_timeout: 30000,
+  idle_in_transaction_session_timeout: 30000,
 });
 
 // Idle-client error handler — fires when a pooled connection dies

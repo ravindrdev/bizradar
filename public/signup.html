@@ -55,6 +55,15 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 </head>
 <body>
 
+<!-- Already authenticated? Skip the form and go straight to the dashboard. -->
+<script>
+(function () {
+  fetch('/auth/me', { credentials: 'same-origin' })
+    .then(function (r) { if (r.ok) window.location.replace('/dashboard'); })
+    .catch(function () {});
+})();
+</script>
+
 <header style="background:#0F1729;padding:20px 0;text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">
   <a href="/" style="display:inline-block;text-decoration:none;">
     <div class="logo">

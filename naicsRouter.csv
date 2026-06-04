@@ -81,11 +81,12 @@ naics_6,naics_title,sector_naics_2,sector_profile_id,confidence,mapping_method
 212322,Industrial Sand Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
 212323,"Kaolin, Clay, and Ceramic and Refractory Minerals Mining",21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
 212390,Other Nonmetallic Mineral Mining and Quarrying,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
-213111,Drilling Oil and Gas Wells,21,mining.support_services,high,naics4_rule
-213112,Support Activities for Oil and Gas Operations,21,mining.support_services,high,naics4_rule
-213113,Support Activities for Coal Mining,21,mining.support_services,high,naics4_rule
-213114,Support Activities for Metal Mining,21,mining.support_services,high,naics4_rule
-213115,Support Activities for Nonmetallic Minerals (except Fuels) Mining,21,mining.support_services,high,naics4_rule
+# Session 6 OOS reroute: mining.support_services (213xxx) — sector 21 is B2B with no consumer-local-discovery surface; rerouted OOS to match 211xxx/212xxx.
+213111,Drilling Oil and Gas Wells,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+213112,Support Activities for Oil and Gas Operations,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+213113,Support Activities for Coal Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+213114,Support Activities for Metal Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
+213115,Support Activities for Nonmetallic Minerals (except Fuels) Mining,21,OUT_OF_SCOPE_NICHE,high,session6_oos_override
 # Session 6 OOS reroute: utilities.electric — sector 22 is OOS-by-spec (regulated utilities; not GrowthIM customer base).
 221111,Hydroelectric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
 221112,Fossil Fuel Electric Power Generation,22,OUT_OF_SCOPE_REGULATED,high,session6_oos_override
