@@ -24,6 +24,7 @@
      - All errors thrown here have user-safe messages, callers re-throw
        them to the client without leaking schema info. */
 
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
@@ -67,7 +68,7 @@ function getTransporter() {
 // ── Helpers ─────────────────────────────────────────────────────────
 function generateOTP() {
   // 6-digit numeric string, zero-padded so leading zeros aren't lost.
-  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
 async function hashOTP(otp) {
