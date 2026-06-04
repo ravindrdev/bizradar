@@ -266,6 +266,14 @@ router.get('/me', async (req, res) => {
     if (!decoded || !decoded.uid) return res.status(401).json({ error: 'Please login' });
     const user = await auth.findUserById(decoded.uid);
     if (!user) return res.status(401).json({ error: 'Please login' });
+    // Token-version gate — the SAME check requireAuth uses (authMiddleware).
+    // A password reset bumps users.token_version; without this, /auth/me would
+    // 200 a stale token that /api/dashboard (requireAuth) 401s, producing the
+    // login.html <-> /dashboard redirect loop. Missing tv counts as 0 on BOTH
+    // sides, so pre-feature live tokens are not kicked at deploy.
+    if ((decoded.tv || 0) !== (user.token_version || 0)) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
     return res.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, email_verified: user.email_verified },

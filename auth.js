@@ -80,8 +80,8 @@ async function verifyOTPHash(otp, hash) {
   try { return await bcrypt.compare(otp, hash); } catch (_) { return false; }
 }
 
-function generateJWT(userId) {
-  return jwt.sign({ uid: userId }, process.env.JWT_SECRET, { expiresIn: JWT_EXPIRY });
+function generateJWT(userId, tokenVersion) {
+  return jwt.sign({ uid: userId, tv: (tokenVersion || 0) }, process.env.JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
 function verifyJWT(token) {
@@ -176,7 +176,7 @@ async function createPendingUser(name, email, password) {
 async function verifySignupOTP(email, otp) {
   const e = normalizeEmail(email);
   const r = await pool.query(
-    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts, email_verified
+    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts, email_verified, token_version
      FROM users WHERE email = $1 AND email_verified = false AND otp_type = 'signup'`,
     [e]
   );
@@ -206,7 +206,7 @@ async function verifySignupOTP(email, otp) {
      WHERE id = $1`,
     [user.id]
   );
-  const token = generateJWT(user.id);
+  const token = generateJWT(user.id, user.token_version);
   return { token, user: { id: user.id, name: user.name, email: user.email } };
 }
 
@@ -224,7 +224,7 @@ async function deleteUnverifiedUser(email) {
 async function loginUser(email, password) {
   const e = normalizeEmail(email);
   const r = await pool.query(
-    `SELECT id, name, email, password_hash, email_verified FROM users WHERE email = $1`,
+    `SELECT id, name, email, password_hash, email_verified, token_version FROM users WHERE email = $1`,
     [e]
   );
   const user = r.rows[0];
@@ -233,7 +233,7 @@ async function loginUser(email, password) {
   const ok = await bcrypt.compare(String(password || ''), user.password_hash || '');
   if (!ok) throw new Error('Invalid credentials');
 
-  const token = generateJWT(user.id);
+  const token = generateJWT(user.id, user.token_version);
   return { token, user: { id: user.id, name: user.name, email: user.email } };
 }
 
@@ -310,10 +310,16 @@ async function resetPassword(email, otp, newPassword) {
   // OTP verification step.
   await verifyResetOTP(e, otp);
   const passwordHash = await bcrypt.hash(newPassword, PASSWORD_ROUNDS);
+  // Bump token_version so EVERY previously-issued JWT for this account is
+  // invalidated on its next request (the auth middleware compares the
+  // token's tv claim to this column). The resetting user simply logs in
+  // again and the fresh login reads the new version.
   await pool.query(
     `UPDATE users
-     SET password_hash = $1, otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0
-     WHERE email = $2`,
+     SET password_hash = $1, otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0,
+         token_version = token_version + 1
+     WHERE email = $2
+     RETURNING token_version`,
     [passwordHash, e]
   );
   return { success: true };
@@ -368,7 +374,7 @@ async function startLoginOTP(email) {
 async function verifyLoginOTP(email, otp) {
   const e = normalizeEmail(email);
   const r = await pool.query(
-    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts
+    `SELECT id, name, email, otp_code, otp_expires, otp_type, otp_attempts, token_version
      FROM users WHERE email = $1 AND email_verified = true AND otp_type = 'login'`,
     [e]
   );
@@ -394,7 +400,7 @@ async function verifyLoginOTP(email, otp) {
     `UPDATE users SET otp_code = NULL, otp_expires = NULL, otp_type = NULL, otp_attempts = 0 WHERE id = $1`,
     [user.id]
   );
-  const token = generateJWT(user.id);
+  const token = generateJWT(user.id, user.token_version);
   return { token, user: { id: user.id, name: user.name, email: user.email } };
 }
 
@@ -402,7 +408,7 @@ async function verifyLoginOTP(email, otp) {
 async function findUserById(id) {
   if (!id) return null;
   const r = await pool.query(
-    `SELECT id, name, email, email_verified, created_at
+    `SELECT id, name, email, email_verified, created_at, token_version
      FROM users WHERE id = $1`,
     [id]
   );

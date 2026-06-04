@@ -3349,9 +3349,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`GrowthIM listening on http://localhost:${PORT}`);
-});
+// Cold-deploy safety: auth.js now SELECTs users.token_version on every
+// login / authenticated request. That column is created by db_setup.js,
+// which is NOT auto-run, so a deploy against a DB predating the column
+// would throw "column does not exist" and break auth. The boot block that
+// sets up the jobs table above is fire-and-forget (not awaited before
+// listen), so we ensure the column HERE and AWAIT it before app.listen —
+// guaranteeing it exists before the first request can arrive. Idempotent;
+// db_setup.js keeps the same ALTER for fresh installs / manual runs.
+(async () => {
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0');
+    console.log('[startup] users.token_version column ensured');
+  } catch (err) {
+    console.error('[startup] users.token_version migration failed:', err.message);
+  }
+  app.listen(PORT, () => {
+    console.log(`GrowthIM listening on http://localhost:${PORT}`);
+  });
+})();
 
 // BLS Business Employment Dynamics - survival rates for the 2013
 // cohort tracked through 2023. Keyed by NAICS-2 (multi-prefix sectors

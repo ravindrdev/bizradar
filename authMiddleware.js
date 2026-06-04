@@ -31,6 +31,13 @@ async function requireAuth(req, res, next) {
       // Token is valid but the user no longer exists (deleted account).
       return res.status(401).json({ error: 'Please login' });
     }
+    // Token-version gate: a password reset bumps users.token_version, so any
+    // token minted before the reset (lower tv) is rejected here. Missing tv
+    // (pre-feature tokens) counts as 0 on BOTH sides, so existing logins
+    // survive the deploy and are only invalidated by a future reset.
+    if ((decoded.tv || 0) !== (user.token_version || 0)) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
     req.user = user;
     return next();
   } catch (err) {
@@ -73,6 +80,11 @@ async function requireAdmin(req, res, next) {
     if (!decoded || !decoded.uid) return deny();
     const user = await auth.findUserById(decoded.uid);
     if (!user) return deny();
+    // Token-version gate (same mechanism as requireAuth). A stale token —
+    // e.g. after the owner resets their password — is treated like every
+    // other denial: the uniform 404, so the admin area is never advertised.
+    // Missing tv = 0 on both sides, so the deploy doesn't kick the session.
+    if ((decoded.tv || 0) !== (user.token_version || 0)) return deny();
     if (!user.email || user.email.trim().toLowerCase() !== adminEmail) {
       return deny();
     }
