@@ -4209,6 +4209,8 @@ ${competitorLines}`;
         },
         { signal: ac.signal }
       );
+      const usage = res.usage || {};
+      console.log(`[search:plan] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
       const raw = (res.content || [])
         .filter((b) => b.type === 'text')
         .map((b) => b.text)
@@ -4296,6 +4298,8 @@ async function runParallelSearches(queries) {
           },
           { signal: ac.signal }
         );
+        const usage = res.usage || {};
+        console.log(`[search] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
         // Extract text from all text blocks in the response.
         const text = (res.content || [])
           .filter((b) => b.type === 'text' && b.text && b.text.trim())
@@ -5134,6 +5138,8 @@ Reply with just the NAICS-6 code and nothing else.`;
       .trim();
 
     console.log(`[claude-classify] response in ${dt}ms: "${text}"`);
+    const usage = response.usage || {};
+    console.log(`[claude-classify] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
 
     if (/^NONE$/i.test(text)) {
       console.warn('[claude-classify] Claude declined to classify');
@@ -5357,6 +5363,9 @@ async function verifyBusinessClassification(data, layer0Result) {
       clearTimeout(timerVerify);
     }
 
+    const usage = response.usage || {};
+    console.log(`[layer0-ai] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
+
     // Extract text blocks only - skip server_tool_use / web_search_tool_result
     const textBlocks = (response.content || []).filter((b) => b.type === 'text');
     const rawText = textBlocks.map((b) => b.text).join('');
@@ -5476,6 +5485,9 @@ async function selectBestProfile(naics6, businessName, aiReasoning, allProfiles)
     } finally {
       clearTimeout(timerSel);
     }
+
+    const usage = response.usage || {};
+    console.log(`[profile-selector] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
 
     const text = (response.content || [])
       .filter((b) => b.type === 'text')
@@ -5614,6 +5626,9 @@ async function disambiguateSharedCode(data, menuIds, broadId, allProfiles) {
     } finally {
       clearTimeout(timerD);
     }
+
+    const usage = response.usage || {};
+    console.log(`[merge-gate] usage in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens || 0} cache_write=${usage.cache_creation_input_tokens || 0}`);
 
     // Extract text blocks only - skip server_tool_use / web_search_tool_result
     const textBlocks = (response.content || []).filter((b) => b.type === 'text');
