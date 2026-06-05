@@ -959,6 +959,7 @@ app.get('/terms',          serveStaticPage('terms.html',          'terms'));
 app.get('/refund',         serveStaticPage('refund.html',         'refund'));
 app.get('/contact',        serveStaticPage('contact.html',        'contact'));
 app.get('/chart-preview',  serveStaticPage('chart_preview.html',  'chart-preview'));
+app.get('/supported',      serveStaticPage('supported.html',      'supported'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -4208,7 +4209,7 @@ ${q.why ? `<p>${escapeHtml(q.why)}</p>` : ''}
     // Steal strategy
     let stealHtml = '';
     if (Array.isArray(dive.steal_strategy) && dive.steal_strategy.length) {
-      stealHtml = `<h3>Steal strategy <span class="ai-badge">AI</span></h3>
+      stealHtml = `<h3>Steal strategy</h3>
 <p class="meta">What's working for local businesses, with the actual review evidence.</p>` +
         dive.steal_strategy.map((s) => {
           const actions = Array.isArray(s.actions_to_steal) ? s.actions_to_steal : [];
@@ -5334,11 +5335,11 @@ function renderReport(ctx) {
   // is free.
   const claudeUnavailableBanner = (data.claude_unavailable && !data.call_a_failed)
     ? `<div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:8px;padding:18px 22px;margin:0 0 24px 0;font-family:sans-serif;">
-  <div style="font-size:16px;font-weight:bold;color:#B45309;margin-bottom:8px;">&#9888; AI-enhanced sections temporarily unavailable</div>
+  <div style="font-size:16px;font-weight:bold;color:#B45309;margin-bottom:8px;">&#9888; Enhanced sections temporarily unavailable</div>
   <div style="color:#78350F;font-size:14px;line-height:1.55;">
-    The data sections of your report are complete. The AI-generated sections (priority actions, competitor deep dive, 90-day plan, opportunities, seasonal strategy) could not be generated this time.
+    The data sections of your report are complete. The strategy sections (priority actions, competitor deep dive, 90-day plan, opportunities, seasonal strategy) could not be generated this time.
     <br><br>
-    Please retry in 10 minutes for full AI insights. You will not be charged again.
+    Please retry in 10 minutes for the full report. You will not be charged again.
   </div>
   <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
     <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
@@ -5418,9 +5419,9 @@ function renderReport(ctx) {
     let badge;
     if (layer0Result.original_naics && layer0Result.naics6
         && String(layer0Result.original_naics) === String(layer0Result.naics6)) {
-      badge = `⚠ AI profile-corrected (NAICS ${fixed} confirmed${title ? ' - ' + title : ''})`;
+      badge = `✓ Profile confirmed (NAICS ${fixed}${title ? ' - ' + title : ''})`;
     } else {
-      badge = `⚠ AI corrected: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}`;
+      badge = `✓ Classification refined: ${orig} → ${fixed}${title ? ' (' + title + ')' : ''}`;
     }
     aiCorrectedWarning = `<div style="margin: 8px 0 0;">
   <span style="color:#B45309;background:#FEF3C7;padding:4px 10px;border-radius:4px;font-size:13px;display:inline-block;">${badge}</span>
@@ -5453,7 +5454,7 @@ ${status.detail ? `<p class="meta">${escapeHtml(status.detail)}</p>` : ''}`;
 <p>${escapeHtml(enriched.local_context)}</p>
 </div>`;
   } else if (!enriched) {
-    localContextHtml = `<p class="ai-fallback-note"><small>AI insights unavailable. Showing research-based recommendations.</small></p>`;
+    localContextHtml = `<p class="ai-fallback-note"><small>Showing research-based recommendations.</small></p>`;
   }
 
   let redFlagsHtml = '';
@@ -6063,7 +6064,7 @@ ${fmrBlock}`;
     const total = claudePriorityActions.length;
     const highCount = claudePriorityActions.filter((a) => String(a.impact || '').toUpperCase() === 'HIGH').length;
     const headerNote = highCount > 0
-      ? `Of these ${total} actions, ${highCount} ${highCount === 1 ? 'is' : 'are'} HIGH IMPACT. AI-tagged actions are generated from your real business data.`
+      ? `Of these ${total} actions, ${highCount} ${highCount === 1 ? 'is' : 'are'} HIGH IMPACT. These actions are generated from your real business data.`
       : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT. Focus on the highest-ranked items first.`;
     priorityHtml = `<div style="margin-bottom: 16px;">
   <h2 id="priority-actions">Priority actions</h2>
@@ -6216,7 +6217,7 @@ ${m.goal ? `<p class="meta"><strong>Goal:</strong> ${escapeHtml(m.goal)}</p>` : 
     const m1Html = renderMonthCard(1, m1, 'rec-medium');
     const m2Html = renderMonthCard(2, m2, 'rec-low');
     const m3Html = renderMonthCard(3, m3, 'rec-high');
-    ninetyDayPlanHtml = `<h2 id="ninety-day-plan">90-day action plan <span class="ai-badge">AI</span></h2>
+    ninetyDayPlanHtml = `<h2 id="ninety-day-plan">90-day action plan</h2>
 <p class="meta">Three months of progressive depth, broken down week by week so you know exactly what to do each Monday.</p>
 ${m1Html}
 ${m2Html}
@@ -6253,7 +6254,7 @@ ${offSeasonBlock}
       .filter(Boolean)
       .join('');
     if (cards) {
-      seasonalStrategyHtml = `<h2>Seasonal strategy <span class="ai-badge">AI</span></h2>
+      seasonalStrategyHtml = `<h2>Seasonal strategy</h2>
 <p class="meta">Per-season playbook. Each season names a real local event tie-in and a real local partner from your competitor or nearby-venues data.</p>
 ${cards}`;
     }
@@ -7215,7 +7216,6 @@ function renderActionCard(action) {
   return `<div class="action-card" style="border-left: 4px solid ${colors.border}; background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">
   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
     <span style="background: ${colors.bg}; color: ${colors.text}; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${impact} IMPACT</span>
-    <span style="background: ${sourceBg}; color: ${sourceFg}; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">${sourceLabel}</span>
   </div>
   <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">${title}</h3>
   ${what ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${what}</span></div>` : ''}
@@ -8534,7 +8534,7 @@ function renderRec3Layer(t, idx, data, studies, extraTags = [], enrichedRec = nu
 
   // Phase 5 - Claude-enriched path
   if (enrichedRec) {
-    const aiBadge = ` <span class="ai-badge" title="Enriched by Claude">AI</span>`;
+    const aiBadge = ``;
     const what = enrichedRec.what || rec.claim || '';
     const why = enrichedRec.why_it_works || '';
     const cite = enrichedRec.study_citation || '';
