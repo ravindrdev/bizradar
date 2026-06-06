@@ -1493,8 +1493,8 @@ async function fetchNearbyVenues(lat, lon) {
     const googleKey = process.env.GOOGLE_PLACES_API_KEY;
     const verifiedVenues = [];
     if (!googleKey) {
-      console.warn('[fetch-venues] no GOOGLE_PLACES_API_KEY - skipping cross-check');
-      for (const r of fsqOpen) verifiedVenues.push(r);
+      console.error('[fetch-venues] no GOOGLE_PLACES_API_KEY - cannot verify venues; dropping all nearby venues this run');
+      // push nothing: unverified venues must not appear
     } else {
       for (let i = 0; i < fsqOpen.length; i++) {
         const r = fsqOpen[i];
@@ -1510,7 +1510,7 @@ async function fetchNearbyVenues(lat, lon) {
         // Only an EXPLICIT false drops the venue; both true (open) and
         // null (UNKNOWN - both Google attempts failed) keep it, so a
         // transient Google outage can't silently empty the venue list.
-        if (open !== false) verifiedVenues.push(r);
+        if (open === true) verifiedVenues.push(r);
         // 200ms inter-call delay (skip on the last iteration).
         if (i < fsqOpen.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 200));
