@@ -121,6 +121,134 @@ This code expires in ${OTP_TTL_MIN} minutes. If you didn't request this, you can
   console.log(`[auth] OTP email sent to ${email} (${type})`);
 }
 
+function makeUnsubToken(userId) {
+  return jwt.sign({ uid: userId, scope: 'unsub' }, process.env.JWT_SECRET, { expiresIn: '180d' });
+}
+
+async function sendWelcomeEmail(email, name, userId) {
+  const transporter = getTransporter();
+  const unsubUrl = `https://growthim.com/unsubscribe?t=${makeUnsubToken(userId)}`;
+  const firstName = (name || '').split(' ')[0] || 'there';
+  const subject = 'Welcome to GrowthIM';
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `Thanks for signing up for GrowthIM. You now have access to detailed market intelligence reports for any US small business.`,
+    ``,
+    `Each report digs into a local market with real public and government data, then turns it into a clear plan you can act on.`,
+    ``,
+    `TWO WAYS TO USE IT`,
+    ``,
+    `Rate My Business. A full breakdown of one business and its local market:`,
+    `- Market Overview`,
+    `- Strengths`,
+    `- Competitive context`,
+    `- Your area: competitors nearby`,
+    `- Your Google search position`,
+    `- Review gap analysis`,
+    `- Location and market`,
+    `- Walk-up traffic potential`,
+    `- Seasonal demand calendar`,
+    `- Market intelligence charts`,
+    `- Priority Actions`,
+    `- 90-Day Action Plan`,
+    `- Opportunities nobody in your market is doing`,
+    ``,
+    `Priority Actions and the Opportunities section are the ones to watch: specific moves built for your business, and openings in your market that nobody is acting on yet.`,
+    ``,
+    `Find the Best Business to Start. Give it a city and state:`,
+    `- The top 10 business ideas, ranked`,
+    `- A deep dive on the #1, with tactical opportunities, quick wins, and hidden gaps`,
+    `- Who's driving through the area, plus local events and partnership targets`,
+    ``,
+    `Each report runs about 50 pages and stays in your dashboard for a year.`,
+    ``,
+    `Questions? Reach us at support@growthim.com.`,
+    ``,
+    `GrowthIM`,
+    ``,
+    `You're receiving this because you created a GrowthIM account. Don't want marketing emails? Unsubscribe: ${unsubUrl}`,
+    `You'll still receive essential account emails like login and password codes.`,
+  ].join('\n');
+
+  const html = `
+<div style="background-color:#eef0f3;padding:24px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" align="center" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border-top:4px solid #16a34a;">
+    <tr><td style="background-color:#111827;padding:26px 32px;">
+      <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.3px;">GrowthIM</div>
+      <div style="color:#9aa4b2;font-size:10px;font-weight:600;letter-spacing:2px;margin-top:4px;">GROWTH INTELLIGENCE MACHINE</div>
+    </td></tr>
+    <tr><td style="padding:34px 32px 4px 32px;">
+      <h1 style="margin:0 0 14px 0;font-size:21px;line-height:1.3;color:#111827;font-weight:700;">Welcome to GrowthIM, ${firstName}</h1>
+      <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#4b5563;">Thanks for signing up. You now have access to detailed market intelligence reports for any US small business.</p>
+      <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#4b5563;">Each report digs into a local market with real public and government data, then turns it into a clear plan you can act on.</p>
+      <p style="margin:0 0 4px 0;font-size:13px;font-weight:700;letter-spacing:0.5px;color:#16a34a;">TWO WAYS TO USE IT</p>
+    </td></tr>
+    <tr><td style="padding:12px 32px 0 32px;">
+      <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#111827;font-weight:700;">Rate My Business.</p>
+      <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#4b5563;">A full breakdown of one business and its local market:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Market Overview</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Strengths</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Competitive context</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Your area: competitors nearby</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Your Google search position</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Review gap analysis</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Location and market</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Walk-up traffic potential</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Seasonal demand calendar</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Market intelligence charts</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Priority Actions</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">90-Day Action Plan</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Opportunities nobody in your market is doing</td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="padding:14px 32px 0 32px;">
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">Priority Actions and the Opportunities section are the ones to watch: specific moves built for your business, and openings in your market that nobody is acting on yet.</p>
+    </td></tr>
+    <tr><td style="padding:22px 32px 0 32px;">
+      <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#111827;font-weight:700;">Find the Best Business to Start.</p>
+      <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#4b5563;">Give it a city and state:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">The top 10 business ideas, ranked</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">A deep dive on the #1, with tactical opportunities, quick wins, and hidden gaps</td></tr>
+        <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Who's driving through the area, plus local events and partnership targets</td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="padding:18px 32px 0 32px;">
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">Each report runs about 50 pages and stays in your dashboard for a year.</p>
+    </td></tr>
+    <tr><td style="padding:26px 32px 30px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background-color:#16a34a;border-radius:8px;">
+        <a href="https://growthim.com/dashboard" style="display:inline-block;padding:13px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Go to your dashboard</a>
+      </td></tr></table>
+    </td></tr>
+    <tr><td style="padding:0 32px 30px 32px;">
+      <div style="border-top:1px solid #eef0f3;padding-top:20px;">
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">Questions? Reach us at <a href="mailto:support@growthim.com" style="color:#16a34a;text-decoration:none;font-weight:600;">support@growthim.com</a>.</p>
+        <p style="margin:14px 0 0 0;font-size:14px;color:#111827;font-weight:600;">GrowthIM</p>
+      </div>
+    </td></tr>
+    <tr><td style="background-color:#f9fafb;padding:18px 32px;">
+      <p style="margin:0;font-size:12px;line-height:1.6;color:#9aa4b2;">You're receiving this because you created a GrowthIM account. Don't want marketing emails? <a href="${unsubUrl}" style="color:#9aa4b2;text-decoration:underline;">Unsubscribe</a>. You'll still receive essential account emails like login and password codes.</p>
+    </td></tr>
+  </table>
+</div>`;
+
+  if (!transporter) { console.log(`[auth] SMTP not configured. Welcome email skipped for ${email}.`); return; }
+  await transporter.sendMail({ from: 'GrowthIM <noreply@growthim.com>', to: email, subject, text, html });
+  console.log(`[auth] welcome email sent to ${email}`);
+}
+
+async function unsubscribeByToken(token) {
+  if (!token) return false;
+  let payload;
+  try { payload = jwt.verify(token, process.env.JWT_SECRET); } catch (_) { return false; }
+  if (!payload || payload.scope !== 'unsub' || !payload.uid) return false;
+  try { await pool.query(`UPDATE users SET marketing_opt_out = true WHERE id = $1`, [payload.uid]); return true; }
+  catch (e) { console.error('[unsubscribe] db update failed:', e.message); return false; }
+}
+
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
@@ -206,6 +334,13 @@ async function verifySignupOTP(email, otp) {
      WHERE id = $1`,
     [user.id]
   );
+
+  // Fire the welcome email in its own try/catch so a send failure NEVER blocks
+  // verification (unlike createPendingUser, which rolls back the row on OTP
+  // failure). Sent unconditionally: the user just verified and cannot have
+  // unsubscribed yet — marketing_opt_out gates FUTURE marketing sends, not this.
+  sendWelcomeEmail(user.email, user.name, user.id).catch((e) => console.error('[auth] welcome email failed:', e.message));
+
   const token = generateJWT(user.id, user.token_version);
   return { token, user: { id: user.id, name: user.name, email: user.email } };
 }
@@ -430,4 +565,5 @@ module.exports = {
   generateJWT,
   verifyJWT,
   findUserById,
+  unsubscribeByToken,
 };

@@ -35,6 +35,7 @@ const STATEMENTS = [
       otp_type VARCHAR(20),
       otp_attempts INTEGER DEFAULT 0,
       token_version INTEGER NOT NULL DEFAULT 0,
+      marketing_opt_out BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     )`,
   },
@@ -74,6 +75,10 @@ const STATEMENTS = [
   {
     name: 'users.token_version (migration)',
     sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`,
+  },
+  {
+    name: 'users.marketing_opt_out (migration)',
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_opt_out BOOLEAN NOT NULL DEFAULT false`,
   },
 ];
 

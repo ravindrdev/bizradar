@@ -8,6 +8,7 @@ const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./authRoutes');
+const auth = require('./auth');
 const { requireAuth, requireAdmin } = require('./authMiddleware');
 const pool = require('./db');
 const payments = require('./payments');
@@ -960,6 +961,16 @@ app.get('/refund',         serveStaticPage('refund.html',         'refund'));
 app.get('/contact',        serveStaticPage('contact.html',        'contact'));
 app.get('/chart-preview',  serveStaticPage('chart_preview.html',  'chart-preview'));
 app.get('/supported',      serveStaticPage('supported.html',      'supported'));
+
+app.get('/unsubscribe', async (req, res) => {
+  try {
+    const ok = await auth.unsubscribeByToken(req.query.t);
+    if (!ok) console.warn('[unsubscribe] invalid or expired token');
+    const html = fs.readFileSync(path.join(__dirname, 'public', 'unsubscribed.html'), 'utf8');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) { console.error('[unsubscribe] failed:', e.message); res.status(500).send('Internal error'); }
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -3390,6 +3401,8 @@ app.use((err, req, res, next) => {
   try {
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0');
     console.log('[startup] users.token_version column ensured');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_opt_out BOOLEAN NOT NULL DEFAULT false');
+    console.log('[startup] users.marketing_opt_out column ensured');
   } catch (err) {
     console.error('[startup] users.token_version migration failed:', err.message);
   }
