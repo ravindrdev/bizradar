@@ -972,6 +972,17 @@ app.get('/unsubscribe', async (req, res) => {
   } catch (e) { console.error('[unsubscribe] failed:', e.message); res.status(500).send('Internal error'); }
 });
 
+app.post('/subscribe', async (req, res) => {
+  try {
+    const result = await auth.subscribeEmail((req.body && req.body.email) || '');
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
+  } catch (e) {
+    console.error('[subscribe] failed:', e.message);
+    return res.status(500).json({ ok: false, error: 'Something went wrong. Try again.' });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Server-Sent Events progress stream ─────────────────────────────
@@ -3403,6 +3414,13 @@ app.use((err, req, res, next) => {
     console.log('[startup] users.token_version column ensured');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_opt_out BOOLEAN NOT NULL DEFAULT false');
     console.log('[startup] users.marketing_opt_out column ensured');
+    await pool.query(`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      unsubscribed_at TIMESTAMPTZ
+    )`);
+    console.log('[startup] newsletter_subscribers table ensured');
   } catch (err) {
     console.error('[startup] users.token_version migration failed:', err.message);
   }

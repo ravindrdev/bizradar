@@ -63,6 +63,15 @@ const STATEMENTS = [
       created_at TIMESTAMP DEFAULT NOW()
     )`,
   },
+  {
+    name: 'newsletter_subscribers',
+    sql: `CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      unsubscribed_at TIMESTAMPTZ
+    )`,
+  },
   // Idempotent ALTERs — Postgres' "ADD COLUMN IF NOT EXISTS" makes
   // these safe to run on every deploy. They cover the audit-fix A3
   // otp_attempts column for existing prod databases whose users

@@ -245,8 +245,29 @@ async function unsubscribeByToken(token) {
   let payload;
   try { payload = jwt.verify(token, process.env.JWT_SECRET); } catch (_) { return false; }
   if (!payload || payload.scope !== 'unsub' || !payload.uid) return false;
-  try { await pool.query(`UPDATE users SET marketing_opt_out = true WHERE id = $1`, [payload.uid]); return true; }
+  try {
+    await pool.query(`UPDATE users SET marketing_opt_out = true WHERE id = $1`, [payload.uid]);
+    await pool.query(
+      `UPDATE newsletter_subscribers SET unsubscribed_at = now()
+       WHERE lower(email) = lower((SELECT email FROM users WHERE id = $1))`,
+      [payload.uid]
+    );
+    return true;
+  }
   catch (e) { console.error('[unsubscribe] db update failed:', e.message); return false; }
+}
+
+async function subscribeEmail(email) {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean) || clean.length > 254) {
+    return { ok: false, error: 'Please enter a valid email.' };
+  }
+  await pool.query(
+    `INSERT INTO newsletter_subscribers (email) VALUES ($1)
+     ON CONFLICT (email) DO UPDATE SET unsubscribed_at = NULL`,
+    [clean]
+  );
+  return { ok: true };
 }
 
 function normalizeEmail(email) {
@@ -340,6 +361,7 @@ async function verifySignupOTP(email, otp) {
   // failure). Sent unconditionally: the user just verified and cannot have
   // unsubscribed yet — marketing_opt_out gates FUTURE marketing sends, not this.
   sendWelcomeEmail(user.email, user.name, user.id).catch((e) => console.error('[auth] welcome email failed:', e.message));
+  subscribeEmail(user.email).catch((e) => console.error('[auth] newsletter subscribe failed:', e.message));
 
   const token = generateJWT(user.id, user.token_version);
   return { token, user: { id: user.id, name: user.name, email: user.email } };
@@ -566,4 +588,5 @@ module.exports = {
   verifyJWT,
   findUserById,
   unsubscribeByToken,
+  subscribeEmail,
 };
