@@ -964,9 +964,20 @@ app.get('/supported',      serveStaticPage('supported.html',      'supported'));
 
 app.get('/unsubscribe', async (req, res) => {
   try {
-    const ok = await auth.unsubscribeByToken(req.query.t);
-    if (!ok) console.warn('[unsubscribe] invalid or expired token');
-    const html = fs.readFileSync(path.join(__dirname, 'public', 'unsubscribed.html'), 'utf8');
+    const result = await auth.unsubscribeByToken(req.query.t);
+    if (!result.ok) console.warn('[unsubscribe] invalid or expired token');
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    let heroLine, bodyHtml;
+    if (result.ok) {
+      const firstName = esc((result.name || '').split(' ')[0]);
+      heroLine = firstName ? `You're unsubscribed, ${firstName}` : `You're unsubscribed`;
+      bodyHtml = `<p>We've unsubscribed <strong>${esc(result.email)}</strong> from GrowthIM marketing emails.</p><p>You'll still receive essential account emails, like login and password codes, since those are required to use your account.</p><p>Changed your mind? Contact us at <a href="mailto:support@growthim.com">support@growthim.com</a>.</p>`;
+    } else {
+      heroLine = `Hmm, that link didn't work`;
+      bodyHtml = `<p>That unsubscribe link is invalid or expired, so nothing was changed.</p><p>To unsubscribe, contact us at <a href="mailto:support@growthim.com">support@growthim.com</a>.</p>`;
+    }
+    let html = fs.readFileSync(path.join(__dirname, 'public', 'unsubscribed.html'), 'utf8');
+    html = html.replace('{{UNSUB_HERO}}', heroLine).replace('{{UNSUB_BODY}}', bodyHtml);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (e) { console.error('[unsubscribe] failed:', e.message); res.status(500).send('Internal error'); }

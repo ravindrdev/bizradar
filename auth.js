@@ -241,20 +241,21 @@ async function sendWelcomeEmail(email, name, userId) {
 }
 
 async function unsubscribeByToken(token) {
-  if (!token) return false;
+  if (!token) return { ok: false };
   let payload;
-  try { payload = jwt.verify(token, process.env.JWT_SECRET); } catch (_) { return false; }
-  if (!payload || payload.scope !== 'unsub' || !payload.uid) return false;
+  try { payload = jwt.verify(token, process.env.JWT_SECRET); } catch (_) { return { ok: false }; }
+  if (!payload || payload.scope !== 'unsub' || !payload.uid) return { ok: false };
   try {
+    const { rows } = await pool.query(`SELECT name, email FROM users WHERE id = $1`, [payload.uid]);
+    if (!rows.length) return { ok: false };
     await pool.query(`UPDATE users SET marketing_opt_out = true WHERE id = $1`, [payload.uid]);
     await pool.query(
-      `UPDATE newsletter_subscribers SET unsubscribed_at = now()
-       WHERE lower(email) = lower((SELECT email FROM users WHERE id = $1))`,
-      [payload.uid]
+      `UPDATE newsletter_subscribers SET unsubscribed_at = now() WHERE lower(email) = lower($1)`,
+      [rows[0].email]
     );
-    return true;
+    return { ok: true, name: rows[0].name, email: rows[0].email };
   }
-  catch (e) { console.error('[unsubscribe] db update failed:', e.message); return false; }
+  catch (e) { console.error('[unsubscribe] db update failed:', e.message); return { ok: false }; }
 }
 
 async function subscribeEmail(email) {
