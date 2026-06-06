@@ -26,3 +26,10 @@ final_audit_stress.js
 final_audit_stress_results.txt
 final_audit_million.js
 final_audit_million_results.txt
+
+# Local-only API health-check (throwaway, not wired into the app)
+api_healthcheck.js
+api_healthcheck_report.md
+
+# Local backups — NEVER commit. .env.bak is a full copy of .env (real secrets).
+*.bak
