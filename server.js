@@ -6547,7 +6547,11 @@ ${psychologyBlock}
   // live /classify generation flow where the report ID doesn't exist
   // yet). Also intentionally omitted from the PDF route's own render
   // so the button doesn't appear in the printed PDF itself.
-  const pdfBtnHtml = reportId
+  // TEMP DISABLED: customer-facing Download PDF button hidden for now. Re-enable
+  // before launch by setting SHOW_PDF_BTN = true (or delete this guard and restore
+  // the bare `reportId` condition). Button markup + /report/:id/pdf endpoint untouched.
+  const SHOW_PDF_BTN = false;
+  const pdfBtnHtml = (reportId && SHOW_PDF_BTN)
     ? `<a href="/report/${encodeURIComponent(reportId)}/pdf" class="pdf-btn" style="display: inline-block; background: #2563EB; color: #FFFFFF; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; margin-left: 8px;">&#11015; Download PDF</a>`
     : '';
 
