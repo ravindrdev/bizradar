@@ -156,10 +156,11 @@ async function sendWelcomeEmail(email, name, userId) {
     ``,
     `Priority Actions and the Opportunities section are the ones to watch: specific moves built for your business, and openings in your market that nobody is acting on yet.`,
     ``,
-    `Find the Best Business to Start. Give it a city and state:`,
-    `- The top 10 business ideas, ranked`,
-    `- A deep dive on the #1, with tactical opportunities, quick wins, and hidden gaps`,
-    `- Who's driving through the area, plus local events and partnership targets`,
+    // TEMP: hidden for launch
+    // `Find the Best Business to Start. Give it a city and state:`,
+    // `- The top 10 business ideas, ranked`,
+    // `- A deep dive on the #1, with tactical opportunities, quick wins, and hidden gaps`,
+    // `- Who's driving through the area, plus local events and partnership targets`,
     ``,
     `Each report runs about 50 pages and stays in your dashboard for a year.`,
     ``,
@@ -206,6 +207,7 @@ async function sendWelcomeEmail(email, name, userId) {
     <tr><td style="padding:14px 32px 0 32px;">
       <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">Priority Actions and the Opportunities section are the ones to watch: specific moves built for your business, and openings in your market that nobody is acting on yet.</p>
     </td></tr>
+    ${/* TEMP: hidden for launch
     <tr><td style="padding:22px 32px 0 32px;">
       <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#111827;font-weight:700;">Find the Best Business to Start.</p>
       <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#4b5563;">Give it a city and state:</p>
@@ -215,6 +217,7 @@ async function sendWelcomeEmail(email, name, userId) {
         <tr><td valign="top" width="18" style="font-size:14px;line-height:1.8;color:#16a34a;">&bull;</td><td style="font-size:14px;line-height:1.8;color:#4b5563;">Who's driving through the area, plus local events and partnership targets</td></tr>
       </table>
     </td></tr>
+    */ ''}
     <tr><td style="padding:18px 32px 0 32px;">
       <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">Each report runs about 50 pages and stays in your dashboard for a year.</p>
     </td></tr>
