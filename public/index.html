@@ -814,7 +814,10 @@
     // mode and force the bar to ≥95% with a pulsing animation.
     // lastSseUpdate tracks the most recent SSE event so we can show
     // the quiet-period banner if the stream stalls.
-    let countdown = resumeEtaSeconds ? resumeEtaSeconds : (INITIAL_ETA_SECONDS[mode] || 120);
+    // Real-anchor ETA: remaining = per-mode estimate minus elapsed since the
+    // job's real start (startTime = createdAt on resume, now on a fresh run).
+    // Same formula fresh and resumed, so a refresh never resets to 15:00.
+    let countdown = (INITIAL_ETA_SECONDS[mode] || 120) - Math.floor((Date.now() - startTime) / 1000);
     let lastSseUpdate = Date.now();
     let lastPct = 0;
     let isComplete = false;
@@ -869,6 +872,17 @@
     }
     etaInterval = setInterval(tickEta, 1000);
     tickEta(); // fire once immediately so the user sees a value, not "-"
+
+    // ── Resume mode: static status instead of ticking countdown ──
+    if (resumeJobId) {
+      clearInterval(etaInterval);
+      var etaR = document.getElementById('term-eta');
+      if (etaR) etaR.textContent = 'This usually takes about 15 minutes';
+      var msgR = document.getElementById('term-current-message');
+      if (msgR) msgR.textContent = "Your report is being generated. You can close this browser. Your report will appear in your dashboard when it's ready.";
+      var qbR = document.getElementById('term-queue-banner');
+      if (qbR) qbR.hidden = true;
+    }
 
     // Open the progress stream BEFORE posting so the first event isn't
     // missed. Browser EventSource auto-reconnects on transient drops.
@@ -1028,6 +1042,14 @@
         const sjson = await sres.json();
         errorStreak = 0; // a successful poll resets the network give-up counter
 
+        // Rehydrate "Step X of N" from the durable job state on every poll, so a
+        // refresh shows the real current step and it keeps advancing even if the
+        // SSE log is silent.
+        if (typeof sjson.currentStep === 'number' && typeof sjson.totalSteps === 'number' && sjson.totalSteps > 0) {
+          const sc = document.getElementById('term-step-counter');
+          if (sc) sc.textContent = 'Step ' + sjson.currentStep + ' of ' + sjson.totalSteps;
+        }
+
         if (sjson.status === 'ready' && sjson.reportId != null) {
           clearInterval(pollHandle);
           cleanupRunningUi();
@@ -1145,6 +1167,17 @@
           lastPct = 0;
           countdown = (INITIAL_ETA_SECONDS[mode] || 120);
           if (!etaInterval) { etaInterval = setInterval(tickEta, 1000); tickEta(); }
+        }
+
+        // ── Resume mode: override message based on queue status ──
+        if (resumeJobId && sjson.status === 'processing') {
+          var resumeText = sjson.queued
+            ? "You're in the queue. You can close this browser. Your report will appear in your dashboard when it's ready."
+            : "Your report is being generated. You can close this browser. Your report will appear in your dashboard when it's ready.";
+          var rmEl2 = document.getElementById('term-current-message');
+          if (rmEl2) rmEl2.textContent = resumeText;
+          var qbR2 = document.getElementById('term-queue-banner');
+          if (qbR2) qbR2.hidden = true;
         }
       } catch (e) {
         // Transient network blip - keep polling, but give up after ~30s of

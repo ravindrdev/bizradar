@@ -977,13 +977,11 @@ goes LAST" ordering for this specific case):
        statistic is in the pre-loaded search results, write a
        generic sentence about online discovery being important.
        NEVER invent, estimate, round, or paraphrase statistics.
-  action: 'Contact GrowthIM Support at support@growthim.com to
-           get help building a professional business website at
-           reasonable prices or to fix your existing website so
-           Google can find it.'
-  money_estimate: '$500-$3,000 one-time build · $20-$80/month
-                   hosting · contact support for an exact quote'
-  cost: 'Contact GrowthIM Support for pricing'
+  action: 'Get a professional website built by an independent
+           web developer (e.g. via Upwork, Fiverr, or a local
+           web-design agency) so customers can find you online.'
+  money_estimate: '$500-$3,000 one-time build · $20-$80/month hosting'
+  cost: '$500-$3,000 one-time build, $20-$80/month hosting'
   timeline: 'This week'
 
 This action counts as ONE of the 5-7 priority_actions (not in
@@ -1957,6 +1955,54 @@ and weaknesses:
   Retail      → selection, staff knowledge, return policy
   Salon       → stylist skill, wait times, product quality
 
+AMENITY & POLICY DIFFERENTIALS (ADDITIVE — web/listings sourced):
+
+This ADDS to the factors and weaknesses above. It never replaces or reduces them. Produce these
+IN ADDITION to the review-based and rating-based items already specified, and never drop an
+existing item to make room.
+
+Surface concrete, distinctive amenity, service, or policy differences between the subject and a
+competitor that do NOT appear in reviews and are NOT about ratings or review counts.
+
+SOURCING (fail-closed):
+- Use the WEB SEARCH RESULTS already provided, and a live web_search if needed, to look up the
+  LISTED amenities and policies of BOTH the subject and the competitor, from their own website
+  and their Google / Booking.com / Expedia / Yelp listing.
+- State a differential ONLY when a retrieved source explicitly confirms it, and name that source
+  in the evidence (e.g. "per their Booking.com listing", "per their Google listing").
+- To claim a competitor LACKS something, you must find an EXPLICIT statement of absence (e.g. a
+  listing field "Pets: not allowed"). Absence of a mention is NOT confirmation. Never infer
+  "they don't have X" from silence.
+- If you cannot confirm a distinctive differential from a real source, add nothing here. Never
+  guess a policy. Never fabricate a source or a listing.
+- If search budget is limited, prioritize the highest-threat competitors first.
+
+DIRECTION:
+- Competitor HAS a distinctive amenity/policy the subject LACKS -> add as a factor in
+  why_they_are_winning (your_gap = subject lacks it, close_the_gap = how to add or counter it).
+- Subject HAS a distinctive amenity/policy the competitor LACKS -> add as an entry in
+  their_weakness (complaint = the competitor lacks it, your_opportunity = market this advantage
+  against them).
+
+EVIDENCE LABEL: prefix each amenity/policy differential's evidence with "[LISTING]:" then the
+fact and its named source. [LISTING] is an authorized evidence prefix here alongside
+[REVIEW QUOTE], [RATING SIGNAL], and [INFERRED FROM DATA]. Example:
+"[LISTING]: Per Don Q Inn's Booking.com listing, pets are not allowed; the subject is
+pet-friendly per the subject's Google listing."
+
+EXCLUDE baseline, table-stakes attributes that nearly every business of this type has — a
+difference there is noise. For hotels that means free WiFi, parking, AC, TV, basic cleanliness,
+generic "friendly staff", comfortable beds. Apply the same rule to every sector: skip universal
+expected features, keep only the distinctive, decision-influencing ones. Distinctive hotel
+examples worth surfacing when confirmed: pet policy, pool (indoor/outdoor/none), free hot
+breakfast, airport or local shuttle, EV charging, on-site restaurant or bar, fitness center,
+suites/kitchenettes/extended-stay, meeting space, accessibility features, 24-hour front desk.
+
+PRECEDENCE: this overrides the "return their_weakness as []" and the "No specific complaints
+found" placeholder rules in ONE direction only — if there are no negative reviews but you DID
+confirm a [LISTING] gap, include the [LISTING] gap instead of the empty/placeholder. If there
+are neither negative reviews nor a confirmed [LISTING] gap, keep the existing placeholder.
+
 CONQUEST PAGE RULES:
 Populate the conquest_page object — a single-competitor focused
 "how to beat them this week" deep-dive. Distinct from competitor_deep_dive[]
@@ -2868,7 +2914,7 @@ Top 3: ${top3Lines || '(none)'}
 Top competitors (by rating):
 ${top5Lines}${radiusLine}
 
-Local demographics (ZIP ${b.zip || '-'}):
+Local area demographics:
 Median household income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '-'}
 Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '-'}
 ${weatherSection}${pagespeedSection}${locationSection}${permitsSection}${eventsSection}${venuesSection}${tripAdvisorSection}${blsSection}${usdaSection}${fmcsaSection}${npiSection}${fmrSection}${fdicSection}${cdcSection}${hrsaSection}${ersSection}${housingSection}${foodDataSection}${offSection}${datamuseSection}${npsSection}${noaaSection}
@@ -3539,7 +3585,7 @@ Website: ${g.website_exists}
 Top competitors (by threat):
 ${competitorLines}
 
-Local demographics (ZIP ${b.zip || '-'}):
+Local area demographics:
 Median income: ${cs.median_household_income != null ? '$' + cs.median_household_income.toLocaleString('en-US') : '-'}
 Population: ${cs.population != null ? cs.population.toLocaleString('en-US') : '-'}
 
@@ -3965,7 +4011,7 @@ async function callClaudeEnrichA(bundle, searchResults = '') {
       {
         type: 'web_search_20250305',
         name: 'web_search',
-        max_uses: 5,
+        max_uses: 12,
       },
     ],
     system: [

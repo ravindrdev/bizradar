@@ -298,7 +298,7 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
     // `reports` above, so including it here would double-list it. Scoped by
     // user_id exactly like the reports query.
     const jobsResult = await pool.query(
-      `SELECT job_id, status, label, error, report_type, created_at, updated_at
+      `SELECT job_id, status, label, error, report_type, current_step, total_steps, created_at, updated_at
        FROM jobs
        WHERE user_id = $1 AND status IN ('processing', 'error')
        ORDER BY created_at DESC`,
@@ -324,6 +324,8 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
         label: j.label,
         error: j.error,
         report_type: j.report_type || 'rate',
+        current_step: j.current_step,
+        total_steps: j.total_steps,
         created_at: j.created_at,
       };
       // For a 'processing' job, mirror /report-status: queued behind the
@@ -1017,6 +1019,12 @@ function sendProgress(sessionId, data) {
   // emitted during a refresh gap (no client attached) is still captured for
   // replay on reconnect. Skip error frames (they carry no numeric pct).
   if (data && typeof data.pct === 'number') lastProgress.set(sessionId, data);
+  // Persist the live step so a refresh can rehydrate "Step X of N" from the
+  // /report-status poll. sessionId === job_id. Fire-and-forget; deliberately
+  // does NOT touch updated_at (the dashboard's elapsed math reads updated_at).
+  if (data && typeof data.step === 'number' && typeof data.total === 'number') {
+    pool.query('UPDATE jobs SET current_step = $1, total_steps = $2 WHERE job_id = $3', [data.step, data.total, sessionId]).catch(() => {});
+  }
   const client = progressClients.get(sessionId);
   if (!client || client.writableEnded) return;
   try {
@@ -1141,6 +1149,8 @@ profileResolver.load();
     // mode, "City, ST - market analysis" for market mode.
     await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS label TEXT');
     await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS report_type TEXT');
+    await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS current_step INTEGER');
+    await pool.query('ALTER TABLE jobs ADD COLUMN IF NOT EXISTS total_steps INTEGER');
 
     // Durable outcome tally - separate from `jobs` ON PURPOSE so it
     // survives the hourly 24h jobs cleanup and gives a long-term record
@@ -1446,7 +1456,7 @@ app.get('/report-status/:jobId', requireAuth, async (req, res) => {
   try {
     const jobId = String(req.params.jobId || '');
     const { rows } = await pool.query(
-      `SELECT status, report_id, error, user_id FROM jobs WHERE job_id = $1`,
+      `SELECT status, report_id, error, user_id, current_step, total_steps, created_at FROM jobs WHERE job_id = $1`,
       [jobId]
     );
     if (!rows.length) return res.json({ status: 'not_found' });
@@ -1458,6 +1468,9 @@ app.get('/report-status/:jobId', requireAuth, async (req, res) => {
       status: job.status,
       reportId: job.report_id,
       error: job.error,
+      currentStep: job.current_step,
+      totalSteps: job.total_steps,
+      createdAt: job.created_at,
     };
     // Paid flow: a job stays 'awaiting_payment' until the payment.succeeded
     // webhook flips it. If a payment.failed webhook arrived instead, its
@@ -1619,7 +1632,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
       failJob(sessionId, 'Please enter a business name and city.');
       return;
     }
-    sendProgress(sessionId, { step: 1, total: 29, message: 'Locating your business on Google Maps...', pct: 2 });
+    sendProgress(sessionId, { step: 1, total: 17, message: 'Locating your business on Google Maps...', pct: 2 });
 
   let layer0Result;
   try {
@@ -1911,7 +1924,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     }
   }
 
-  sendProgress(sessionId, { step: 2, total: 29, message: `Found: ${placeStub.name || 'business'}, reading your profile...`, pct: 5 });
+  sendProgress(sessionId, { step: 2, total: 17, message: `Found: ${placeStub.name || 'business'}, reading your profile...`, pct: 5 });
   let detail;
   try {
     detail = await places.getDetails(placeStub.place_id, API_KEY);
@@ -1920,7 +1933,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     return;
   }
   sendProgress(sessionId, {
-    step: 3, total: 29,
+    step: 3, total: 17,
     message: (detail && detail.user_ratings_total)
       ? `Scanning ${detail.user_ratings_total} customer reviews for patterns...`
       : 'Scanning customer reviews for patterns...',
@@ -2415,7 +2428,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     { step: 12, pct: 35, msg: 'Mapping commercial corridor around your location...' },
     { step: 13, pct: 38, msg: 'Running Bureau of Labor Statistics query...' },
   ].forEach((s, i) => setTimeout(() =>
-    sendProgress(sessionId, { step: s.step, total: 29, message: s.msg, pct: s.pct }), i * 400
+    sendProgress(sessionId, { step: s.step, total: 17, message: s.msg, pct: s.pct }), i * 400
   ));
 
   // FETCH 1 - competitor stats (or null on failure)
@@ -2984,7 +2997,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
 
   const ranked = scoreRecommendations(profile, data, studies.studies);
   const strengths = computeStrengths(profile, data);
-  sendProgress(sessionId, { step: 14, total: 29, message: 'Calculating your market position score...', pct: 41 });
+  sendProgress(sessionId, { step: 14, total: 17, message: 'Calculating your market position score...', pct: 41 });
 
   // Phase 5 - Claude enrichment. Builds a deterministic data bundle from
   // the prior pipeline outputs and asks Claude for: enriched WHY-IT-WORKS
@@ -2999,39 +3012,12 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     ranked,
     studies: studies.studies,
   });
-  sendProgress(sessionId, { step: 15, total: 29, message: 'Cross-referencing 27 verified data sources...', pct: 44 });
-  // Steps 16-28: fake progress ticks fired during the Claude call.
-  // Spread across 13 minutes to match observed Call A wall time (~5-6 min)
-  // plus B+C1+C2 parallel block (~3-5 min). All timers are cleared
-  // immediately when Claude returns so fast runs skip unfired steps.
-  const claudeTimers = [];
-  // Timer-leak fix (1M-run finding): create the progress timers and run the
-  // enrichment await inside try/finally so all 13 long-delay setTimeouts are
-  // cleared on EVERY exit (success, thrown enrichment, or any future early
-  // return) — not just the success path. They still FIRE during the await
-  // (finally runs only after it settles), so progress messages are unchanged.
-  let enriched;
-  try {
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 16, total: 29, message: 'GrowthIM Intelligence Engine activated...', pct: 48 }),   20000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 17, total: 29, message: 'Researching your top competitors in depth...', pct: 52 }),   80000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 18, total: 29, message: 'Identifying what competitors do better than you...', pct: 56 }),  150000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 19, total: 29, message: 'Finding competitor weaknesses you can exploit...', pct: 60 }),  220000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 20, total: 29, message: 'Building your competitor deep dive analysis...', pct: 64 }),  290000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 21, total: 29, message: 'Scanning your market for untapped opportunities...', pct: 68 }),  360000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 22, total: 29, message: 'Finding opportunities nobody in your market is doing...', pct: 72 }), 420000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 23, total: 29, message: 'Calculating your seasonal demand strategy...', pct: 76 }), 480000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 24, total: 29, message: 'Writing your priority actions with revenue estimates...', pct: 80 }), 540000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 25, total: 29, message: 'Building your 90-day action plan week by week...', pct: 84 }), 600000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 26, total: 29, message: 'Calculating revenue opportunities for your market...', pct: 88 }), 650000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 27, total: 29, message: 'Generating your key risks and early warning signs...', pct: 92 }), 700000));
-  claudeTimers.push(setTimeout(() => sendProgress(sessionId, { step: 28, total: 29, message: 'Finalizing your market intelligence report...', pct: 96 }), 750000));
-  enriched = await claudeEnricher.enrichWithClaude(dataBundle);
-  } finally {
-    // Clear on ALL exits — fixes the failure-path leak where a thrown
-    // enrichment left all 13 long-delay timers pending (1M-run finding).
-    claudeTimers.forEach(t => clearTimeout(t));
-    claudeTimers.length = 0;
-  }
+  sendProgress(sessionId, { step: 15, total: 17, message: 'Cross-referencing 27 verified data sources...', pct: 44 });
+  // Claude enrichment (Call A, then B+C1+C2 in parallel) — the long phase
+  // (~5-10 min). One honest "still working" step instead of fake per-step
+  // timers, so the [Ns] log only ever shows genuine steps.
+  sendProgress(sessionId, { step: 16, total: 17, message: 'Researching competitors and writing your report. This usually takes several minutes...', pct: 50 });
+  const enriched = await claudeEnricher.enrichWithClaude(dataBundle);
   // Detect Call A failure so renderReport can surface the partial-report
   // banner at the top of the page. enrichWithClaude returns a partial
   // object with _partial:'A_failed' when callClaudeEnrichA returned null
@@ -3049,8 +3035,7 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     data.claude_unavailable = true;
     console.warn('[claude] enrichWithClaude returned null - full Claude-unavailable banner will be shown');
   }
-  claudeTimers.forEach(t => clearTimeout(t));
-  sendProgress(sessionId, { step: 29, total: 29, message: 'Your report is ready.', pct: 100 });
+  sendProgress(sessionId, { step: 17, total: 17, message: 'Your report is ready.', pct: 100 });
 
   // FIX 3 - Em-dash post-processing. Walk every Claude-generated field
   // listed by the user and strip em/en/horizontal-bar dashes IN PLACE
@@ -4044,6 +4029,7 @@ function renderMarketReport(result) {
 
   const headerHtml = `<a class="back" href="/app">&larr; Start over</a> <a class="back" href="/dashboard">&larr; Back to Dashboard</a>
 <h1>Market Intelligence - ${safeCity}, ${safeState}${healthBadge}${gradeBadge}</h1>
+<div style="margin:0 0 16px;padding:9px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;line-height:1.5;color:#6B7280;">Illustrative market analysis. All figures are estimates based on your inputs and stated assumptions, not financial, legal, or professional advice, and not guarantees of income or results.</div>
 ${sourcesHtml}
 ${execSummary}`;
 
@@ -4359,7 +4345,6 @@ ${s.best_business_to_open ? `<p><strong>Business to open:</strong> ${escapeHtml(
 ${s.marketing_message ? `<p><strong>Headline:</strong> "${escapeHtml(s.marketing_message)}"</p>` : ''}
 ${s.event_tie_in ? `<p><strong>Event tie-in:</strong> ${escapeHtml(s.event_tie_in)}</p>` : ''}
 ${s.local_partner ? `<p><strong>Local partner:</strong> ${escapeHtml(s.local_partner)}</p>` : ''}
-${s.revenue_range ? `<p class="meta">Revenue: <strong>${escapeHtml(s.revenue_range)}</strong></p>` : ''}
 ${s.off_season_survival ? `<div class="honesty honesty-customer-must-validate"><p><strong>Off-season survival:</strong> ${escapeHtml(s.off_season_survival)}</p></div>` : ''}
 </div>`;
         }).join('');
@@ -5418,11 +5403,7 @@ function renderReport(ctx) {
     </ul>
     All three situations mean customers searching online cannot easily find your business.
     <br><br>
-    <strong>GrowthIM Support can help you build a professional business website or fix your existing online presence at reasonable prices.</strong>
-  </div>
-  <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-    <a href="mailto:support@growthim.com" style="display:inline-block;padding:10px 24px;background:#C2410C;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support - Get Website Help</a>
-    <span style="font-size:13px;color:#9A3412;">support@growthim.com</span>
+    <strong>A fast, professional website helps customers find and trust you before they visit.</strong>
   </div>
 </div>`
     : '';
@@ -5480,6 +5461,7 @@ function renderReport(ctx) {
   // are still computed earlier for any other consumer; just no
   // longer surfaced in the header copy.
   const headerHtml = `<h1>${escapeHtml(data.name || input)}</h1>
+<div style="margin:0 0 16px;padding:9px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;line-height:1.5;color:#6B7280;">Illustrative market analysis. All figures are estimates based on your inputs and stated assumptions, not financial, legal, or professional advice, and not guarantees of income or results.</div>
 <p class="meta">${escapeHtml(data.formatted_address || '')}<br>
 ${escapeHtml(profile.name)} - NAICS ${escapeHtml(layer0Result.naics6)}</p>
 ${aiCorrectedWarning}`;
@@ -5961,7 +5943,7 @@ ${fmrBlock}`;
         `<div style="font-size:14px;font-weight:700;color:#991B1B;margin-bottom:10px;">${bizName}</div>` +
         `<div style="font-size:13px;color:#7F1D1D;line-height:1.6;margin-bottom:10px;">Most customers decide whether to visit a business within 3 seconds of landing on their website. Without a website ${bizName} has zero seconds to make that impression - the decision is made before they even see you.</div>` +
         `<strong style="display:block;font-size:14px;color:#991B1B;margin-bottom:6px;">&#9888; No website to measure</strong>` +
-        `<div style="font-size:13px;color:#7F1D1D;line-height:1.6;">There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from. Customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. GrowthIM can build and host a fast, high-scoring website for you - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>` +
+        `<div style="font-size:13px;color:#7F1D1D;line-height:1.6;">There is no page for Google to score. While your competitors' load times are shown below, you have no starting point to improve from. Customers who find your competitors on Google can click through to their website immediately. 53% abandon a slow site before reading a single word. Without a website you lose 100% of those potential visits before they start. A fast, mobile-friendly website would help customers find you online.</div>` +
         `</div>`;
     } else if (typeof data.website_mobile_score === 'number') {
       // Has website + PSI score → large score card with business name
@@ -5973,9 +5955,9 @@ ${fmrBlock}`;
         : '';
       let warningMsg = '';
       if (sc < 50) {
-        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business. A 1-second improvement increases conversions by 27% on average. GrowthIM can fix this fast - contact <a href="mailto:support@growthim.com" style="color:#DC2626;">support@growthim.com</a></div>`;
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business. A 1-second improvement increases conversions by 27% on average.</div>`;
       } else if (sc < 90) {
-        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:12.5px;color:#92400E;line-height:1.6;">Your website loads in the amber zone. More than half your mobile visitors are likely leaving before reading a single word. Every second faster doubles your chance of keeping them. GrowthIM can help improve your score - contact <a href="mailto:support@growthim.com" style="color:#92400E;">support@growthim.com</a></div>`;
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:12.5px;color:#92400E;line-height:1.6;">Your website loads in the amber zone. More than half your mobile visitors are likely leaving before reading a single word. Every second faster doubles your chance of keeping them.</div>`;
       }
       subjectHtml = `<div style="margin-bottom:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;">` +
         `<div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:10px;">${bizName}</div>` +
@@ -6110,6 +6092,7 @@ ${fmrBlock}`;
       : `${total} prioritized actions, generated from your real business data. None tagged HIGH IMPACT. Focus on the highest-ranked items first.`;
     priorityHtml = `<div style="margin-bottom: 16px;">
   <h2 id="priority-actions">Priority actions</h2>
+  <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">The dollar figures below are illustrative estimates based on the assumptions shown. They are not guarantees of income or results.</p>
   <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">${escapeHtml(headerNote)}</p>
 </div>`;
     // FIX 6 - Action cards first (HIGH then MEDIUM then LOW), ROI
@@ -6287,7 +6270,6 @@ ${s.what_to_add ? `<p><strong>What to add:</strong> ${escapeHtml(s.what_to_add)}
 ${s.marketing_message ? `<div class="callout"><div class="callout-label">Headline</div><p>"${escapeHtml(s.marketing_message)}"</p></div>` : ''}
 ${s.event_tie_in ? `<p><strong>Event tie-in:</strong> ${escapeHtml(s.event_tie_in)}</p>` : ''}
 ${s.local_partner ? `<p><strong>Local partner:</strong> ${escapeHtml(s.local_partner)}</p>` : ''}
-${s.revenue_range ? `<p class="meta">Revenue: <strong>${escapeHtml(s.revenue_range)}</strong></p>` : ''}
 ${offSeasonBlock}
 </div>`;
     }
@@ -6307,6 +6289,7 @@ ${cards}`;
   let opportunitiesHtml = '';
   if (enriched && Array.isArray(enriched.opportunities) && enriched.opportunities.length) {
     opportunitiesHtml = `<h2 id="opportunities">Opportunities nobody in your market is doing</h2>
+<p class="meta">The dollar figures below are illustrative estimates based on the assumptions shown. They are not guarantees of income or results.</p>
 <p class="meta">${enriched.opportunities.length} location-specific ideas drawn from 18 opportunity categories. Each names real local entities: events, producers, landmarks. Validate cost and revenue against your own pipeline before committing budget.</p>` +
     enriched.opportunities.map((o) => {
       const novelty = o.novelty || '';
@@ -6327,10 +6310,10 @@ ${cards}`;
         const deepRows = [
           opf('MEMORY TRIGGER',       oDeep.memory_trigger,       '#EDE9FE', '#5B21B6'),
           opf('WORD OF MOUTH',        oDeep.word_of_mouth,        '#DBEAFE', '#1E40AF'),
-          opf('REVENUE DRIVER',       oDeep.revenue_driver,       '#DCFCE7', '#166534'),
+          opf('REVENUE DRIVER (illustrative)',       oDeep.revenue_driver,       '#DCFCE7', '#166534'),
           opf('WHY THIS WORKS HERE',  oDeep.local_logic,          '#FEF3C7', '#92400E'),
           opf('COMPETITOR GAP',       oDeep.competitor_gap,       '#FFE4E6', '#9F1239'),
-          opf('ROI',                  oDeep.roi_proof,            '#DCFCE7', '#166534'),
+          opf('ROI (illustrative)',                  oDeep.roi_proof,            '#DCFCE7', '#166534'),
           opf('WHY NOT ALTERNATIVES', oDeep.why_not_alternatives, '#F3F4F6', '#374151'),
           opf('NEXT 48 HOURS',        oDeep.first_48_hours,       '#FFF7ED', '#C2410C'),
           opf('LEAVE BEHIND',         oDeep.leave_behind,         '#EDE9FE', '#5B21B6'),
@@ -6978,7 +6961,7 @@ function buildMoneyEstimate(t, data, profile, studies) {
     : `unknown size (default ×1.0)`;
 
   return `<div class="money">
-<strong>Money estimate: ${moneyDisplay}</strong><br>
+<strong>Estimated revenue opportunity (illustrative): ${moneyDisplay}</strong><br>
 <span class="meta">Math: ${fmtUsd(baselineRange[0])}-${fmtUsd(baselineRange[1])} sector baseline, midpoint ${fmtUsd((baselineRange[0] + baselineRange[1]) / 2)} × size multiplier (${reviewNote}) = ${fmtUsd(Math.round(midBaseline))} estimated annual revenue. Apply ${pctDisplay} cited study magnitude to get ${moneyDisplay}.</span><br>
 <em class="meta">Sector averages used. Track ${escapeHtml(kpi)} to measure your actual lift.</em>
 </div>`;
@@ -7198,16 +7181,16 @@ function renderROISummary(actions) {
     </tr>`).join('');
 
   return `<div style="background:#FFFFFF;border:1px solid #D1FAE5;border-radius:10px;padding:20px 24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-  <div style="font-size:17px;font-weight:700;color:#0F1729;margin-bottom:4px;">&#128176; Your Revenue Opportunity</div>
-  <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Combined potential from all recommended actions</div>
+  <div style="font-size:17px;font-weight:700;color:#0F1729;margin-bottom:4px;">Estimated revenue summary (illustrative)</div>
+  <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Combined total of the illustrative estimates from each action below. Not a forecast.</div>
   <table style="width:100%;border-collapse:collapse;">
     ${rowsHtml}
     <tr style="border-top:2px solid #D1FAE5;">
-      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">TOTAL ANNUAL POTENTIAL</td>
+      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">Estimated annual total (illustrative)</td>
       <td style="padding:12px 14px;font-size:17px;font-weight:700;color:#166534;text-align:right;white-space:nowrap;">${escapeHtml(totalRange)}</td>
     </tr>
   </table>
-  <p style="font-size:11px;color:#9CA3AF;margin:12px 0 0 0;">Estimates based on your specific business data. See each action for full math.</p>
+  <p style="font-size:11px;color:#9CA3AF;margin:12px 0 0 0;">These are illustrative estimates based on your business data and the assumptions shown, not predictions or guarantees of income or results. Actual outcomes depend on your execution and factors outside this report. This is market analysis, not financial, legal, or professional advice. You are responsible for your own business decisions. See each action for the math.</p>
 </div>`;
 }
 
@@ -7246,10 +7229,10 @@ function renderActionCard(action) {
     const rows = [
       pf('MEMORY TRIGGER',       deep.memory_trigger,       '#EDE9FE', '#5B21B6'),
       pf('WORD OF MOUTH',        deep.word_of_mouth,        '#DBEAFE', '#1E40AF'),
-      pf('REVENUE DRIVER',       deep.revenue_driver,       '#DCFCE7', '#166534'),
+      pf('REVENUE DRIVER (illustrative)',       deep.revenue_driver,       '#DCFCE7', '#166534'),
       pf('WHY THIS WORKS HERE',  deep.local_logic,          '#FEF3C7', '#92400E'),
       pf('COMPETITOR GAP',       deep.competitor_gap,       '#FFE4E6', '#9F1239'),
-      pf('ROI',                  deep.roi_proof,            '#DCFCE7', '#166534'),
+      pf('ROI (illustrative)',                  deep.roi_proof,            '#DCFCE7', '#166534'),
       pf('WHY NOT ALTERNATIVES', deep.why_not_alternatives, '#F3F4F6', '#374151'),
       pf('NEXT 48 HOURS',        deep.first_48_hours,       '#FFF7ED', '#C2410C'),
       pf('LEAVE BEHIND',         deep.leave_behind,         '#EDE9FE', '#5B21B6'),
@@ -7266,7 +7249,7 @@ function renderActionCard(action) {
   <h3 style="font-size: 16px; font-weight: 600; color: #0F1729; margin: 0 0 12px 0; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;">${title}</h3>
   ${what ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHAT: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${what}</span></div>` : ''}
   ${why ? `<div style="margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #374151;">WHY YOUR BUSINESS: </span><span style="font-size: 14px; color: #374151; line-height: 1.6;">${why}</span></div>` : ''}
-  ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Money estimate: </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
+  ${moneyEst ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; max-width: 100%;"><span style="font-weight: 600; font-size: 13px; color: #166534;">Estimated revenue opportunity (illustrative): </span><span style="font-size: 14px; color: #166534;">${moneyEst}</span></div>` : ''}
   ${metaLine}
   ${psychoDeepBlock}
 </div>`;
@@ -7894,7 +7877,7 @@ function renderRankingEstimate(data, profile) {
   const searchExample = (typeof data.competitor_query === 'string' && data.competitor_query.trim())
     ? data.competitor_query.trim().split(/\s+near\s+/i)[0].trim()
     : bizType.slice(0, 40);
-  const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(searchExample)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get 10 times more clicks than businesses at position 4 or below. This is your estimated position based on your rating and review count compared to local competitors.</p>`;
+  const explanationHtml = `<p style="font-size: 14px; line-height: 1.7; color: #1E293B; margin: 0 0 14px;">When a customer searches "<strong>${escapeHtml(searchExample)} in ${escapeHtml(cityLabel)}</strong>" Google shows businesses with the most reviews and highest ratings first. Businesses at position 1 get roughly 5 times the clicks of businesses at position 4 (<a href="https://firstpagesage.com/reports/google-click-through-rates-ctrs-by-ranking-position/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">source: First Page Sage</a>). This is your estimated position based on your rating and review count compared to local competitors.</p>`;
 
   // Note shown when the subject has no reviews - explains why they
   // appear at the bottom and motivates the first review action.
@@ -8499,7 +8482,7 @@ function renderKeyRisks(risks) {
     ${r.description ? `<p style="font-size: 14px; color: #374151; margin-bottom: 12px; line-height: 1.6;">${escapeHtml(r.description)}</p>` : ''}
     ${r.early_warning_sign ? `<div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400E;">&#9889; Early warning sign:</strong> <span style="color: #374151;">${escapeHtml(r.early_warning_sign)}</span></div>` : ''}
     ${r.mitigation ? `<div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #065F46;">&#9989; Mitigation:</strong> <span style="color: #374151;">${escapeHtml(r.mitigation)}</span></div>` : ''}
-    ${r.cost_if_ignored ? `<div style="font-size: 13px; color: #6B7280;"><strong>Cost if ignored:</strong> ${escapeHtml(r.cost_if_ignored)}</div>` : ''}
+    ${r.cost_if_ignored ? `<div style="font-size: 13px; color: #6B7280;"><strong>Estimated impact (illustrative):</strong> ${escapeHtml(r.cost_if_ignored)}</div>` : ''}
   </div>`;
   }).join('');
 
@@ -8590,7 +8573,7 @@ function renderRec3Layer(t, idx, data, studies, extraTags = [], enrichedRec = nu
     if (enrichedRec.money_estimate && enrichedRec.money_estimate.show !== false && enrichedRec.money_estimate.range) {
       const m = enrichedRec.money_estimate;
       moneyHtml = `<div class="money">
-<strong>Money estimate: ${escapeHtml(m.range)}</strong><br>
+<strong>Estimated revenue opportunity (illustrative): ${escapeHtml(m.range)}</strong><br>
 ${m.math ? `<span class="meta">Math: ${escapeHtml(m.math)}</span><br>` : ''}
 ${m.caveat ? `<em class="meta">${escapeHtml(m.caveat)}</em>` : ''}
 </div>`;
