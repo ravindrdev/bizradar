@@ -3672,7 +3672,16 @@ function deepCleanDashes(value) {
 // Google Fonts. Card chrome (white surface + subtle border + blue
 // left-accent on .rec / emerald on .opportunity / navy on .mkt-card).
 const PAGE_OPEN = `<!doctype html>
-<html><head><meta charset="utf-8"><title>GrowthIM report</title>
+<html><head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-34WP6L6123"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-34WP6L6123');
+</script>
+<meta charset="utf-8"><title>GrowthIM report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
