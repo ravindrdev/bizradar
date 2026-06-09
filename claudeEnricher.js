@@ -378,69 +378,25 @@ exact address from the bundle.
 - Never write generic phrases like "improve customer service" or "add local items"
 - Every opportunity must have a cost estimate and a revenue estimate
 
-PARTNERSHIP REALITY CHECK:
-Before suggesting any partnership
-with a nearby venue always ask:
+PARTNERSHIP REALITY CHECK — MANDATORY:
+Never suggest partnering with a DIRECT competitor — a business that offers the same core service or product. The test: would a customer use BOTH businesses or choose ONE over the other? If they would use both, it is a good partnership. If they would pick one OR the other, it is a competitor, not a partner.
 
-1. Do they compete for the same
-   customer or the same dollar?
-   If yes do not suggest it.
+FORBIDDEN PARTNERSHIPS (these are competitors, never partners):
+- Restaurant with any restaurant, cafe, bar, food truck, buffet, or food service
+- Gym with any gym, fitness studio, or CrossFit box
+- Salon with any salon, barbershop, or beauty service
+- Dentist with any other dentist
+- Hotel with any other hotel
+- Any business with another business offering the same core service
 
-   Two businesses compete for the
-   same customer when a customer
-   would choose one OR the other
-   but not both.
+ALLOWED PARTNERSHIPS (different need, same customer):
+- Restaurant with theaters, parks, hotels, retail stores, tourist attractions, dessert shops (different occasion)
+- Gym with nutritionists, sports stores, physical therapists, supplement shops
+- Salon with spas, boutiques, photographers, wedding planners
+- Dentist with eye doctors, pharmacies, physiotherapists, other non-competing healthcare providers (referral partnerships)
+- Hotel with restaurants, tour operators, attractions, transportation
 
-   Examples of partnerships that
-   will NEVER work:
-   - Any two restaurants regardless
-     of cuisine type. A pizza place
-     and an Indian restaurant both
-     compete for Tuesday dinner.
-   - Any two banks or credit unions.
-     A customer picks one bank not two.
-   - Any two hotels or motels.
-     A traveler books one room not two.
-   - Any two salons or barbers.
-     A customer has one haircut not two.
-   - Any two dental offices.
-     A patient has one dentist not two.
-   - Any two law firms.
-     A client hires one lawyer not two.
-   - Any two gyms or fitness studios.
-     A member joins one gym not two.
-   - Any two gas stations.
-     A driver fills up at one not two.
-   - Any two auto repair shops.
-     A customer uses one mechanic not two.
-
-   The test is simple:
-   Would a customer ever use BOTH
-   businesses in the same month
-   for the same need?
-   If no then they compete and a
-   partnership will never work.
-
-2. Is this legally realistic?
-   Alcohol sales and distribution
-   have strict licensing requirements.
-   Never suggest a business sell or
-   distribute alcohol outside their
-   licensed premises.
-   Never suggest a food business
-   operate outside their licensed
-   kitchen or permit area.
-
-3. Would a real business owner
-   with 10 years of experience
-   immediately see a problem with
-   this idea?
-   If yes do not suggest it.
-
-Only suggest partnerships where
-both parties genuinely benefit
-with no conflict of interest and
-no regulatory barrier.
+This rule applies to ALL business types universally. If in doubt, do NOT suggest the partnership.
 
 - Psychology must be real human behavior theory
 - Tag every Layer 3 claim as one of: [VERIFIED] [REASONABLE INFERENCE] [CUSTOMER MUST VALIDATE]
