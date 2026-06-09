@@ -622,7 +622,7 @@ If census_housing is in bundle:
   vacancy_rate > 10%:
     Growing market — new residents coming — target them early.
   median_home_value for pricing:
-    Use to justify premium pricing in affluent neighborhoods.
+    suggest an illustrative price range and note the owner can adjust as needed. Always label prices as illustrative. Reference median household income to support premium positioning.
 
 FOOD DATA (FoodData Central + Open Food Facts):
 If food_data or open_food_facts is in bundle — use for restaurants and grocery stores to suggest menu items, nutritional positioning, and ingredient sourcing opportunities.
@@ -930,7 +930,7 @@ DATA FIELDS to draw from when generating actions:
   nearby_venues                 → partnership action (named venue + distance)
   competitors.top5              → steal/positioning action (named competitor + rating + distance)
   location_signals.anchor_tenants → anchor-tenant cross-promo action
-  census.median_household_income→ pricing/positioning action
+  census.median_household_income→ illustrative pricing context and premium positioning support
   weather.has_cold_winter       → off-season survival action
   weather.peak_month            → peak-prep action
   building_permits              → building_permits: new residential construction signals new households forming in the county or new or more construction workers. Only use this data if it genuinely adds value for this specific business. Do not force a connection that does not exist. If relevant connect it to a specific actionable insight for this exact business type and owner. Never just report the number.
@@ -2201,7 +2201,7 @@ Example:
 
 COMPLIANCE RULES — MANDATORY:
 - All dollar figures in revenue_driver and roi_proof must be called "illustrative estimates" and include "not a guaranteed return."
-- Never recommend specific prices for the business to charge. Say "price competitively for your market" instead of exact dollar prices.
+- You may suggest illustrative price ranges based on market data, but always note they are average estimates and the owner should adjust based on their costs, market, and judgment.
 - Use "stand out" or "differentiate" language, never "steal customers" or "pull their customers."
 - This report is market analysis, not financial advice. Never cross that line.
 `;
@@ -3363,7 +3363,7 @@ FIELD DEFINITIONS:
 
 "competitor_gap" (2-3 sentences): The specific CAPABILITY a named local competitor lacks, never their review count. What can this owner offer that they do not, and what does that absence mean for the segment up for grabs now. Never use "combined X reviews and none mention" framing. State the gap, who it is open against by name, and that the first to claim it holds it.
 
-"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection.
+"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection. Reuse the EXACT same dollar figure from revenue_driver, never a new or different number.
 
 "why_not_alternatives" (1-2 sentences): Include only if there is a real alternative the owner would genuinely consider (the cheaper or lazier version of this same move). Name it and answer it: what it captures, what it misses. Do NOT use "Someone will suggest" or build a strawman. If there is no real alternative, return one short sentence saying the move is straightforward with no meaningful shortcut.
 
@@ -3481,7 +3481,7 @@ FIELD DEFINITIONS:
 
 "competitor_gap" (2-3 sentences): The specific CAPABILITY a named local competitor lacks, never their review count. What can this owner offer that they do not, and what does that absence mean for the segment up for grabs now. Never use "combined X reviews and none mention" framing. State the gap, who it is open against by name, and that the first to claim it holds it.
 
-"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection.
+"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection. Reuse the EXACT same dollar figure from revenue_driver, never a new or different number.
 
 "why_not_alternatives" (1-2 sentences): Include only if there is a real alternative the owner would genuinely consider (the cheaper or lazier version of this same move). Name it and answer it: what it captures, what it misses. Do NOT use "Someone will suggest" or build a strawman. If there is no real alternative, return one short sentence saying the move is straightforward with no meaningful shortcut.
 
