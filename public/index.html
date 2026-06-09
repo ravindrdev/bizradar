@@ -93,7 +93,7 @@
     /* ── Mode cards (overlap hero/main boundary) ───────────────────── */
     .lp-modes {
       max-width: 900px; margin: -48px auto 0; padding: 0 24px;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 410px)); gap: 16px; justify-content: center;
       position: relative; z-index: 2;
     }
     .lp-card {
@@ -446,7 +446,7 @@
   <div class="lp-hero">
     <h1>Know your market. <span class="accent">Own your city.</span></h1>
     <p class="tagline">Real data → ranked actions.</p>
-    <p class="body">GrowthIM analyzes real data from Google, Census, and BLS to tell you exactly what your business should do next, or what business to start.</p>
+    <p class="body">GrowthIM analyzes real data from Google, Census, BLS, and 20+ verified APIs and data sources to help you understand your market and make informed decisions.</p>
   </div>
 
   <div class="lp-modes" role="tablist" aria-label="Mode">
@@ -1155,13 +1155,9 @@
             document.getElementById('term-eta').textContent = 'waiting in queue';
             queueBannerEl.hidden = false;
           }
-          // Refresh each poll - the position can advance as others finish.
-          const pos = sjson.queuePosition;
-          const mins = sjson.estimatedWaitMinutes;
+          // Static queue message — no dynamic position/wait estimate.
           queueBannerEl.innerHTML =
-            'You&rsquo;re #' + pos + ' in line - estimated wait about ' + mins +
-            ' minutes. You can close this page and come back; your report will be ' +
-            'in your dashboard when it&rsquo;s ready.';
+            "You're in the queue! We received more demand than expected and our servers are generating reports one at a time to ensure quality. This can take up to 15 minutes to 2 hours 30 minutes. You can close this browser and come back later. Your completed report will be in your dashboard.";
         } else if (queuedState) {
           // Just flipped from queued -> running. Hide the queue banner,
           // restore the live-progress bits, and reset the ETA timer so the
@@ -1180,7 +1176,7 @@
         // ── Resume mode: override message based on queue status ──
         if (resumeJobId && sjson.status === 'processing') {
           var resumeText = sjson.queued
-            ? "You're in the queue. You can close this browser. Your report will appear in your dashboard when it's ready."
+            ? "You're in the queue! We received more demand than expected and our servers are generating reports one at a time to ensure quality. This can take up to 15 minutes to 2 hours 30 minutes. You can close this browser and come back later. Your completed report will be in your dashboard."
             : "Your report is being generated. You can close this browser. Your report will appear in your dashboard when it's ready.";
           var rmEl2 = document.getElementById('term-current-message');
           if (rmEl2) rmEl2.textContent = resumeText;

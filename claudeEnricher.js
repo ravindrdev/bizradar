@@ -738,7 +738,7 @@ OUTPUT FORMAT:
           "your_opportunity": "exact way to exploit this gap"
         }
       ],
-      "steal_their_customers": "ONE specific paragraph (max 80 words): based on their weaknesses, what exact MESSAGE and CHANNEL would pull their unhappy customers to you this week"
+      "steal_their_customers": "ONE specific paragraph (max 80 words): based on their weaknesses, what exact MESSAGE and CHANNEL would help you stand out and attract customers looking for alternatives this week"
     }
   ],
   "outperformed_competitors": [
@@ -2197,7 +2197,14 @@ STRICT RULES for psychology field:
 - Write like explaining to a friend
 
 Example:
-"Customers remember where they took a photo more than what they ate. Every photo shared reaches 5-10 new people for free. Taking a photo creates emotional engagement which makes a review 3 times more likely. You invest once and it keeps working."`;
+"Customers remember where they took a photo more than what they ate. Every photo shared reaches 5-10 new people for free. Taking a photo creates emotional engagement which makes a review 3 times more likely. You invest once and it keeps working."
+
+COMPLIANCE RULES — MANDATORY:
+- All dollar figures in revenue_driver and roi_proof must be called "illustrative estimates" and include "not a guaranteed return."
+- Never recommend specific prices for the business to charge. Say "price competitively for your market" instead of exact dollar prices.
+- Use "stand out" or "differentiate" language, never "steal customers" or "pull their customers."
+- This report is market analysis, not financial advice. Never cross that line.
+`;
 
 // ───────────────────────────────────────────────────────────────────
 // Address parsing - extract city/state/zip from Google's formatted_address
@@ -3350,13 +3357,13 @@ FIELD DEFINITIONS:
 
 "word_of_mouth" (1-3 sentences): If this move gives customers a real reason to tell others, say what the reason is and why it travels, in plain words. Do NOT write an imagined customer quote. Do NOT use "that sentence gets said at" or name a dinner party, work lunch, group chat, or subreddit. If there is no natural reason to share it, say plainly the value is direct revenue and keep it to one line.
 
-"revenue_driver" (2-4 sentences): Lead with the wealth lever from the list above (margin, pricing power, ticket size, repeat/recurring, capacity, higher-value segment). Then give the math using the headline dollar figure already provided on this item's input line (it appears as money= or revenue= on the line): state that range once, with the single assumption behind it (units x price x periods). Do NOT compute or state a different total than that figure. Make clear why this profit is more durable or higher-margin than what the owner does today.
+"revenue_driver" (2-4 sentences): Lead with the business value. Give the math using the headline dollar figure. Always call dollar figures an 'illustrative estimate.' Always include the sentence: 'This is an estimate based on assumptions, not a guaranteed return.' Keep detailed analysis and real market insights.
 
 "local_logic" (2-3 sentences): Why this works in THIS location: the geographic or demographic fact that creates the demand, using only figures and distances from the bundle (income, the named anchor and its exact distance, permits, employment). Do NOT use review counts here. Make it impossible to mistake for another city.
 
 "competitor_gap" (2-3 sentences): The specific CAPABILITY a named local competitor lacks, never their review count. What can this owner offer that they do not, and what does that absence mean for the segment up for grabs now. Never use "combined X reviews and none mention" framing. State the gap, who it is open against by name, and that the first to claim it holds it.
 
-"roi_proof" (2-3 sentences): Cost in, return out, plain math. State the cost once. For the return, reuse the EXACT same dollar figure from revenue_driver, never a new or different number. Give payback in concrete terms (pays for itself on the Nth sale or booking). No second revenue figure anywhere.
+"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection.
 
 "why_not_alternatives" (1-2 sentences): Include only if there is a real alternative the owner would genuinely consider (the cheaper or lazier version of this same move). Name it and answer it: what it captures, what it misses. Do NOT use "Someone will suggest" or build a strawman. If there is no real alternative, return one short sentence saying the move is straightforward with no meaningful shortcut.
 
@@ -3468,13 +3475,13 @@ FIELD DEFINITIONS:
 
 "word_of_mouth" (1-3 sentences): If this move gives customers a real reason to tell others, say what the reason is and why it travels, in plain words. Do NOT write an imagined customer quote. Do NOT use "that sentence gets said at" or name a dinner party, work lunch, group chat, or subreddit. If there is no natural reason to share it, say plainly the value is direct revenue and keep it to one line.
 
-"revenue_driver" (2-4 sentences): Lead with the wealth lever from the list above (margin, pricing power, ticket size, repeat/recurring, capacity, higher-value segment). Then give the math using the headline dollar figure already provided on this item's input line (it appears as money= or revenue= on the line): state that range once, with the single assumption behind it (units x price x periods). Do NOT compute or state a different total than that figure. Make clear why this profit is more durable or higher-margin than what the owner does today.
+"revenue_driver" (2-4 sentences): Lead with the business value. Give the math using the headline dollar figure. Always call dollar figures an 'illustrative estimate.' Always include the sentence: 'This is an estimate based on assumptions, not a guaranteed return.' Keep detailed analysis and real market insights.
 
 "local_logic" (2-3 sentences): Why this works in THIS location: the geographic or demographic fact that creates the demand, using only figures and distances from the bundle (income, the named anchor and its exact distance, permits, employment). Do NOT use review counts here. Make it impossible to mistake for another city.
 
 "competitor_gap" (2-3 sentences): The specific CAPABILITY a named local competitor lacks, never their review count. What can this owner offer that they do not, and what does that absence mean for the segment up for grabs now. Never use "combined X reviews and none mention" framing. State the gap, who it is open against by name, and that the first to claim it holds it.
 
-"roi_proof" (2-3 sentences): Cost in, return out, plain math. State the cost once. For the return, reuse the EXACT same dollar figure from revenue_driver, never a new or different number. Give payback in concrete terms (pays for itself on the Nth sale or booking). No second revenue figure anywhere.
+"roi_proof" (2-3 sentences): Cost in, return out, plain math. Always frame the return as an illustrative estimate, not a guaranteed outcome. Always include: 'This is an estimate, not a guarantee.' Keep the cost-benefit reasoning but never present as a financial projection.
 
 "why_not_alternatives" (1-2 sentences): Include only if there is a real alternative the owner would genuinely consider (the cheaper or lazier version of this same move). Name it and answer it: what it captures, what it misses. Do NOT use "Someone will suggest" or build a strawman. If there is no real alternative, return one short sentence saying the move is straightforward with no meaningful shortcut.
 

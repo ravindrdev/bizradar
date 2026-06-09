@@ -182,7 +182,7 @@ const reportLimiter = rateLimit({
 // run as multiple instances, the cap is per-instance.
 // (Deliberately NOT the p-limit package: p-limit v4+ is ESM-only and would
 //  break `require` in this CommonJS project.)
-const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) || 5;
+const MAX_CONCURRENT_REPORTS = parseInt(process.env.MAX_CONCURRENT_REPORTS, 10) || 1;
 // Rough average pipeline runtime, used ONLY to estimate the wait time shown
 // to queued users. Approximate by design - a fixed figure, not measured.
 const AVG_REPORT_MINUTES = 12;
@@ -192,7 +192,7 @@ const reportQueue = [];
 // MAX_CONCURRENT_REPORTS running ones. Past that (5 running + 5 waiting = 10),
 // the gate is full and new requests are turned away with BUSY_MESSAGE (503)
 // BEFORE any job is created or response closed.
-const MAX_QUEUE = parseInt(process.env.MAX_QUEUE, 10) || 5;
+const MAX_QUEUE = parseInt(process.env.MAX_QUEUE, 10) || 12;
 const BUSY_MESSAGE = 'We are getting far more customers than we expected right now, and all of our servers are completely full. Please try again in a few minutes.';
 // PDF generation launches headless Chromium per request (memory-heavy) and is
 // NOT behind reportGate. Cap concurrent PDF renders so a burst of downloads
@@ -5964,7 +5964,7 @@ ${fmrBlock}`;
         : '';
       let warningMsg = '';
       if (sc < 50) {
-        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business. A 1-second improvement increases conversions by 27% on average.</div>`;
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business.<br><br><strong>Milliseconds Make Millions.</strong> That is the title of a landmark study commissioned by Google and conducted by Deloitte Digital and fifty-five, based on 30 million user sessions across 37 brands. Their finding: even a 0.1-second improvement in load time increased conversions by 8.4% in retail and 10.1% in travel (<a href="https://www.deloitte.com/ie/en/services/consulting/research/milliseconds-make-millions.html" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Deloitte, Milliseconds Make Millions</a>).<br><br>When a customer searches for you on their phone, they are ready to act: check your hours, see your menu, book an appointment. If your site takes more than 3 seconds, 53% of them will leave and pick the next business in the results (<a href="https://www.thinkwithgoogle.com/consumer-insights/consumer-trends/mobile-site-load-time-statistics/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Google</a>). They will not wait. A 1-second delay alone costs 7% in lost conversions, 11% fewer page views, and 16% lower customer satisfaction (<a href="https://www.aberdeen.com/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Aberdeen Group</a>). Pages that load just 1 second faster see up to 27% more conversions (<a href="https://www.thinkwithgoogle.com/_qs/documents/4290/c676a_Google_MobileSiteSpeed_Playbook_v2.1_digital_4JWkGQT.pdf" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">SOASTA/Google Mobile Speed Playbook</a>).<br><br>Every extra second of loading is a customer choosing your competitor instead of you.</div>`;
       } else if (sc < 90) {
         warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:12.5px;color:#92400E;line-height:1.6;">Your website loads in the amber zone. More than half your mobile visitors are likely leaving before reading a single word. Every second faster doubles your chance of keeping them.</div>`;
       }
@@ -6322,7 +6322,7 @@ ${cards}`;
           opf('REVENUE DRIVER (illustrative)',       oDeep.revenue_driver,       '#DCFCE7', '#166534'),
           opf('WHY THIS WORKS HERE',  oDeep.local_logic,          '#FEF3C7', '#92400E'),
           opf('COMPETITOR GAP',       oDeep.competitor_gap,       '#FFE4E6', '#9F1239'),
-          opf('ROI (illustrative)',                  oDeep.roi_proof,            '#DCFCE7', '#166534'),
+          opf('Why this is worth doing (illustrative)',                  oDeep.roi_proof,            '#DCFCE7', '#166534'),
           opf('WHY NOT ALTERNATIVES', oDeep.why_not_alternatives, '#F3F4F6', '#374151'),
           opf('NEXT 48 HOURS',        oDeep.first_48_hours,       '#FFF7ED', '#C2410C'),
           opf('LEAVE BEHIND',         oDeep.leave_behind,         '#EDE9FE', '#5B21B6'),
@@ -7170,8 +7170,9 @@ function renderROISummary(actions) {
     // the bug that 12×'d a yearly figure whenever a stray "/month" appeared).
     if (/\/\s?month|per month/i.test(revPart)) { low *= 12; high *= 12; }
     rows.push({ title: a.title || 'Action', est });
-    totalLow += low;
-    totalHigh += high;
+    // UNUSED: annual total row removed
+    // totalLow += low;
+    // totalHigh += high;
   }
 
   if (rows.length === 0) return '';
@@ -7180,9 +7181,10 @@ function renderROISummary(actions) {
   const suffix = '/year';
 
   const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
-  const totalRange = totalLow === totalHigh
-    ? `${fmt(totalLow)}${suffix}`
-    : `${fmt(totalLow)} - ${fmt(totalHigh)}${suffix}`;
+  // UNUSED: annual total row removed
+  // const totalRange = totalLow === totalHigh
+  //   ? `${fmt(totalLow)}${suffix}`
+  //   : `${fmt(totalLow)} - ${fmt(totalHigh)}${suffix}`;
 
   const rowsHtml = rows.map((r) => `<tr>
       <td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #F1F5F9;line-height:1.4;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;max-width:0;">${escapeHtml(r.title)}</td>
@@ -7191,13 +7193,9 @@ function renderROISummary(actions) {
 
   return `<div style="background:#FFFFFF;border:1px solid #D1FAE5;border-radius:10px;padding:20px 24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
   <div style="font-size:17px;font-weight:700;color:#0F1729;margin-bottom:4px;">Estimated revenue summary (illustrative)</div>
-  <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Combined total of the illustrative estimates from each action below. Not a forecast.</div>
+  <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Illustrative estimates for each action below. Not a forecast.</div>
   <table style="width:100%;border-collapse:collapse;">
     ${rowsHtml}
-    <tr style="border-top:2px solid #D1FAE5;">
-      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#065F46;">Estimated annual total (illustrative)</td>
-      <td style="padding:12px 14px;font-size:17px;font-weight:700;color:#166534;text-align:right;white-space:nowrap;">${escapeHtml(totalRange)}</td>
-    </tr>
   </table>
   <p style="font-size:11px;color:#9CA3AF;margin:12px 0 0 0;">These are illustrative estimates based on your business data and the assumptions shown, not predictions or guarantees of income or results. Actual outcomes depend on your execution and factors outside this report. This is market analysis, not financial, legal, or professional advice. You are responsible for your own business decisions. See each action for the math.</p>
 </div>`;
@@ -7241,7 +7239,7 @@ function renderActionCard(action) {
       pf('REVENUE DRIVER (illustrative)',       deep.revenue_driver,       '#DCFCE7', '#166534'),
       pf('WHY THIS WORKS HERE',  deep.local_logic,          '#FEF3C7', '#92400E'),
       pf('COMPETITOR GAP',       deep.competitor_gap,       '#FFE4E6', '#9F1239'),
-      pf('ROI (illustrative)',                  deep.roi_proof,            '#DCFCE7', '#166534'),
+      pf('Why this is worth doing (illustrative)',                  deep.roi_proof,            '#DCFCE7', '#166534'),
       pf('WHY NOT ALTERNATIVES', deep.why_not_alternatives, '#F3F4F6', '#374151'),
       pf('NEXT 48 HOURS',        deep.first_48_hours,       '#FFF7ED', '#C2410C'),
       pf('LEAVE BEHIND',         deep.leave_behind,         '#EDE9FE', '#5B21B6'),
@@ -8407,7 +8405,7 @@ ${weak.map((w) => `<div style="border-left: 3px solid #6EE7B7; padding: 12px 16p
 
   const stealHtml = steal
     ? `<div style="background: #0F1729; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
-  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to pull their customers</div>
+  <div style="font-weight: 600; color: #10B981; margin-bottom: 8px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">&#127919; How to stand out against them</div>
   <div style="font-size: 14px; line-height: 1.7; color: #E5E7EB;">${escapeHtml(steal)}</div>
 </div>`
     : '';
