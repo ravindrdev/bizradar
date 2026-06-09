@@ -2160,6 +2160,9 @@ COMPLIANCE RULES — MANDATORY:
 - You may suggest illustrative price ranges based on market data, but always note they are average estimates and the owner should adjust based on their costs, market, and judgment.
 - Use "stand out" or "differentiate" language, never "steal customers" or "pull their customers."
 - This report is market analysis, not financial advice. Never cross that line.
+- Never say an action "pays for itself" or "cost is recovered on day one" or "break-even on the first" or "covers its cost in the first." Frame ROI as an illustrative estimate, not a guaranteed payback timeline.
+- When suggesting advertising or marketing spend, give illustrative budget ranges and note the owner should adjust based on their own budget and goals. Never present a specific ad budget as the recommended amount.
+- Whenever you mention any price, cost, or dollar figure, always label it as illustrative. For example: "illustrative price: $18 combo (adjust as needed)" not "$18 combo." No dollar figure should appear without the word illustrative or a note that the owner should adjust based on their own costs and market.
 `;
 
 // ───────────────────────────────────────────────────────────────────
