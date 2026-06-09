@@ -4753,7 +4753,7 @@ function renderMarketCharts(data, profile, displayName) {
     if (!c) return;
     var w = c.parentElement;
     if (!w) return;
-    w.innerHTML = '<div class="gim-chart-na">Data not available for this business type</div>';
+    w.innerHTML = '<div class="gim-chart-na">Data not available for your business</div>';
   }
 
   function truncName(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
