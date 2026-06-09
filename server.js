@@ -5945,6 +5945,10 @@ ${fmrBlock}`;
 
     // (2) Subject section
     const bizName = escapeHtml(data.name || data.business_name || 'Your Business');
+    // Speed research citations — rendered on EVERY report (appended after the if/else
+    // below), independent of score state (no website / slow / amber / good / timed out).
+    // Neutral styling (not the red critical box) since it now shows on all reports.
+    const speedResearchHtml = `<div style="margin-top:16px;padding:14px 16px;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:8px;font-size:12.5px;color:#475569;line-height:1.6;"><strong>Milliseconds Make Millions.</strong> That is the title of a landmark study commissioned by Google and conducted by Deloitte Digital and fifty-five, based on 30 million user sessions across 37 brands. Their finding: even a 0.1-second improvement in load time increased conversions by 8.4% in retail and 10.1% in travel (<a href="https://www.deloitte.com/ie/en/services/consulting/research/milliseconds-make-millions.html" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Deloitte, Milliseconds Make Millions</a>).<br><br>When a customer searches for you on their phone, they are ready to act: check your hours, see your menu, book an appointment. If your site takes more than 3 seconds, 53% of them will leave and pick the next business in the results (<a href="https://www.thinkwithgoogle.com/consumer-insights/consumer-trends/mobile-site-load-time-statistics/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Google</a>). They will not wait. A 1-second delay alone costs 7% in lost conversions, 11% fewer page views, and 16% lower customer satisfaction (<a href="https://www.aberdeen.com/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Aberdeen Group</a>). Pages that load just 1 second faster see up to 27% more conversions (<a href="https://www.thinkwithgoogle.com/_qs/documents/4290/c676a_Google_MobileSiteSpeed_Playbook_v2.1_digital_4JWkGQT.pdf" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">SOASTA/Google Mobile Speed Playbook</a>).<br><br>Every extra second of loading is a customer choosing your competitor instead of you.</div>`;
     let subjectHtml = '';
     if (data.website_url == null) {
       // No website at all - card with psychology line + existing callout
@@ -5964,7 +5968,7 @@ ${fmrBlock}`;
         : '';
       let warningMsg = '';
       if (sc < 50) {
-        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business.<br><br><strong>Milliseconds Make Millions.</strong> That is the title of a landmark study commissioned by Google and conducted by Deloitte Digital and fifty-five, based on 30 million user sessions across 37 brands. Their finding: even a 0.1-second improvement in load time increased conversions by 8.4% in retail and 10.1% in travel (<a href="https://www.deloitte.com/ie/en/services/consulting/research/milliseconds-make-millions.html" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Deloitte, Milliseconds Make Millions</a>).<br><br>When a customer searches for you on their phone, they are ready to act: check your hours, see your menu, book an appointment. If your site takes more than 3 seconds, 53% of them will leave and pick the next business in the results (<a href="https://www.thinkwithgoogle.com/consumer-insights/consumer-trends/mobile-site-load-time-statistics/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Google</a>). They will not wait. A 1-second delay alone costs 7% in lost conversions, 11% fewer page views, and 16% lower customer satisfaction (<a href="https://www.aberdeen.com/" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">Aberdeen Group</a>). Pages that load just 1 second faster see up to 27% more conversions (<a href="https://www.thinkwithgoogle.com/_qs/documents/4290/c676a_Google_MobileSiteSpeed_Playbook_v2.1_digital_4JWkGQT.pdf" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;">SOASTA/Google Mobile Speed Playbook</a>).<br><br>Every extra second of loading is a customer choosing your competitor instead of you.</div>`;
+        warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border-left:3px solid #EF4444;border-radius:0 6px 6px 0;font-size:12.5px;color:#7F1D1D;line-height:1.6;">Your website is critically slow. You are losing most visitors before they see anything about your business.</div>`;
       } else if (sc < 90) {
         warningMsg = `<div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;font-size:12.5px;color:#92400E;line-height:1.6;">Your website loads in the amber zone. More than half your mobile visitors are likely leaving before reading a single word. Every second faster doubles your chance of keeping them.</div>`;
       }
@@ -5988,6 +5992,9 @@ ${fmrBlock}`;
         `</div></div></div>`;
     }
 
+    // Always-on speed research — appended regardless of which branch above ran.
+    subjectHtml += speedResearchHtml;
+
     // (3) Competitor speed table
     const compPsList = Array.isArray(data.competitors_top5_pagespeed) ? data.competitors_top5_pagespeed : [];
     let compTableHtml = '';
@@ -6002,7 +6009,7 @@ ${fmrBlock}`;
             : 'Real-time · Google PageSpeed';
           scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><span style="font-size:20px;font-weight:800;color:${cc};">${c.mobile_score}</span><br><span style="font-size:11px;font-weight:600;color:${cc};">${escapeHtml(speedLabel)}</span><br><span style="font-size:10px;color:#9CA3AF;">${sourceNote}</span></td>`;
         } else if (c.website) {
-          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><div style="font-size:13px;font-weight:600;color:#9CA3AF;">Protected</div><div style="font-size:10px;color:#D1D5DB;margin-top:2px;">Bot shield active</div></td>`;
+          scoreCell = `<td style="padding:8px 12px;text-align:center;vertical-align:middle;"><div style="font-size:13px;font-weight:600;color:#9CA3AF;">Speed test blocked</div><div style="font-size:10px;color:#D1D5DB;margin-top:2px;">This website restricts automated access</div></td>`;
         } else {
           scoreCell = `<td style="padding:8px 12px;text-align:center;font-size:12px;color:#9CA3AF;vertical-align:middle;">No website</td>`;
         }
