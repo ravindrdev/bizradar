@@ -1217,6 +1217,46 @@ profileResolver.load();
     } catch (recErr) {
       console.error('[startup] orphaned-job reconciliation failed:', recErr.message);
     }
+
+    // ── Startup recovery: stranded PAID jobs ────────────────────────────
+    // The waiting line (reportQueue) is in-memory, so a restart/deploy wipes
+    // it, and the reconciliation above flips the stranded jobs to 'error' -
+    // including PAID ones. Without this block those customers stay charged,
+    // see "please try again", and nobody is alerted. Re-run every job whose
+    // payment is 'paid' but whose job died with no report: reportGate
+    // re-queues them (1 runs, the rest wait) and startPaidReport's own
+    // retry / flag / admin-notify logic still applies on top. Jobs already
+    // flagged needs_manual_redelivery are excluded (pp.status != 'paid').
+    try {
+      const stranded = await pool.query(
+        `SELECT pp.job_id, pp.user_id, pp.report_type, pp.params
+           FROM pending_payments pp
+           JOIN jobs j ON j.job_id = pp.job_id
+          WHERE pp.status = 'paid'
+            AND j.status = 'error'
+            AND j.report_id IS NULL`
+      );
+      console.log(`[startup] paid-job recovery: ${stranded.rowCount} stranded paid job(s) found`);
+      for (const row of stranded.rows) {
+        try {
+          const params = (typeof row.params === 'string') ? JSON.parse(row.params) : (row.params || {});
+          await pool.query(
+            `UPDATE jobs SET status = 'processing', error = NULL, updated_at = NOW() WHERE job_id = $1`,
+            [row.job_id]
+          );
+          console.log(`[startup] re-running stranded paid job ${row.job_id} (${row.report_type})`);
+          startPaidReport(row.job_id, row.user_id, row.report_type, params);
+        } catch (rowErr) {
+          // Can't re-run this one (e.g. unparseable params) - flag for a
+          // human + alert so the customer is never silently stranded.
+          console.error(`[startup] paid-job recovery failed for ${row.job_id}:`, rowErr.message);
+          await pool.query(`UPDATE pending_payments SET status = 'needs_manual_redelivery', updated_at = NOW() WHERE job_id = $1`, [row.job_id]).catch(() => {});
+          notifyAdminPartial(row.job_id, row.user_id, row.report_type, null).catch(() => {});
+        }
+      }
+    } catch (recoverErr) {
+      console.error('[startup] paid-job recovery scan failed:', recoverErr.message);
+    }
   } catch (err) {
     console.error('[jobs] table create failed:', err.message);
   }

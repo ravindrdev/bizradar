@@ -689,19 +689,17 @@ a { color: var(--blue); text-decoration: none; }
     const date = fmtFullDate(j.created_at);
     if (j.status === 'processing') {
       // Real status from /api/dashboard: queued behind the concurrency cap
-      // (position + rough wait) vs actually generating (rough time remaining).
+      // vs actually generating. Reassurance text only — no countdowns or
+      // time-remaining estimates.
       var sub, pill, pillClass;
       if (j.queued === true) {
-        var qmins = (typeof j.estimatedWaitMinutes === 'number') ? j.estimatedWaitMinutes : null;
-        sub = 'Queued &mdash; #' + (j.queuePosition || 1) + ' in line'
-            + (qmins != null ? ' &middot; ~' + qmins + ' min' : '')
-            + ' &middot; you can leave and come back.';
+        var qpos = (typeof j.queuePosition === 'number' && j.queuePosition > 0) ? j.queuePosition : null;
+        sub = (qpos ? 'You are #' + qpos + ' in queue. ' : 'You are in queue. ')
+            + 'We have more customers than expected and our server is busy. We know it&rsquo;s frustrating and we are already on it. You can safely close this tab and come back after some time. Your report will be on your dashboard.';
         pill = 'Queued';
         pillClass = 'queued';
       } else {
-        var rmins = (typeof j.minutesRemaining === 'number') ? j.minutesRemaining : null;
-        sub = 'Generating&hellip;' + (rmins != null ? ' &middot; ~' + rmins + ' min remaining' : '')
-            + ' &middot; you can leave and come back.';
+        sub = 'Your report is being generated. On average it takes about 15 minutes, but in rare cases it may take longer. You can safely close this tab and come back, it will be in your dashboard.';
         pill = 'Generating&hellip;';
         pillClass = 'generating';
       }

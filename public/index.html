@@ -232,6 +232,7 @@
       background: rgba(148, 163, 184, 0.16);
       border-radius: 2px; overflow: hidden;
     }
+    .lp-term-progress[hidden] { display: none; }
     .lp-term-progress-bar {
       width: 0%; height: 100%;
       background: #2563EB;
@@ -479,6 +480,9 @@
   </div>
 
   <div class="lp-input-section">
+    <!-- Shown briefly on page load while we check for an active report.
+         Prevents the form from flashing before the progress panel resumes. -->
+    <div id="resume-checking" style="text-align:center;color:#64748B;font-size:14px;padding:18px 0;" hidden>Checking your report status&hellip;</div>
     <!-- MODE 1: Rate my business -->
     <div class="lp-input-card" id="form-rate" role="tabpanel">
       <form id="f-rate" novalidate>
@@ -512,32 +516,18 @@
         <span>⚡ GrowthIM Intelligence Engine</span>
         <span class="lp-term-cursor">▋</span>
       </div>
-      <div class="lp-term-progress">
+      <div class="lp-term-progress" id="term-progress-track" hidden>
         <div class="lp-term-progress-bar" id="term-bar"></div>
       </div>
       <!-- Current step message (live) + step counter -->
-      <div id="term-current-message" style="margin-top:14px;color:#10B981;font-size:13px;min-height:20px">Connecting...</div>
-      <div id="term-step-counter" style="color:#64748B;font-size:11px;margin-top:4px">Step 0 of -</div>
+      <div id="term-current-message" style="margin-top:14px;color:#10B981;font-size:13px;min-height:20px">Your report is being generated. On average it takes about 15 minutes, but in rare cases it may take longer. You can safely close this tab and come back, it will be in your dashboard.</div>
       <!-- Queue banner - shown ONLY while the report is waiting behind the
            concurrency cap. JS fills in queue position + wait estimate and
            hides the live-progress bits above; cleared once the run starts. -->
       <div id="term-queue-banner" style="background:#1E293B;border-left:4px solid #F59E0B;color:#E2E8F0;padding:12px 16px;border-radius:6px;margin-top:12px;font-size:14px;line-height:1.5" hidden></div>
-      <!-- Overtime banner - JS un-hides it when the initial ETA expires. -->
-      <div id="term-overtime-warning" class="lp-term-overtime-warning" hidden>
-        <strong>Still working</strong> - GrowthIM Intelligence Engine is building your report.
-        This usually takes about 3-5 minutes. You don&rsquo;t need to wait here; it will appear in your dashboard as soon as it&rsquo;s done.
-      </div>
-      <!-- Quiet banner - JS un-hides it when the SSE stream goes 30+ seconds silent. -->
-      <div id="term-quiet-warning" class="lp-term-quiet-warning" hidden>
-        GrowthIM Intelligence Engine is doing deep research on your market. This is the most thorough step.
-        This usually takes about 3-5 minutes. You can safely close or leave this page; your report keeps generating and will appear in your dashboard when it&rsquo;s ready.
-      </div>
       <!-- Engine-activated banner - shown when step 16 (pct=48) fires, hidden on completion. -->
       <div id="term-engine-banner" style="display:none; background:#1E3A5F; border-left:4px solid #3B82F6; color:#FFFFFF; padding:12px 16px; border-radius:6px; margin-top:12px; font-size:14px; font-weight:500;">GrowthIM Intelligence Engine activated.</div>
       <div class="lp-term-log" id="term-log"></div>
-      <div class="lp-term-status" id="term-status-row">
-        Estimated time remaining: <span id="term-eta">-</span>
-      </div>
     </div>
   </div>
 
@@ -631,12 +621,12 @@
   function showError(el, msg) { el.textContent = msg; el.hidden = false; }
   function clearError(el)     { el.hidden = true; el.textContent = ''; }
 
-  // ── Honest ETA constants ───────────────────────────────────────────
-  // Initial countdown (in seconds) per mode. Tuned to match observed
-  // wall-clock averages, NOT optimistic best-cases. When the countdown
-  // hits 0 the timer flips to count-up mode with a "Still working"
-  // banner - never an error or timeout message.
-  const INITIAL_ETA_SECONDS = { rate: 900, market: 600 };
+  // ── Static reassurance messages ─────────────────────────────────────
+  // No countdowns, step counters, or time-remaining estimates anywhere.
+  // The progress bar advances on real SSE events; these messages carry
+  // the "your money/report is safe, you can leave" reassurance.
+  const GENERATING_MESSAGE = 'Your report is being generated. On average it takes about 15 minutes, but in rare cases it may take longer. You can safely close this tab and come back, it will be in your dashboard.';
+  const QUEUE_MESSAGE_TAIL = "We have more customers than expected and our server is busy. We know it's frustrating and we are already on it. You can safely close this tab and come back after some time. Your report will be on your dashboard.";
 
   // ── Dodo Payments overlay (only used when window.__PAYMENTS__.enabled) ──
   // Stays on growthim.com; powered entirely by the server-generated
@@ -713,32 +703,19 @@
     const outcome = await openDodoOverlay(json.checkoutUrl);
     return { outcome: outcome, jobId: json.jobId };
   }
-  // After this many ms with no SSE event, the quiet banner appears.
-  // Set to 120s - only fires if genuinely silent for 2 minutes.
-  // Biggest fake-timer gap is 60s so normal steps never trigger it.
-  const QUIET_THRESHOLD_MS = 120000;
-
-  function formatTime(secs) {
-    const s = Math.max(0, Math.floor(secs));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return m + ':' + (r < 10 ? '0' : '') + r;
-  }
-
   function resetTerminal() {
     document.getElementById('term-log').innerHTML = '';
     const bar = document.getElementById('term-bar');
     bar.classList.remove('complete');
-    bar.classList.remove('pulsing');
     bar.style.transition = 'width 0.5s ease, background 200ms ease';
     bar.style.width = '0%';
-    document.getElementById('term-current-message').textContent = 'Connecting...';
-    document.getElementById('term-step-counter').textContent = 'Step 0 of -';
-    document.getElementById('term-eta').textContent = '-';
-    var _statusRow0 = document.getElementById('term-status-row');
-    if (_statusRow0) _statusRow0.hidden = false;
-    document.getElementById('term-overtime-warning').hidden = true;
-    document.getElementById('term-quiet-warning').hidden = true;
+    bar.classList.add('pulsing');
+    // Track stays hidden until the server reports REAL progress (SSE pct > 0)
+    // — no empty 0% bar while queued or just starting. Only the text shows.
+    document.getElementById('term-progress-track').hidden = true;
+    var cm = document.getElementById('term-current-message');
+    cm.hidden = false;
+    cm.textContent = GENERATING_MESSAGE;
     document.getElementById('term-engine-banner').style.display = 'none';
   }
 
@@ -763,6 +740,7 @@
 
   function completeProgressBar() {
     const bar = document.getElementById('term-bar');
+    document.getElementById('term-progress-track').hidden = false;
     bar.classList.remove('pulsing');
     bar.style.transition = 'width 200ms ease, background 200ms ease';
     bar.style.width = '100%';
@@ -770,7 +748,7 @@
   }
 
   // Main submit flow. mode is 'rate' or 'market'.
-  async function submitForm({ mode, url, body, btn, errEl, resumeJobId, paymentFailedHint, resumeEtaSeconds, resumeStartedAt }) {
+  async function submitForm({ mode, url, body, btn, errEl, resumeJobId, paymentFailedHint }) {
     const main          = document.getElementById('page-main');
     const resultSection = document.getElementById('result-section');
     const resultDiv     = document.getElementById('result');
@@ -815,82 +793,13 @@
     resetTerminal();
     terminal.hidden = false;
     btn.hidden = true;
-    let startTime = resumeStartedAt ? new Date(resumeStartedAt).getTime() : Date.now();
 
-    // ── ETA state ──────────────────────────────────────────────────
-    // countdown decrements at 1Hz. When it hits 0 we flip to count-up
-    // mode and force the bar to ≥95% with a pulsing animation.
-    // lastSseUpdate tracks the most recent SSE event so we can show
-    // the quiet-period banner if the stream stalls.
-    // Real-anchor ETA: remaining = per-mode estimate minus elapsed since the
-    // job's real start (startTime = createdAt on resume, now on a fresh run).
-    // Same formula fresh and resumed, so a refresh never resets to 15:00.
-    let countdown = (INITIAL_ETA_SECONDS[mode] || 120) - Math.floor((Date.now() - startTime) / 1000);
-    let lastSseUpdate = Date.now();
+    // ── Progress state ──────────────────────────────────────────────
+    // No countdowns or ETA tickers. The bar advances on real SSE progress
+    // events and the message is the static GENERATING_MESSAGE reassurance
+    // (identical for fresh runs and resumed/refreshed ones).
     let lastPct = 0;
     let isComplete = false;
-    let etaInterval = null;
-
-    function tickEta() {
-      if (isComplete) return;
-      countdown--;
-      const etaEl = document.getElementById('term-eta');
-      const overtimeEl = document.getElementById('term-overtime-warning');
-      const quietEl = document.getElementById('term-quiet-warning');
-      const bar = document.getElementById('term-bar');
-
-      if (countdown > 0) {
-        // Initial countdown phase - show M:SS remaining.
-        etaEl.textContent = formatTime(countdown) + ' remaining';
-      } else {
-        // Past initial estimate - hold bar at ≥95% with pulsing animation.
-        // Show tiered amber message based on how many minutes past ETA.
-        const overtime = Math.abs(countdown);
-        etaEl.textContent = 'Still working - ' + formatTime(overtime) + ' past estimate';
-        const minutesPast = Math.floor(overtime / 60);
-        if (minutesPast < 2) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - GrowthIM is doing deep research on your competitors and market. You can safely leave this page; your report will be in your dashboard when it&rsquo;s ready.';
-        } else if (minutesPast < 5) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - Complex markets with many competitors can take a little longer. You don&rsquo;t need to wait here; your report will be in your dashboard as soon as it&rsquo;s done.';
-        } else if (minutesPast < 10) {
-          overtimeEl.innerHTML = '<strong>Still working</strong> - This is taking a little longer than usual, which is normal for some businesses. You don&rsquo;t need to wait here; your report will be in your dashboard as soon as it&rsquo;s done.';
-        } else {
-          overtimeEl.innerHTML = '<strong>Almost there</strong> - GrowthIM is writing the final sections of your report. You don&rsquo;t need to wait here; it will appear in your dashboard as soon as it&rsquo;s done.';
-        }
-        overtimeEl.hidden = false;
-        if (lastPct < 95) {
-          bar.style.width = '95%';
-        }
-        bar.classList.add('pulsing');
-      }
-
-      // Quiet detection - runs every tick regardless of countdown phase.
-      // Only shows after BOTH conditions are true:
-      //   1. 6 minutes (360s) have elapsed since the user clicked Analyze
-      //   2. SSE stream has been silent for QUIET_THRESHOLD_MS (30s)
-      // This prevents the banner from flashing early during normal
-      // inter-step gaps; it's only meaningful during the long Claude call.
-      const sinceLastUpdate = Date.now() - lastSseUpdate;
-      const elapsedSinceStart = Date.now() - startTime;
-      if (sinceLastUpdate > QUIET_THRESHOLD_MS && elapsedSinceStart >= 360000) {
-        quietEl.hidden = false;
-      } else {
-        quietEl.hidden = true;
-      }
-    }
-    etaInterval = setInterval(tickEta, 1000);
-    tickEta(); // fire once immediately so the user sees a value, not "-"
-
-    // ── Resume mode: static status instead of ticking countdown ──
-    if (resumeJobId) {
-      clearInterval(etaInterval);
-      var etaR = document.getElementById('term-eta');
-      if (etaR) etaR.textContent = 'This usually takes about 15 minutes';
-      var msgR = document.getElementById('term-current-message');
-      if (msgR) msgR.textContent = "Your report is being generated. You can close this browser. Your report will appear in your dashboard when it's ready.";
-      var qbR = document.getElementById('term-queue-banner');
-      if (qbR) qbR.hidden = true;
-    }
 
     // Open the progress stream BEFORE posting so the first event isn't
     // missed. Browser EventSource auto-reconnects on transient drops.
@@ -900,16 +809,15 @@
       let data; try { data = JSON.parse(e.data); } catch (_) { return; }
       if (!data || typeof data.pct !== 'number') return;
       if (data.message === 'connected') return;
-      const elapsed = Math.max(0, Math.round((Date.now() - startTime) / 1000));
 
-      // Reset quiet-period timer on every real SSE event.
-      lastSseUpdate = Date.now();
-
-      // Progress bar - only ever advances forward.
+      // Progress bar - only ever advances forward. The track is revealed
+      // only on the first REAL progress tick (pct > 0) from the server.
+      if (data.pct > 0) {
+        document.getElementById('term-progress-track').hidden = false;
+      }
       if (data.pct >= lastPct) {
         lastPct = data.pct;
-        // Don't shrink the bar even if SSE pct is below the 95% floor
-        // we forced during count-up mode.
+        // Never shrink the bar, even if an SSE pct is below the current width.
         const bar = document.getElementById('term-bar');
         const currentWidth = parseFloat(bar.style.width) || 0;
         if (data.pct > currentWidth) {
@@ -917,18 +825,9 @@
         }
       }
 
-      // Current message + step counter.
+      // Append this event to the rolling log (no elapsed-seconds prefix).
       if (data.message) {
-        document.getElementById('term-current-message').textContent = '→ ' + data.message;
-      }
-      if (typeof data.step === 'number' && typeof data.total === 'number' && data.total > 0) {
-        document.getElementById('term-step-counter').textContent =
-          'Step ' + data.step + ' of ' + data.total;
-      }
-
-      // Append this event to the rolling log with elapsed-time prefix.
-      if (data.message) {
-        appendLogLine('✓', '[' + elapsed + 's] ' + data.message);
+        appendLogLine('✓', data.message);
       }
 
       // Show engine-activated banner on step 16.
@@ -940,11 +839,7 @@
         // Server says complete - finalise immediately, even if POST
         // response is still in flight.
         isComplete = true;
-        if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
         completeProgressBar();
-        document.getElementById('term-eta').textContent = '✓ complete';
-        document.getElementById('term-overtime-warning').hidden = true;
-        document.getElementById('term-quiet-warning').hidden = true;
         document.getElementById('term-engine-banner').style.display = 'none';
         try { evt.close(); } catch (_) {}
       }
@@ -960,7 +855,6 @@
     // log throughout, so the user sees live progress during the wait.
     function cleanupRunningUi() {
       isComplete = true;
-      if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
       try { evt.close(); } catch (_) {}
       terminal.hidden = true;
       document.getElementById('form-' + mode).hidden = false;
@@ -1050,20 +944,10 @@
         const sjson = await sres.json();
         errorStreak = 0; // a successful poll resets the network give-up counter
 
-        // Rehydrate "Step X of N" from the durable job state on every poll, so a
-        // refresh shows the real current step and it keeps advancing even if the
-        // SSE log is silent.
-        if (typeof sjson.currentStep === 'number' && typeof sjson.totalSteps === 'number' && sjson.totalSteps > 0) {
-          const sc = document.getElementById('term-step-counter');
-          if (sc) sc.textContent = 'Step ' + sjson.currentStep + ' of ' + sjson.totalSteps;
-        }
-
         if (sjson.status === 'ready' && sjson.reportId != null) {
           clearInterval(pollHandle);
           cleanupRunningUi();
           completeProgressBar();
-          document.getElementById('term-overtime-warning').hidden = true;
-          document.getElementById('term-quiet-warning').hidden = true;
           window.location.href = '/report/' + encodeURIComponent(sjson.reportId);
           return;
         }
@@ -1078,7 +962,7 @@
           if (notFoundStreak > 10) {
             clearInterval(pollHandle);
             cleanupRunningUi();
-            showError(errEl, 'Session expired. Please try again.');
+            showError(errEl, 'Something went wrong. Please contact support@growthim.com for assistance.');
           }
           return;
         }
@@ -1097,15 +981,12 @@
           // ETA row is hidden here so there's no fake "time remaining".
           notFoundStreak = 0;
           if (confirmStart == null) confirmStart = Date.now();
-          document.getElementById('term-step-counter').textContent = '';
-          document.getElementById('term-status-row').hidden = true;
           if (Date.now() - confirmStart > 40000) {
             // AMBIGUOUS after ~40s: could be a slow successful payment OR a
             // payment that never completed. We must NOT say "payment failed"
             // (double-charge risk). Show a neutral message pointing to the
             // dashboard and stop the spinner; keep polling so a late success
             // still resolves to the report.
-            if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
             try { document.getElementById('term-bar').classList.remove('pulsing'); } catch (_) {}
             document.getElementById('term-current-message').textContent =
               '→ Taking longer than usual — if your payment went through, your report will appear in your dashboard shortly. Please check there before paying again.';
@@ -1117,8 +998,15 @@
         // 'processing' - keep polling. Reset the not_found streak in
         // case we hit a transient inconsistency earlier.
         notFoundStreak = 0;
-        document.getElementById('term-status-row').hidden = false; // generating — show ETA row again
         confirmStart = null;
+        if (sjson.queued !== true) {
+          // Static reassurance message + breathing bar while generating —
+          // also restores the message after the confirming-payment state and
+          // covers resumed/refreshed sessions (same text as a fresh run).
+          var cmP = document.getElementById('term-current-message');
+          if (cmP) { cmP.hidden = false; cmP.textContent = GENERATING_MESSAGE; }
+          try { document.getElementById('term-bar').classList.add('pulsing'); } catch (_) {}
+        }
         // ── Running-time cap ───────────────────────────────────────────────
         // Accumulate elapsed time ONLY while actually running, not while queued
         // behind the concurrency cap (reads the same `queued` signal the ETA
@@ -1140,48 +1028,26 @@
           }
         }
         if (sjson.queued === true) {
-          // Waiting behind the concurrency cap. Show queue position + a
-          // rough wait estimate instead of live progress, and pause the
-          // ETA count-up so it doesn't tick into a false "overtime" state
-          // while we wait for a slot to open.
+          // Waiting behind the concurrency cap. Show the real queue position
+          // + reassurance instead of live progress. Same display whether this
+          // is a fresh run or a resumed/refreshed one.
           if (!queuedState) {
             queuedState = true;
-            if (etaInterval) { clearInterval(etaInterval); etaInterval = null; }
             document.getElementById('term-current-message').hidden = true;
-            document.getElementById('term-step-counter').hidden = true;
-            document.getElementById('term-overtime-warning').hidden = true;
-            document.getElementById('term-quiet-warning').hidden = true;
             document.getElementById('term-engine-banner').style.display = 'none';
-            document.getElementById('term-eta').textContent = 'waiting in queue';
             queueBannerEl.hidden = false;
           }
-          // Static queue message — no dynamic position/wait estimate.
-          queueBannerEl.innerHTML =
-            "You're in the queue! We received more demand than expected and our servers are generating reports one at a time to ensure quality. This can take up to 15 minutes to 2 hours 30 minutes. You can close this browser and come back later. Your completed report will be in your dashboard.";
+          // Real position from /report-status, refreshed every poll.
+          var qPos = (typeof sjson.queuePosition === 'number' && sjson.queuePosition > 0) ? sjson.queuePosition : null;
+          queueBannerEl.textContent =
+            (qPos ? 'You are #' + qPos + ' in queue. ' : 'You are in queue. ') + QUEUE_MESSAGE_TAIL;
         } else if (queuedState) {
-          // Just flipped from queued -> running. Hide the queue banner,
-          // restore the live-progress bits, and reset the ETA timer so the
-          // countdown reflects the actual run, not the time spent waiting.
+          // Just flipped from queued -> running. Hide the queue banner and
+          // restore the generating message; the bar restarts from real SSE pcts.
           queuedState = false;
           queueBannerEl.hidden = true;
           document.getElementById('term-current-message').hidden = false;
-          document.getElementById('term-step-counter').hidden = false;
-          startTime = Date.now();
-          lastSseUpdate = Date.now();
           lastPct = 0;
-          countdown = (INITIAL_ETA_SECONDS[mode] || 120);
-          if (!etaInterval) { etaInterval = setInterval(tickEta, 1000); tickEta(); }
-        }
-
-        // ── Resume mode: override message based on queue status ──
-        if (resumeJobId && sjson.status === 'processing') {
-          var resumeText = sjson.queued
-            ? "You're in the queue! We received more demand than expected and our servers are generating reports one at a time to ensure quality. This can take up to 15 minutes to 2 hours 30 minutes. You can close this browser and come back later. Your completed report will be in your dashboard."
-            : "Your report is being generated. You can close this browser. Your report will appear in your dashboard when it's ready.";
-          var rmEl2 = document.getElementById('term-current-message');
-          if (rmEl2) rmEl2.textContent = resumeText;
-          var qbR2 = document.getElementById('term-queue-banner');
-          if (qbR2) qbR2.hidden = true;
         }
       } catch (e) {
         // Transient network blip - keep polling, but give up after ~30s of
@@ -1285,7 +1151,7 @@
   (function resumeOnLoad() {
     const qs = new URLSearchParams(window.location.search);
     const rj = qs.get('resume_job');
-    function resume(jobId, rmode, failedHint, etaSeconds, startedAt) {
+    function resume(jobId, rmode, failedHint) {
       submitForm({
         mode: rmode,
         url: null,
@@ -1294,8 +1160,6 @@
         errEl: document.getElementById('err-' + rmode),
         resumeJobId: jobId,
         paymentFailedHint: !!failedHint,
-        resumeEtaSeconds: etaSeconds || null,
-        resumeStartedAt: startedAt || null,
       });
     }
     if (rj) {
@@ -1310,20 +1174,42 @@
       resume(rj, rmode, failed);
       return;
     }
+    // Plain page load / refresh: check for an active job BEFORE showing the
+    // forms, so the progress panel reappears instead of vanishing. While the
+    // check runs the forms are hidden and "Checking your report status…" is
+    // shown; on error or no active job the forms are restored.
+    const checkingEl = document.getElementById('resume-checking');
+    const formRateEl = document.getElementById('form-rate');
+    const formMarketEl = document.getElementById('form-market');
+    const wasMarketHidden = formMarketEl.hidden;
+    formRateEl.hidden = true;
+    formMarketEl.hidden = true;
+    if (checkingEl) checkingEl.hidden = false;
+    function restoreForms() {
+      if (checkingEl) checkingEl.hidden = true;
+      formRateEl.hidden = false;
+      formMarketEl.hidden = wasMarketHidden;
+    }
     fetch('/api/dashboard', { credentials: 'same-origin' })
       .then(function (r) { if (r.status === 401) { window.location.href = '/login.html'; return null; } return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !Array.isArray(data.items)) return;
+        if (!data || !Array.isArray(data.items)) { restoreForms(); return; }
         const job = data.items.find(function (it) { return it.kind === 'job' && it.status === 'processing'; });
-        if (!job) return;
-        // Seed the resumed ETA from the dashboard's real remaining estimate
-        // (minutesRemaining when running, estimatedWaitMinutes when queued)
-        // instead of a fresh 15:00; seed startTime from the job's created_at.
-        const mins = (job.minutesRemaining != null) ? job.minutesRemaining : job.estimatedWaitMinutes;
-        const etaSeconds = (typeof mins === 'number' && mins > 0) ? mins * 60 : null;
-        resume(job.job_id, job.report_type === 'market' ? 'market' : 'rate', false, etaSeconds, job.created_at);
+        if (!job) { restoreForms(); return; }
+        if (checkingEl) checkingEl.hidden = true;
+        resume(job.job_id, job.report_type === 'market' ? 'market' : 'rate', false);
       })
-      .catch(function () {});
+      .catch(function (err) {
+        // Network/server blip — never silent: restore the forms AND tell the
+        // user the check failed, so an active paid job is never invisible.
+        console.warn('[resume] active-job check failed:', err && err.message);
+        restoreForms();
+        if (checkingEl) {
+          checkingEl.innerHTML = 'We couldn&rsquo;t check your report status. Please check your <a href="/dashboard">dashboard</a> or contact support@growthim.com';
+          checkingEl.style.color = '#B45309';
+          checkingEl.hidden = false;
+        }
+      });
   })();
 </script>
 
