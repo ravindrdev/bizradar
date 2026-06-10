@@ -24,6 +24,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 // Bounded LRU cache (max 1000 entries, existing TTL preserved) so the
 // per-place Claude enrichment cache can't grow unbounded under load.
 const { LRUCache } = require('lru-cache');
+const { jsonrepair } = require('jsonrepair');
 
 const MODEL = 'claude-sonnet-4-6';
 // Two parallel Claude calls split the enrichment payload to avoid
@@ -2163,6 +2164,7 @@ COMPLIANCE RULES — MANDATORY:
 - Never say an action "pays for itself" or "cost is recovered on day one" or "break-even on the first" or "covers its cost in the first." Frame ROI as an illustrative estimate, not a guaranteed payback timeline.
 - When suggesting advertising or marketing spend, give illustrative budget ranges and note the owner should adjust based on their own budget and goals. Never present a specific ad budget as the recommended amount.
 - Whenever you mention any price, cost, or dollar figure, always label it as illustrative. For example: "illustrative price: $18 combo (adjust as needed)" not "$18 combo." No dollar figure should appear without the word illustrative or a note that the owner should adjust based on their own costs and market.
+- In all JSON output, never use raw double-quotes inside string values. Use single quotes for emphasis or named items, e.g. 'Picnic at the Hill' not "Picnic at the Hill" inside a JSON string.
 `;
 
 // ───────────────────────────────────────────────────────────────────
@@ -2935,7 +2937,7 @@ ${searchResults}` : ''}`;
 // Centralizes the JSON parse pattern for both Call A and Call B
 // responses. Logs the failure with a label so the two calls are
 // distinguishable in the server log.
-function safeParseJSON(text, label) {
+async function safeParseJSON(text, label) {
   if (!text || typeof text !== 'string') return null;
   // Strip ``` fences first (legacy markdown wrapping).
   const clean = text.replace(/```json|```/g, '').trim();
@@ -2971,7 +2973,111 @@ function safeParseJSON(text, label) {
   try {
     return JSON.parse(clean.slice(start, end + 1));
   } catch (parseErr) {
+    // Attempt 4 — tolerant repair
+    try {
+      const repaired = jsonrepair(clean.slice(start, end + 1));
+      console.log(`[claude:${label}] JSON repaired successfully at attempt 4`);
+      return JSON.parse(repaired);
+    } catch (repairErr) {
+      // repair also failed — fall through to attempt 5
+    }
+
+    // Attempt 5 — Haiku repair retry. Send the broken JSON to Claude Haiku
+    // (raw fetch, same pattern as the dataFetchers TripAdvisor verify) and ask
+    // it to fix the syntax. Only an LLM can resolve the ambiguous unescaped-
+    // quote cases jsonrepair can't. 15s timeout, fail-closed.
+    try {
+      const broken = clean.slice(start, end + 1);
+      const acH = new AbortController();
+      const tH = setTimeout(() => acH.abort(), 15000);
+      let fixedText = '';
+      try {
+        const hResp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5',
+            max_tokens: 20000,
+            temperature: 0,
+            messages: [{ role: 'user', content:
+              'The text below is meant to be a single valid JSON object but has syntax errors '
+              + '(most often unescaped double-quotes inside string values). Fix ONLY the syntax '
+              + 'and return the corrected JSON. Output ONLY the JSON object — no prose, no '
+              + 'markdown fences, no commentary.\n\n' + broken }],
+          }),
+          signal: acH.signal,
+        });
+        const hJson = await hResp.json();
+        const hBlock = hJson && Array.isArray(hJson.content)
+          ? hJson.content.filter((b) => b && b.type === 'text').pop()
+          : null;
+        fixedText = (hBlock && typeof hBlock.text === 'string') ? hBlock.text : '';
+      } finally {
+        clearTimeout(tH);
+      }
+      const fClean = fixedText.replace(/```json|```/g, '').trim();
+      const fStart = fClean.indexOf('{');
+      const fEnd = fClean.lastIndexOf('}');
+      if (fStart !== -1 && fEnd > fStart) {
+        const cand = fClean.slice(fStart, fEnd + 1);
+        try {
+          const v = JSON.parse(cand);
+          console.log(`[claude:${label}] JSON recovered via Haiku repair at attempt 5`);
+          return v;
+        } catch (_) {
+          const v = JSON.parse(jsonrepair(cand));
+          console.log(`[claude:${label}] JSON recovered via Haiku repair + jsonrepair at attempt 5`);
+          return v;
+        }
+      }
+    } catch (haikuErr) {
+      // Haiku repair failed/timed out — fall through to attempt 6
+    }
+
+    // Attempt 6 — element-by-element array salvage (last resort). Find the
+    // first array, split into objects, parse each (with jsonrepair) on its
+    // own, keep the valid ones, and rebuild the parent object under its key.
+    try {
+      const src = clean.slice(start, end + 1);
+      const arrStart = src.indexOf('[');
+      if (arrStart !== -1) {
+        const keyMatch = src.slice(0, arrStart).match(/"([A-Za-z0-9_]+)"\s*:\s*$/);
+        if (keyMatch) {
+          const arrEnd = src.lastIndexOf(']');
+          const body = src.slice(arrStart + 1, arrEnd > arrStart ? arrEnd : undefined);
+          const pieces = body.split(/\}\s*,\s*\{/);
+          const salvaged = [];
+          for (let i = 0; i < pieces.length; i++) {
+            let p = pieces[i].trim();
+            if (i > 0) p = '{' + p;
+            if (i < pieces.length - 1) p = p + '}';
+            try { salvaged.push(JSON.parse(p)); }
+            catch (_) {
+              try { salvaged.push(JSON.parse(jsonrepair(p))); }
+              catch (_) { /* skip this broken object */ }
+            }
+          }
+          if (salvaged.length > 0) {
+            console.log(`[claude:${label}] salvaged ${salvaged.length}/${pieces.length} objects at attempt 6`);
+            return { [keyMatch[1]]: salvaged };
+          }
+        }
+      }
+    } catch (salvageErr) {
+      // salvage failed — fall through to final warn
+    }
+
     console.warn(`[claude:${label}] JSON parse failed after all fallbacks:`, parseErr.message);
+    const posMatch = parseErr.message.match(/position (\d+)/);
+    if (posMatch) {
+      const pos = parseInt(posMatch[1], 10);
+      console.warn(`[claude:${label}] error context around position ${pos}:`,
+        clean.slice(Math.max(0, pos - 150), pos + 150));
+    }
     console.warn(`[claude:${label}] raw text (first 400 chars):`, clean.slice(0, 400));
     return null;
   }
@@ -4572,7 +4678,7 @@ async function enrichWithClaude(bundle) {
   }
   console.log(`[claude] Call A done in ${Date.now() - tA}ms`);
 
-  const A = textA ? safeParseJSON(textA, 'A') : null;
+  const A = textA ? await safeParseJSON(textA, 'A') : null;
 
   // ── PARTIAL: A failed → run B alone; skip C1/C2 (need A output) ────
   if (!A) {
@@ -4584,7 +4690,7 @@ async function enrichWithClaude(bundle) {
       console.error('[claude:B] promise rejected:', resB.reason && resB.reason.message);
     }
     const textB = resB.status === 'fulfilled' ? resB.value : null;
-    const B = textB ? safeParseJSON(textB, 'B') : null;
+    const B = textB ? await safeParseJSON(textB, 'B') : null;
     const partial = {
       priority_actions: [],
       enriched_recommendations: [],
@@ -4623,7 +4729,7 @@ async function enrichWithClaude(bundle) {
   if (resC1.status === 'rejected') console.error('[claude:C1] promise rejected:', resC1.reason && resC1.reason.message);
   if (resC2.status === 'rejected') console.error('[claude:C2] promise rejected:', resC2.reason && resC2.reason.message);
 
-  const B = textB ? safeParseJSON(textB, 'B') : null;
+  const B = textB ? await safeParseJSON(textB, 'B') : null;
 
   // C1 + C2 return JSON arrays — parse with fence-stripping fallback.
   function parseArrayResponse(text, label) {
