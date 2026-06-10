@@ -2379,6 +2379,13 @@ function buildDataBundle({ data, profile, layer0Result, ranked, studies }) {
       trip_types: data.ta_trip_types,
       recent_reviews: data.ta_recent_reviews,
       value_gap_detected: data.ta_value_gap_detected,
+      web_url: data.tripadvisor.ta_web_url,
+      price_level: data.tripadvisor.ta_price_level,
+      review_rating_count: data.tripadvisor.ta_review_rating_count,
+      hours: data.tripadvisor.ta_hours,
+      photo_count: data.tripadvisor.ta_photo_count,
+      cuisine: data.tripadvisor.ta_cuisine,
+      category: data.tripadvisor.ta_category,
     } : null,
     // Phase 5+ - sector-conditional sources. Each is null unless the
     // business's NAICS-2 / profile_id matches the relevant sector.

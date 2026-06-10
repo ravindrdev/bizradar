@@ -1570,7 +1570,7 @@ const TRIPADVISOR_CACHE = new LRUCache({ max: 1000, ttl: TRIPADVISOR_TTL_MS });
 const TA_BASE = 'https://api.content.tripadvisor.com/api/v1';
 // TripAdvisor's gateway requires a Referer (or X-TripAdvisor-API-Key-…)
 // header on every Content API call. Bare requests are rejected as 403.
-const TA_HEADERS = { 'Accept': 'application/json', 'Referer': 'https://GrowthIM.local' };
+const TA_HEADERS = { 'Accept': 'application/json', 'Referer': 'https://growthim.com' };
 
 async function fetchTripAdvisor(businessName, formattedAddress) {
   if (!businessName) return null;
@@ -1589,8 +1589,13 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
   // ── Step 1: search for location_id ──
   let locationId = null;
   {
-    const sp = new URLSearchParams({ key: apiKey, searchQuery: businessName });
-    if (formattedAddress) sp.append('address', formattedAddress);
+    const sp = new URLSearchParams({
+      key: apiKey,
+      searchQuery: city ? `${businessName} ${city}` : businessName,
+    });
+    // The TripAdvisor `address` param returns 0 results for full street
+    // addresses, so we bias the search via city in searchQuery instead
+    // and let the Haiku verify confirm the correct match.
     const url = `${TA_BASE}/location/search?${sp.toString()}`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 8000);
@@ -1609,7 +1614,67 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
         TRIPADVISOR_CACHE.set(cacheKey, { ts: Date.now(), value: null });
         return null;
       }
-      locationId = data[0].location_id;
+      // ── Claude Haiku match verification ──
+      // TripAdvisor search routinely returns a city, a landmark, or a
+      // far-away same-name business as result #1, so we no longer trust
+      // data[0] blindly. Ask Haiku which of the top results (if any) is
+      // actually this business. No confident match -> cache null + bail
+      // (the TripAdvisor section is then silently omitted from the report).
+      const taTop = data.slice(0, 5);
+      const taList = taTop.map((r, i) =>
+        `${i + 1}. ${r.name || '(no name)'} - ` +
+        `${(r.address_obj && r.address_obj.address_string) || '(no address)'} ` +
+        `(id: ${r.location_id})`
+      ).join('\n');
+      const taVerifyPrompt =
+        `The user's business is: ${businessName} at ${formattedAddress || '(address unknown)'}.\n` +
+        `Here are TripAdvisor search results:\n${taList}\n\n` +
+        `Which result (1-${taTop.length}) is the same business as the user's? ` +
+        `Reply with ONLY the number (1-${taTop.length}) or 'none' if no match.`;
+
+      let taPick = null;
+      const vController = new AbortController();
+      const vTimeout = setTimeout(() => vController.abort(), 8000);
+      try {
+        const vResp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5',
+            max_tokens: 50,
+            temperature: 0,
+            messages: [{ role: 'user', content: taVerifyPrompt }],
+          }),
+          signal: vController.signal,
+        });
+        const verifyJson = await vResp.json();
+        const vBlock = verifyJson && Array.isArray(verifyJson.content)
+          ? verifyJson.content.filter((b) => b && b.type === 'text').pop()
+          : null;
+        const answer = (vBlock && typeof vBlock.text === 'string' ? vBlock.text : '')
+          .trim()
+          .toLowerCase();
+        const mNum = answer.match(/\d+/);
+        const idx = mNum ? parseInt(mNum[0], 10) - 1 : -1;
+        if (idx >= 0 && idx < taTop.length) {
+          taPick = taTop[idx];
+        } else {
+          console.warn(`[fetch-tripadvisor] Claude verify: no confident match for "${businessName}" (replied "${answer}")`);
+        }
+      } finally {
+        clearTimeout(vTimeout);
+      }
+
+      if (!taPick) {
+        // Cache the negative so we don't re-verify on every page load.
+        TRIPADVISOR_CACHE.set(cacheKey, { ts: Date.now(), value: null });
+        return null;
+      }
+      locationId = taPick.location_id;
     } catch (err) {
       console.warn('[fetch-tripadvisor] search failed:', err.message);
       return null;
@@ -1621,7 +1686,7 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
 
   // ── Steps 2 + 3 in parallel: details + reviews ──
   async function taGet(path) {
-    const url = `${TA_BASE}/location/${locationId}/${path}?key=${apiKey}&language=en${path === 'reviews' ? '&limit=3' : ''}`;
+    const url = `${TA_BASE}/location/${locationId}/${path}?key=${apiKey}&language=en${path === 'reviews' ? '&limit=5' : ''}`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 8000);
     try {
@@ -1686,7 +1751,7 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
     : [];
 
   const recentReviews = Array.isArray(reviews && reviews.data)
-    ? reviews.data.slice(0, 3).map((r) => ({
+    ? reviews.data.slice(0, 5).map((r) => ({
         rating: typeof r.rating === 'number' ? r.rating : null,
         title: r.title || null,
         // Full review text - no truncation. Field is still named
@@ -1696,6 +1761,11 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
         snippet: r.text || null,
         published_date: r.published_date || null,
         trip_type: r.trip_type || null,
+        helpful_votes: Number.isFinite(Number(r.helpful_votes)) ? Number(r.helpful_votes) : 0,
+        url: r.url || null,
+        travel_date: r.travel_date || null,
+        username: (r.user && r.user.username) || null,
+        user_location: (r.user && r.user.user_location && (r.user.user_location.name || r.user.user_location)) || null,
       }))
     : [];
 
@@ -1725,6 +1795,20 @@ async function fetchTripAdvisor(businessName, formattedAddress) {
     ta_trip_types: tripTypes.length ? tripTypes : null,
     ta_recent_reviews: recentReviews.length ? recentReviews : null,
     ta_value_gap_detected,
+    ta_web_url: details.web_url || '',
+    ta_price_level: details.price_level || '',
+    ta_review_rating_count: details.review_rating_count || {},
+    ta_hours: details.hours || null,
+    ta_photo_count: details.photo_count || 0,
+    ta_phone: details.phone || '',
+    ta_latitude: details.latitude || '',
+    ta_longitude: details.longitude || '',
+    ta_cuisine: details.cuisine || [],
+    ta_timezone: details.timezone || '',
+    ta_ancestors: details.ancestors || [],
+    ta_address: details.address_obj || {},
+    ta_category: details.category || {},
+    ta_subcategory: details.subcategory || [],
   };
   TRIPADVISOR_CACHE.set(cacheKey, { ts: Date.now(), value });
   return value;

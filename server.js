@@ -2657,6 +2657,9 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     data.ta_recent_reviews = ta.ta_recent_reviews;
     // Synthetic boolean for the trigger DSL (no arithmetic in DSL grammar).
     data.ta_value_gap_detected = ta.ta_value_gap_detected;
+    data.ta_web_url = ta.ta_web_url || '';
+    data.ta_price_level = ta.ta_price_level || '';
+    data.ta_review_rating_count = ta.ta_review_rating_count || {};
   } else {
     data.tripadvisor = null;
     data.ta_location_id = null;
@@ -5620,7 +5623,17 @@ ${gapHtml}
 ${valueGapHtml}
 ${awardsHtml}
 ${tripTypesHtml}
-<p class="meta"><small>Source: TripAdvisor Content API (location + details + reviews).</small></p>`;
+<p class="meta" style="margin-top:12px;">
+<a href="${data.ta_web_url || 'https://www.tripadvisor.com'}"
+   target="_blank" rel="noopener"
+   style="display:inline-flex;align-items:center;gap:6px;color:#00AA6C;
+   text-decoration:none;font-weight:600;font-size:13px;">
+<img src="https://static.tacdn.com/img2/brand_refresh/Tripadvisor_lockup_horizontal_secondary_registered.svg"
+     alt="Tripadvisor" height="24" style="vertical-align:middle;" />
+View on Tripadvisor
+</a>
+<br/><small style="color:#999;">Data provided by Tripadvisor Content API.</small>
+</p>`;
   }
 
   // ──────────────────────────────────────────────────────────────────
