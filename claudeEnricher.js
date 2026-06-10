@@ -2091,7 +2091,7 @@ Generate seasonal_strategy with all four seasons.
 - Every season's event_tie_in MUST name a REAL local event. Check upcoming_events first. If no events found in the data, use a known regional annual event for this city/state. Generic phrasings like "summer festivals" or "holiday shopping season" are forbidden.
 - Every season's local_partner MUST be a real named business from the competitors or nearby_venues block in the bundle. Generic "a local cafe" / "a nearby gym" forbidden.
 - Cold-winter markets (when bundle.weather.has_cold_winter is true) MUST include winter.off_season_survival — a specific strategy for the slowest month, naming the actual play (subscription pre-sales, B2B catering pivot, off-season events, etc.).
-- Revenue ranges are projections, not guarantees — write them plainly as $X,000-$Y,000/month with no honesty tag.
+- Revenue ranges are projections, not guarantees — write them plainly as $X,000-$Y,000/month.
 - Every season must reference THIS business in THIS location. The summer plan for a hotel in Dodgeville WI must look different from the summer plan for a hotel in Miami FL.
 
 DISTANCE RULE — MANDATORY:
@@ -2156,7 +2156,7 @@ Example:
 "Customers remember where they took a photo more than what they ate. Every photo shared reaches 5-10 new people for free. Taking a photo creates emotional engagement which makes a review 3 times more likely. You invest once and it keeps working."
 
 COMPLIANCE RULES — MANDATORY:
-- All dollar figures in revenue_driver and roi_proof must be called "illustrative estimates" and include "not a guaranteed return."
+- All dollar figures in revenue_driver, roi_proof, and seasonal_strategy must be called "illustrative estimates" and include "not a guaranteed return."
 - You may suggest illustrative price ranges based on market data, but always note they are average estimates and the owner should adjust based on their costs, market, and judgment.
 - Use "stand out" or "differentiate" language, never "steal customers" or "pull their customers."
 - This report is market analysis, not financial advice. Never cross that line.
