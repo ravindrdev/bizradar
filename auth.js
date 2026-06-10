@@ -279,7 +279,7 @@ function normalizeEmail(email) {
 }
 
 // ── Signup ──────────────────────────────────────────────────────────
-async function createPendingUser(name, email, password) {
+async function createPendingUser(name, email, password, phone) {
   const e = normalizeEmail(email);
   if (!e || !password) throw new Error('Email and password required');
 
@@ -305,10 +305,10 @@ async function createPendingUser(name, email, password) {
   // otp_attempts is reset to 0 by the column default on every fresh
   // INSERT (audit fix A3 - bounded OTP brute force).
   const ins = await pool.query(
-    `INSERT INTO users (name, email, password_hash, email_verified, otp_code, otp_expires, otp_type, otp_attempts, created_at)
-     VALUES ($1, $2, $3, false, $4, $5, 'signup', 0, NOW())
+    `INSERT INTO users (name, email, phone, password_hash, email_verified, otp_code, otp_expires, otp_type, otp_attempts, created_at)
+     VALUES ($1, $2, $3, $4, false, $5, $6, 'signup', 0, NOW())
      RETURNING id`,
-    [name || null, e, passwordHash, otpHash, expires]
+    [name || null, e, (phone || null), passwordHash, otpHash, expires]
   );
   const newUserId = ins.rows[0].id;
 

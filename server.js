@@ -12,6 +12,7 @@ const auth = require('./auth');
 const { requireAuth, requireAdmin } = require('./authMiddleware');
 const pool = require('./db');
 const payments = require('./payments');
+const nodemailer = require('nodemailer');
 
 const layer0 = require('./server_layer0');
 const naicsRouter = require('./naicsRouter');
@@ -1306,9 +1307,78 @@ async function setPendingPaymentJob(jobId, userId, label, reportType) {
   );
 }
 
+// Admin-notification mailer. auth.js owns the email infra but exports no
+// generic sender (only the OTP-specific sendOTPEmail), so per the "server.js
+// only" constraint we build a transporter inline here, mirroring auth.js's
+// getTransporter config. Used to alert the team when a paid report is still
+// partial after the automatic retry and needs manual re-delivery.
+let __adminMailTransporter = null;
+function getAdminMailTransporter() {
+  if (__adminMailTransporter) return __adminMailTransporter;
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass) return null;
+  __adminMailTransporter = nodemailer.createTransport({
+    host: 'mail.privateemail.com',
+    port: 465,
+    secure: true,
+    auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+  return __adminMailTransporter;
+}
+
+// Best-effort admin alert for a still-partial paid report. Never throws into
+// the caller. reportId may be null (hard failure with no salvageable report).
+async function notifyAdminPartial(jobId, userId, reportType, reportId) {
+  try {
+    const adminEmail = (process.env.ADMIN_EMAIL || 'support@growthim.com').trim();
+    let businessName = '(unknown)', missing = 'AI strategy sections';
+    if (reportId) {
+      const rr = await pool.query(`SELECT business_name, report_json FROM reports WHERE id = $1`, [reportId]).catch(() => null);
+      if (rr && rr.rows[0]) {
+        businessName = rr.rows[0].business_name || businessName;
+        const rj = typeof rr.rows[0].report_json === 'string' ? JSON.parse(rr.rows[0].report_json) : rr.rows[0].report_json;
+        if (rj && rj.call_a_failed) missing = 'Priority actions, competitor deep dive, 90-day plan, opportunities, seasonal strategy';
+        else if (rj && rj.claude_unavailable) missing = 'All AI strategy sections (Claude unavailable)';
+      }
+    }
+    let userEmail = '(unknown)', userPhone = '(none provided)';
+    const ur = await pool.query(`SELECT email, phone FROM users WHERE id = $1`, [userId]).catch(() => null);
+    if (ur && ur.rows[0]) {
+      userEmail = ur.rows[0].email || userEmail;
+      userPhone = ur.rows[0].phone || userPhone;
+    }
+
+    const subject = `[GrowthIM] Partial report needs attention - Job ${jobId}`;
+    const body =
+      `A paid report is still partial after one automatic retry and needs manual re-delivery.\n\n` +
+      `Business:        ${businessName}\n` +
+      `Customer email:  ${userEmail}\n` +
+      `Customer phone:  ${userPhone}\n` +
+      `Report type:     ${reportType}\n` +
+      `Missing sections:${missing}\n` +
+      `Job ID:          ${jobId}\n` +
+      `Report ID:       ${reportId || '(none)'}\n`;
+
+    const transporter = getAdminMailTransporter();
+    if (!transporter) {
+      console.warn(`[payments] admin notify (SMTP off) - job ${jobId} | ${businessName} | ${userEmail} | missing: ${missing}`);
+      return;
+    }
+    await transporter.sendMail({ from: 'GrowthIM <noreply@growthim.com>', to: adminEmail, subject, text: body });
+    console.log('[payments] admin notified of partial report for job', jobId);
+  } catch (e) {
+    console.error('[payments] admin notify failed:', e.message);
+  }
+}
+
 // Run a PAID report through the SAME pipeline the free path uses, with a
-// single automatic retry on failure (decision: auto-retry ONCE; if it still
-// fails, flag for manual re-delivery; NEVER auto-refund).
+// single automatic retry on a HARD failure OR a DEGRADED/partial result
+// (call_a_failed / claude_unavailable in the saved report_json). If still bad
+// after the retry, keep the better result, flag for manual re-delivery, and
+// notify the team. NEVER auto-refund.
 function startPaidReport(jobId, userId, reportType, params) {
   const runOnce = () => (reportType === 'market')
     ? marketPipeline({ sessionId: jobId, userId, city: params.city, state: params.state })
@@ -1319,17 +1389,53 @@ function startPaidReport(jobId, userId, reportType, params) {
     return !!(r && r.rows[0] && r.rows[0].status === 'error');
   };
 
+  // A degraded report SAVES successfully (job 'ready') but is missing the AI
+  // sections - detect it from the call_a_failed / claude_unavailable flags in
+  // the saved report_json so we can auto-retry it like a failure.
+  const getReport = async () => {
+    const r = await pool.query(
+      `SELECT r.id, r.report_json FROM jobs j JOIN reports r ON r.id = j.report_id WHERE j.job_id = $1`, [jobId]
+    ).catch(() => null);
+    if (!r || !r.rows[0]) return null;
+    const rj = typeof r.rows[0].report_json === 'string' ? JSON.parse(r.rows[0].report_json) : r.rows[0].report_json;
+    return { id: r.rows[0].id, degraded: !!(rj && (rj.call_a_failed || rj.claude_unavailable)) };
+  };
+
   reportGate(jobId, async () => {
     await runOnce();
-    if (await jobFailed()) {
-      console.warn('[payments] paid report failed - auto-retrying ONCE for job', jobId);
-      await pool.query(`UPDATE jobs SET status = 'processing', error = NULL, updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
+    const firstFailed = await jobFailed();
+    const firstRpt = firstFailed ? null : await getReport();
+    const firstDegraded = !!(firstRpt && firstRpt.degraded);
+
+    if (firstFailed || firstDegraded) {
+      const firstPartialId = firstDegraded ? firstRpt.id : null;
+      console.warn('[payments] paid report ' + (firstFailed ? 'failed' : 'came out partial') + ' - auto-retrying ONCE for job', jobId);
+      await pool.query(`UPDATE jobs SET status = 'processing', error = NULL, report_id = NULL, updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
       await runOnce();
-      if (await jobFailed()) {
-        console.error('[payments] paid report failed AGAIN after retry - flagging for manual re-delivery, job', jobId);
+
+      const stillFailed = await jobFailed();
+      const secondRpt = stillFailed ? null : await getReport();
+      const stillDegraded = !!(secondRpt && secondRpt.degraded);
+
+      if (!stillFailed && !stillDegraded) {
+        // Retry produced a FULL report - discard the first partial to avoid a duplicate.
+        if (firstPartialId) await pool.query(`DELETE FROM reports WHERE id = $1`, [firstPartialId]).catch(() => {});
+        console.log('[payments] retry produced a full report for job', jobId);
+      } else if (stillFailed && firstPartialId) {
+        // Retry hard-failed but the first attempt was a partial - restore the
+        // partial (better than an error screen) and flag for manual re-delivery.
+        await pool.query(`UPDATE jobs SET status = 'ready', report_id = $2, error = NULL, updated_at = NOW() WHERE job_id = $1`, [jobId, firstPartialId]).catch(() => {});
         await pool.query(`UPDATE pending_payments SET status = 'needs_manual_redelivery', updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
-        // Never auto-refund. Job stays 'error' (failJob messaged the user);
-        // pending_payments flags it for a human / free re-delivery.
+        await notifyAdminPartial(jobId, userId, reportType, firstPartialId);
+      } else {
+        // Still partial (or still error with no salvageable partial) - keep the
+        // retry's report, drop the orphaned first partial, flag + notify.
+        if (firstPartialId && secondRpt && secondRpt.id !== firstPartialId) {
+          await pool.query(`DELETE FROM reports WHERE id = $1`, [firstPartialId]).catch(() => {});
+        }
+        console.error('[payments] paid report still partial/failed after retry - flagging for manual re-delivery, job', jobId);
+        await pool.query(`UPDATE pending_payments SET status = 'needs_manual_redelivery', updated_at = NOW() WHERE job_id = $1`, [jobId]).catch(() => {});
+        await notifyAdminPartial(jobId, userId, reportType, (secondRpt && secondRpt.id) || firstPartialId);
       }
     }
   });
@@ -3413,6 +3519,8 @@ app.use((err, req, res, next) => {
     console.log('[startup] users.token_version column ensured');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_opt_out BOOLEAN NOT NULL DEFAULT false');
     console.log('[startup] users.marketing_opt_out column ensured');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT');
+    console.log('[startup] users.phone column ensured');
     await pool.query(`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
       id SERIAL PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
@@ -5344,10 +5452,9 @@ function renderReport(ctx) {
       <li>Opportunities</li>
       <li>Seasonal strategy</li>
     </ul>
-    Please try again for the complete report. If the problem persists please contact support.
+    Don't worry &mdash; GrowthIM support has been notified about this issue. You will receive your complete report via email shortly. No action needed.
   </div>
   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
-    <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Try Again</a>
     <a href="mailto:support@growthim.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`
@@ -5378,10 +5485,9 @@ function renderReport(ctx) {
   <div style="color:#78350F;font-size:14px;line-height:1.55;">
     The data sections of your report are complete. The strategy sections (priority actions, competitor deep dive, 90-day plan, opportunities, seasonal strategy) could not be generated this time.
     <br><br>
-    Please retry in 10 minutes for the full report. You will not be charged again.
+    Don't worry &mdash; GrowthIM support has been notified about this issue. You will receive your complete report via email shortly. No action needed.
   </div>
   <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
-    <a href="/app" style="display:inline-block;padding:8px 20px;background:#B45309;color:white;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#8617; Retry</a>
     <a href="mailto:support@growthim.com" style="display:inline-block;padding:8px 20px;background:white;color:#B45309;border:2px solid #B45309;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">&#9993; Contact Support</a>
   </div>
 </div>`

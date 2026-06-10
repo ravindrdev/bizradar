@@ -94,25 +94,29 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     <p class="meta">Sign up to access your business intelligence reports.</p>
     <form id="signup-form" autocomplete="off" novalidate>
       <div class="field">
-        <label for="name">Full Name</label>
-        <input id="name" name="name" type="text" required autocomplete="name">
+        <label for="name">Full Name <span style="color:#dc2626;">*</span></label>
+        <input id="name" name="name" type="text" required autocomplete="name" placeholder="John Smith">
       </div>
       <div class="field">
-        <label for="email">Email address</label>
-        <input id="email" name="email" type="email" required autocomplete="email">
+        <label for="email">Email address <span style="color:#dc2626;">*</span></label>
+        <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
       </div>
       <div class="field">
-        <label for="password">Password</label>
+        <label for="phone">Phone number (optional, for report delivery support)</label>
+        <input id="phone" name="phone" type="tel" placeholder="(555) 123-4567" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="password">Password <span style="color:#dc2626;">*</span></label>
         <div class="input-wrap">
-          <input id="password" name="password" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <input id="password" name="password" type="password" class="pw" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
           <button type="button" class="toggle" data-target="password">SHOW</button>
         </div>
-        <div class="hint">Minimum 8 characters.</div>
+        <div class="hint">Min 8 characters, one uppercase, one lowercase, one number</div>
       </div>
       <div class="field">
-        <label for="confirmPassword">Confirm Password</label>
+        <label for="confirmPassword">Confirm Password <span style="color:#dc2626;">*</span></label>
         <div class="input-wrap">
-          <input id="confirmPassword" name="confirmPassword" type="password" class="pw" required minlength="8" autocomplete="new-password">
+          <input id="confirmPassword" name="confirmPassword" type="password" class="pw" required minlength="8" autocomplete="new-password" placeholder="Re-enter password">
           <button type="button" class="toggle" data-target="confirmPassword">SHOW</button>
         </div>
       </div>
@@ -156,6 +160,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
   let pendingEmail = '';
   let pendingName = '';
   let pendingPassword = '';
+  let pendingPhone = '';
   let resendInterval = null;
   let unloadHandler = null;
 
@@ -234,10 +239,12 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     const email = $('email').value.trim();
     const password = $('password').value;
     const confirmPassword = $('confirmPassword').value;
+    const phone = $('phone').value.trim();
 
     if (!name || !email || !password) return showError(errBox, 'All fields are required.');
     if (!validEmail(email)) return showError(errBox, 'Please enter a valid email address.');
     if (password.length < 8) return showError(errBox, 'Password must be at least 8 characters.');
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) return showError(errBox, 'Password must include an uppercase letter, a lowercase letter, and a number.');
     if (password !== confirmPassword) return showError(errBox, 'Passwords do not match.');
 
     const submitBtn = $('submit-btn');
@@ -247,7 +254,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
       const res = await fetch('/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
+        body: JSON.stringify({ name, email, phone, password, confirmPassword }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -259,6 +266,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
       pendingEmail = email;
       pendingName = name;
       pendingPassword = password;
+      pendingPhone = phone;
       $('otp-email').textContent = email;
       attachUnloadCleanup();
       showScreen('screen-otp');
@@ -329,6 +337,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
         body: JSON.stringify({
           name: pendingName,
           email: pendingEmail,
+          phone: pendingPhone,
           password: pendingPassword,
           confirmPassword: pendingPassword,
         }),

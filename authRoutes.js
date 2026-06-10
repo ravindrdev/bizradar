@@ -92,22 +92,24 @@ function validateSignupBody(body) {
   const email = (body.email || '').toString().trim();
   const password = (body.password || '').toString();
   const confirmPassword = (body.confirmPassword || '').toString();
+  const phone = (body.phone || '').toString().trim();
   if (!name) errs.push('Name is required');
   if (!email) errs.push('Email is required');
   else if (!EMAIL_RE.test(email)) errs.push('Invalid email format');
   if (!password) errs.push('Password is required');
   else if (password.length < 8) errs.push('Password must be at least 8 characters');
+  else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) errs.push('Password must include an uppercase letter, a lowercase letter, and a number');
   if (password !== confirmPassword) errs.push('Passwords do not match');
-  return { errs, name, email, password };
+  return { errs, name, email, password, phone };
 }
 
 // ── POST /auth/signup ───────────────────────────────────────────────
 router.post('/signup', async (req, res) => {
   try {
-    const { errs, name, email, password } = validateSignupBody(req.body || {});
+    const { errs, name, email, password, phone } = validateSignupBody(req.body || {});
     if (errs.length) return res.status(400).json({ success: false, error: errs[0] });
 
-    await auth.createPendingUser(name, email, password);
+    await auth.createPendingUser(name, email, password, phone);
     return res.json({ success: true, message: 'OTP sent to your email' });
   } catch (err) {
     return res.status(400).json({ success: false, error: safeAuthError(err, 'Signup failed') });
