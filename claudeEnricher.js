@@ -2165,6 +2165,9 @@ COMPLIANCE RULES — MANDATORY:
 - When suggesting advertising or marketing spend, give illustrative budget ranges and note the owner should adjust based on their own budget and goals. Never present a specific ad budget as the recommended amount.
 - Whenever you mention any price, cost, or dollar figure, always label it as illustrative. For example: "illustrative price: $18 combo (adjust as needed)" not "$18 combo." No dollar figure should appear without the word illustrative or a note that the owner should adjust based on their own costs and market.
 - In all JSON output, never use raw double-quotes inside string values. Use single quotes for emphasis or named items, e.g. 'Picnic at the Hill' not "Picnic at the Hill" inside a JSON string.
+- When citing visitor counts, traffic numbers, or attendance figures for nearby attractions, always search specifically for that attraction's name plus "annual visitors" or "annual attendance." Do not estimate or infer visitor counts from indirect sources. If you cannot find a reliable number, say "visitor count not publicly available" instead of guessing.
+- Always specify exactly what a number represents. Say "House on the Rock attracts approximately X visitors per year (source)" not just "X visitors drive US-14." Never conflate highway traffic with attraction attendance.
+- When using any statistic from web search, cross-check it against at least one other source if possible. If sources disagree significantly, use the most commonly cited figure and note the range.
 `;
 
 // ───────────────────────────────────────────────────────────────────
@@ -4012,7 +4015,7 @@ async function runParallelSearches(queries) {
               {
                 type: 'web_search_20250305',
                 name: 'web_search',
-                max_uses: 1,
+                max_uses: 6,
               },
             ],
             messages: [{ role: 'user', content: query }],
@@ -4078,8 +4081,8 @@ async function callClaudeEnrichA(bundle, searchResults = '') {
   // Build params once so the truncation-retry can clone them with a
   // bumped max_tokens. cache_control is preserved so the retry reads
   // the now-warm system-prompt cache (cheap input).
-  // web_search re-added with max_uses: 5 so Call A can fill gaps not
-  // covered by the pre-fetched results. The 5-search cap prevents the
+  // web_search re-added with max_uses: 17 so Call A can fill gaps not
+  // covered by the pre-fetched results. The 17-search cap prevents the
   // runaway 10-15 search loops that caused the earlier 5-minute
   // termination. Pre-loaded WEB SEARCH RESULTS still prime most facts;
   // the 5 live searches are a last-resort for missing critical details.
@@ -4090,7 +4093,7 @@ async function callClaudeEnrichA(bundle, searchResults = '') {
       {
         type: 'web_search_20250305',
         name: 'web_search',
-        max_uses: 12,
+        max_uses: 17,
       },
     ],
     system: [
@@ -5063,10 +5066,10 @@ async function verifyBusinessClassification(data, layer0Result) {
           {
             type: 'web_search_20250305',
             name: 'web_search',
-            // Audit fix CE2 - bound at 7 searches. The verifier system
-            // prompt mandates ~1-2 searches; 7 is generous headroom
+            // Audit fix CE2 - bound at 12 searches. The verifier system
+            // prompt mandates ~1-2 searches; 12 is generous headroom
             // without runaway cost on a noisy business name.
-            max_uses: 7,
+            max_uses: 12,
           },
         ],
         system: systemPrompt,
@@ -5330,7 +5333,7 @@ async function disambiguateSharedCode(data, menuIds, broadId, allProfiles) {
           {
             type: 'web_search_20250305',
             name: 'web_search',
-            max_uses: 5,
+            max_uses: 10,
           },
         ],
         system: systemPrompt,
