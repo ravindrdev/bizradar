@@ -965,6 +965,15 @@ app.get('/contact',        serveStaticPage('contact.html',        'contact'));
 app.get('/chart-preview',  serveStaticPage('chart_preview.html',  'chart-preview'));
 app.get('/supported',      serveStaticPage('supported.html',      'supported'));
 
+// Programmatic SEO pages: /reports hub + 1,381 business-type pages + dynamic
+// sitemaps (/sitemap.xml index + core + verticals). Registered BEFORE
+// express.static so the sitemap routes take precedence. Fail-soft: if
+// seoData/verticals.json is missing the module logs and registers nothing —
+// the rest of the site is unaffected. Data built by
+// scripts/build-vertical-data.js; pages are SSR'd from one template with an
+// LRU cache (no DB, no external APIs, no auth).
+require('./seoPages').register(app);
+
 app.get('/unsubscribe', async (req, res) => {
   try {
     const result = await auth.unsubscribeByToken(req.query.t);
