@@ -274,7 +274,7 @@ function renderVertical(v) {
 </div></section>
 <main><div class="content">
 
-  <p>GrowthIM generates a ~50-page market intelligence report for your ${esc(name.toLowerCase())} &mdash; who your competitors are, why Google ranks them where it does, what your local market looks like, and exactly what to work on next. It is delivered to your dashboard, typically within 15 to 30 minutes.</p>
+  <p>Most ${esc(name.toLowerCase())} owners are guessing. They don't know which competitor is winning their customers, why Google ranks rivals above them, or what their local market actually supports. GrowthIM ends the guessing with a ~50-page market intelligence report built specifically for your ${esc(name.toLowerCase())} from 27 verified data sources including Google, US Census, and BLS. Inside: competitor breakdowns, review intelligence, local demographics, seasonal demand patterns, risk alerts, priority actions ranked for your specific business, and opportunities nobody else in your market is doing yet. Delivered to your dashboard, typically within 15 to 30 minutes. One report, $29.99, no subscription.</p>
 
   <h2>What your ${esc(name.toLowerCase())} report covers</h2>
   <ul>
@@ -472,7 +472,7 @@ function renderCity(c) {
 </div></section>
 <main><div class="content">
 
-  <p>Run a ~50-page market intelligence report for your business in ${esc(cityLabel)} &mdash; who your local competitors are, what the ${esc(c.city)} market looks like, what your customers&rsquo; reviews reveal, and exactly what to work on next. Delivered to your dashboard, typically within 15 to 30 minutes.</p>
+  <p>Running a business in ${esc(cityLabel)} means competing against every similar business your customers can reach. GrowthIM maps your exact competitive landscape with a ~50-page market intelligence report built from 27 verified data sources covering your specific ${esc(c.city)} market. Inside: real Census demographics for your area, your named local competitors with their ratings and weaknesses, what reviews reveal about you versus them, seasonal demand for your region, priority actions ranked for your business, and opportunities nobody else in your ${esc(c.city)} market is doing yet. Delivered to your dashboard, typically within 15 to 30 minutes. One report, $29.99, no subscription.</p>
 
   <div class="stats">
     ${pop ? `<div class="stat"><div class="n">${pop}</div><div class="l">Population</div></div>` : ''}
