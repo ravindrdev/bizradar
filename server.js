@@ -2288,6 +2288,8 @@ async function classifyPipeline({ sessionId, userId, input, clientPlaceId, res }
     '721110': { broad: 'hospitality.lodging',         menu: ['hospitality.lodging', 'hospitality.resort'] },
     '621111': { broad: 'healthcare.medical_practice', menu: ['healthcare.medical_practice', 'healthcare.plastic_surgery', 'healthcare.dermatology'] },
     '621210': { broad: 'healthcare.dental_practice',  menu: ['healthcare.dental_practice', 'healthcare.orthodontics', 'healthcare.oral_surgery'] },
+    '311813': { broad: 'manufacturing.food_beverage_dtc', menu: ['manufacturing.food_beverage_dtc', 'hospitality.retail_bakery'] },
+    '311821': { broad: 'manufacturing.food_beverage_dtc', menu: ['manufacturing.food_beverage_dtc', 'hospitality.retail_bakery'] },
   };
   const _mc = MERGING_CODES[layer0Result.naics6];
   if (_mc && _mc.menu.length >= 2) {

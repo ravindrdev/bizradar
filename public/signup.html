@@ -111,7 +111,7 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
           <input id="password" name="password" type="password" class="pw" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
           <button type="button" class="toggle" data-target="password">SHOW</button>
         </div>
-        <div class="hint">Min 8 characters, one uppercase, one lowercase, one number</div>
+        <div class="hint">Minimum 8 characters</div>
       </div>
       <div class="field">
         <label for="confirmPassword">Confirm Password <span style="color:#dc2626;">*</span></label>
@@ -244,7 +244,6 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     if (!name || !email || !password) return showError(errBox, 'All fields are required.');
     if (!validEmail(email)) return showError(errBox, 'Please enter a valid email address.');
     if (password.length < 8) return showError(errBox, 'Password must be at least 8 characters.');
-    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) return showError(errBox, 'Password must include an uppercase letter, a lowercase letter, and a number.');
     if (password !== confirmPassword) return showError(errBox, 'Passwords do not match.');
 
     const submitBtn = $('submit-btn');

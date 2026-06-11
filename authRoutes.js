@@ -98,7 +98,6 @@ function validateSignupBody(body) {
   else if (!EMAIL_RE.test(email)) errs.push('Invalid email format');
   if (!password) errs.push('Password is required');
   else if (password.length < 8) errs.push('Password must be at least 8 characters');
-  else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) errs.push('Password must include an uppercase letter, a lowercase letter, and a number');
   if (password !== confirmPassword) errs.push('Passwords do not match');
   return { errs, name, email, password, phone };
 }
