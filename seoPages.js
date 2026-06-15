@@ -382,8 +382,8 @@ function xmlUrl(loc, lastmod, changefreq, priority) {
 }
 
 function sitemapIndexXml() {
-  const lm = DATA.generated;
-  const cityLine = CITY ? `\n  <sitemap><loc>${BASE}/sitemap-cities.xml</loc><lastmod>${CITY.generated}</lastmod></sitemap>` : '';
+  const lm = new Date().toISOString().split('T')[0];
+  const cityLine = CITY ? `\n  <sitemap><loc>${BASE}/sitemap-cities.xml</loc><lastmod>${lm}</lastmod></sitemap>` : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${BASE}/sitemap-core.xml</loc><lastmod>${lm}</lastmod></sitemap>
@@ -392,7 +392,7 @@ function sitemapIndexXml() {
 }
 
 function sitemapCoreXml() {
-  const lm = DATA.generated;
+  const lm = new Date().toISOString().split('T')[0];
   const rows = [
     xmlUrl(BASE + '/', lm, 'weekly', '1.0'),
     xmlUrl(BASE + '/reports', lm, 'weekly', '0.8'),
@@ -407,7 +407,7 @@ function sitemapCoreXml() {
 }
 
 function sitemapVerticalsXml() {
-  const lm = DATA.generated;
+  const lm = new Date().toISOString().split('T')[0];
   const rows = DATA.verticals.map((v) => xmlUrl(`${BASE}/reports/${v.slug}`, lm, 'monthly', '0.6'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
 }
@@ -568,7 +568,7 @@ function renderCityHub() {
 }
 
 function sitemapCitiesXml() {
-  const lm = CITY.generated;
+  const lm = new Date().toISOString().split('T')[0];
   const rows = CITY.cities.map((c) => xmlUrl(`${BASE}/market-analysis/${c.slug}`, lm, 'monthly', '0.6'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
 }
