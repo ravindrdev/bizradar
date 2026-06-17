@@ -43,10 +43,10 @@ const MODEL = 'claude-sonnet-4-6';
 // within model limits. callClaudeEnrichA retries once at
 // Math.round(MAX_TOKENS_A * 1.5) = 27000 if the first attempt still
 // truncates - a 30-page report needs this headroom.
-const MAX_TOKENS_A = 24000;
+const MAX_TOKENS_A = 30000;
 const MAX_TOKENS_B = 12000;
-const MAX_TOKENS_C1 = 18000;
-const MAX_TOKENS_C2 = 26000;
+const MAX_TOKENS_C1 = 25000;
+const MAX_TOKENS_C2 = 35000;
 
 // CACHE REMOVED (cache-integrity fix): the AI enrichment bundle is no
 // longer cached across runs. It was keyed on bundle.business.address,
@@ -837,19 +837,15 @@ OUTPUT FORMAT:
 
 PRIORITY ACTIONS — MANDATORY RULES:
 
-Generate 5-7 priority_actions.
+Generate 9-10 priority_actions.
 
-CAP: MAX 1 action can be review-related (rating, review count,
-review recency, response rate, photo count). The other 4-6 MUST
-be operational, partnership, revenue, seasonal, or competitive.
+CAP: Do NOT generate review-related priority actions (rating, review count, review recency, response rate, photo count). Generate operational, partnership, revenue, seasonal, competitive, marketing, pricing, customer experience, or any other high-impact moves relevant to this business.
 Reason: deterministic registry recommendations are dominated by
 review levers; priority_actions exist to surface the OTHER moves
 the operator can make. Putting 6 review actions in one report is
 the failure mode this section was added to fix.
 
-ORDERING: sort by impact descending (HIGH → MEDIUM → LOW →
-MINIMAL). The 1 allowed review action goes LAST, regardless of
-its impact label.
+ORDERING: sort by impact descending (HIGH → MEDIUM → LOW → MINIMAL).
 
 SPECIFICITY RULES — non-negotiable:
 
@@ -941,9 +937,8 @@ goes LAST" ordering for this specific case):
   cost: '$500-$3,000 one-time build, $20-$80/month hosting'
   timeline: 'This week'
 
-This action counts as ONE of the 5-7 priority_actions (not in
-addition to). The review-action cap (max 1 review-related)
-still applies to the OTHER actions. When website_exists is
+This action counts as ONE of the 9-10 priority_actions (not in
+addition to). No review-related actions should be generated. When website_exists is
 true, do NOT generate this action — let the orange banner stay
 suppressed and use the priority-action slots for normal moves.
 
@@ -2110,7 +2105,7 @@ You do not have verified distance data to nearby cities. Do not invent it. Only 
 
 This applies to every output field — local_context, why_your_business, opportunities, ninety_day_plan, seasonal_strategy, competitor_analysis. ALL of them.
 
-THE 18 OPPORTUNITY CATEGORIES (fallback list — only used when the user prompt does NOT supply a profile-specific opportunity_categories list. Draw from at least 8 of these for the 10 opportunities):
+THE 18 OPPORTUNITY CATEGORIES (fallback list — only used when the user prompt does NOT supply a profile-specific opportunity_categories list. Draw from at least 8 of these for the 15 opportunities):
 1. Sensory experience
 2. Naming and language
 3. Photo moments
@@ -2842,8 +2837,8 @@ ${reviewLines}${valueGapLine}`;
   // system prompt).
   const oppCats = bundle.opportunity_categories;
   const opportunityCategoriesLine = (Array.isArray(oppCats) && oppCats.length)
-    ? `Generate 10 opportunities drawing from at least 8 of the opportunity categories defined in this profile: ${oppCats.join(', ')}.`
-    : `Generate 10 opportunities drawing from at least 8 of the 18 opportunity categories listed in the system prompt (no profile-specific list defined for this sector).`;
+    ? `Generate 15 opportunities drawing from at least 8 of the opportunity categories defined in this profile: ${oppCats.join(', ')}.`
+    : `Generate 15 opportunities drawing from at least 8 of the 18 opportunity categories listed in the system prompt (no profile-specific list defined for this sector).`;
 
   // AI classification correction block - rendered ONLY when Claude
   // Haiku overrode the Layer 0 NAICS (e.g. berry patch initially
@@ -2904,7 +2899,7 @@ Available verified studies (use ONLY these magnitudes and citations):
 ${JSON.stringify(bundle.top3_recommendations.flatMap((r) => r.study_details), null, 2)}
 
 Rules reminder:
-- Generate priority_actions[] (5-7 items) per the PRIORITY ACTIONS - MANDATORY RULES in the system prompt. MAX 1 review-related action; the rest must be operational/partnership/revenue/seasonal/competitive. Order by impact descending; the 1 review action goes LAST.
+- Generate priority_actions[] (9-10 items) per the PRIORITY ACTIONS - MANDATORY RULES in the system prompt. No review-related actions. Generate operational, partnership, revenue, seasonal, competitive, marketing, pricing, customer experience, or any other high-impact moves relevant to this business. Order by impact descending.
 - Be specific to ${b.city || 'this city'}, ${b.state || 'this state'}
 - Name real local businesses, events, landmarks
 - Never invent statistics
@@ -3764,7 +3759,7 @@ function buildUserPromptC2(enriched, bundle) {
   const g = bundle.google || {};
   const c = bundle.competitors || {};
 
-  const opportunities = (enriched.opportunities || []).slice(0, 10);
+  const opportunities = (enriched.opportunities || []).slice(0, 15);
 
   const reviewLines = (g.sample_reviews || []).slice(0, 12).map((r) =>
     `  [${r.stars || '?'}★] ${sanitizeForPrompt(r.text, 400)}`
