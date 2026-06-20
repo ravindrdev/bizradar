@@ -974,6 +974,13 @@ app.get('/supported',      serveStaticPage('supported.html',      'supported'));
 // LRU cache (no DB, no external APIs, no auth).
 require('./seoPages').register(app);
 
+// File-based blog (Phase 1): /blog list + /blog/:slug posts + /sitemap-blog.xml.
+// Registered after seoPages and BEFORE express.static so the post routes take
+// precedence over the static dir. Posts are markdown files in content/blog,
+// parsed with gray-matter + markdown-it and sanitized. Self-contained and
+// fail-soft; reuses seoPages chrome so the blog matches the site exactly.
+require('./blog').register(app);
+
 app.get('/unsubscribe', async (req, res) => {
   try {
     const result = await auth.unsubscribeByToken(req.query.t);

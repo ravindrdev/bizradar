@@ -33,3 +33,6 @@ api_healthcheck_report.md
 
 # Local backups — NEVER commit. .env.bak is a full copy of .env (real secrets).
 *.bak
+
+# Local-only data export — NEVER commit (kept on disk, never staged).
+coverage_list.csv

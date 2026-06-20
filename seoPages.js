@@ -160,6 +160,7 @@ function navHtml() {
     <div style="font-size:9px;font-weight:600;color:#64748B;letter-spacing:0.12em;margin-top:2px;">GROWTH INTELLIGENCE MACHINE</div>
   </div></a>
   <div style="display:flex;gap:10px;align-items:center;">
+    <a href="/blog" class="nav-btn">Blog</a>
     <a href="/reports" class="nav-btn">Business Types</a>
     <a href="/app" class="nav-btn primary">Get Your Report</a>
   </div>
@@ -170,7 +171,7 @@ function footerHtml() {
   return `<footer class="footer"><div class="footer-inner">
   <div style="color:rgba(255,255,255,0.85);font-weight:600;">GrowthIM &copy; 2026</div>
   <div class="footer-center">
-    <a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/refund">Refund Policy</a><a href="/contact">Contact</a><a href="/supported">What We Support</a><a href="/reports">Business Types</a><a href="/market-analysis">Cities</a>
+    <a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/refund">Refund Policy</a><a href="/contact">Contact</a><a href="/supported">What We Support</a><a href="/reports">Business Types</a><a href="/blog">Blog</a><a href="/market-analysis">Cities</a>
   </div>
   <div class="footer-right" style="text-align:right;"><a href="mailto:support@growthim.com">support@growthim.com</a></div>
 </div></footer>`;
@@ -381,13 +382,24 @@ function xmlUrl(loc, lastmod, changefreq, priority) {
   return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 
+// True when at least one publishable post exists in content/blog. Used to add
+// the blog child to the sitemap index. Self-contained fs check so seoPages
+// never has to require blog.js (no require cycle).
+function blogHasPosts() {
+  try {
+    return fs.readdirSync(path.join(__dirname, 'content', 'blog'))
+      .some((f) => /\.md$/i.test(f) && !/^(TEMPLATE|README)\.md$/i.test(f) && !f.startsWith('_') && !f.startsWith('.'));
+  } catch (e) { return false; }
+}
+
 function sitemapIndexXml() {
   const lm = new Date().toISOString().split('T')[0];
   const cityLine = CITY ? `\n  <sitemap><loc>${BASE}/sitemap-cities.xml</loc><lastmod>${lm}</lastmod></sitemap>` : '';
+  const blogLine = blogHasPosts() ? `\n  <sitemap><loc>${BASE}/sitemap-blog.xml</loc><lastmod>${lm}</lastmod></sitemap>` : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${BASE}/sitemap-core.xml</loc><lastmod>${lm}</lastmod></sitemap>
-  <sitemap><loc>${BASE}/sitemap-verticals.xml</loc><lastmod>${lm}</lastmod></sitemap>${cityLine}
+  <sitemap><loc>${BASE}/sitemap-verticals.xml</loc><lastmod>${lm}</lastmod></sitemap>${cityLine}${blogLine}
 </sitemapindex>`;
 }
 
@@ -616,4 +628,7 @@ function register(app) {
     + ' + sitemap routes');
 }
 
-module.exports = { register };
+// register() drives the SEO pages. The remaining exports are shared chrome and
+// helpers (navHtml/footerHtml/CSS/esc/BASE/GA/cached) reused by blog.js so the
+// blog is visually identical to the rest of the site with no duplicated styles.
+module.exports = { register, navHtml, footerHtml, CSS, esc, BASE, GA, cached };
