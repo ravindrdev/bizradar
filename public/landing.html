@@ -1005,8 +1005,10 @@ img { max-width: 100%; display: block; }
     </a>
     <div class="nav-actions">
       <a href="/blog" style="color:rgba(255,255,255,0.82);font-size:14px;font-weight:600;text-decoration:none;padding:0 6px;">Blog</a>
-      <a href="/login.html" class="btn btn-outline-white">Login</a>
-      <a href="/signup.html" class="btn btn-blue">Get Started</a>
+      <span id="nav-auth" style="display:inline-flex;gap:10px;align-items:center;">
+        <a href="/login.html" class="btn btn-outline-white">Login</a>
+        <a href="/signup.html" class="btn btn-blue">Get Started</a>
+      </span>
     </div>
   </div>
 </nav>
@@ -1370,8 +1372,8 @@ function toggleFounderExpanded() {
   fetch('/auth/me', { credentials: 'same-origin' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      if (!d || !d.success) return; // not logged in — keep default CTAs
-      var nav = document.querySelector('.nav-actions');
+      if (!d || !d.success) return; // not logged in, keep default CTAs
+      var nav = document.querySelector('#nav-auth'); // swap only the auth buttons, keep the Blog link
       if (nav) {
         nav.innerHTML =
           '<a href="/dashboard" class="btn btn-outline-white">Dashboard</a>' +
