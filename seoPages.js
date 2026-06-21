@@ -38,6 +38,26 @@ const ORG = {
   areaServed: { '@type': 'Country', name: 'United States' },
 };
 
+// ── Index allowlist ─────────────────────────────────────────────────
+// Only URLs present in indexed_pages.txt stay indexable. Vertical/city pages
+// not in these sets get a noindex robots meta and are dropped from the sitemap.
+// Built once at module load; fully reversible by editing the file. If the file
+// is missing the sets are empty, so every vertical/city page becomes noindex.
+const INDEXED_VERTICALS = new Set();
+const INDEXED_CITIES = new Set();
+try {
+  const lines = fs.readFileSync(path.join(__dirname, 'indexed_pages.txt'), 'utf8').split(/\r?\n/);
+  for (const line of lines) {
+    const s = line.trim();
+    let m;
+    if ((m = s.match(/\/reports\/([^/?#\s]+)\/?$/))) INDEXED_VERTICALS.add(m[1]);
+    else if ((m = s.match(/\/market-analysis\/([^/?#\s]+)\/?$/))) INDEXED_CITIES.add(m[1]);
+  }
+  console.log(`[seo] index allowlist: ${INDEXED_VERTICALS.size} verticals, ${INDEXED_CITIES.size} cities`);
+} catch (e) {
+  console.error('[seo] indexed_pages.txt unavailable, all vertical/city pages set to noindex:', e.message);
+}
+
 let DATA = null;
 try {
   DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'seoData', 'verticals.json'), 'utf8'));
@@ -194,14 +214,14 @@ function footerHtml() {
 </div></footer>`;
 }
 
-function pageShell({ title, desc, canonical, ldBlocks, body }) {
+function pageShell({ title, desc, canonical, ldBlocks, body, noindex }) {
   return `<!doctype html>
 <html lang="en">
 <head>
 ${GA}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)}</title>
+${noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
@@ -347,6 +367,7 @@ function renderVertical(v) {
     canonical,
     ldBlocks: ld,
     body,
+    noindex: !INDEXED_VERTICALS.has(v.slug),
   });
 }
 
@@ -437,7 +458,7 @@ function sitemapCoreXml() {
 
 function sitemapVerticalsXml() {
   const lm = new Date().toISOString().split('T')[0];
-  const rows = DATA.verticals.map((v) => xmlUrl(`${BASE}/reports/${v.slug}`, lm, 'monthly', '0.6'));
+  const rows = DATA.verticals.filter((v) => INDEXED_VERTICALS.has(v.slug)).map((v) => xmlUrl(`${BASE}/reports/${v.slug}`, lm, 'monthly', '0.6'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
 }
 
@@ -549,6 +570,7 @@ function renderCity(c) {
     canonical,
     ldBlocks: ld,
     body,
+    noindex: !INDEXED_CITIES.has(c.slug),
   });
 }
 
@@ -598,7 +620,7 @@ function renderCityHub() {
 
 function sitemapCitiesXml() {
   const lm = new Date().toISOString().split('T')[0];
-  const rows = CITY.cities.map((c) => xmlUrl(`${BASE}/market-analysis/${c.slug}`, lm, 'monthly', '0.6'));
+  const rows = CITY.cities.filter((c) => INDEXED_CITIES.has(c.slug)).map((c) => xmlUrl(`${BASE}/market-analysis/${c.slug}`, lm, 'monthly', '0.6'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
 }
 
