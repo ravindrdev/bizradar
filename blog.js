@@ -26,7 +26,7 @@ const sanitizeHtml = require('sanitize-html');
 // Reuse the exact site chrome + helpers from seoPages (already loaded by the
 // time server.js requires this module). No duplicated styles, no require cycle
 // (seoPages does not require blog).
-const { navHtml, footerHtml, CSS, esc, BASE, GA } = require('./seoPages');
+const { navHtml, footerHtml, CSS, esc, BASE, GA, ORG } = require('./seoPages');
 
 const BLOG_DIR = path.join(__dirname, 'content', 'blog');
 
@@ -243,7 +243,7 @@ ${articleMeta || ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-${ldBlocks.map((o) => '<script type="application/ld+json">' + JSON.stringify(o) + '</script>').join('\n')}
+${[ORG, ...ldBlocks].map((o) => '<script type="application/ld+json">' + JSON.stringify(o) + '</script>').join('\n')}
 <style>${CSS}${BLOG_CSS}</style>
 </head>
 <body>
@@ -277,11 +277,8 @@ function renderPost(post, posts) {
       description: post.description,
       datePublished: post.dateISO,
       dateModified: post.dateISO,
-      author: { '@type': 'Organization', name: 'GrowthIM', url: BASE },
-      publisher: {
-        '@type': 'Organization', name: 'GrowthIM', url: BASE,
-        logo: { '@type': 'ImageObject', url: BASE + '/og-image.png' },
-      },
+      author: { '@id': 'https://growthim.com/#organization' },
+      publisher: { '@id': 'https://growthim.com/#organization' },
       image: ogImage,
       mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
       url: canonical,

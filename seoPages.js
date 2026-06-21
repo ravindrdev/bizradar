@@ -21,6 +21,23 @@ const { LRUCache } = require('lru-cache');
 
 const BASE = 'https://growthim.com';
 
+// One canonical, faceless Organization (no Person/founder). Referenced by @id
+// from every page so search engines merge all GrowthIM pages under one brand
+// entity. Reuses the logo, description, and ContactPoint already in the schema.
+const ORG = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://growthim.com/#organization',
+  name: 'GrowthIM',
+  url: 'https://growthim.com',
+  logo: 'https://growthim.com/og-image.png',
+  description: 'GrowthIM generates a ~50-page market intelligence report for your business, delivered to your dashboard, competitors, demographics, and a clear action plan.',
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', url: 'https://growthim.com/contact' },
+  sameAs: ['https://www.instagram.com/joingrowthim'],
+  knowsAbout: ['market research', 'competitive analysis', 'local market analysis', 'small business market intelligence'],
+  areaServed: { '@type': 'Country', name: 'United States' },
+};
+
 let DATA = null;
 try {
   DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'seoData', 'verticals.json'), 'utf8'));
@@ -197,7 +214,7 @@ ${GA}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-${ldBlocks.map((o) => '<script type="application/ld+json">' + JSON.stringify(o) + '</script>').join('\n')}
+${[ORG, ...ldBlocks].map((o) => '<script type="application/ld+json">' + JSON.stringify(o) + '</script>').join('\n')}
 <style>${CSS}</style>
 </head>
 <body>
@@ -260,7 +277,7 @@ function renderVertical(v) {
       '@context': 'https://schema.org', '@type': 'Service',
       name: `${name} Market Analysis Report`,
       description: `A ~50-page market intelligence report for a ${name.toLowerCase()}: competitors, demographics, review insights, and a 90-day action plan.`,
-      provider: { '@type': 'Organization', name: 'GrowthIM', url: BASE },
+      provider: { '@id': 'https://growthim.com/#organization' },
       areaServed: 'US',
       url: canonical,
       offers: { '@type': 'Offer', price: '29.99', priceCurrency: 'USD', url: BASE + '/app' },
@@ -469,7 +486,7 @@ function renderCity(c) {
       '@context': 'https://schema.org', '@type': 'Service',
       name: `${cityLabel} Market Analysis Report`,
       description: `A ~50-page market intelligence report for businesses in ${cityLabel}: competitors, local demographics, review insights, and a 90-day action plan.`,
-      provider: { '@type': 'Organization', name: 'GrowthIM', url: BASE },
+      provider: { '@id': 'https://growthim.com/#organization' },
       areaServed: cityLabel,
       url: canonical,
       offers: { '@type': 'Offer', price: '29.99', priceCurrency: 'USD', url: BASE + '/app' },
@@ -631,4 +648,4 @@ function register(app) {
 // register() drives the SEO pages. The remaining exports are shared chrome and
 // helpers (navHtml/footerHtml/CSS/esc/BASE/GA/cached) reused by blog.js so the
 // blog is visually identical to the rest of the site with no duplicated styles.
-module.exports = { register, navHtml, footerHtml, CSS, esc, BASE, GA, cached };
+module.exports = { register, navHtml, footerHtml, CSS, esc, BASE, GA, cached, ORG };
